@@ -42,9 +42,13 @@ Route::middleware('auth')->group(function () {
     // Main IDE view
     Route::get('/ide', [IdeController::class, 'index'])->name('ide.index');
 
-    // Challenges Page
-    Route::get('/challenges', [ChallengesController::class, 'challenges'])->name('challenges');
+    // Challenges System
+// Challenges System
+    Route::get('/challenges', [ChallengesController::class, 'index'])->name('challenges');
+    Route::get('/challenges/map/{slug}', [ChallengesController::class, 'map'])->name('challenges.map');
     
+    // Add this new route for the invite code modal
+    Route::post('/challenges/enroll', [ChallengesController::class, 'enrollOrganization'])->name('challenges.enroll');
     // The Learning Room (NetAcad interface)
     Route::get('/module', [ModuleController::class, 'showModules'])->name('module');
     Route::get('/module/{module}/lesson/{lesson?}', [LessonController::class, 'show'])->name('lesson.show');
