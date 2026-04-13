@@ -6,7 +6,9 @@
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>DataSensei — My Profile</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  
+  <script>
+    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
+</script>
   <style>
     :root {
       /* DataSensei Original Core Palette */

@@ -6,10 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('modules', function (Blueprint $table) {
             $table->id();
@@ -21,13 +18,23 @@ return new class extends Migration
             $table->integer('order_index');
             $table->timestamps();
         });
+        // We only need to create the module_user table.
+        // modules.order_index and lesson_user already exist!
+        Schema::create('module_user', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('module_id')->constrained()->cascadeOnDelete();
+            $table->boolean('is_unlocked')->default(false);
+            $table->boolean('is_completed')->default(false);
+            $table->timestamps();
+            
+            // A student can only have one progress record per module
+            $table->unique(['user_id', 'module_id']);
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('modules');
+        Schema::dropIfExists('module_user');
     }
 };

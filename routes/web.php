@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/challenges', [ChallengesController::class, 'challenges'])->name('challenges');
     
     // The Learning Room (NetAcad interface)
+    Route::get('/module', [ModuleController::class, 'showModules'])->name('module');
     Route::get('/module/{module}/lesson/{lesson?}', [LessonController::class, 'show'])->name('lesson.show');
     Route::post('/lesson/{lesson}/complete', [LessonController::class, 'complete'])->name('lesson.complete');
 

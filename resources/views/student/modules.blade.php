@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DataSensei — Modules</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
+</script>
   <style>
     :root {
       --bg:          #0d1320;
@@ -37,7 +40,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── SIDEBAR STYLES (Truncated for brevity, matches your existing) ── */
+    /* ── SIDEBAR STYLES ── */
     .sidebar { width: 260px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
     .sidebar-logo { padding: 24px; border-bottom: 1px solid var(--border); }
     .sidebar-logo .wordmark { font-weight: 700; font-size: 1.25rem; letter-spacing: -0.025em; color: var(--text); display: flex; align-items: center; gap: 8px; }
@@ -98,8 +101,13 @@
     .year-label { display: flex; align-items: center; gap: 12px; font-size: 0.75rem; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
     .year-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
     .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .module-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; transition: border-color 0.2s, transform 0.15s; position: relative; }
+    .module-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; position: relative; }
     .module-card.unlocked:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+    
+    /* 🚀 GREEN COMPLETED STYLES 🚀 */
+    .module-card.completed { border-color: rgba(16,185,129,0.3); }
+    .module-card.completed:hover { border-color: rgba(16,185,129,0.6); box-shadow: 0 4px 12px rgba(16,185,129,0.05); transform: translateY(-2px); }
+    
     .module-card.locked { opacity: 0.55; }
     .module-card.locked:hover { opacity: 0.7; }
     .module-stripe { height: 3px; width: 100%; }
@@ -108,11 +116,12 @@
     
     /* Status Badges */
     .module-status-badge { display: flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 4px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; }
-    .badge-unlocked { background: rgba(16,185,129,0.12); color: var(--accent3); }
+    .badge-completed { background: rgba(16,185,129,0.12); color: var(--accent3); }
+    .badge-unlocked { background: rgba(245,158,11,0.12); color: var(--accent4); }
     .badge-locked { background: rgba(127,147,176,0.1); color: var(--muted); }
     .badge-inprogress { background: rgba(59,130,246,0.12); color: var(--accent); }
     
-    .module-title { font-size: 0.9375rem; font-weight: 600; color: var(--text); line-height: 1.35; }
+    .module-title { font-size: 0.9375rem; font-weight: 600; color: var(--text); line-height: 1.35; padding-right: 18px; }
     .module-locked .module-title { color: var(--muted); }
     .module-desc { font-size: 0.8125rem; color: var(--muted); line-height: 1.55; flex: 1; }
     .module-meta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -136,7 +145,11 @@
     .btn-locked { background: transparent; color: var(--dim); border-color: var(--border); cursor: not-allowed; }
     .btn-review { background: rgba(16,185,129,0.1); color: var(--accent3); border-color: rgba(16,185,129,0.2); }
     .btn-review:hover { background: rgba(16,185,129,0.18); }
-    .lock-overlay { position: absolute; top: 14px; right: 14px; color: var(--dim); }
+    
+    /* 🚀 TOP RIGHT OVERLAYS 🚀 */
+    .status-overlay { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; justify-content: center; }
+    .status-overlay.locked { color: var(--dim); }
+    .status-overlay.completed { color: #fff; background: var(--accent3); border-radius: 50%; width: 22px; height: 22px; box-shadow: 0 0 10px rgba(16,185,129,0.4); }
 
     /* Scrollbars */
     ::-webkit-scrollbar { width: 6px; }
@@ -152,40 +165,24 @@
 <body>
 
   @php
-    // Get completed lessons from auth user
+    // Look strictly at the DB arrays passed from ModuleController
+    $unlockedIds = $unlockedModuleIds ?? [];
+    $completedIds = $completedModuleIds ?? [];
+    
     $completedLessonIds = Auth::check() ? Auth::user()->completedLessons->pluck('id')->toArray() : [];
     
-    // Overall Stats tracking
     $totalModules = $modules->count();
-    $unlockedCount = 0;
-    $completedModulesCount = 0;
-    
-    // Calculate global stats before rendering
-    $prevCompleted = true; // First module is always unlocked
-    foreach($modules as $m) {
-        $tLessons = $m->lessons->count();
-        $cLessons = $m->lessons->whereIn('id', $completedLessonIds)->count();
-        $pct = $tLessons > 0 ? round(($cLessons / $tLessons) * 100) : 0;
-        
-        if ($prevCompleted) { $unlockedCount++; }
-        if ($pct === 100 && $tLessons > 0) { $completedModulesCount++; }
-        
-        // Update condition for the *next* module in the loop
-        $prevCompleted = ($pct === 100 && $tLessons > 0);
-    }
+    $completedModulesCount = count($completedIds);
+    $unlockedCount = count($unlockedIds) > 0 ? count($unlockedIds) : 1; 
     
     $overallProgress = $totalModules > 0 ? round(($completedModulesCount / $totalModules) * 100) : 0;
     
-    // UI Labels mapping
     $yearLabels = [
         'Year 1' => 'First Year — Foundations',
         'Year 2' => 'Second Year — Core Methods',
         'Year 3' => 'Third Year — Advanced Analytics',
         'Year 4' => 'Fourth Year — Specialization',
     ];
-    
-    // Reset tracker for the actual UI rendering loop below
-    $globalUnlockTracker = true; 
   @endphp
 
   @include('partials.sidebar')
@@ -249,7 +246,6 @@
 
       @foreach($modules->groupBy('year_level') as $year => $yearModules)
         @php
-          // Converts "Year 1" into "year1" for the JS filter
           $yearDataAttr = strtolower(str_replace(' ', '', $year));
         @endphp
 
@@ -259,28 +255,36 @@
 
             @foreach($yearModules as $module)
               @php
-                // Individual Module Progress Math
+                // Progress Bar Math (Lesson Level)
                 $tLessons = $module->lessons->count();
                 $cLessons = $module->lessons->whereIn('id', $completedLessonIds)->count();
                 $progressPct = $tLessons > 0 ? round(($cLessons / $tLessons) * 100) : 0;
-                
-                $isCompleted = ($progressPct === 100 && $tLessons > 0);
                 $isInProgress = ($progressPct > 0 && $progressPct < 100);
                 
-                // Is this module unlocked?
-                $isUnlocked = $globalUnlockTracker;
-                $statusDataAttr = $isUnlocked ? 'unlocked' : 'locked';
-
-                // Update tracker for the NEXT iteration
-                $globalUnlockTracker = $isCompleted;
+                // EXACT STATUS FROM DATABASE (Module Level)
+                $isCompleted = in_array($module->id, $completedIds);
+                $isUnlocked = ($module->order_index == 1) || in_array($module->id, $unlockedIds);
+                
+                // Determine CSS wrapper class
+                if ($isCompleted) {
+                    $statusDataAttr = 'completed';
+                } elseif ($isUnlocked) {
+                    $statusDataAttr = 'unlocked';
+                } else {
+                    $statusDataAttr = 'locked';
+                }
               @endphp
 
               <div class="module-card {{ $statusDataAttr }}" data-status="{{ $statusDataAttr }}" data-year="{{ $yearDataAttr }}">
                 
-                <div class="module-stripe" style="background: var({{ $isUnlocked ? '--accent3' : '--dim' }})"></div>
+                <div class="module-stripe" style="background: var({{ $isCompleted ? '--accent3' : ($isUnlocked ? '--accent' : '--dim') }})"></div>
                 
-                @if(!$isUnlocked)
-                  <div class="lock-overlay">
+                @if($isCompleted)
+                  <div class="status-overlay completed" title="Module Completed">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                @elseif(!$isUnlocked)
+                  <div class="status-overlay locked">
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                   </div>
                 @endif
@@ -288,15 +292,15 @@
                 <div class="module-card-body">
                   <div class="module-card-top">
                     @if($isCompleted)
-                      <span class="module-status-badge badge-unlocked">
-                        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg> Completed
+                      <span class="module-status-badge badge-completed">
+                        <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Completed
                       </span>
                     @elseif($isInProgress)
                       <span class="module-status-badge badge-inprogress">
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg> In Progress
                       </span>
                     @elseif($isUnlocked)
-                      <span class="module-status-badge badge-inprogress" style="background: rgba(245,158,11,0.12); color: var(--accent4);">
+                      <span class="module-status-badge badge-unlocked">
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg> Unlocked
                       </span>
                     @else
@@ -327,7 +331,6 @@
                     </div>
                     <div class="prog-bar">
                       @php
-                        // Determine progress bar color
                         $barColor = '--accent';
                         if($isCompleted) $barColor = '--accent3';
                         if(!$isUnlocked) $barColor = '--dim';
@@ -360,7 +363,6 @@
   </div>
 
   <script>
-    // Animate progress bars on load
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.prog-fill').forEach(el => {
         const target = el.style.width;
@@ -369,7 +371,6 @@
       });
     });
 
-    // JS Filtering Engine
     function filterModules(type, btn) {
       document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
@@ -380,7 +381,7 @@
       cards.forEach(card => {
         let show = false;
         if (type === 'all')      show = true;
-        else if (type === 'unlocked') show = card.dataset.status === 'unlocked';
+        else if (type === 'unlocked') show = card.dataset.status === 'unlocked' || card.dataset.status === 'completed';
         else if (type === 'locked')   show = card.dataset.status === 'locked';
         else show = card.dataset.year === type;
         card.style.display = show ? '' : 'none';
@@ -392,7 +393,6 @@
       });
     }
 
-    // JS Search Engine
     document.getElementById('searchInput').addEventListener('input', function () {
       const q = this.value.toLowerCase();
       const groups = document.querySelectorAll('.year-group');

@@ -535,7 +535,7 @@ const IDE = (() => {
     } finally { runBtn.disabled = false; runBtn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run`; }
   }
 
-  let _modalCallback = null; let _modalParentId = null; let _modalType = null;
+let _modalCallback = null; let _modalParentId = null; let _modalType = null; let _renameId = null;
   function promptCreate(type, parentId) { _modalType = type; _modalParentId = parentId; _modalCallback = 'create'; document.getElementById('modal-title').textContent = type === 'file' ? 'New File' : 'New Folder'; document.getElementById('modal-input').value = type === 'file' ? 'untitled.py' : 'new-folder'; document.getElementById('modal-bg').classList.add('open'); setTimeout(() => { const inp = document.getElementById('modal-input'); inp.focus(); inp.select(); }, 50); }
   function promptRename(id, currentName) { _renameId = id; _modalCallback = 'rename'; document.getElementById('modal-title').textContent = 'Rename'; document.getElementById('modal-input').value = currentName; document.getElementById('modal-bg').classList.add('open'); setTimeout(() => { const inp = document.getElementById('modal-input'); inp.focus(); inp.select(); }, 50); }
   function closeModal() { document.getElementById('modal-bg').classList.remove('open'); _modalCallback = null; }

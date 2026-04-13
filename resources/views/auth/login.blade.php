@@ -603,7 +603,6 @@
 
 @php
     // Logic to determine which tab should be active on page load
-    // If there's an old input for 'name', they were trying to register.
     $isRegisterTab = old('name') || $errors->has('name') || request()->is('register');
 @endphp
 
@@ -811,6 +810,23 @@
             @error('password')
               <div class="field-error" style="display:block;">{{ $message }}</div>
             @enderror
+          </div>
+
+          <div class="field" id="f-pwd-conf-reg">
+            <label class="field-label" for="reg-pwd-conf">Confirm Password</label>
+            <div class="field-wrap">
+              <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+                <rect x="2.5" y="7" width="11" height="7.5" rx="1.5"/>
+                <path d="M5 7V5a3 3 0 016 0v2"/>
+              </svg>
+              <input class="field-input" type="password" name="password_confirmation" id="reg-pwd-conf" placeholder="Type password again" required autocomplete="new-password" style="padding-right: 40px;">
+              <button class="pwd-toggle" onclick="togglePwd('reg-pwd-conf', this)" type="button">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
+                  <ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/>
+                  <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <button type="submit" class="cta-btn" id="reg-btn" style="margin-top: 4px;">Create account</button>

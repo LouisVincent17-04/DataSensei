@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DataSensei — Student Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
+</script>
   <style>
     :root {
       --bg:          #0d1320;

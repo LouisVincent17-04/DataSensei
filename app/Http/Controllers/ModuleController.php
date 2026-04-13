@@ -2,20 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Module; // <-- CRITICAL: You must include this line at the top!
+use App\Models\Module; 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ModuleController extends Controller
 {
     public function showModules()
     {
-        // 1. Fetch all modules and eagerly load their lessons from the database
         $modules = Module::with('lessons')->orderBy('order_index', 'asc')->get();
 
-        // 2. Pass the $modules variable into your view
-        return view('student.modules', compact('modules')); 
-        
-        // Note: If your view is inside a folder (e.g., resources/views/student/modules.blade.php), 
-        // change it to return view('student.modules', compact('modules'));
+        // Pull exact statuses from the database pivot table
+        $unlockedModuleIds = Auth::user()->modules()
+                                  ->wherePivot('is_unlocked', true)
+                                  ->pluck('modules.id')
+                                  ->toArray();
+
+        $completedModuleIds = Auth::user()->modules()
+                                  ->wherePivot('is_completed', true)
+                                  ->pluck('modules.id')
+                                  ->toArray();
+
+        return view('student.modules', compact('modules', 'unlockedModuleIds', 'completedModuleIds')); 
     }
 }
