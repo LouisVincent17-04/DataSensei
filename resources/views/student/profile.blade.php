@@ -8,34 +8,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script>
     window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
-</script>
+  </script>
   <style>
     :root {
-      /* DataSensei Original Core Palette */
       --bg:           #0d1320;
       --surface:      #111c2d;
       --surface2:     #1a2638;
       --border:       #1e2f47;
       --border-hover: #2c4168;
-      
-      /* Gamification Accents */
       --accent:       #3b82f6; 
       --accent-hover: #2563eb;
-      --accent2:      #8b5cf6; 
-      --accent3:      #10b981; 
       --warn:         #ef4444; 
       --warn2:        #f59e0b; 
-      
-      /* Typography */
       --text:         #fafafa;
       --muted:        #7f93b0;
       --dim:          #3d5272;
-      
-      /* Geometry */
       --radius:       8px;
       --radius-sm:    6px;
       --topbar-h:     64px;
-      --sidebar-w:    260px;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,163 +34,73 @@
       font-family: 'Inter', sans-serif;
       background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      overflow-x: hidden;
+      margin: 0;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── SIDEBAR STYLES (Required for include format) ── */
-    .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: sticky; top: 0; }
-    .sidebar-logo { padding: 24px; border-bottom: 1px solid var(--border); }
-    .sidebar-logo .wordmark { font-weight: 700; font-size: 1.25rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
-    .sidebar-logo .wordmark span { color: var(--accent); }
-    .sidebar-logo .tagline { font-size: 0.75rem; color: var(--muted); margin-top: 4px; font-weight: 500; }
-    .nav-group { padding: 24px 16px 0; }
-    .nav-label { font-size: 0.75rem; font-weight: 600; color: var(--dim); letter-spacing: 0.05em; text-transform: uppercase; padding: 0 12px; margin-bottom: 8px; }
-    .nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.875rem; font-weight: 500; color: var(--muted); text-decoration: none; margin-bottom: 2px; transition: all 0.15s; }
-    .nav-item:hover { background: var(--surface2); color: var(--text); }
-    .nav-item.active { background: var(--surface2); color: var(--text); border-left: 3px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-    .nav-item .icon { width: 18px; height: 18px; color: inherit; }
-    .sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-    .user-card { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s; }
-    .user-card:hover { background: var(--surface2); }
-    .user-card .avatar { width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; }
-    .user-card .name { font-size: 0.875rem; font-weight: 600; }
-    .user-card .role { font-size: 0.75rem; color: var(--muted); }
+    /* Standard Layout Wrapper */
+    .page-layout-wrapper { display: flex; min-height: 100vh; }
+
+    /* ── NAMESPACED PROFILE COMPONENTS ── */
+    .page-profile-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; min-width: 0; }
+
+    /* Topbar */
+    .page-profile-topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; z-index: 10; }
+    .page-profile-topbar h1 { font-size: 1.125rem; font-weight: 600; color: var(--text); flex: 1; }
+    .page-profile-topbar-btn { width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all 0.15s; position: relative; }
+    .page-profile-topbar-btn:hover { color: var(--text); border-color: var(--border-hover); }
+    .page-profile-notif-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; border: 2px solid var(--bg); }
+
+    /* Content Area */
+    .page-profile-content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+    .page-profile-content-inner { max-width: 1100px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px; }
+
+    /* Profile Header Card */
+    .page-profile-header-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; }
+    .page-profile-info-section { padding: 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+    .page-profile-identity { display: flex; align-items: center; gap: 24px; }
     
-    .logout-form { width: 100%; }
-    .logout-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.875rem; font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s ease; text-align: left; }
-    .logout-btn:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); color: var(--warn); }
+    .page-profile-avatar-large { width: 90px; height: 90px; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border-hover); display: flex; align-items: center; justify-content: center; font-size: 2.25rem; font-weight: 700; color: var(--accent); position: relative; flex-shrink: 0; }
+    .page-profile-avatar-upload { position: absolute; bottom: -8px; right: -8px; width: 30px; height: 30px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+    .page-profile-avatar-upload:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .page-profile-text h2 { font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .page-profile-text p { font-size: 0.875rem; color: var(--muted); }
     
-    .badge { margin-left: auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
+    .page-profile-badges { display: flex; gap: 8px; margin-top: 10px; }
+    .page-profile-badge { font-size: 0.65rem; font-weight: 600; padding: 4px 8px; border-radius: 4px; border: 1px solid; letter-spacing: 0.05em; text-transform: uppercase; }
+    .page-profile-badge-ds { color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1); }
+    .page-profile-badge-rank { color: var(--warn2); border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.1); }
 
-    /* ── MAIN APP AREA ── */
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .page-profile-stats-row { display: flex; gap: 32px; padding-left: 24px; border-left: 1px solid var(--border); }
+    .page-profile-stat { display: flex; flex-direction: column; align-items: flex-start; }
+    .page-profile-stat .val { font-size: 1.375rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .page-profile-stat .lbl { font-size: 0.7rem; font-weight: 500; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 6px; }
 
-    /* ── TOPBAR ── */
-    .topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; z-index: 10; }
-    .topbar h1 { font-size: 1.125rem; font-weight: 600; color: var(--text); flex: 1; }
+    /* Tabs */
+    .page-profile-tabs { display: flex; gap: 32px; padding: 0 32px; background: var(--surface); border-radius: 0 0 var(--radius) var(--radius); }
+    .page-profile-tab { padding: 16px 0; font-size: 0.875rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; text-decoration: none; }
+    .page-profile-tab:hover { color: var(--text); }
+    .page-profile-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* Grid & Cards */
+    .page-profile-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
     
-    .topbar-btn { width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all 0.15s; position: relative; }
-    .topbar-btn:hover { color: var(--text); border-color: var(--border-hover); }
+    .page-profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; }
+    .page-profile-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .page-profile-card-title { font-weight: 600; font-size: 1rem; color: var(--text); }
+    .page-profile-card-subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .page-profile-card-body { padding: 24px; flex: 1; }
 
-    /* ── CONTENT AREA ── */
-    .content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
-    .content-inner { max-width: 1100px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px; }
-
-    /* ── PROFILE HEADER CARD ── */
-    .profile-header-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .profile-info-section {
-      padding: 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .profile-identity {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
-
-    .profile-avatar-large {
-      width: 90px; height: 90px;
-      border-radius: 12px;
-      background: var(--surface2);
-      border: 1px solid var(--border-hover);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2.25rem; font-weight: 700; color: var(--accent);
-      position: relative;
-      flex-shrink: 0;
-    }
-
-    .avatar-upload {
-      position: absolute;
-      bottom: -8px; right: -8px;
-      width: 30px; height: 30px;
-      border-radius: 50%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .avatar-upload:hover { 
-      background: var(--accent); 
-      border-color: var(--accent);
-      color: #fff; 
-    }
-
-    .profile-text h2 { font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-    .profile-text p { font-size: 0.875rem; color: var(--muted); }
+    /* Forms */
+    .page-profile-form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .page-profile-form-group:last-child { margin-bottom: 0; }
+    .page-profile-form-group label { font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
     
-    .profile-badges { display: flex; gap: 8px; margin-top: 10px; }
-    .profile-badge { font-size: 0.65rem; font-weight: 600; padding: 4px 8px; border-radius: 4px; border: 1px solid; letter-spacing: 0.05em; text-transform: uppercase; }
-    .badge-ds { color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1); }
-    .badge-rank { color: var(--warn2); border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.1); }
-
-    .profile-stats-row { display: flex; gap: 32px; padding-left: 24px; border-left: 1px solid var(--border); }
-    .p-stat { display: flex; flex-direction: column; align-items: flex-start; }
-    .p-stat .val { font-size: 1.375rem; font-weight: 700; color: var(--text); line-height: 1; }
-    .p-stat .lbl { font-size: 0.7rem; font-weight: 500; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 6px; }
-
-    /* ── TABS ── */
-    .profile-tabs {
-      display: flex;
-      gap: 32px;
-      padding: 0 32px;
-      background: var(--surface);
-      border-radius: 0 0 var(--radius) var(--radius);
-    }
-    .p-tab {
-      padding: 16px 0;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--muted);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.15s;
-      text-decoration: none;
-    }
-    .p-tab:hover { color: var(--text); }
-    .p-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-    /* ── PROFILE LAYOUT GRID ── */
-    .profile-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 24px;
-    }
-
-    /* ── CARDS ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      display: flex; flex-direction: column;
-    }
-    .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .card-title { font-weight: 600; font-size: 1rem; color: var(--text); }
-    .card-subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-    .card-body { padding: 24px; flex: 1; }
-
-    /* ── FORMS ── */
-    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-    .form-group:last-child { margin-bottom: 0; }
-    
-    label { font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
-    
-    input[type="text"], input[type="email"], textarea, select {
+    .page-profile-form-group input[type="text"], 
+    .page-profile-form-group input[type="email"], 
+    .page-profile-form-group textarea, 
+    .page-profile-form-group select {
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -212,74 +112,78 @@
       transition: border-color 0.15s;
       width: 100%;
     }
-    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
-    textarea { resize: vertical; min-height: 80px; }
+    .page-profile-form-group input:focus, 
+    .page-profile-form-group textarea:focus, 
+    .page-profile-form-group select:focus { border-color: var(--accent); }
+    .page-profile-form-group textarea { resize: vertical; min-height: 80px; }
 
-    .form-actions {
-      display: flex; justify-content: flex-end; gap: 12px;
-      margin-top: 12px; padding-top: 24px; border-top: 1px solid var(--border);
-    }
+    .page-profile-form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 12px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .page-profile-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; font-family: inherit; }
+    .page-profile-btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .page-profile-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .page-profile-btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+    .page-profile-btn-ghost:hover { background: var(--surface2); }
+    
+    .page-profile-btn-danger { width: 100%; border: 1px solid var(--warn); color: var(--warn); background: rgba(239,68,68,0.1); }
+    .page-profile-btn-danger:hover { background: rgba(239,68,68,0.2); }
 
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; font-family: inherit; }
-    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
-    .btn-ghost:hover { background: var(--surface2); }
+    /* Danger Note */
+    .page-profile-danger-note { font-size: 0.8125rem; color: var(--muted); margin-bottom: 16px; }
 
-    /* ── SCROLLBAR ── */
+    /* Scrollbars */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
 
-    /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
-      .profile-grid { grid-template-columns: 1fr; }
-      .profile-info-section { flex-direction: column; align-items: flex-start; gap: 32px; }
-      .profile-stats-row { padding-left: 0; border-left: none; width: 100%; justify-content: space-between; }
+      .page-profile-grid { grid-template-columns: 1fr; }
+      .page-profile-info-section { flex-direction: column; align-items: flex-start; gap: 32px; }
+      .page-profile-stats-row { padding-left: 0; border-left: none; width: 100%; justify-content: space-between; }
     }
     @media (max-width: 700px) {
-      .sidebar { display: none; }
-      .profile-identity { flex-direction: column; align-items: center; text-align: center; width: 100%; }
-      .profile-badges { justify-content: center; }
-      .profile-info-section { padding: 24px; }
+      .page-profile-identity { flex-direction: column; align-items: center; text-align: center; width: 100%; }
+      .page-profile-badges { justify-content: center; }
+      .page-profile-info-section { padding: 24px; }
+      .page-profile-tabs { padding: 0 16px; gap: 20px; }
     }
   </style>
 </head>
 <body>
 
+<div class="page-layout-wrapper">
   @include('partials.sidebar')
 
-  <div class="main">
+  <div class="page-profile-main">
 
-    <header class="topbar">
+    <header class="page-profile-topbar">
       <h1>Account Settings</h1>
       
-      <div class="topbar-btn" title="Notifications">
+      <div class="page-profile-topbar-btn" title="Notifications">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        <span class="notif-dot"></span>
+        <span class="page-profile-notif-dot"></span>
       </div>
     </header>
 
-    <main class="content">
-      <div class="content-inner">
+    <main class="page-profile-content">
+      <div class="page-profile-content-inner">
 
-        <div class="profile-header-card">
-          <div class="profile-info-section">
+        <div class="page-profile-header-card">
+          <div class="page-profile-info-section">
             
-            <div class="profile-identity">
-              <div class="profile-avatar-large">
+            <div class="page-profile-identity">
+              <div class="page-profile-avatar-large">
                 @if (auth()->check() && auth()->user()->name)
                   {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 @else
                   L
                 @endif
-                <div class="avatar-upload" title="Change Avatar">
+                <div class="page-profile-avatar-upload" title="Change Avatar">
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 </div>
               </div>
               
-              <div class="profile-text">
+              <div class="page-profile-text">
                 <h2>
                   @if (auth()->check())
                     {{ auth()->user()->name }}
@@ -288,23 +192,23 @@
                   @endif
                 </h2>
                 <p>student@datasensei.ph</p>
-                <div class="profile-badges">
-                  <span class="profile-badge badge-ds">Data Science Track</span>
-                  <span class="profile-badge badge-rank">Top 10% Overall</span>
+                <div class="page-profile-badges">
+                  <span class="page-profile-badge page-profile-badge-ds">Data Science Track</span>
+                  <span class="page-profile-badge page-profile-badge-rank">Top 10% Overall</span>
                 </div>
               </div>
             </div>
 
-            <div class="profile-stats-row">
-              <div class="p-stat">
+            <div class="page-profile-stats-row">
+              <div class="page-profile-stat">
                 <div class="val">2,485</div>
                 <div class="lbl">Total XP</div>
               </div>
-              <div class="p-stat">
+              <div class="page-profile-stat">
                 <div class="val">142</div>
                 <div class="lbl">Solved</div>
               </div>
-              <div class="p-stat">
+              <div class="page-profile-stat">
                 <div class="val">12</div>
                 <div class="lbl">Day Streak</div>
               </div>
@@ -312,45 +216,45 @@
 
           </div>
 
-          <div class="profile-tabs">
-            <div class="p-tab active">General Details</div>
-            <a href="{{ route('change-password') }}" class="p-tab">Security & Passwords</a>
+          <div class="page-profile-tabs">
+            <div class="page-profile-tab active">General Details</div>
+            <a href="{{ route('change-password') }}" class="page-profile-tab">Security & Passwords</a>
           </div>
         </div>
 
-        <div class="profile-grid">
+        <div class="page-profile-grid">
           
           <div style="display:flex; flex-direction:column; gap:24px;">
             
-            <div class="card">
-              <div class="card-header">
+            <div class="page-profile-card">
+              <div class="page-profile-card-header">
                 <div>
-                  <div class="card-title">Personal Information</div>
-                  <div class="card-subtitle">Update your basic profile details.</div>
+                  <div class="page-profile-card-title">Personal Information</div>
+                  <div class="page-profile-card-subtitle">Update your basic profile details.</div>
                 </div>
               </div>
-              <div class="card-body">
+              <div class="page-profile-card-body">
                 <form action="#" method="POST">
                   @csrf
                   
-                  <div class="form-group">
+                  <div class="page-profile-form-group">
                     <label>Full Name</label>
                     <input type="text" name="name" value="{{ auth()->check() ? auth()->user()->name : 'Louis Santos' }}" placeholder="Enter full name" />
                   </div>
 
-                  <div class="form-group">
+                  <div class="page-profile-form-group">
                     <label>Email Address</label>
                     <input type="email" name="email" value="{{ auth()->check() ? auth()->user()->email : 'student@datasensei.ph' }}" placeholder="Enter email" />
                   </div>
 
-                  <div class="form-group">
+                  <div class="page-profile-form-group">
                     <label>Bio</label>
                     <textarea name="bio" placeholder="Write a short bio about your learning goals...">Aspiring Data Scientist with a focus on Machine Learning and Predictive Analytics. Currently diving deep into Python and PyTorch.</textarea>
                   </div>
 
-                  <div class="form-actions">
-                    <button type="button" class="btn btn-ghost">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                  <div class="page-profile-form-actions">
+                    <button type="button" class="page-profile-btn page-profile-btn-ghost">Cancel</button>
+                    <button type="submit" class="page-profile-btn page-profile-btn-primary">Save Changes</button>
                   </div>
                 </form>
               </div>
@@ -360,26 +264,28 @@
 
           <div style="display:flex; flex-direction:column; gap:24px;">
             
-            <div class="card">
-              <div class="card-header">
+            <div class="page-profile-card">
+              <div class="page-profile-card-header">
                 <div>
-                  <div class="card-title">Danger Zone</div>
-                  <div class="card-subtitle">Permanent account actions.</div>
+                  <div class="page-profile-card-title">Danger Zone</div>
+                  <div class="page-profile-card-subtitle">Permanent account actions.</div>
                 </div>
               </div>
-              <div class="card-body">
-                <p style="font-size: 0.8125rem; color: var(--muted); margin-bottom: 16px;">
+              <div class="page-profile-card-body">
+                <p class="page-profile-danger-note">
                   If you delete your account, all your progress, IDE saves, and code submissions will be permanently lost.
                 </p>
-                <button class="btn" style="width:100%; border: 1px solid var(--warn); color: var(--warn); background: rgba(239,68,68,0.1);">Delete Account</button>
+                <button class="page-profile-btn page-profile-btn-danger">Delete Account</button>
               </div>
             </div>
 
           </div>
 
-        </div> </div>
+        </div> 
+      </div>
     </main>
   </div>
+</div>
 
 </body>
 </html>

@@ -41,168 +41,6 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
-    /* ── SIDEBAR ── */
-    .sidebar {
-      width: 260px;
-      min-height: 100vh;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
-    }
-
-    .sidebar-logo {
-      padding: 24px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .sidebar-logo .wordmark {
-      font-weight: 700;
-      font-size: 1.25rem;
-      letter-spacing: -0.025em;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .sidebar-logo .wordmark span { color: var(--accent); }
-
-    .sidebar-logo .tagline {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 4px;
-      font-weight: 500;
-    }
-
-    .nav-group { padding: 24px 16px 0; }
-
-    .nav-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--dim);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      padding: 0 12px;
-      margin-bottom: 8px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--muted);
-      transition: all 0.15s ease;
-      text-decoration: none;
-      margin-bottom: 2px;
-    }
-
-    .nav-item:hover { background: var(--surface2); color: var(--text); }
-
-    .nav-item.active {
-      background: var(--surface2);
-      color: var(--text);
-      border-left: 3px solid var(--accent);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-    }
-
-    .nav-item .icon {
-      width: 18px; height: 18px;
-      flex-shrink: 0;
-      color: var(--muted);
-      transition: color 0.15s ease;
-    }
-
-    .nav-item:hover .icon { color: var(--text); }
-    .nav-item.active .icon { color: var(--accent); }
-
-    .badge {
-      margin-left: auto;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 12px;
-    }
-
-    /* ── SIDEBAR FOOTER ── */
-    .sidebar-footer {
-      margin-top: auto;
-      padding: 16px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .user-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .user-card:hover { background: var(--surface2); }
-
-    .avatar {
-      width: 36px; height: 36px;
-      border-radius: var(--radius-sm);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 0.875rem;
-      color: var(--text);
-      flex-shrink: 0;
-    }
-
-    .user-info .name  { font-size: 0.875rem; font-weight: 600; color: var(--text); }
-    .user-info .role  { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-
-    /* Logout */
-    .logout-form { width: 100%; }
-
-    .logout-btn {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      font-size: 0.875rem;
-      font-weight: 500;
-      font-family: 'Inter', sans-serif;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      text-align: left;
-    }
-
-    .logout-btn:hover {
-      background: rgba(239,68,68,0.08);
-      border-color: rgba(239,68,68,0.3);
-      color: var(--warn);
-    }
-
     /* ── MAIN ── */
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -312,8 +150,6 @@
     .btn-ghost    { background: var(--surface2); color: var(--text); border-color: var(--border); }
     .btn-ghost:hover  { background: var(--border); }
 
-
-
     /* ── STAT CARDS ── */
     .stats-row {
       display: grid;
@@ -353,8 +189,6 @@
       letter-spacing: -0.02em;
       font-variant-numeric: tabular-nums;
     }
-
-
 
     .stat-bar {
       height: 4px; background: var(--surface2);
@@ -603,7 +437,6 @@
     @media (max-width: 1100px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
     @media (max-width: 900px)  { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
     @media (max-width: 700px)  {
-      .sidebar { display: none; }
       .stats-row { grid-template-columns: 1fr; }
       .welcome-banner { flex-direction: column; align-items: flex-start; }
     }
@@ -611,10 +444,8 @@
 </head>
 <body>
 
-  <!-- ── SIDEBAR ── -->
   @include('partials.sidebar')
 
-  <!-- ── MAIN ── -->
   <div class="main">
 
     <header class="topbar">
@@ -634,7 +465,14 @@
 
     <main class="content">
 
-      <!-- WELCOME BANNER -->
+      @php 
+      
+        $modulesCompleted = DB::table('module_user')->where('user_id', Auth::id())->count(); 
+        $totalModules = DB::table('modules')->count();
+        $moduleProgress = $totalModules > 0 ? round(($modulesCompleted / $totalModules) * 100) : 0;
+      
+      @endphp
+
       <section class="welcome-banner">
         <div class="welcome-text">
           @auth
@@ -648,10 +486,8 @@
             <button class="btn btn-ghost" onclick="window.location.href='/ide'">Open IDE Workspace</button>
           </div>
         </div>
-
       </section>
 
-      <!-- STAT CARDS -->
       <div class="stats-row">
         <div class="stat-card">
           <div class="stat-header">
@@ -661,10 +497,9 @@
             </div>
           </div>
           <div class="stat-main">
-            <span class="stat-value">5</span>
-
+            <span class="stat-value">@php echo $modulesCompleted."(".$moduleProgress."%)"; @endphp</span>
           </div>
-          <div class="stat-bar"><div class="stat-bar-fill" style="width:62%;background:var(--accent)"></div></div>
+          <div class="stat-bar"><div class="stat-bar-fill" style="width:<?php echo $moduleProgress; ?>%;background:var(--accent)"></div></div>
         </div>
 
         <div class="stat-card">
@@ -676,7 +511,6 @@
           </div>
           <div class="stat-main">
             <span class="stat-value">87%</span>
-
           </div>
           <div class="stat-bar"><div class="stat-bar-fill" style="width:87%;background:var(--accent3)"></div></div>
         </div>
@@ -690,7 +524,6 @@
           </div>
           <div class="stat-main">
             <span class="stat-value">142</span>
-
           </div>
           <div class="stat-bar"><div class="stat-bar-fill" style="width:71%;background:var(--accent2)"></div></div>
         </div>
@@ -704,13 +537,11 @@
           </div>
           <div class="stat-main">
             <span class="stat-value">38h</span>
-
           </div>
           <div class="stat-bar"><div class="stat-bar-fill" style="width:55%;background:var(--accent4)"></div></div>
         </div>
       </div>
 
-      <!-- MODULES + ACTIVITY -->
       <div class="grid-2">
 
         <div class="card">
@@ -731,21 +562,6 @@
               </div>
             </div>
           </div>
-{{-- 
-          <div class="card-body">
-            <div class="module-list">
-              <div class="module-item">
-                <div class="module-info">
-                  <div class="module-name">No Active Module</div>
-                  <div class="module-meta">Go To Modules</div>
-                </div>
-                <div class="module-progress">
-                  <div class="module-pct">100%</div>
-                  <div class="prog-bar"><div class="prog-fill" style="width:100%;background:var(--accent3)"></div></div>
-                </div>
-              </div>
-            </div>
-          </div> --}}
         </div>
 
         <div class="card">
@@ -805,7 +621,6 @@
 
       </div>
 
-      <!-- CHART + CHALLENGES | LEADERBOARD + DEADLINES -->
       <div class="grid-3">
 
         <div style="display:flex;flex-direction:column;gap:24px;">
@@ -931,10 +746,8 @@
                   <span class="lb-name">
                     @if (auth()->check())
                       {{ auth()->user()->name}}.
-                    
                     @else
                       User
-                      
                     @endif 
                   <span class="lb-you-tag">You</span></span>
                   <span class="lb-pts">2,485 pts</span>

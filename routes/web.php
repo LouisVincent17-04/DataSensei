@@ -46,7 +46,8 @@ Route::middleware('auth')->group(function () {
 // Challenges System
     Route::get('/challenges', [ChallengesController::class, 'index'])->name('challenges');
     Route::get('/challenges/map/{slug}', [ChallengesController::class, 'map'])->name('challenges.map');
-    
+    Route::get('/challenges/{slug}/quiz/{challenge}', [ChallengesController::class, 'showQuiz'])->name('challenges.quiz');
+    Route::post('/challenges/{slug}/quiz/{challenge}/submit', [ChallengesController::class, 'submitQuiz'])->name('challenges.quiz.submit');
     // Add this new route for the invite code modal
     Route::post('/challenges/enroll', [ChallengesController::class, 'enrollOrganization'])->name('challenges.enroll');
     // The Learning Room (NetAcad interface)
