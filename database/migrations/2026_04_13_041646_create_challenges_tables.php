@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('time_limit_seconds')->default(600); // e.g., 10 mins
             $table->integer('base_xp')->default(100);
             $table->integer('order_index'); // For ordering challenges in the map
+            $table->tinyInteger('is_coding_challenge')->default(0); // 0 = quiz, 1 = coding challenge
             $table->timestamps();
         });
 

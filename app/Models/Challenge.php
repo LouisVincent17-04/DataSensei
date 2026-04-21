@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Challenge extends Model
 {
-    protected $fillable = ['challenge_category_id', 'title', 'description', 'time_limit_seconds', 'base_xp', 'order_index'];
+    protected $fillable = ['challenge_category_id', 'title', 'description', 'time_limit_seconds', 'base_xp', 'order_index', 'is_coding_challenge'];
 
     public function questions()
     {

@@ -8,16 +8,16 @@ use App\Models\ChallengeCategory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class ChallengeTitlesSeeder extends Seeder
+class CodingChallengeTitlesSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        Schema::disableForeignKeyConstraints();
-        DB::table('challenges')->truncate(); // Clear existing challenges to prevent duplicates
-        Schema::enableForeignKeyConstraints();
+        // Schema::disableForeignKeyConstraints();
+        // DB::table('challenges')->truncate(); // Clear existing challenges to prevent duplicates
+        // Schema::enableForeignKeyConstraints();
         // 1. Fetch all 5 categories (Newbie, University, etc.)
         $categories = ChallengeCategory::all();
 
@@ -64,8 +64,8 @@ class ChallengeTitlesSeeder extends Seeder
 
         
         // 3. Seed all 24 titles into all 5 categories (120 total challenges)
-        $default_time_limit = 900; // Default 15 minutes for all challenges (can be overridden in specific question seeders if needed)
-        $default_xp = 500; // Default XP for all challenges (can be overridden in specific question seeders if needed)
+        $default_time_limit = 1200; // Default 15 minutes for all challenges (can be overridden in specific question seeders if needed)
+        $default_xp = 600; // Default XP for all challenges (can be overridden in specific question seeders if needed)
         foreach ($categories as $category) {
             $order_index= 1;
             foreach ($modules as $module) {
@@ -78,11 +78,12 @@ class ChallengeTitlesSeeder extends Seeder
                     'time_limit_seconds' => $default_time_limit,
                     'base_xp' => $default_xp,
                     'order_index' => $order_index,
+                    'is_coding_challenge' => 1, // Mark this as a coding challenge
                 ]);
                 $order_index++;
             }
-            $default_time_limit += 600; // Increase time limit by 1 minute for each category (just as an example)
-            $default_xp += 250; // Increase XP by 100 for each category (
+            $default_time_limit += 900; // Increase time limit by 1 minute for each category (just as an example)
+            $default_xp += 300; // Increase XP by 100 for each category (
         }
     }
 }

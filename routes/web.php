@@ -43,15 +43,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/ide', [IdeController::class, 'index'])->name('ide.index');
 
     // Challenges System
-// Challenges System
     Route::get('/challenges', [ChallengesController::class, 'index'])->name('challenges');
     Route::get('/challenges/map/{slug}', [ChallengesController::class, 'map'])->name('challenges.map');
     Route::get('/challenges/{slug}/quiz/{challenge}', [ChallengesController::class, 'showQuiz'])->name('challenges.quiz');
     Route::post('/challenges/{slug}/quiz/{challenge}/submit', [ChallengesController::class, 'submitQuiz'])->name('challenges.quiz.submit');
+
+    // Coding Challenge System
+    Route::get('/challenges/coding', [ChallengesController::class, 'codingIndex'])->name('coding-challenges'); // TO CHANGE CLASS
+    Route::get('/challenges/coding/{slug}', [ChallengesController::class, 'codingMap'])->name('coding-challenges.map'); // TO CHANGE CLASS
+    Route::get('/challenges/coding/{slug}/challenge/{challenge}', [ChallengesController::class, 'showCodingQuiz'])->name('coding-challenges.quiz'); // TO CHANGE CLASS
+    Route::post('/challenges/coding/{slug}/challenge/{challenge}/submit', [ChallengesController::class, 'submitCodingQuiz'])->name('coding-challenges.submit'); // TO CHANGE CLASS
+
     // Add this new route for the invite code modal
     Route::post('/challenges/enroll', [ChallengesController::class, 'enrollOrganization'])->name('challenges.enroll');
     // The Learning Room (NetAcad interface)
     Route::get('/module', [ModuleController::class, 'showModules'])->name('module');
+     Route::get('/module', [ModuleController::class, 'showModules'])->name('modules.index');
     Route::get('/module/{module}/lesson/{lesson?}', [LessonController::class, 'show'])->name('lesson.show');
     Route::post('/lesson/{lesson}/complete', [LessonController::class, 'complete'])->name('lesson.complete');
 
