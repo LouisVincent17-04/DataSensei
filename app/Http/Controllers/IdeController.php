@@ -15,7 +15,6 @@ class IdeController extends Controller
     // ─────────────────────────────────────────────────────────────
     //  MAIN VIEW
     // ─────────────────────────────────────────────────────────────
-
     public function index()
     {
         $user      = Auth::user();
@@ -32,7 +31,6 @@ class IdeController extends Controller
     // ─────────────────────────────────────────────────────────────
     //  TREE BUILDER
     // ─────────────────────────────────────────────────────────────
-
     private function buildTree(IdeWorkspace $workspace): array
     {
         $allNodes = IdeNode::where('workspace_id', $workspace->id)
@@ -81,7 +79,6 @@ class IdeController extends Controller
     // ─────────────────────────────────────────────────────────────
     //  NODE CRUD
     // ─────────────────────────────────────────────────────────────
-
     public function storeNode(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -102,12 +99,11 @@ class IdeController extends Controller
                          ->where('name', $validated['name'])
                          ->exists();
 
-        // 🚀 COLLISION FIX: Return specific collision flag for frontend
         if ($exists) {
             return response()->json([
                 'error' => 'A file or folder with that name already exists here.', 
                 'collision' => true
-            ], 409); // 409 Conflict
+            ], 409);
         }
 
         $node = IdeNode::create([
@@ -135,7 +131,6 @@ class IdeController extends Controller
         return response()->json(['node' => $node]);
     }
 
-    // 🚀 NEW MOVE ROUTE WITH COLLISION HANDLING 🚀
     public function moveNode(Request $request, IdeNode $node): JsonResponse
     {
         $this->authorizeNode($node);
@@ -145,22 +140,18 @@ class IdeController extends Controller
             'new_name'  => 'nullable|string|max:255'
         ]);
         
-        // Prevent moving a folder into itself
         if ($validated['parent_id'] == $node->id) {
             return response()->json(['error' => 'Cannot move a folder into itself.'], 422);
         }
 
-        // Use the new name if provided (during a collision fix), otherwise use current name
         $targetName = $validated['new_name'] ?? $node->name;
         
-        // Check for collisions in the destination folder
         $exists = IdeNode::where('workspace_id', $node->workspace_id)
                          ->where('parent_id', $validated['parent_id'] ?? null)
                          ->where('name', $targetName)
                          ->where('id', '!=', $node->id)
                          ->exists();
 
-        // 🚀 COLLISION FIX: Return 409 Conflict
         if ($exists) {
             return response()->json([
                 'error' => 'A file named "' . $targetName . '" already exists in this location.',
@@ -220,9 +211,8 @@ class IdeController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  RUN (Sandboxed Workspace Execution)
+    //  RUN (Persistent Workspace Execution)
     // ─────────────────────────────────────────────────────────────
-
     public function runNode(Request $request, IdeNode $node): JsonResponse
     {
         $this->authorizeNode($node);
@@ -238,66 +228,64 @@ class IdeController extends Controller
             return response()->json(['error' => 'Python 3 not found on server.'], 500);
         }
 
-        // ── 1. Create a Unique Sandbox Directory ──
-        $sandboxId = 'ds_run_' . Auth::id() . '_' . bin2hex(random_bytes(4));
-        $sandboxPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $sandboxId;
+        // ── 1. Create a PERSISTENT Workspace Directory ──
+        // Instead of a random sandboxId, we use the User ID for consistency.
+        $workspacePath = storage_path('app' . DIRECTORY_SEPARATOR . 'workspaces' . DIRECTORY_SEPARATOR . 'user_' . Auth::id());
         
-        if (!file_exists($sandboxPath)) {
-            mkdir($sandboxPath, 0777, true);
+        if (!file_exists($workspacePath)) {
+            mkdir($workspacePath, 0777, true);
         }
 
         try {
-            // ── 2. Sync all nodes (folders + files) preserving directory structure ──
+            // ── 2. Sync all nodes (folders + files) to the permanent disk ──
             $allNodes = IdeNode::where('workspace_id', $node->workspace_id)
                                ->orderByRaw("type = 'folder' DESC")
                                ->get()
                                ->keyBy('id');
 
-            $resolvePath = function (IdeNode $n) use (&$resolvePath, $allNodes, $sandboxPath): string {
+            $resolvePath = function (IdeNode $n) use (&$resolvePath, $allNodes, $workspacePath): string {
                 $parts = [$n->name];
                 $current = $n;
                 while (!is_null($current->parent_id) && $allNodes->has($current->parent_id)) {
                     $current = $allNodes->get($current->parent_id);
                     array_unshift($parts, $current->name);
                 }
-                return $sandboxPath . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $parts);
+                return $workspacePath . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $parts);
             };
 
             foreach ($allNodes as $n) {
                 $fullPath = $resolvePath($n);
                 if ($n->type === 'folder') {
-                    if (!file_exists($fullPath)) {
-                        mkdir($fullPath, 0777, true);
-                    }
+                    if (!file_exists($fullPath)) mkdir($fullPath, 0777, true);
                 } else {
                     $dir = dirname($fullPath);
-                    if (!file_exists($dir)) {
-                        mkdir($dir, 0777, true);
-                    }
+                    if (!file_exists($dir)) mkdir($dir, 0777, true);
+                    
                     $content = ($n->id == $node->id)
                         ? ($request->input('content', $n->content) ?? '')
                         : ($n->content ?? '');
+                    
                     if ($n->id == $node->id) {
-                        $content = $this->getPlotShim() . "\n" . $this->getPathShim($sandboxPath) . "\n" . $content;
+                        $content = $this->getPlotShim() . "\n" . $this->getPathShim($workspacePath) . "\n" . $content;
                     }
                     file_put_contents($fullPath, $content);
                 }
             }
 
-            // ── 3. Prepare Environment variables for Sandbox ──
-            $descriptors = [
-                0 => ['pipe', 'r'],
-                1 => ['pipe', 'w'],
-                2 => ['pipe', 'w'],
-            ];
+            // ── 3. Prepare Environment Variables (Fixed for Windows & Matplotlib) ──
+            $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+
+            // Drive/Path logic for Windows Home determination
+            $drive = substr($workspacePath, 0, 2);
+            $pathOnly = substr($workspacePath, 2);
 
             $env = array_merge($_ENV, $_SERVER);
-            $env['HOME'] = $sandboxPath;
-            $env['USERPROFILE'] = $sandboxPath;
-            $env['HOMEDRIVE'] = 'C:';
-            $env['HOMEPATH'] = str_replace('C:', '', $sandboxPath);
-            $env['MPLBACKEND'] = 'Agg';
-            $env['MPLCONFIGDIR'] = $sandboxPath;
+            $env['HOME']         = $workspacePath;
+            $env['USERPROFILE']  = $workspacePath; // Fix for Path.home()
+            $env['HOMEDRIVE']    = $drive;         // Fix for Windows
+            $env['HOMEPATH']     = $pathOnly;      // Fix for Windows
+            $env['MPLBACKEND']   = 'Agg';          // Server-side plot rendering
+            $env['MPLCONFIGDIR'] = $workspacePath; // Force matplotlib to use workspace for config
 
             $runningFilePath = $resolvePath($node);
             $runningFileDir  = dirname($runningFilePath);
@@ -326,9 +314,8 @@ class IdeController extends Controller
                 $exitCode = 1;
             }
         } finally {
-            if (file_exists($sandboxPath)) {
-                File::deleteDirectory($sandboxPath);
-            }
+            // REMOVED: File::deleteDirectory($sandboxPath). 
+            // We leave the files on disk for persistence (SQLite/Data files).
         }
 
         $elapsed = (int) round((microtime(true) - $start) * 1000);

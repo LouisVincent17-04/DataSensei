@@ -217,13 +217,30 @@
 
     function launchIDE(button) {
       const windowContainer = button.closest('.code-window');
-      const codeElement = windowContainer.querySelector('.code-content');
-      const rawCode = codeElement.innerText;
 
-      sessionStorage.setItem('datasensei_pending_code', rawCode.trim());
+      // Read the language label from the header bar (e.g. "SQL — SELECT Basics"
+      // or "PYTHON — Connect to SQLite"). This is the first <span> inside the
+      // dark header div that sits directly before the button's parent row.
+      const headerBar  = windowContainer.querySelector('div:first-child');
+      const labelSpan  = headerBar ? headerBar.querySelector('span') : null;
+      const labelText  = labelSpan ? labelSpan.innerText.trim().toUpperCase() : '';
+
+      const codeElement = windowContainer.querySelector('.code-content');
+      const rawCode = codeElement.innerText.trim();
+
+      // Always store the return URL so both destinations can show "Back to Lesson"
       sessionStorage.setItem('datasensei_return_url', window.location.href);
 
-      window.location.href = "{{ route('ide.index') }}";
+      // ── Route decision ────────────────────────────────────────────────────
+      // Labels that begin with "SQL" contain pure SQL — send to the SQL Sandbox.
+      // Everything else (PYTHON, or mixed Python+SQL) goes to the Python IDE.
+      if (labelText.startsWith('SQL')) {
+        sessionStorage.setItem('datasensei_pending_sql_code', rawCode);
+        window.location.href = "{{ route('sql-sandbox.index') }}";
+      } else {
+        sessionStorage.setItem('datasensei_pending_code', rawCode);
+        window.location.href = "{{ route('ide.index') }}";
+      }
     }
   </script>
 

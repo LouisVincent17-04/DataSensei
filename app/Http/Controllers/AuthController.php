@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\Module;
+use App\Http\Controllers\SqlSandboxController;
 
 class AuthController extends Controller
 {
@@ -14,10 +15,10 @@ class AuthController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
 
-            if ($user->role == User::ROLE_SUPERADMIN) return redirect('/superadmin/dashboard'); 
-            if ($user->role == User::ROLE_ADMIN) return redirect('/admin/dashboard'); 
-            if ($user->role == User::ROLE_INSTRUCTOR) return redirect('/instructor/dashboard'); 
-            if ($user->role == User::ROLE_STUDENT) return redirect('/student/dashboard'); 
+            if ($user->role == User::ROLE_SUPERADMIN)  return redirect('/superadmin/dashboard'); 
+            if ($user->role == User::ROLE_ADMIN)        return redirect('/admin/dashboard'); 
+            if ($user->role == User::ROLE_INSTRUCTOR)   return redirect('/instructor/dashboard'); 
+            if ($user->role == User::ROLE_STUDENT)      return redirect('/student/dashboard'); 
 
             return redirect('/');
         }
@@ -28,7 +29,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required',
         ]);
 
@@ -36,10 +37,15 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
 
-            if ($user->role == User::ROLE_SUPERADMIN) return redirect('/superadmin/dashboard');
-            if ($user->role == User::ROLE_ADMIN) return redirect('/admin/dashboard');
-            if ($user->role == User::ROLE_INSTRUCTOR) return redirect('/instructor/dashboard');
-            if ($user->role == User::ROLE_STUDENT) return redirect('/student/dashboard');
+            // Ensure the sandbox DB exists for accounts created before this fix.
+            // touch() is a no-op when the file is already there, so this is safe
+            // to run on every login with zero performance cost.
+            SqlSandboxController::provisionSandbox($user->id);
+
+            if ($user->role == User::ROLE_SUPERADMIN)  return redirect('/superadmin/dashboard');
+            if ($user->role == User::ROLE_ADMIN)        return redirect('/admin/dashboard');
+            if ($user->role == User::ROLE_INSTRUCTOR)   return redirect('/instructor/dashboard');
+            if ($user->role == User::ROLE_STUDENT)      return redirect('/student/dashboard');
 
             return redirect('/auth/login');
         }
@@ -51,27 +57,33 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        // Added 'role' validation to ensure nobody tampers with the form
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
-            'role' => 'required|in:student,educator' // Matches your radio button values
+            'role'     => 'required|in:student,educator',
         ]);
 
-        // Translate the string from the form into your integer constants
-        $assignedRole = ($request->role === 'educator') ? User::ROLE_INSTRUCTOR : User::ROLE_STUDENT;
+        $assignedRole = ($request->role === 'educator')
+            ? User::ROLE_INSTRUCTOR
+            : User::ROLE_STUDENT;
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
+            'name'     => $request->name,
+            'email'    => $request->email,
             'password' => $request->password,
-            'role' => $assignedRole // Dynamically assigned!
+            'role'     => $assignedRole,
         ]);
+
+        // ── Provision the user's private SQL Sandbox database ─────────────────
+        // This creates storage/app/sandbox/user_{id}.sqlite so that the sandbox
+        // is ready the first time the user visits /sql-sandbox, without them
+        // having to run any query first.
+        SqlSandboxController::provisionSandbox($user->id);
 
         Auth::login($user);
 
-        // 🚀 AUTO-UNLOCK THE FIRST MODULE (Only for Students) 🚀
+        // ── Auto-unlock the first module for students ─────────────────────────
         if ($user->role == User::ROLE_STUDENT) {
             $firstModule = Module::orderBy('order_index', 'asc')->first();
             if ($firstModule) {
@@ -80,7 +92,6 @@ class AuthController extends Controller
             return redirect('/student/dashboard')->with('success', 'Welcome to DataSensei!');
         }
 
-        // Redirect instructors to their specific dashboard
         if ($user->role == User::ROLE_INSTRUCTOR) {
             return redirect('/instructor/dashboard')->with('success', 'Welcome Educator!');
         }

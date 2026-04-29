@@ -63,23 +63,25 @@
       <span class="badge">3</span>
     </a>
 
-    <a href="{{ route('coding-challenges', ['slug' => 'example-slug']) }}"
-       class="nav-item {{ request()->routeIs('coding-challenges') ? 'active' : '' }}">
-      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-      </svg>
-      Coding Challenges
-      <span class="badge">3</span>
-    </a>
+  <a href="{{ route('challenges.coding', ['slug' => 'example-slug']) }}"
+    class="nav-item {{ request()->routeIs('challenges.coding', 'challenges.coding.map', 'challenges.coding.quiz') ? 'active' : '' }}">
+    <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect>
+      <line x1="2" y1="20" x2="22" y2="20"></line>
+    </svg>
+    Coding Challenges
+    <span class="badge">3</span>
+  </a>
 
 
-    <a href="#" class="nav-item">
+  <a href="{{ route('sql-sandbox.index') }}" class="nav-item">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"></path>
+          <path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"></path>
       </svg>
-      Sandbox
-    </a>
+      SQL Sandbox
+  </a>
 
     <a href="#" class="nav-item">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

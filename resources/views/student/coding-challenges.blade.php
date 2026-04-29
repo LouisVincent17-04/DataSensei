@@ -137,7 +137,7 @@
 
     <div class="page-challenges-hero">
       <h1 class="page-challenges-hero-title">Select Your <span>Challenge Path</span></h1>
-      <p class="page-challenges-hero-subtitle">Choose your starting point based on your current experience level to receive a personalized curriculum map.</p>
+      <p class="page-challenges-hero-subtitle">Choose your starting point based on your current experience level to receive a personalized curriculum map. Some modules do not include coding challenges due to the theoretical nature of their topics.</p>
     </div>
 
     <div class="page-challenges-alert-container">
@@ -179,7 +179,7 @@
             </div>
           </div>
         @else
-          <a href="{{ route('coding-challenges.map', $cat->slug) }}" class="page-challenges-card">
+          <a href="{{ route('challenges.coding.map', $cat->slug) }}" class="page-challenges-card">
             <div class="page-challenges-card-icon">
               {!! $cat->icon_svg !!}
             </div>
