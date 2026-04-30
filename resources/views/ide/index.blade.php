@@ -56,7 +56,6 @@
     .ab-btn { width: 36px; height: 36px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--dim); border: none; background: transparent; transition: all 0.15s; position: relative; }
     .ab-btn:hover, .ab-btn.active { color: var(--text); background: var(--surface2); }
     .ab-btn.active::before { content: ''; position: absolute; left: -1px; width: 3px; height: 24px; background: var(--accent); border-radius: 0 3px 3px 0; }
-    
     /* EXPLORER (D&D TARGET) */
     .explorer { width: var(--explorer-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; transition: background 0.2s; }
     .explorer.drag-zone-active { background: rgba(59,130,246,0.05); border: 1px dashed var(--accent); }
@@ -144,6 +143,150 @@
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes fadeOut { 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
     .save-flash { animation: fadeOut 1.8s ease forwards; }
+
+    /* ═══════════════════════════════════════════════════
+       🤖 AI REVIEW CHATBOT WIDGET
+    ═══════════════════════════════════════════════════ */
+    #rb-toggle {
+      position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--accent); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 18px rgba(59,130,246,0.4);
+      transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+      color: #fff;
+    }
+    #rb-toggle:hover { background: var(--accent-hover); transform: scale(1.08); box-shadow: 0 6px 24px rgba(59,130,246,0.5); }
+    #rb-toggle:active { transform: scale(0.95); }
+    #rb-toggle .rb-icon-chat, #rb-toggle .rb-icon-close { transition: opacity 0.15s, transform 0.15s; }
+    #rb-toggle .rb-icon-close { position: absolute; opacity: 0; transform: rotate(-90deg) scale(0.7); }
+    #rb-toggle.rb-open .rb-icon-chat  { opacity: 0; transform: rotate(90deg) scale(0.7); }
+    #rb-toggle.rb-open .rb-icon-close { opacity: 1; transform: rotate(0deg) scale(1); }
+    /* pulsing dot — hidden once panel is open */
+    #rb-toggle .rb-dot {
+      position: absolute; top: 7px; right: 7px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent3); border: 2px solid var(--bg);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    #rb-toggle.rb-has-review .rb-dot { opacity: 1; animation: rbPulse 2s ease-in-out infinite; }
+    #rb-toggle.rb-open .rb-dot { opacity: 0 !important; animation: none; }
+    @keyframes rbPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+
+    #rb-panel {
+      position: fixed; bottom: 82px; right: 24px; z-index: 1000;
+      width: 360px; height: 510px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+      opacity: 0; pointer-events: none;
+      transform: translateY(14px) scale(0.97);
+      transform-origin: bottom right;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    #rb-panel.rb-open { opacity: 1; pointer-events: all; transform: translateY(0) scale(1); }
+
+    .rb-header {
+      height: 46px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 9px; padding: 0 12px;
+      background: var(--surface3); border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+    .rb-header-icon {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.22);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent); flex-shrink: 0;
+    }
+    .rb-header-title { font-size: 0.8rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+    .rb-header-sub   { font-size: 0.67rem; color: var(--muted); }
+    .rb-status {
+      margin-left: auto; display: flex; align-items: center; gap: 5px;
+      font-size: 0.67rem; color: var(--accent3);
+    }
+    .rb-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); }
+    .rb-status.rb-busy .rb-status-dot { background: var(--warn2); animation: rbPulse 0.7s ease-in-out infinite; }
+    .rb-status.rb-busy span { color: var(--warn2); }
+
+    #rb-msgs {
+      flex: 1; overflow-y: auto; padding: 12px 10px;
+      display: flex; flex-direction: column; gap: 10px;
+      scroll-behavior: smooth;
+    }
+    #rb-msgs::-webkit-scrollbar { width: 3px; }
+    #rb-msgs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .rb-msg { display: flex; gap: 7px; align-items: flex-start; animation: rbMsgIn 0.18s ease; }
+    @keyframes rbMsgIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+    .rb-msg.rb-user { flex-direction: row-reverse; }
+    .rb-avatar {
+      width: 24px; height: 24px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700; flex-shrink: 0;
+    }
+    .rb-msg.rb-bot  .rb-avatar { background: rgba(59,130,246,0.13); border: 1px solid rgba(59,130,246,0.22); color: var(--accent); }
+    .rb-msg.rb-user .rb-avatar { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.2); color: var(--accent3); }
+    .rb-body { flex: 1; min-width: 0; }
+    .rb-msg.rb-user .rb-body { display: flex; flex-direction: column; align-items: flex-end; }
+    .rb-bubble {
+      display: inline-block; padding: 8px 11px; border-radius: 9px;
+      font-size: 0.78rem; line-height: 1.55; max-width: 100%; word-break: break-word;
+    }
+    .rb-msg.rb-user .rb-bubble {
+      background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.18);
+      color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+      white-space: pre-wrap; text-align: left; max-height: 120px; overflow-y: auto;
+    }
+    .rb-msg.rb-bot .rb-bubble {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); width: 100%;
+    }
+    /* Formatted review sections */
+    .rb-section { font-size: 0.68rem; font-weight: 700; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin: 8px 0 3px; padding-bottom: 3px; border-bottom: 1px solid var(--border); }
+    .rb-section:first-child { margin-top: 0; }
+    .rb-section.ok   { color: var(--accent3); }
+    .rb-section.err  { color: var(--warn); }
+    .rb-section.warn { color: var(--warn2); }
+    .rb-bullet { display: flex; gap: 6px; font-size: 0.76rem; color: var(--muted); line-height: 1.5; padding: 1px 0; }
+    .rb-bullet::before { content: '›'; color: var(--accent); flex-shrink: 0; font-weight: 700; }
+    .rb-code { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 9px; margin: 5px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #93c5fd; white-space: pre-wrap; word-break: break-word; overflow-x: auto; }
+    .rb-line { font-size: 0.76rem; color: var(--muted); line-height: 1.55; padding: 1px 0; }
+    /* Typing indicator */
+    .rb-typing .rb-bubble { padding: 11px 13px; }
+    .rb-dots { display: flex; gap: 4px; align-items: center; height: 13px; }
+    .rb-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: rbDot 1.2s ease-in-out infinite; }
+    .rb-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .rb-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes rbDot { 0%,80%,100%{transform:scale(0.7);opacity:0.4} 40%{transform:scale(1.1);opacity:1} }
+
+    /* Input area */
+    .rb-input-area {
+      flex-shrink: 0; border-top: 1px solid var(--border);
+      background: var(--surface3); padding: 8px 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .rb-input-label { font-size: 0.62rem; font-weight: 700; color: var(--dim); letter-spacing: 0.06em; text-transform: uppercase; }
+    #rb-input {
+      width: 100%; min-height: 50px; max-height: 110px; resize: vertical;
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 8px 10px; font-family: 'Inter', sans-serif; font-size: 0.76rem;
+      color: var(--text); line-height: 1.5; outline: none; transition: border-color 0.15s; display: block;
+    }
+    #rb-input:focus { border-color: rgba(59,130,246,0.45); }
+    #rb-input::placeholder { color: var(--dim); }
+    .rb-input-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .rb-clear { font-size: 0.68rem; color: var(--dim); background: none; border: none; cursor: pointer; font-family: inherit; padding: 3px; border-radius: 3px; transition: color 0.15s; }
+    .rb-clear:hover { color: var(--muted); }
+    #rb-send {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: var(--radius); border: none;
+      background: var(--accent); color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s, transform 0.12s; flex-shrink: 0;
+    }
+    #rb-send:hover { background: var(--accent-hover); }
+    #rb-send:active { transform: scale(0.95); }
+    #rb-send:disabled { background: var(--dim); cursor: not-allowed; transform: none; }
   </style>
 </head>
 <body>
@@ -249,6 +392,297 @@
   </div>
 </div>
 
+{{-- ═══════════════════════════════════════════════════
+     🤖 AI REVIEW CHATBOT WIDGET HTML
+═══════════════════════════════════════════════════ --}}
+<button id="rb-toggle" onclick="ReviewBot.toggle()" title="AI Code Reviewer">
+  <div class="rb-dot"></div>
+  <svg class="rb-icon-chat" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+  </svg>
+  <svg class="rb-icon-close" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+</button>
+
+<div id="rb-panel">
+  <div class="rb-header">
+    <div class="rb-header-icon">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+      </svg>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div class="rb-header-title">AI Code Reviewer</div>
+      <div class="rb-header-sub">Auto-reviews on every Run</div>
+    </div>
+    <div class="rb-status" id="rb-status">
+      <div class="rb-status-dot"></div><span>Ready</span>
+    </div>
+  </div>
+
+  <div id="rb-msgs"></div>
+
+  <div class="rb-input-area">
+    <div class="rb-input-label">Ask a follow-up</div>
+    <textarea id="rb-input" placeholder="e.g. Why is that an issue? How do I fix it?" onkeydown="ReviewBot.handleKey(event)"></textarea>
+    <div class="rb-input-row">
+      <button class="rb-clear" onclick="ReviewBot.clear()">Clear chat</button>
+      <button id="rb-send" onclick="ReviewBot.sendFollowUp()">
+        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Ask
+      </button>
+    </div>
+  </div>
+</div>
+
+{{-- ═══════════════════════════════════════════════════
+     🤖 REVIEW BOT JS MODULE (global — before IDE IIFE)
+═══════════════════════════════════════════════════ --}}
+<script>
+// ── ReviewBot ─────────────────────────────────────────────────────────────────
+// Change REVIEW_URL to match your Laravel route that proxies code_reviewer.py
+// Route should accept POST { code, language } and return JSON { ok, message }
+const REVIEW_URL = '/api/code-review';
+
+const ReviewBot = (() => {
+  let _open     = false;
+  let _busy     = false;
+  let _lastCode = '';
+  let _lastLang = 'python';
+  // Accumulate review context for multi-turn follow-ups
+  const _history = [];
+
+  const $toggle = () => document.getElementById('rb-toggle');
+  const $panel  = () => document.getElementById('rb-panel');
+  const $msgs   = () => document.getElementById('rb-msgs');
+  const $status = () => document.getElementById('rb-status');
+  const $send   = () => document.getElementById('rb-send');
+  const $input  = () => document.getElementById('rb-input');
+
+  /* ── Open / close ── */
+  function toggle() {
+    _open = !_open;
+    $panel().classList.toggle('rb-open', _open);
+    $toggle().classList.toggle('rb-open', _open);
+    if (_open && $msgs().children.length === 0) _addWelcome();
+    if (_open) setTimeout(() => $input().focus(), 220);
+  }
+
+  function _open_panel() {
+    if (_open) return;
+    _open = true;
+    $panel().classList.add('rb-open');
+    $toggle().classList.add('rb-open');
+  }
+
+  /* ── Welcome message ── */
+  function _addWelcome() {
+    _addBot(
+      '<div class="rb-line">Hi! I\'ll automatically review your Python code every time you hit <strong style="color:var(--text)">Run</strong>.</div>' +
+      '<div class="rb-line" style="margin-top:5px;color:var(--dim)">You can also ask me follow-up questions below.</div>'
+    );
+  }
+
+  /* ── Called by IDE.run() automatically ── */
+  function autoReview(code, lang, filename) {
+    if (!code || !code.trim()) return;
+    _lastCode = code;
+    _lastLang = lang || 'python';
+    _history.length = 0; // reset context per new run
+
+    _open_panel();
+    $toggle().classList.add('rb-has-review');
+
+    // Show user bubble — truncated code preview
+    const preview = code.length > 220 ? code.slice(0, 217) + '…' : code;
+    _addUser(preview);
+
+    // Bot opening line depends on language
+    const langLabel = lang === 'mysql' ? 'MySQL query' : 'Python code';
+    _addBot(
+      `<div class="rb-line">I see you just ran your <strong style="color:var(--text)">${escH(filename || langLabel)}</strong> — let me review it now...</div>`
+    );
+
+    _sendReview(code, lang);
+  }
+
+  /* ── Manual follow-up from input ── */
+  function sendFollowUp() {
+    const question = $input().value.trim();
+    if (!question || _busy) return;
+    $input().value = '';
+    _addUser(question);
+
+    const messages = _history.length
+      ? [..._history, { role: 'user', content: question }]
+      : [{ role: 'user', content: `Regarding this code:\n\`\`\`\n${_lastCode}\n\`\`\`\n\n${question}` }];
+
+    _callAI(messages);
+  }
+
+  function handleKey(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendFollowUp(); }
+  }
+
+  /* ── Clear ── */
+  function clear() {
+    $msgs().innerHTML = '';
+    _history.length = 0;
+    _addWelcome();
+  }
+
+  /* ── Core: send code for review ── */
+  async function _sendReview(code, lang) {
+    const typingId = _addTyping();
+    _setBusy(true);
+
+    try {
+      const form = new FormData();
+      form.append('code',     code);
+      form.append('language', lang || 'python');
+
+      const res  = await fetch(REVIEW_URL, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+        body: form,
+      });
+      const data = await res.json();
+      _removeTyping(typingId);
+
+      if (data.ok || data.message) {
+        const msg   = data.message || data.review || '';
+        const html  = _formatReview(msg);
+        _addBot(html);
+        // Store in history for follow-ups
+        _history.push({ role: 'assistant', content: msg });
+      } else {
+        _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(data.error || 'Review failed. Check your backend route.')}</div>`);
+      }
+    } catch (err) {
+      _removeTyping(typingId);
+      _addBot('<div class="rb-line" style="color:var(--warn)">Could not reach the review endpoint. Make sure <code style="font-family:JetBrains Mono,monospace;font-size:0.68rem">/api/code-review</code> is defined in your Laravel routes.</div>');
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  /* ── Core: send follow-up ── */
+  async function _callAI(messages) {
+    const typingId = _addTyping();
+    _setBusy(true);
+
+    try {
+      const form = new FormData();
+      form.append('code',     _lastCode);
+      form.append('language', _lastLang);
+      form.append('question', messages[messages.length - 1].content);
+
+      const res  = await fetch(REVIEW_URL, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+        body: form,
+      });
+      const data = await res.json();
+      _removeTyping(typingId);
+
+      const msg  = data.message || data.review || data.error || 'No response.';
+      _addBot(_formatReview(msg));
+      _history.push({ role: 'assistant', content: msg });
+    } catch (err) {
+      _removeTyping(typingId);
+      _addBot('<div class="rb-line" style="color:var(--warn)">Request failed.</div>');
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  /* ── DOM helpers ── */
+  function _addUser(text) {
+    const el = _buildMsg('rb-user', escH(text));
+    $msgs().appendChild(el);
+    _scroll();
+  }
+
+  function _addBot(html) {
+    const el = _buildMsg('rb-bot', html);
+    $msgs().appendChild(el);
+    _scroll();
+  }
+
+  function _addTyping() {
+    const id  = 'rb-typing-' + Date.now();
+    const el  = _buildMsg('rb-bot rb-typing', '<div class="rb-dots"><span></span><span></span><span></span></div>');
+    el.id     = id;
+    $msgs().appendChild(el);
+    _scroll();
+    return id;
+  }
+
+  function _removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function _buildMsg(cls, contentHtml) {
+    const w = document.createElement('div');
+    w.className = 'rb-msg ' + cls;
+    const label = cls.includes('rb-user') ? 'ME' : 'AI';
+    w.innerHTML = `<div class="rb-avatar">${label}</div><div class="rb-body"><div class="rb-bubble">${contentHtml}</div></div>`;
+    return w;
+  }
+
+  function _scroll() { requestAnimationFrame(() => { const m = $msgs(); m.scrollTop = m.scrollHeight; }); }
+
+  function _setBusy(on) {
+    _busy = on;
+    $send().disabled = on;
+    $send().innerHTML = on
+      ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Wait…'
+      : '<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Ask';
+    const $s = $status();
+    $s.className = on ? 'rb-status rb-busy' : 'rb-status';
+    $s.innerHTML = on
+      ? '<div class="rb-status-dot"></div><span>Reviewing…</span>'
+      : '<div class="rb-status-dot"></div><span>Ready</span>';
+  }
+
+  /* ── Review formatter ── */
+  function _formatReview(raw) {
+    if (!raw || !raw.trim()) return '<div class="rb-line" style="color:var(--dim)">(No response)</div>';
+    const SECTION = /^(Status|Issues?|Fix|Suggestion|Suggestions|Warning|Warnings|Notes?|Summary|Result)s?:/i;
+    const segs = raw.split(/(```[a-z]*\n?)/);
+    let html = '', inCode = false, codeAcc = '';
+    for (const seg of segs) {
+      if (/^```/.test(seg)) { if (inCode) { html += `<div class="rb-code">${escH(codeAcc.trimEnd())}</div>`; codeAcc = ''; } inCode = !inCode; continue; }
+      if (inCode) { codeAcc += seg; continue; }
+      for (const line of seg.split('\n')) {
+        const t = line.trim(); if (!t) continue;
+        if (SECTION.test(t)) {
+          const cls = /correct|clean|good|pass/i.test(t) ? 'rb-section ok' : /error|issue|fail|wrong/i.test(t) ? 'rb-section err' : 'rb-section';
+          html += `<div class="${cls}">${escH(t)}</div>`;
+        } else if (/^[-•*]\s/.test(t)) {
+          html += `<div class="rb-bullet">${escH(t.replace(/^[-•*]\s+/, ''))}</div>`;
+        } else if (/^\d+\.\s/.test(t)) {
+          html += `<div class="rb-bullet">${escH(t.replace(/^\d+\.\s+/, ''))}</div>`;
+        } else {
+          const lineHtml = escH(t).replace(/`([^`]+)`/g, '<code style="font-family:JetBrains Mono,monospace;font-size:0.68rem;background:var(--surface3);padding:1px 4px;border-radius:3px;color:#93c5fd">$1</code>');
+          html += `<div class="rb-line">${lineHtml}</div>`;
+        }
+      }
+    }
+    if (inCode && codeAcc.trim()) html += `<div class="rb-code">${escH(codeAcc.trimEnd())}</div>`;
+    return html || '<div class="rb-line" style="color:var(--dim)">(Empty response)</div>';
+  }
+
+  function escH(s) {
+    return (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  return { toggle, autoReview, sendFollowUp, handleKey, clear };
+})();
+</script>
+
 <script>
 const WORKSPACE_ID = {{ $workspace->id }};
 const TREE_DATA = @json($tree);
@@ -281,77 +715,38 @@ const IDE = (() => {
   // 🚀 GLOBAL EXTERNAL DESKTOP DROP ZONE 🚀
   function setupGlobalDropZone() {
       const explorerPanel = document.getElementById('explorer-panel');
-      
-      explorerPanel.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          explorerPanel.classList.add('drag-zone-active');
-      });
-
-      explorerPanel.addEventListener('dragleave', (e) => {
-          e.preventDefault();
-          if (!explorerPanel.contains(e.relatedTarget)) {
-              explorerPanel.classList.remove('drag-zone-active');
-          }
-      });
-
-      explorerPanel.addEventListener('drop', (e) => {
-          e.preventDefault();
-          explorerPanel.classList.remove('drag-zone-active');
-          handleDrop(e, null); // Dropping into the root directory
-      });
+      explorerPanel.addEventListener('dragover', (e) => { e.preventDefault(); explorerPanel.classList.add('drag-zone-active'); });
+      explorerPanel.addEventListener('dragleave', (e) => { e.preventDefault(); if (!explorerPanel.contains(e.relatedTarget)) { explorerPanel.classList.remove('drag-zone-active'); } });
+      explorerPanel.addEventListener('drop', (e) => { e.preventDefault(); explorerPanel.classList.remove('drag-zone-active'); handleDrop(e, null); });
   }
 
   // 🚀 CORE DRAG AND DROP HANDLER 🚀
   async function handleDrop(e, targetParentId) {
-      // SCENARIO 1: External File from Desktop
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
           setStatus('Uploading files...');
-          for (let file of e.dataTransfer.files) {
-              await uploadExternalFile(file, targetParentId);
-          }
-          await refreshTree();
-          setStatus('Ready');
-          return;
+          for (let file of e.dataTransfer.files) { await uploadExternalFile(file, targetParentId); }
+          await refreshTree(); setStatus('Ready'); return;
       }
-
-      // SCENARIO 2: Internal Node Move
       if (draggedNodeId && draggedNodeId !== targetParentId) {
-          if (isDescendant(draggedNodeId, targetParentId)) {
-              setStatus('Cannot move a folder into itself.');
-              return;
-          }
+          if (isDescendant(draggedNodeId, targetParentId)) { setStatus('Cannot move a folder into itself.'); return; }
           moveInternalNode(draggedNodeId, targetParentId);
       }
   }
 
-  // Helper to read external desktop files and upload them (With Collision Handling)
   function uploadExternalFile(file, parentId, overrideName = null) {
       const fileNameToUse = overrideName || file.name;
       return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = async (e) => {
               try {
-                  await api('/ide/nodes', 'POST', {
-                      workspace_id: WORKSPACE_ID,
-                      parent_id: parentId,
-                      type: 'file',
-                      name: fileNameToUse,
-                      content: e.target.result,
-                      language: 'python'
-                  });
+                  await api('/ide/nodes', 'POST', { workspace_id: WORKSPACE_ID, parent_id: parentId, type: 'file', name: fileNameToUse, content: e.target.result, language: 'python' });
                   resolve();
               } catch (err) {
                   if (err.collision) {
                       const suggested = generateSuggestedName(fileNameToUse);
                       const newName = prompt(`A file named "${fileNameToUse}" already exists here.\nEnter a new name or cancel:`, suggested);
-                      if (newName && newName.trim() !== '') {
-                          await uploadExternalFile(file, parentId, newName.trim());
-                      } else {
-                          setStatus('Upload canceled.');
-                      }
-                  } else {
-                      termPrint('error', `Failed to upload ${file.name}: ${err.message}`);
-                  }
+                      if (newName && newName.trim() !== '') { await uploadExternalFile(file, parentId, newName.trim()); } else { setStatus('Upload canceled.'); }
+                  } else { termPrint('error', `Failed to upload ${file.name}: ${err.message}`); }
                   resolve();
               }
           };
@@ -360,30 +755,20 @@ const IDE = (() => {
       });
   }
 
-  // Helper to process moving a file inside the tree (With Collision Handling)
   async function moveInternalNode(nodeId, newParentId, overrideName = null) {
       setStatus('Moving...');
       try {
           const payload = { parent_id: newParentId };
           if (overrideName) payload.new_name = overrideName;
-          
           await api(`/ide/nodes/${nodeId}/move`, 'PATCH', payload);
-          await refreshTree();
-          setStatus('Ready');
+          await refreshTree(); setStatus('Ready');
       } catch (err) {
           if (err.collision) {
               const node = findNode(treeData, nodeId);
               const suggested = generateSuggestedName(node.name);
               const newName = prompt(`A file named "${node.name}" already exists in that folder.\nEnter a new name or cancel:`, suggested);
-              if (newName && newName.trim() !== '') {
-                  await moveInternalNode(nodeId, newParentId, newName.trim());
-              } else {
-                  setStatus('Move canceled.');
-              }
-          } else {
-              termPrint('error', 'Move failed: ' + err.message);
-              setStatus('Error');
-          }
+              if (newName && newName.trim() !== '') { await moveInternalNode(nodeId, newParentId, newName.trim()); } else { setStatus('Move canceled.'); }
+          } else { termPrint('error', 'Move failed: ' + err.message); setStatus('Error'); }
       }
   }
 
@@ -424,13 +809,9 @@ const IDE = (() => {
             let nodeToOpen;
             if (practiceFile) {
                 await api(`/ide/nodes/${practiceFile.id}/save`, 'PATCH', { content: pendingCode });
-                nodeToOpen = practiceFile;
-                nodeToOpen.content = pendingCode; 
+                nodeToOpen = practiceFile; nodeToOpen.content = pendingCode;
             } else {
-                const res = await api('/ide/nodes', 'POST', {
-                    workspace_id: WORKSPACE_ID, parent_id: null, type: 'file',
-                    name: 'practice.py', content: pendingCode, language: 'python'
-                });
+                const res = await api('/ide/nodes', 'POST', { workspace_id: WORKSPACE_ID, parent_id: null, type: 'file', name: 'practice.py', content: pendingCode, language: 'python' });
                 nodeToOpen = res.node;
             }
             await refreshTree();
@@ -457,36 +838,20 @@ const IDE = (() => {
 
   function renderTree() { const root = document.getElementById('tree-root'); root.innerHTML = ''; treeData.forEach(node => root.appendChild(buildTreeNode(node, 0))); attachCtxMenuListeners(); }
 
-  // 🚀 DRAG AND DROP INTEGRATION INTO TREE NODES 🚀
   function buildTreeNode(node, depth) {
     const wrap = document.createElement('div'); wrap.className = 'tree-node'; wrap.dataset.id = node.id; wrap.dataset.type = node.type;
     const indent = depth * 14; const row = document.createElement('div'); row.className = 'tree-row'; row.style.paddingLeft = `${8 + indent}px`;
-    
     row.setAttribute('draggable', 'true');
-    
-    row.addEventListener('dragstart', (e) => {
-        draggedNodeId = node.id;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', node.id); 
-        row.classList.add('dragging');
-    });
-
-    row.addEventListener('dragend', () => {
-        draggedNodeId = null;
-        row.classList.remove('dragging');
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-    });
+    row.addEventListener('dragstart', (e) => { draggedNodeId = node.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', node.id); row.classList.add('dragging'); });
+    row.addEventListener('dragend', () => { draggedNodeId = null; row.classList.remove('dragging'); document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over')); });
 
     if (node.type === 'folder') {
       row.innerHTML = `<svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg><svg class="file-icon folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg><span class="node-name">${escHtml(node.name)}</span><div class="node-actions"><button class="node-act-btn" title="New File" data-action="newfile" data-id="${node.id}"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg></button><button class="node-act-btn" title="Rename" data-action="rename" data-id="${node.id}"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="node-act-btn del" title="Delete" data-action="delete" data-id="${node.id}" data-name="${escHtml(node.name)}"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div>`;
       const children = document.createElement('div'); children.className = 'tree-children'; (node.children || []).forEach(child => children.appendChild(buildTreeNode(child, depth + 1)));
-      
       row.addEventListener('click', (e) => { if (e.target.closest('[data-action]')) return; row.classList.toggle('open'); children.classList.toggle('open'); });
-      
       row.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); row.classList.add('drag-over'); });
       row.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); row.classList.remove('drag-over'); });
       row.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); row.classList.remove('drag-over'); handleDrop(e, node.id); });
-
       wrap.appendChild(row); wrap.appendChild(children);
     } else {
       row.innerHTML = `<svg class="caret" style="opacity:0" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg><svg class="file-icon py-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="node-name">${escHtml(node.name)}</span><div class="node-actions"><button class="node-act-btn" title="Rename" data-action="rename" data-id="${node.id}"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="node-act-btn del" title="Delete" data-action="delete" data-id="${node.id}" data-name="${escHtml(node.name)}"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div>`;
@@ -524,6 +889,10 @@ const IDE = (() => {
     const runBtn = document.getElementById('btn-run'); runBtn.disabled = true; runBtn.innerHTML = '<div class="spinner"></div> Running…';
     const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal();
     termPrint('prompt', `$ python3 ${tab.name}`); setStatus('Running…');
+
+    // 🤖 AUTO-TRIGGER CHATBOT REVIEW — fires immediately when Run is clicked
+    ReviewBot.autoReview(tab.content || cm.getValue(), 'python', tab.name);
+
     try {
       const res = await api(`/ide/nodes/${tab.id}/run`, 'POST', { stdin: inputsList.join('\n'), content: tab.content });
       if (res.output) termPrint('output', res.output); if (res.error) termPrint('error', res.error);
@@ -535,7 +904,7 @@ const IDE = (() => {
     } finally { runBtn.disabled = false; runBtn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run`; }
   }
 
-let _modalCallback = null; let _modalParentId = null; let _modalType = null; let _renameId = null;
+  let _modalCallback = null; let _modalParentId = null; let _modalType = null; let _renameId = null;
   function promptCreate(type, parentId) { _modalType = type; _modalParentId = parentId; _modalCallback = 'create'; document.getElementById('modal-title').textContent = type === 'file' ? 'New File' : 'New Folder'; document.getElementById('modal-input').value = type === 'file' ? 'untitled.py' : 'new-folder'; document.getElementById('modal-bg').classList.add('open'); setTimeout(() => { const inp = document.getElementById('modal-input'); inp.focus(); inp.select(); }, 50); }
   function promptRename(id, currentName) { _renameId = id; _modalCallback = 'rename'; document.getElementById('modal-title').textContent = 'Rename'; document.getElementById('modal-input').value = currentName; document.getElementById('modal-bg').classList.add('open'); setTimeout(() => { const inp = document.getElementById('modal-input'); inp.focus(); inp.select(); }, 50); }
   function closeModal() { document.getElementById('modal-bg').classList.remove('open'); _modalCallback = null; }
@@ -558,7 +927,7 @@ let _modalCallback = null; let _modalParentId = null; let _modalType = null; let
   function setStatus(msg) { document.getElementById('status-msg').textContent = msg; }
   function updateStatusLang(name) { const ext = name.split('.').pop().toLowerCase(); const map = { py: 'Python 3', js: 'JavaScript', ts: 'TypeScript', md: 'Markdown', txt: 'Plain Text' }; document.getElementById('status-lang').textContent = map[ext] || 'Python 3'; }
   function focusSearch() { if (cm) cm.execCommand('find'); }
-  
+
   // 🚀 UPDATED API HELPER TO CATCH COLLISIONS 🚀
   async function api(url, method, body) { 
       const opts = { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } }; 
@@ -567,12 +936,12 @@ let _modalCallback = null; let _modalParentId = null; let _modalType = null; let
       const json = await res.json(); 
       if (!res.ok) {
           const err = new Error(json.error || json.message || 'Request failed');
-          err.collision = json.collision; // Attach custom collision flag
+          err.collision = json.collision;
           throw err;
       }
       return json; 
   }
-  
+
   function findNode(nodes, id) { for (const n of nodes) { if (n.id === id) return n; if (n.children) { const found = findNode(n.children, id); if (found) return found; } } return null; }
   function escHtml(str) { return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 

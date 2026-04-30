@@ -10,6 +10,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\LessonController;
 use App\Http\Controllers\CodingQuizController;
 use App\Http\Controllers\SqlSandboxController;
+use App\Http\Controllers\CodeReviewController;
 
 // 1. Root Route
 Route::get('/', function () {
@@ -59,6 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/challenges/coding/{slug}/challenge/{challenge}/start/{question}',
         [CodingQuizController::class, 'start'])
         ->name('challenges.coding.start');
+
     // Modules / Lessons
     Route::get('/module', [ModuleController::class, 'showModules'])->name('modules.index');
     Route::get('/module/{module}/lesson/{lesson?}', [LessonController::class, 'show'])->name('lesson.show');
@@ -67,21 +69,23 @@ Route::middleware('auth')->group(function () {
     // Profile
     Route::get('/profile', [StudentController::class, 'profile'])->name('profile');
     Route::get('/change-password', [UserController::class, 'changePassword'])->name('change-password');
- 
+
     // ── SQL Sandbox ──────────────────────────────────────────────────────────────
     Route::get('/sql-sandbox', [SqlSandboxController::class, 'index'])
         ->name('sql-sandbox.index');
-    
-    // Execute a SQL query (POST — CSRF token sent via X-CSRF-TOKEN header by the JS)
+
     Route::post('/sql-sandbox/execute', [SqlSandboxController::class, 'execute'])
         ->name('sql-sandbox.execute');
-    
-    // Return the authenticated user's table list + column metadata (used by sidebar)
+
     Route::get('/sql-sandbox/tables', [SqlSandboxController::class, 'tables'])
         ->name('sql-sandbox.tables');
-    
-    // Drop one of the user's own tables
+
     Route::delete('/sql-sandbox/tables/{table}', [SqlSandboxController::class, 'dropTable'])
         ->name('sql-sandbox.tables.drop');
-    
+
+    // ── AI Code / SQL Reviewer ───────────────────────────────────────────────────
+    // Used by the ReviewBot chat widget in both the Python IDE and the SQL Sandbox.
+    // Accepts POST: { code, language, question? }  →  { ok, message }
+    Route::post('/api/code-review', [CodeReviewController::class, 'review'])
+        ->name('api.code-review');
 });
