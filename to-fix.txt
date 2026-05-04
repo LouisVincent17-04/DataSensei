@@ -1,0 +1,2 @@
+Module 18, 22, 24 Should not Have any Coding Challenges
+Modules that has SQL Coding should be SQL lite syntax

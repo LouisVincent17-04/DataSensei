@@ -70,11 +70,8 @@
       color: var(--accent); background: var(--surface);
       padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
     }
-    .coding-timer.urgent    { color: var(--red);   border-color: var(--red-bd);   animation: blink 1s step-end infinite; }
-    .coding-timer.hidden    { visibility: hidden; }
-    .coding-timer.finished  { color: var(--green); border-color: var(--green-bd); animation: none; background: var(--green-bg); }
-    .timer-label { font-size: .6rem; text-transform: uppercase; letter-spacing: .08em; opacity: .75; display: none; margin-right: 2px; }
-    .coding-timer.finished .timer-label { display: inline; }
+    .coding-timer.urgent { color: var(--red); border-color: var(--red-bd); animation: blink 1s step-end infinite; }
+    .coding-timer.hidden { visibility: hidden; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
 
     /* ── BODY: SPLIT PANE ── */
@@ -286,11 +283,6 @@
     .btn-nav { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
     .btn-nav:hover:not(:disabled) { color: var(--text); border-color: var(--border-h); }
     .btn-nav:disabled { opacity: .3; cursor: default; }
-    .btn-finish-footer {
-      background: var(--green); color: #fff; display: none;
-      box-shadow: 0 2px 12px rgba(16,185,129,.35); font-size: .88rem;
-    }
-    .btn-finish-footer:hover { background: #0da271; transform: translateY(-1px); }
 
     @media (max-width: 900px) {
       .q-panel { flex-direction: column; }
@@ -336,7 +328,6 @@
         </div>
         <div class="coding-timer" id="timerEl">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <span class="timer-label" id="timerLabel">Elapsed</span>
           <span id="timerTxt">--:--</span>
         </div>
       </div>
@@ -519,7 +510,6 @@
       <div class="footer-nav">
         <button class="btn btn-nav" id="btnPrev" onclick="gotoQ(currentQ - 1)" disabled>← Prev</button>
         <button class="btn btn-nav" id="btnNext" onclick="gotoQ(currentQ + 1)" {{ $challenge->codingQuestions->count() <= 1 ? 'disabled' : '' }}>Next →</button>
-        <button class="btn btn-finish-footer" id="btnFinishFooter" onclick="showCompletion()">🎉 Finish Challenge</button>
       </div>
     </footer>
 
@@ -607,7 +597,6 @@ const submitted = new Set(
 
 let   activeTimer    = null;   // the one live timer object
 let   pingCounter    = 0;
-let   challengeStartTime = null;  // wall-clock ms when the first question timer seeded
 const PING_INTERVAL  = 30;     // seconds between server pings
 
 const pingUrls = {
@@ -633,15 +622,6 @@ function seedTimer(idx, remaining) {
 
   activeTimer  = { remaining: Math.max(0, remaining), questionIdx: idx };
   pingCounter  = 0;
-
-  // Record wall-clock start for elapsed time calculation.
-  // Back-calculate so that elapsed = timeLimit - remaining at this moment.
-  if (challengeStartTime === null) {
-    const panel    = document.querySelector(`[data-index="${idx}"]`);
-    const limit    = parseInt(panel?.dataset.timelimit || 0);
-    const elapsed  = Math.max(0, limit - remaining);
-    challengeStartTime = Date.now() - (elapsed * 1000);
-  }
 }
 
 /**
@@ -748,13 +728,8 @@ function handleExpired(idx) {
 // Locked and done questions are silently skipped.
 (function initTimer() {
   if (ACTIVE_IDX === null) {
-    // All questions done — show elapsed time instead of countdown
-    // challengeStartTime is unknown at this point so show '--:--' as finished
-    const timerEl = document.getElementById('timerEl');
-    timerEl.classList.remove('hidden', 'urgent');
-    timerEl.classList.add('finished');
-    document.getElementById('timerTxt').textContent = '--:--';
-    document.getElementById('btnFinishFooter').style.display = 'inline-flex';
+    // All questions done — no timer needed
+    clearTimer();
     return;
   }
 
@@ -1163,29 +1138,6 @@ function showCompletion() {
   const totalXp = Object.values(qStates).reduce((s, v) => s + (v?.xp || 0), 0);
   document.getElementById('modalXp').textContent = `+${totalXp} XP earned`;
   document.getElementById('completionModal').classList.add('open');
-
-  // Switch the header timer to elapsed display
-  showElapsedTimer();
-}
-
-/**
- * Replace the countdown timer in the header with a green "Elapsed" display.
- * Called once when the challenge is fully complete.
- */
-function showElapsedTimer() {
-  const elapsedMs   = challengeStartTime !== null ? (Date.now() - challengeStartTime) : 0;
-  const elapsedSecs = Math.max(0, Math.floor(elapsedMs / 1000));
-  const pad = n => String(n).padStart(2, '0');
-
-  document.getElementById('timerTxt').textContent =
-    pad(Math.floor(elapsedSecs / 60)) + ':' + pad(elapsedSecs % 60);
-
-  const timerEl = document.getElementById('timerEl');
-  timerEl.classList.remove('hidden', 'urgent');
-  timerEl.classList.add('finished');   // green style + shows "Elapsed" label
-
-  // Show footer Finish button
-  document.getElementById('btnFinishFooter').style.display = 'inline-flex';
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Data SciFy — Authentication</title>
+<title>DataSensei</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -621,7 +621,7 @@
           <path d="M3.5 10 L8.5 7 L13.5 3" stroke="#04111f" stroke-width="1.2" stroke-dasharray="2 1.5" opacity="0.5"/>
         </svg>
       </div>
-      <span class="logo-name">Data SciFy</span>
+      <span class="logo-name">DataSensei</span>
     </div>
 
     <div class="left-hero">
@@ -710,7 +710,7 @@
             @endif
           </div>
 
-          <button type="submit" class="cta-btn" id="login-btn">Sign in to Data SciFy</button>
+          <button type="submit" class="cta-btn" id="login-btn">Sign in to DataSensei</button>
         </form>
 
         <div class="divider"><span>or continue with</span></div>
@@ -957,10 +957,10 @@ function switchTab(tab){
   document.getElementById(`panel-${tab}`).classList.add('active');
 
   // Update heading context
-  if(tab === 'login'){
-    document.title = 'Data SciFy — Sign In';
+  if(tab === 'login'){  
+    document.title = 'DataSensei — Sign In';
   } else {
-    document.title = 'Data SciFy — Create Account';
+    document.title = 'DataSensei — Create Account';
   }
 }
 

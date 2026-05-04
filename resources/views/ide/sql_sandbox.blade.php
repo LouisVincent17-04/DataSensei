@@ -569,10 +569,28 @@ const ReviewBot = (() => {
     _sendReview(sql, 'mysql');
   }
 
+  /* ── Code generation detection ── */
+  const CODE_GEN_RE = /\b(generate|write\s+(?:me\s+)?(?:a|the|this|some)?|create|give\s+me|produce|make\s+me|implement|build)\b.{0,40}\b(code|function|class|script|program|solution|example|snippet|query|sql)\b/i;
+  function _isCodeGenRequest(text) {
+    return CODE_GEN_RE.test(text);
+  }
+
   /* ── Manual follow-up from input ── */
   function sendFollowUp() {
     const question = $input().value.trim();
     if (!question || _busy) return;
+
+    // Block code generation requests on the frontend
+    if (_isCodeGenRequest(question)) {
+      $input().value = '';
+      _addUser(question);
+      _addBot(
+        '<div class="rb-line" style="color:var(--warn2)">⚠️ I\'m an <strong style="color:var(--text)">SQL reviewer</strong>, not a query generator. ' +
+        'I can\'t write or produce SQL for you — but I can help you understand issues in your existing query, explain concepts, or point you in the right direction.</div>'
+      );
+      return;
+    }
+
     $input().value = '';
     _addUser(question);
 
@@ -601,6 +619,7 @@ const ReviewBot = (() => {
 
     try {
       const form = new FormData();
+      form.append('mode',     'review');
       form.append('code',     code);
       form.append('language', lang || 'mysql');
 
@@ -635,6 +654,7 @@ const ReviewBot = (() => {
 
     try {
       const form = new FormData();
+      form.append('mode',     'chat');
       form.append('code',     _lastCode);
       form.append('language', _lastLang);
       form.append('question', messages[messages.length - 1].content);
