@@ -19,17 +19,13 @@
     --border: rgba(255,255,255,0.07);
     --border-active: rgba(99,179,237,0.5);
     --accent: #63b3ed;
-    --accent-dim: rgba(99,179,237,0.12);
-    --accent-glow: rgba(99,179,237,0.2);
     --green: #68d391;
-    --green-dim: rgba(104,211,145,0.12);
     --amber: #f6ad55;
-    --amber-dim: rgba(246,173,85,0.1);
     --text-1: #f0f4ff;
     --text-2: #8a99b3;
     --text-3: #4a5568;
     --danger: #fc8181;
-    --danger-dim: rgba(252,129,129,0.1);
+    --success: #68d391;
     --radius: 12px;
     --radius-sm: 7px;
     --font-display: 'Fraunces', Georgia, serif;
@@ -44,7 +40,6 @@
     overflow: hidden;
   }
 
-  /* ── CANVAS BACKGROUND ── */
   #bg-canvas {
     position: fixed;
     inset: 0;
@@ -52,7 +47,6 @@
     pointer-events: none;
   }
 
-  /* ── LAYOUT ── */
   .shell {
     position: relative;
     z-index: 1;
@@ -62,7 +56,6 @@
     overflow: hidden;
   }
 
-  /* ── LEFT PANEL ── */
   .left {
     display: flex;
     flex-direction: column;
@@ -151,7 +144,6 @@
     font-weight: 300;
   }
 
-  /* Floating stats */
   .stats-row {
     display: flex;
     gap: 16px;
@@ -190,7 +182,6 @@
     50% { opacity: 0.4; }
   }
 
-  /* Token visualization strip */
   .token-strip {
     display: flex;
     gap: 4px;
@@ -220,7 +211,6 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* bottom quote */
   .left-bottom {
     display: flex;
     align-items: center;
@@ -237,7 +227,6 @@
     padding-left: 12px;
   }
 
-  /* ── RIGHT PANEL (form) ── */
   .right {
     background: var(--panel);
     border-left: 0.5px solid var(--border);
@@ -254,14 +243,13 @@
     max-width: 360px;
   }
 
-  /* Tabs */
   .tabs {
     display: flex;
     gap: 0;
     background: var(--surface);
     border-radius: 10px;
     padding: 4px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
   }
 
   .tab-btn {
@@ -285,7 +273,26 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
 
-  /* Form header */
+  .alert {
+    border-radius: var(--radius-sm);
+    padding: 11px 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+
+  .alert-success {
+    background: rgba(104,211,145,0.1);
+    border: 0.5px solid rgba(104,211,145,0.35);
+    color: var(--success);
+  }
+
+  .alert-danger {
+    background: rgba(252,129,129,0.1);
+    border: 0.5px solid rgba(252,129,129,0.35);
+    color: var(--danger);
+  }
+
   .form-heading {
     font-family: var(--font-display);
     font-size: 28px;
@@ -304,7 +311,6 @@
     line-height: 1.5;
   }
 
-  /* Field */
   .field { margin-bottom: 14px; }
 
   .field-label {
@@ -357,7 +363,6 @@
   .field-input:focus ~ .field-icon,
   .field-wrap:focus-within .field-icon { color: var(--accent); }
 
-  /* password toggle */
   .pwd-toggle {
     position: absolute;
     right: 11px;
@@ -372,9 +377,9 @@
     align-items: center;
     transition: color 0.2s;
   }
+
   .pwd-toggle:hover { color: var(--text-2); }
 
-  /* Remember + forgot */
   .form-extras {
     display: flex;
     align-items: center;
@@ -407,10 +412,12 @@
   }
 
   .check-label input[type="checkbox"] { display: none; }
+
   .check-label input:checked + .check-box {
     background: var(--accent);
     border-color: var(--accent);
   }
+
   .check-label input:checked + .check-box::after {
     content: '';
     display: block;
@@ -428,9 +435,9 @@
     opacity: 0.8;
     transition: opacity 0.2s;
   }
+
   .forgot-link:hover { opacity: 1; }
 
-  /* CTA button */
   .cta-btn {
     width: 100%;
     padding: 13px;
@@ -459,28 +466,26 @@
   .cta-btn:hover::after { background: rgba(255,255,255,0.08); }
   .cta-btn:active { transform: scale(0.985); }
 
-  .cta-btn.loading { pointer-events: none; opacity: 0.7; }
-
-  /* Divider */
   .divider {
     display: flex;
     align-items: center;
     gap: 12px;
     margin: 20px 0;
   }
+
   .divider::before, .divider::after {
     content: '';
     flex: 1;
     height: 0.5px;
     background: var(--border);
   }
+
   .divider span {
     font-size: 12px;
     color: var(--text-3);
     white-space: nowrap;
   }
 
-  /* Social buttons */
   .social-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -504,20 +509,32 @@
     transition: all 0.2s;
     text-decoration: none;
   }
-  .social-btn:hover { border-color: rgba(255,255,255,0.14); color: var(--text-1); background: var(--surface-2); }
-  .social-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-  /* Strength indicator */
+  .social-btn:hover {
+    border-color: rgba(255,255,255,0.14);
+    color: var(--text-1);
+    background: var(--surface-2);
+  }
+
+  .social-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
   .strength-wrap {
     margin-top: 7px;
     display: none;
   }
+
   .strength-wrap.visible { display: block; }
+
   .strength-bars {
     display: flex;
     gap: 3px;
     margin-bottom: 4px;
   }
+
   .strength-bar {
     flex: 1;
     height: 3px;
@@ -525,49 +542,35 @@
     background: var(--surface-2);
     transition: background 0.3s;
   }
-  .strength-bar.active { }
-  .strength-label { font-size: 11px; color: var(--text-3); }
 
-  /* Error state */
+  .strength-label {
+    font-size: 11px;
+    color: var(--text-3);
+  }
+
   .field-error {
     font-size: 11.5px;
     color: var(--danger);
     margin-top: 5px;
     display: none;
   }
-  .field.has-error .field-input { border-color: rgba(252,129,129,0.5); }
-  .field.has-error .field-error { display: block; }
 
-  /* Panels */
-  .form-panel { display: none; }
-  .form-panel.active { display: block; }
-
-  /* Role selector (register) */
-  .role-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 14px;
+  .field.has-error .field-input {
+    border-color: rgba(252,129,129,0.5);
   }
 
-  .role-card {
-    padding: 12px;
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
+  .field.has-error .field-error {
+    display: block;
   }
-  .role-card:hover { border-color: rgba(255,255,255,0.14); }
-  .role-card.selected { border-color: var(--border-active); background: var(--accent-dim); }
-  .role-card input { display: none; }
 
-  .role-icon { font-size: 20px; display: block; margin-bottom: 4px; }
-  .role-name { font-size: 12px; font-weight: 500; color: var(--text-2); }
-  .role-card.selected .role-name { color: var(--accent); }
+  .form-panel {
+    display: none;
+  }
 
-  /* Terms */
+  .form-panel.active {
+    display: block;
+  }
+
   .terms-text {
     font-size: 11.5px;
     color: var(--text-3);
@@ -575,24 +578,52 @@
     margin-top: 16px;
     text-align: center;
   }
-  .terms-text a { color: var(--accent); text-decoration: none; opacity: 0.85; }
-  .terms-text a:hover { opacity: 1; }
 
-  /* Responsive */
-  @media (max-width: 900px) {
-    .shell { grid-template-columns: 1fr; }
-    .left { display: none; }
-    .right { border-left: none; }
+  .terms-text a {
+    color: var(--accent);
+    text-decoration: none;
+    opacity: 0.85;
   }
 
-  /* Animate in */
-  .form-card { animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .terms-text a:hover {
+    opacity: 1;
+  }
+
+  @media (max-width: 900px) {
+    html, body {
+      overflow-y: auto;
+    }
+
+    .shell {
+      grid-template-columns: 1fr;
+      height: auto;
+      min-height: 100vh;
+    }
+
+    .left {
+      display: none;
+    }
+
+    .right {
+      min-height: 100vh;
+      border-left: none;
+      padding: 32px 22px;
+    }
+  }
+
+  .form-card {
+    animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .left-hero { animation: fadeIn 0.7s ease 0.1s both; }
+  .left-hero {
+    animation: fadeIn 0.7s ease 0.1s both;
+  }
+
   @keyframes fadeIn {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -602,20 +633,22 @@
 <body>
 
 @php
-    // Logic to determine which tab should be active on page load
-    $isRegisterTab = old('name') || $errors->has('name') || request()->is('register');
+    $isRegisterTab =
+        old('name') ||
+        $errors->has('name') ||
+        $errors->has('password_confirmation') ||
+        request()->is('register');
 @endphp
 
 <canvas id="bg-canvas"></canvas>
 
 <div class="shell">
-
   <div class="left">
     <div class="left-logo">
       <div class="logo-mark">
         <svg viewBox="0 0 20 20" fill="none">
           <rect x="2" y="10" width="3" height="8" rx="1" fill="#04111f"/>
-          <rect x="7" y="6"  width="3" height="12" rx="1" fill="#04111f"/>
+          <rect x="7" y="6" width="3" height="12" rx="1" fill="#04111f"/>
           <rect x="12" y="2" width="3" height="16" rx="1" fill="#04111f"/>
           <circle cx="16.5" cy="5.5" r="2" fill="#04111f" opacity="0.6"/>
           <path d="M3.5 10 L8.5 7 L13.5 3" stroke="#04111f" stroke-width="1.2" stroke-dasharray="2 1.5" opacity="0.5"/>
@@ -653,15 +686,27 @@
 
   <div class="right">
     <div class="form-card">
-
       <div class="tabs">
         <button class="tab-btn {{ !$isRegisterTab ? 'active' : '' }}" onclick="switchTab('login')" type="button">Sign in</button>
         <button class="tab-btn {{ $isRegisterTab ? 'active' : '' }}" onclick="switchTab('register')" type="button">Create account</button>
       </div>
 
+      @if (session('success'))
+        <div class="alert alert-success">
+          {{ session('success') }}
+        </div>
+      @endif
+
+      @if ($errors->has('general'))
+        <div class="alert alert-danger">
+          {{ $errors->first('general') }}
+        </div>
+      @endif
+
       <div class="form-panel {{ !$isRegisterTab ? 'active' : '' }}" id="panel-login">
-        <form method="POST" action="{{ route('login') ?? url('/login') }}">
+        <form method="POST" action="{{ Route::has('login') ? route('login') : url('/login') }}">
           @csrf
+
           <h2 class="form-heading">Welcome back</h2>
           <p class="form-sub">Continue your data science journey.</p>
 
@@ -672,7 +717,17 @@
                 <rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/>
                 <path d="M1.5 5.5 L8 9.5 L14.5 5.5"/>
               </svg>
-              <input class="field-input" type="email" name="email" id="login-email" value="{{ old('email') }}" placeholder="you@university.edu" required autofocus autocomplete="username">
+              <input
+                class="field-input"
+                type="email"
+                name="email"
+                id="login-email"
+                value="{{ old('email') }}"
+                placeholder="you@university.edu"
+                required
+                autofocus
+                autocomplete="username"
+              >
             </div>
             @error('email')
               <div class="field-error" style="display:block;">{{ $message }}</div>
@@ -686,9 +741,18 @@
                 <rect x="2.5" y="7" width="11" height="7.5" rx="1.5"/>
                 <path d="M5 7V5a3 3 0 016 0v2"/>
               </svg>
-              <input class="field-input" type="password" name="password" id="login-pwd" placeholder="••••••••" required autocomplete="current-password" style="padding-right: 40px;">
+              <input
+                class="field-input"
+                type="password"
+                name="password"
+                id="login-pwd"
+                placeholder="••••••••"
+                required
+                autocomplete="current-password"
+                style="padding-right: 40px;"
+              >
               <button class="pwd-toggle" onclick="togglePwd('login-pwd', this)" type="button" aria-label="Toggle password">
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3" id="eye-login">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
                   <ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/>
                   <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
                 </svg>
@@ -705,8 +769,11 @@
               <span class="check-box"></span>
               Remember me
             </label>
+
             @if (Route::has('password.request'))
               <a href="{{ route('password.request') }}" class="forgot-link">Forgot password?</a>
+            @else
+              <a href="{{ url('/forgot-password') }}" class="forgot-link">Forgot password?</a>
             @endif
           </div>
 
@@ -725,6 +792,7 @@
             </svg>
             Google
           </a>
+
           <a href="{{ url('/auth/github') }}" class="social-btn">
             <svg viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
@@ -739,21 +807,13 @@
       </div>
 
       <div class="form-panel {{ $isRegisterTab ? 'active' : '' }}" id="panel-register">
-        <form method="POST" action="{{ route('register') ?? url('/register') }}">
+        <form method="POST" action="{{ Route::has('register') ? route('register') : url('/register') }}">
           @csrf
-          <h2 class="form-heading">Start learning</h2>
-          <p class="form-sub">Join thousands of data science learners.</p>
 
-          <div class="role-grid">
-            <label class="role-card {{ old('role', 'student') == 'student' ? 'selected' : '' }}">
-              <input type="radio" name="role" value="student" {{ old('role', 'student') == 'student' ? 'checked' : '' }}>
-              <span class="role-name">Student</span>
-            </label>
-            <label class="role-card {{ old('role') == 'educator' ? 'selected' : '' }}">
-              <input type="radio" name="role" value="educator" {{ old('role') == 'educator' ? 'checked' : '' }}>
-              <span class="role-name">Educator</span>
-            </label>
-          </div>
+          <h2 class="form-heading">Start learning</h2>
+          <p class="form-sub">
+            Create your learner account first. You can apply to an institution after logging in.
+          </p>
 
           <div class="field @error('name') has-error @enderror" id="f-name-reg">
             <label class="field-label" for="reg-name">Full name</label>
@@ -762,7 +822,16 @@
                 <circle cx="8" cy="5" r="3"/>
                 <path d="M1.5 14.5c0-3.31 2.91-6 6.5-6s6.5 2.69 6.5 6"/>
               </svg>
-              <input class="field-input" type="text" name="name" id="reg-name" value="{{ old('name') }}" placeholder="Juan dela Cruz" required autocomplete="name">
+              <input
+                class="field-input"
+                type="text"
+                name="name"
+                id="reg-name"
+                value="{{ old('name') }}"
+                placeholder="Juan dela Cruz"
+                required
+                autocomplete="name"
+              >
             </div>
             @error('name')
               <div class="field-error" style="display:block;">{{ $message }}</div>
@@ -776,7 +845,16 @@
                 <rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/>
                 <path d="M1.5 5.5 L8 9.5 L14.5 5.5"/>
               </svg>
-              <input class="field-input" type="email" name="email" id="reg-email" value="{{ old('email') }}" placeholder="you@university.edu" required autocomplete="email">
+              <input
+                class="field-input"
+                type="email"
+                name="email"
+                id="reg-email"
+                value="{{ old('email') }}"
+                placeholder="you@university.edu"
+                required
+                autocomplete="email"
+              >
             </div>
             @error('email')
               <div class="field-error" style="display:block;">{{ $message }}</div>
@@ -790,14 +868,25 @@
                 <rect x="2.5" y="7" width="11" height="7.5" rx="1.5"/>
                 <path d="M5 7V5a3 3 0 016 0v2"/>
               </svg>
-              <input class="field-input" type="password" name="password" id="reg-pwd" placeholder="Min. 8 characters" required autocomplete="new-password" style="padding-right: 40px;" oninput="checkStrength(this.value)">
-              <button class="pwd-toggle" onclick="togglePwd('reg-pwd', this)" type="button">
+              <input
+                class="field-input"
+                type="password"
+                name="password"
+                id="reg-pwd"
+                placeholder="Min. 8 characters"
+                required
+                autocomplete="new-password"
+                style="padding-right: 40px;"
+                oninput="checkStrength(this.value)"
+              >
+              <button class="pwd-toggle" onclick="togglePwd('reg-pwd', this)" type="button" aria-label="Toggle password">
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
                   <ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/>
                   <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
                 </svg>
               </button>
             </div>
+
             <div class="strength-wrap" id="strength-wrap">
               <div class="strength-bars">
                 <div class="strength-bar" id="sb1"></div>
@@ -807,26 +896,39 @@
               </div>
               <span class="strength-label" id="strength-label">Weak</span>
             </div>
+
             @error('password')
               <div class="field-error" style="display:block;">{{ $message }}</div>
             @enderror
           </div>
 
-          <div class="field" id="f-pwd-conf-reg">
+          <div class="field @error('password_confirmation') has-error @enderror" id="f-pwd-conf-reg">
             <label class="field-label" for="reg-pwd-conf">Confirm Password</label>
             <div class="field-wrap">
               <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
                 <rect x="2.5" y="7" width="11" height="7.5" rx="1.5"/>
                 <path d="M5 7V5a3 3 0 016 0v2"/>
               </svg>
-              <input class="field-input" type="password" name="password_confirmation" id="reg-pwd-conf" placeholder="Type password again" required autocomplete="new-password" style="padding-right: 40px;">
-              <button class="pwd-toggle" onclick="togglePwd('reg-pwd-conf', this)" type="button">
+              <input
+                class="field-input"
+                type="password"
+                name="password_confirmation"
+                id="reg-pwd-conf"
+                placeholder="Type password again"
+                required
+                autocomplete="new-password"
+                style="padding-right: 40px;"
+              >
+              <button class="pwd-toggle" onclick="togglePwd('reg-pwd-conf', this)" type="button" aria-label="Toggle password">
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
                   <ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/>
                   <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
                 </svg>
               </button>
             </div>
+            @error('password_confirmation')
+              <div class="field-error" style="display:block;">{{ $message }}</div>
+            @enderror
           </div>
 
           <button type="submit" class="cta-btn" id="reg-btn" style="margin-top: 4px;">Create account</button>
@@ -840,27 +942,26 @@
           Already have an account? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>
         </p>
       </div>
-
     </div>
   </div>
 </div>
 
 <script>
-/* ── CANVAS PARTICLE BACKGROUND ── */
 (function(){
   const canvas = document.getElementById('bg-canvas');
   const ctx = canvas.getContext('2d');
   let W, H, particles = [];
 
   function resize(){
-    W = canvas.width  = window.innerWidth;
+    W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
   }
 
   function createParticles(){
     particles = [];
     const N = Math.floor((W * H) / 18000);
-    for(let i=0; i<N; i++){
+
+    for(let i = 0; i < N; i++){
       particles.push({
         x: Math.random() * W,
         y: Math.random() * H,
@@ -875,31 +976,34 @@
   function draw(){
     ctx.clearRect(0, 0, W, H);
 
-    // Draw connections
-    for(let i=0; i<particles.length; i++){
-      for(let j=i+1; j<particles.length; j++){
-        const p = particles[i], q = particles[j];
-        const dx = p.x-q.x, dy = p.y-q.y;
-        const d = Math.sqrt(dx*dx+dy*dy);
+    for(let i = 0; i < particles.length; i++){
+      for(let j = i + 1; j < particles.length; j++){
+        const p = particles[i];
+        const q = particles[j];
+        const dx = p.x - q.x;
+        const dy = p.y - q.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+
         if(d < 100){
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = `rgba(99,179,237,${(1 - d/100) * 0.06})`;
+          ctx.strokeStyle = `rgba(99,179,237,${(1 - d / 100) * 0.06})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
       }
     }
 
-    // Draw dots
     particles.forEach(p => {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(99,179,237,${p.alpha})`;
       ctx.fill();
 
-      p.x += p.vx; p.y += p.vy;
+      p.x += p.vx;
+      p.y += p.vy;
+
       if(p.x < 0 || p.x > W) p.vx *= -1;
       if(p.y < 0 || p.y > H) p.vy *= -1;
     });
@@ -907,11 +1011,16 @@
     requestAnimationFrame(draw);
   }
 
-  window.addEventListener('resize', ()=>{ resize(); createParticles(); });
-  resize(); createParticles(); draw();
+  window.addEventListener('resize', () => {
+    resize();
+    createParticles();
+  });
+
+  resize();
+  createParticles();
+  draw();
 })();
 
-/* ── TOKEN STRIP ANIMATION ── */
 const tokens = [
   { text: 'import', cls: 't-keyword' },
   { text: 'pandas', cls: 't-func' },
@@ -937,7 +1046,11 @@ const tokens = [
 
 function renderTokens(){
   const strip = document.getElementById('token-strip');
+
+  if (!strip) return;
+
   strip.innerHTML = '';
+
   tokens.forEach((t, i) => {
     const el = document.createElement('span');
     el.className = `token ${t.cls}`;
@@ -946,67 +1059,64 @@ function renderTokens(){
     strip.appendChild(el);
   });
 }
+
 renderTokens();
 
-/* ── TAB SWITCHER ── */
 function switchTab(tab){
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', (tab === 'login') ? i===0 : i===1);
+  document.querySelectorAll('.tab-btn').forEach((button, index) => {
+    button.classList.toggle('active', tab === 'login' ? index === 0 : index === 1);
   });
-  document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+
+  document.querySelectorAll('.form-panel').forEach(panel => {
+    panel.classList.remove('active');
+  });
+
   document.getElementById(`panel-${tab}`).classList.add('active');
 
-  // Update heading context
-  if(tab === 'login'){  
-    document.title = 'DataSensei — Sign In';
-  } else {
-    document.title = 'DataSensei — Create Account';
-  }
+  document.title = tab === 'login'
+    ? 'DataSensei — Sign In'
+    : 'DataSensei — Create Account';
 }
 
-/* ── ROLE CARDS ── */
-document.querySelectorAll('.role-card').forEach(card => {
-  card.addEventListener('click', () => {
-    // Sync the underlying radio button status to UI changes
-    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    card.querySelector('input').checked = true;
-  });
-});
-
-/* ── PASSWORD TOGGLE ── */
 function togglePwd(id, btn){
-  const inp = document.getElementById(id);
-  const isText = inp.type === 'text';
-  inp.type = isText ? 'password' : 'text';
+  const input = document.getElementById(id);
+  const isText = input.type === 'text';
+
+  input.type = isText ? 'password' : 'text';
+
   btn.innerHTML = isText
     ? `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/></svg>`
     : `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 1.5l12 12M6.2 6.4a1.5 1.5 0 002.1 2.1M3 5C1.8 6 1.2 7 1.2 7.5S3.5 11 7.5 11M12 10c1.2-1 1.8-2 1.8-2.5S11 4 7.5 4"/></svg>`;
 }
 
-/* ── PASSWORD STRENGTH ── */
-function checkStrength(val){
+function checkStrength(value){
   const wrap = document.getElementById('strength-wrap');
   const label = document.getElementById('strength-label');
-  const bars = [1,2,3,4].map(i => document.getElementById('sb'+i));
+  const bars = [1, 2, 3, 4].map(i => document.getElementById('sb' + i));
 
-  if(!val){ wrap.classList.remove('visible'); return; }
+  if(!value){
+    wrap.classList.remove('visible');
+    return;
+  }
+
   wrap.classList.add('visible');
 
   let score = 0;
-  if(val.length >= 8) score++;
-  if(/[A-Z]/.test(val)) score++;
-  if(/[0-9]/.test(val)) score++;
-  if(/[^A-Za-z0-9]/.test(val)) score++;
 
-  const colors = ['#fc8181','#f6ad55','#68d391','#63b3ed'];
-  const labels = ['Weak','Fair','Good','Strong'];
+  if(value.length >= 8) score++;
+  if(/[A-Z]/.test(value)) score++;
+  if(/[0-9]/.test(value)) score++;
+  if(/[^A-Za-z0-9]/.test(value)) score++;
 
-  bars.forEach((b, i) => {
-    b.style.background = i < score ? colors[score-1] : 'var(--surface-2)';
+  const colors = ['#fc8181', '#f6ad55', '#68d391', '#63b3ed'];
+  const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+
+  bars.forEach((bar, index) => {
+    bar.style.background = index < score ? colors[score - 1] : 'var(--surface-2)';
   });
-  label.textContent = labels[score-1] || 'Weak';
-  label.style.color = colors[score-1] || colors[0];
+
+  label.textContent = labels[score - 1] || 'Weak';
+  label.style.color = colors[score - 1] || colors[0];
 }
 </script>
 </body>

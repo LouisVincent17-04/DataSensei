@@ -17,6 +17,7 @@
       --accent3:      #10b981;
       --warn:         #f59e0b;
       --amber:        #f59e0b;
+      --red:          #ef4444;
       --text:         #fafafa;
       --muted:        #8b9ebb;
       --dim:          #4a5f82;
@@ -112,6 +113,22 @@
     .btn-map-retry { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); transition: all 0.2s; }
     .btn-map-retry:hover { background: var(--surface2); border-color: var(--border-hover); transform: translateY(-1px); }
 
+    /* Retake (red — timer expired, fresh attempt) */
+    .btn-map-retake { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: linear-gradient(135deg, var(--red), #dc2626); color: #fff; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(239,68,68,0.3); font-family: 'Inter', sans-serif; }
+    .btn-map-retake:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(239,68,68,0.45); }
+
+    /* Retake exhausted (no attempts left) */
+    .btn-map-exhausted { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25); color: var(--red); opacity: 0.55; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); cursor: not-allowed; }
+
+    /* Retakes-remaining label */
+    .retake-meta { font-size: 0.7rem; color: var(--muted); text-align: center; margin-bottom: 8px; letter-spacing: 0.02em; }
+
+    /* ── EXPIRED node state ── */
+    .challenge-map-node.state-expired .challenge-map-node-icon  { background: rgba(239,68,68,0.12); border-color: var(--red); color: var(--red); box-shadow: 0 0 30px rgba(239,68,68,.2); }
+    .challenge-map-node.state-expired .challenge-map-node-badge { display: flex; align-items: center; gap: 4px; background: var(--red); color: #fff; }
+    .challenge-map-node.state-expired .challenge-map-node-number { color: var(--red); }
+    .challenge-map-node.state-expired .challenge-map-node-info  { opacity: 1; border-color: rgba(239,68,68,0.35); background: rgba(17,28,45,0.85); }
+
     /* Legend */
     .challenge-map-legend { position: absolute; bottom: 20px; right: 24px; background: rgba(17,28,45,0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; z-index: 30; }
     .challenge-map-legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--muted); font-weight: 500; }
@@ -143,6 +160,13 @@
       <div class="challenge-map-alert">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
         {{ session('success') }}
+      </div>
+    @endif
+
+    @if(session('error'))
+      <div class="challenge-map-alert" style="background:rgba(239,68,68,0.1); border-bottom-color:rgba(239,68,68,0.3); color:var(--red);">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        {{ session('error') }}
       </div>
     @endif
 
@@ -201,16 +225,53 @@
           {{-- Nodes --}}
           @php $firstActiveSet = false; @endphp
           @foreach($challenges as $idx => $ch)
-            @php
+          @php
               $pos          = $positions[$idx];
               $isCompleted  = in_array($ch->id, $completedChallengeIds);
               $isInProgress = in_array($ch->id, $inProgressChallengeIds);
               $best         = $bestScores[$ch->id] ?? null;
               $totalQ       = $ch->codingQuestions()->count();
 
-              // Determine state
+              // ── Detect expired timer & retake availability ───────────────
+              // We compute this fresh from the DB so it stays accurate even
+              // when the user pressed Back mid-quiz without submitting.
+              // (The timer is always server-side in started_at, so there is
+              //  no way for the client to fool it or reset it by going back.)
+              $isExpired   = false;
+              $retakeCount = 0;
+              $canRetake   = false;
+
+              if ($isInProgress) {
+                  $userId    = auth()->id();
+                  $questions = $ch->codingQuestions()->get(['id', 'time_limit_seconds']);
+                  $qIds      = $questions->pluck('id');
+
+                  // Find the earliest non-expired attempt (the active question's timer).
+                  $activeAttempt = \App\Models\CodingQuestionAttempt::where('user_id', $userId)
+                      ->whereIn('coding_question_id', $qIds)
+                      ->orderBy('started_at')
+                      ->first();
+
+                  if ($activeAttempt) {
+                      $q       = $questions->firstWhere('id', $activeAttempt->coding_question_id);
+                      $elapsed = max(0, now()->timestamp - $activeAttempt->started_at->timestamp);
+                      // Expired if DB flag is set OR wall-clock has passed the limit
+                      $isExpired = $activeAttempt->expired
+                                || ($q && $elapsed >= $q->time_limit_seconds);
+                  }
+
+                  $retakeRecord = \App\Models\CodingChallengeRetake::where('user_id', $userId)
+                      ->where('challenge_id', $ch->id)
+                      ->first();
+                  $retakeCount = $retakeRecord?->retake_count ?? 0;
+                  $canRetake   = $retakeCount < \App\Models\CodingChallengeRetake::MAX_RETAKES;
+              }
+
+              // ── Determine visual state ────────────────────────────────────
               if ($isCompleted) {
                   $state = 'completed';
+              } elseif ($isInProgress && $isExpired) {
+                  $state = 'expired';       // new — red icon, Retake button
               } elseif ($isInProgress) {
                   $state = 'inprogress';
               } elseif ($idx === 0) {
@@ -223,7 +284,7 @@
 
               $isActiveNode = ($state === 'active' && !$firstActiveSet);
               if ($isActiveNode) $firstActiveSet = true;
-            @endphp
+          @endphp
 
             <div class="challenge-map-node state-{{ $state }}"
                  style="left: {{ $pos['x'] }}px; top: {{ $pos['y'] }}px;"
@@ -233,6 +294,9 @@
                 <div class="challenge-map-node-icon">
                   @if($isCompleted)
                     <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  @elseif($isInProgress && $isExpired)
+                    {{-- Clock with X — time ran out --}}
+                    <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3 3M15 9l-6 6M9 9l6 6"/></svg>
                   @elseif($isInProgress)
                     {{-- Play/resume icon --}}
                     <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -247,6 +311,8 @@
                   @if($isCompleted)
                     <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                     Done
+                  @elseif($isInProgress && $isExpired)
+                    ⏱ Time's Up
                   @elseif($isInProgress)
                     ⏱ In Progress
                   @endif
@@ -277,7 +343,34 @@
                     Practice Again
                   </a>
 
+                @elseif($isInProgress && $isExpired)
+                  {{-- ── Timer expired — offer Retake (max 3) ── --}}
+                  <div class="challenge-map-node-status" style="color:var(--red);">⏱ Time's up — round ended</div>
+
+                  @if($canRetake)
+                    <div class="retake-meta">
+                      {{ \App\Models\CodingChallengeRetake::MAX_RETAKES - $retakeCount }}
+                      retake{{ (\App\Models\CodingChallengeRetake::MAX_RETAKES - $retakeCount) === 1 ? '' : 's' }}
+                      remaining
+                    </div>
+                    <form method="POST"
+                          action="{{ route('challenges.coding.retake', ['slug' => $slug, 'challenge' => $ch->id]) }}"
+                          onsubmit="return confirm('This will reset all your progress for this challenge and start fresh. Continue?')"
+                          style="width:100%">
+                      @csrf
+                      <button type="submit" class="btn-map-retake">
+                        🔄 Retake Challenge
+                      </button>
+                    </form>
+                  @else
+                    <div class="retake-meta">No retakes remaining ({{ \App\Models\CodingChallengeRetake::MAX_RETAKES }}/{{ \App\Models\CodingChallengeRetake::MAX_RETAKES }} used)</div>
+                    <div class="btn-map-exhausted">
+                      ❌ No More Retakes
+                    </div>
+                  @endif
+
                 @elseif($isInProgress)
+                  {{-- ── Timer is still running — Continue ── --}}
                   <div class="challenge-map-node-status" style="color:var(--amber);">⏱ Timer is running — pick up where you left off</div>
                   <a href="{{ route('challenges.coding.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}"
                      class="btn-map-continue">

@@ -60,6 +60,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/challenges/coding/{slug}/challenge/{challenge}/start/{question}',
         [CodingQuizController::class, 'start'])
         ->name('challenges.coding.start');
+    Route::post('/challenges/coding/{slug}/challenge/{challenge}/retake',
+        [CodingQuizController::class, 'retake'])
+        ->name('challenges.coding.retake');
 
     // Modules / Lessons
     Route::get('/module', [ModuleController::class, 'showModules'])->name('modules.index');

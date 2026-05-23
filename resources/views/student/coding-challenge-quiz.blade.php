@@ -323,7 +323,7 @@
               $qState  = $attempts[$q->id]['state'] ?? 'locked';
               $dotCls  = match($qState) {
                 'done'   => 'done',
-                'active' => ($i === 0 ? 'active' : ''),
+                'active' => ($i === ($activeIdx ?? 0) ? 'active' : ''),
                 default  => 'locked',
               };
             @endphp
@@ -355,7 +355,7 @@
           $subUrl     = route('challenges.coding.submit', ['slug' => $slug, 'challenge' => $challenge->id, 'question' => $question->id]);
         @endphp
 
-        <div class="q-panel {{ $i === 0 ? 'active' : '' }}"
+        <div class="q-panel {{ $i === ($activeIdx ?? 0) ? 'active' : '' }}"
              id="qpanel-{{ $i }}"
              data-index="{{ $i }}"
              data-qid="{{ $question->id }}"
@@ -542,7 +542,9 @@
    STATE
    ══════════════════════════════════════════════════════════════════════════ */
 const TOTAL    = {{ $challenge->codingQuestions->count() }};
-let   currentQ = 0;
+// Start on the first unsolved question, not always Q0.
+// If ACTIVE_IDX is null (all done), default to 0 so the blade has a valid panel.
+let   currentQ = {{ $activeIdx ?? 0 }};
 
 // ── Question states from server ──────────────────────────────────────────
 // state: 'done' | 'active' | 'locked'
@@ -645,15 +647,17 @@ function seedTimer(idx, remaining) {
 }
 
 /**
- * Clear the active timer (called when a question is completed).
+ * Stop counting for the current question.
+ * The timer stays VISIBLE with '--:--' (neutral) — it must NOT disappear
+ * between individual questions. It only turns green when the full challenge
+ * is complete (showElapsedTimer). Hiding it per-question was the source of
+ * Issue 3 (timer disappears after a single level success).
  */
 function clearTimer() {
   activeTimer = null;
   pingCounter = 0;
-  // Hide/blank the display
   document.getElementById('timerTxt').textContent = '--:--';
-  document.getElementById('timerEl').classList.remove('urgent');
-  document.getElementById('timerEl').classList.add('hidden');
+  document.getElementById('timerEl').classList.remove('urgent', 'hidden', 'finished');
 }
 
 // Master tick — runs every second, drives the single active timer
@@ -664,10 +668,9 @@ setInterval(() => {
   activeTimer.remaining--;
   pingCounter++;
 
-  // Update display only when this question is visible
-  if (activeTimer.questionIdx === currentQ) {
-    syncTimerDisplay();
-  }
+  // Always update — the header timer is global, not per-panel.
+  // The user sees it regardless of which question panel is active.
+  syncTimerDisplay();
 
   // Periodic server re-sync
   if (pingCounter >= PING_INTERVAL) {
@@ -715,18 +718,30 @@ async function pingServer(idx) {
 }
 
 function syncTimerDisplay() {
-  if (activeTimer === null || Q_STATE[activeTimer.questionIdx] !== 'active') {
+  const timerEl = document.getElementById('timerEl');
+
+  // If the challenge is already fully complete, leave the green "Done in" display alone.
+  if (timerEl.classList.contains('finished')) return;
+
+  if (activeTimer === null) {
+    // Between questions (clearTimer was called but next has not started yet).
+    // Stay visible with a neutral '--:--' — Issue 3 fix: do NOT hide the timer here.
     document.getElementById('timerTxt').textContent = '--:--';
-    document.getElementById('timerEl').classList.remove('urgent');
-    document.getElementById('timerEl').classList.add('hidden');
+    timerEl.classList.remove('urgent', 'hidden');
+    return;
+  }
+
+  if (Q_STATE[activeTimer.questionIdx] !== 'active') {
+    // Safety guard — should not occur in normal flow.
+    timerEl.classList.add('hidden');
     return;
   }
 
   const s   = Math.max(0, activeTimer.remaining);
   const pad = n => String(n).padStart(2, '0');
   document.getElementById('timerTxt').textContent = pad(Math.floor(s / 60)) + ':' + pad(s % 60);
-  document.getElementById('timerEl').classList.remove('hidden');
-  document.getElementById('timerEl').classList.toggle('urgent', s <= 60 && s > 0);
+  timerEl.classList.remove('hidden', 'finished');
+  timerEl.classList.toggle('urgent', s <= 60 && s > 0);
 }
 
 function handleExpired(idx) {
@@ -742,17 +757,15 @@ function handleExpired(idx) {
   syncTimerDisplay();
 }
 
-// ── Initialise timer on page load ────────────────────────────────────────
-// Only the active question gets a timer.
-// If it already has an attempt (DB clock running), seed from server value.
-// Locked and done questions are silently skipped.
 (function initTimer() {
   if (ACTIVE_IDX === null) {
-    // All questions done — show elapsed time instead of countdown
-    // challengeStartTime is unknown at this point so show '--:--' as finished
+    // All questions already done — show a completed "Done in --:--" state
+    // (challengeStartTime is unknown on a fresh load of a completed challenge,
+    // so we just show the finished style without a meaningful time).
     const timerEl = document.getElementById('timerEl');
     timerEl.classList.remove('hidden', 'urgent');
     timerEl.classList.add('finished');
+    document.getElementById('timerLabel').textContent = 'Done in';
     document.getElementById('timerTxt').textContent = '--:--';
     document.getElementById('btnFinishFooter').style.display = 'inline-flex';
     return;
@@ -826,13 +839,8 @@ async function gotoQ(idx) {
     }
   }
 
-  // Show/hide the timer depending on which question we're on
-  if (Q_STATE[idx] === 'active' && activeTimer !== null) {
-    document.getElementById('timerEl').classList.remove('hidden');
-  } else {
-    document.getElementById('timerEl').classList.add('hidden');
-  }
-
+  // Timer display is managed globally by syncTimerDisplay — no per-panel
+  // hiding/showing needed here. Removing that block fixed Issue 3.
   syncTimerDisplay();
 }
 
@@ -852,6 +860,14 @@ function dotUpdate(idx) {
 // Initialise footer nav state
 document.getElementById('btnNext').disabled =
   TOTAL <= 1 || Q_STATE[1] === 'locked';
+
+// ── Sync footer Q-number and Prev/Next buttons to the real starting question ─
+// When ACTIVE_IDX > 0 (partially-completed challenge) currentQ is already set
+// to ACTIVE_IDX above, so the footer must reflect that panel, not Q1.
+document.getElementById('footerQ').textContent = currentQ + 1;
+document.getElementById('btnPrev').disabled = currentQ === 0;
+document.getElementById('btnNext').disabled =
+  currentQ >= TOTAL - 1 || Q_STATE[currentQ + 1] === 'locked';
 
 /* ══════════════════════════════════════════════════════════════════════════
    STDIN TOGGLE
@@ -1169,20 +1185,26 @@ function showCompletion() {
 }
 
 /**
- * Replace the countdown timer in the header with a green "Elapsed" display.
+ * Replace the countdown timer with a green "Done in X min Y sec" display.
  * Called once when the challenge is fully complete.
+ * This is the ONLY moment the timer visually "stops" — individual question
+ * passes leave the timer visible (neutral '--:--') until the next starts.
  */
 function showElapsedTimer() {
   const elapsedMs   = challengeStartTime !== null ? (Date.now() - challengeStartTime) : 0;
   const elapsedSecs = Math.max(0, Math.floor(elapsedMs / 1000));
-  const pad = n => String(n).padStart(2, '0');
+  const mins = Math.floor(elapsedSecs / 60);
+  const secs = elapsedSecs % 60;
+  const pad  = n => String(n).padStart(2, '0');
 
-  document.getElementById('timerTxt').textContent =
-    pad(Math.floor(elapsedSecs / 60)) + ':' + pad(elapsedSecs % 60);
+  // "Done in 4m 23s"  or  "Done in 45s" for sub-minute times
+  document.getElementById('timerLabel').textContent = 'Done in';
+  document.getElementById('timerTxt').textContent   =
+    mins > 0 ? `${mins}m ${pad(secs)}s` : `${secs}s`;
 
   const timerEl = document.getElementById('timerEl');
   timerEl.classList.remove('hidden', 'urgent');
-  timerEl.classList.add('finished');   // green style + shows "Elapsed" label
+  timerEl.classList.add('finished');   // green style, label becomes visible
 
   // Show footer Finish button
   document.getElementById('btnFinishFooter').style.display = 'inline-flex';
@@ -1237,10 +1259,20 @@ window.addEventListener('beforeunload', e => {
 });
 
 // ── Initialise nav state ─────────────────────────────────────────────────
-// Dots are rendered by PHP; just make sure the initial Q=0 panel is shown
-// and the active question dot is marked correctly.
+// Dots are rendered by PHP; refresh their JS-driven classes on load.
 for (let i = 0; i < TOTAL; i++) dotUpdate(i);
 syncTimerDisplay();
+
+// ── bfcache prevention — Issue 1 root cause ──────────────────────────────
+// When the user presses Back, the browser may serve this page from bfcache
+// (in-memory snapshot), bypassing the server entirely. This means the PHP-
+// rendered state — attempt data, Q-dot states, timers — would be stale.
+// Forcing a reload on 'pageshow' with e.persisted=true ensures the server
+// always re-renders fresh state, fixing "Start Challenge" vs "Continue
+// Challenge" and the wrong-panel display on return navigation.
+window.addEventListener('pageshow', e => {
+  if (e.persisted) window.location.reload();
+});
 </script>
 </body>
 </html>

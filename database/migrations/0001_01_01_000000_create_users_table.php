@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->tinyInteger('role')->default(1); // 1 = user, 2 = instructor, 3 = admin, 4 = superadmin
+            $table->tinyInteger('role')->default(1); // 1 = system user, 2 = system admin, 3 = superadmin
             $table->integer('xp')->default(0);
             $table->integer('streak')->default(0);
             $table->timestamp('last_activity')->nullable();

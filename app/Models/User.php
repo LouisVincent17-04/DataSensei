@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -10,76 +9,74 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    const ROLE_STUDENT = 1;
-    const ROLE_INSTRUCTOR = 2;
-    const ROLE_ADMIN = 3;
-    const ROLE_SUPERADMIN = 4;
+    const ROLE_USER       = 1;
+    const ROLE_ADMIN      = 2;
+    const ROLE_SUPERADMIN = 3;
+    const ROLE_INSTRUCTOR = 4; 
+    const ROLE_INSTITUTION_ADMIN = 5;
 
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'role', //CRITICAL: Allows the AuthController to assign the role dynamically
+        'role',
+        'status',
+        'institution_id',
         'xp',
         'streak',
         'last_activity',
         'bio',
     ];
-    
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
+
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
     // ─── ROLE CHECKERS ─────────────────────────────────────────
 
-    public function isStudent()
+    public function isUser(): bool
     {
-        return $this->role == self::ROLE_STUDENT;
+        return $this->role === self::ROLE_USER;
     }
 
-    public function isInstructor()
+    public function isAdmin(): bool
     {
-        return $this->role == self::ROLE_INSTRUCTOR;
+        return $this->role === self::ROLE_ADMIN;
     }
 
-    public function isAdmin()
+    public function isSuperAdmin(): bool
     {
-        return $this->role == self::ROLE_ADMIN;
+        return $this->role === self::ROLE_SUPERADMIN;
     }
 
-    public function isSuperAdmin()
+    public function isInstructor(): bool // ← added
     {
-        return $this->role == self::ROLE_SUPERADMIN;
+        return $this->role === self::ROLE_INSTRUCTOR;
     }
 
-    // ─── PROGRESSION ENGINE RELATIONSHIPS ──────────────────────
+    public function isInstitutionAdmin(): bool // ← added
+    {
+        return $this->role === self::ROLE_INSTITUTION_ADMIN;
+    }
+
+    // ─── RELATIONSHIPS ──────────────────────────────────────────
+
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class);
+    }
 
     public function modules()
     {
@@ -99,7 +96,12 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Lesson::class, 'lesson_user')
                     ->withPivot('is_completed')
-                    ->wherePivot('is_completed', 1) // strictly checks for completed
+                    ->wherePivot('is_completed', 1)
                     ->withTimestamps();
+    }
+
+    public function instructorApplications() // ← added
+    {
+        return $this->hasMany(InstructorApplication::class);
     }
 }

@@ -19,10 +19,12 @@ class CodingSubmission extends Model
         'time_taken_seconds',
         'test_results',
         'error_message',
+        'voided',
     ];
 
     protected $casts = [
         'test_results' => 'array',
+        'voided'       => 'boolean',
     ];
 
     public function user(): BelongsTo

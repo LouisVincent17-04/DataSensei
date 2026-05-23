@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Challenge;
+use App\Models\CodingChallengeRetake;
 use App\Models\CodingQuestion;
 use App\Models\CodingQuestionAttempt;
 use App\Models\CodingSubmission;
@@ -59,13 +60,14 @@ class CodingQuizController extends Controller
 
         $userId = Auth::id();
 
-        // Best prior submission per question.
+        // Best prior submission per question (voided submissions from retakes are excluded).
         // keyBy() keeps the LAST item per key, so we order ascending by quality
         // (worst → best) so the best submission ends up as the survivor:
         //   1. tests_passed ASC  — fewer passing tests first
         //   2. passed status last — 'passed' rows overwrite 'failed'/'error' rows
         $priorSubmissions = CodingSubmission::where('user_id', $userId)
             ->whereIn('coding_question_id', $challenge->codingQuestions->pluck('id'))
+            ->where('voided', false)
             ->orderBy('tests_passed')
             ->orderByRaw("CASE WHEN status = 'passed' THEN 1 ELSE 0 END")
             ->get()
@@ -172,6 +174,7 @@ class CodingQuizController extends Controller
         $alreadyPassed = CodingSubmission::where('user_id', $userId)
             ->where('coding_question_id', $question->id)
             ->where('status', 'passed')
+            ->where('voided', false)
             ->exists();
 
         if ($alreadyPassed) {
@@ -290,6 +293,7 @@ class CodingQuizController extends Controller
         $alreadyPassed = CodingSubmission::where('user_id', $userId)
             ->where('coding_question_id', $question->id)
             ->where('status', 'passed')
+            ->where('voided', false)
             ->exists();
 
         if ($alreadyPassed) {
@@ -362,6 +366,7 @@ class CodingQuizController extends Controller
         $previousBest = CodingSubmission::where('user_id', $userId)
             ->where('coding_question_id', $question->id)
             ->where('id', '!=', $submission->id)
+            ->where('voided', false)
             ->max('xp_earned') ?? 0;
 
         if ($xp > $previousBest) {
@@ -390,6 +395,56 @@ class CodingQuizController extends Controller
             'challenge_complete' => $challengeComplete,
             'redirect_url'       => $challengeComplete ? route('challenges.coding.map', $slug) : null,
         ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RETAKE — wipes attempt + voids submissions, then redirects to fresh quiz
+    // POST /challenges/coding/{slug}/challenge/{challenge}/retake
+    //
+    // Rules:
+    //   • Max 3 retakes per user per challenge (enforced here + in the map blade).
+    //   • Old CodingQuestionAttempt rows are DELETED so the server timer resets.
+    //   • Old CodingSubmission rows are marked voided = true (NOT deleted) so
+    //     XP history / analytics are preserved, but all game-logic queries
+    //     (alreadyPassed, previousBest, priorSubmissions) skip voided rows.
+    //   • XP already credited to the user's account is intentionally kept.
+    // ─────────────────────────────────────────────────────────────────────────
+    public function retake(string $slug, Challenge $challenge)
+    {
+        $userId      = Auth::id();
+        $questionIds = $challenge->codingQuestions()->pluck('id');
+
+        // ── Enforce retake cap ────────────────────────────────────────────
+        $retakeRecord = CodingChallengeRetake::firstOrCreate(
+            ['user_id' => $userId, 'challenge_id' => $challenge->id],
+            ['retake_count' => 0],
+        );
+
+        if ($retakeRecord->retake_count >= CodingChallengeRetake::MAX_RETAKES) {
+            return redirect()
+                ->route('challenges.coding.map', $slug)
+                ->with('error', 'You have used all 3 retakes for this challenge.');
+        }
+
+        // ── Reset attempts so server timer starts fresh ───────────────────
+        CodingQuestionAttempt::where('user_id', $userId)
+            ->whereIn('coding_question_id', $questionIds)
+            ->delete();
+
+        // ── Void old submissions — keeps history, hides from game logic ───
+        CodingSubmission::where('user_id', $userId)
+            ->whereIn('coding_question_id', $questionIds)
+            ->where('voided', false)
+            ->update(['voided' => true]);
+
+        // ── Increment retake counter ──────────────────────────────────────
+        $retakeRecord->increment('retake_count');
+
+        // ── Go straight into the quiz (show() will create a fresh attempt) ─
+        return redirect()->route(
+            'challenges.coding.quiz',
+            ['slug' => $slug, 'challenge' => $challenge->id]
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────

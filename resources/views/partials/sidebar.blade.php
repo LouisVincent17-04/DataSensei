@@ -6,7 +6,7 @@
         <path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z"/>
         <path d="M8 12h8M8 16h5"/>
       </svg>
-      Data<span>SciFy</span>
+      Data<span>Sensei</span>
     </div>
     <div class="tagline">AI-Powered Learning Platform</div>
   </div>
