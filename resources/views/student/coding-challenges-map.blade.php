@@ -129,6 +129,36 @@
     .challenge-map-node.state-expired .challenge-map-node-number { color: var(--red); }
     .challenge-map-node.state-expired .challenge-map-node-info  { opacity: 1; border-color: rgba(239,68,68,0.35); background: rgba(17,28,45,0.85); }
 
+    /* Empty state */
+    .challenge-map-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+      z-index: 20;
+    }
+    .challenge-map-empty-card {
+      width: min(520px, 100%);
+      background: rgba(17,28,45,0.86);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: 0 16px 45px rgba(0,0,0,.35);
+    }
+    .challenge-map-empty-card h2 {
+      font-size: 1.25rem;
+      margin-bottom: 10px;
+    }
+    .challenge-map-empty-card p {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: .9rem;
+      margin-bottom: 18px;
+    }
+
     /* Legend */
     .challenge-map-legend { position: absolute; bottom: 20px; right: 24px; background: rgba(17,28,45,0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; z-index: 30; }
     .challenge-map-legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--muted); font-weight: 500; }
@@ -170,6 +200,15 @@
       </div>
     @endif
 
+    @if(!empty($exceptionalNotifications))
+      @foreach($exceptionalNotifications as $notification)
+        <div class="challenge-map-alert" style="background:rgba(245,158,11,0.12); border-bottom-color:rgba(245,158,11,0.35); color:#fbbf24;">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          {{ $notification }}
+        </div>
+      @endforeach
+    @endif
+
     <div class="challenge-map-container">
       <div class="challenge-map-viewport" id="challenge-map-viewport">
 
@@ -177,8 +216,15 @@
           $count      = $challenges->count();
           $nodeWidth  = 260;
           $nodeHeight = 220;
-          $cols       = min(3, $count);
-          $rows       = ceil($count / $cols);
+
+          /*
+           * Prevent DivisionByZeroError when this category has no coding challenges.
+           * Before:
+           * $cols = min(3, $count);
+           * If $count is 0, $cols becomes 0, then ceil($count / $cols) crashes.
+           */
+          $cols       = max(1, min(3, $count));
+          $rows       = $count > 0 ? (int) ceil($count / $cols) : 1;
           $canvasW    = max(900,  $cols * $nodeWidth  + 200);
           $canvasH    = max(600,  $rows * $nodeHeight + 200);
 
@@ -196,6 +242,21 @@
         @endphp
 
         <div class="challenge-map-content" style="width:{{ $canvasW }}px; height:{{ $canvasH }}px;">
+
+          @if($count === 0)
+            <div class="challenge-map-empty-state">
+              <div class="challenge-map-empty-card">
+                <h2>No coding challenges yet</h2>
+                <p>
+                  This path is available, but there are no coding challenge records under this category yet.
+                  Add coding challenges for this category first, then refresh this page.
+                </p>
+                <a href="{{ route('challenges.coding') }}" class="challenge-map-topbar-btn" style="display:inline-flex;">
+                  Back to Coding Paths
+                </a>
+              </div>
+            </div>
+          @endif
 
           {{-- SVG connector lines --}}
           <svg class="challenge-map-svg-paths" viewBox="0 0 {{ $canvasW }} {{ $canvasH }}" preserveAspectRatio="none">

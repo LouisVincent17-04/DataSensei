@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ModuleLibraryController;
+use App\Http\Controllers\StudentModuleLibraryController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\ChallengesController;
 use App\Http\Controllers\IdeController;
@@ -21,6 +22,10 @@ use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\InstructorClassController;
 use App\Http\Controllers\ClassStudentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\InstructorAssignmentController;
+use App\Http\Controllers\StudentAssignmentController;
+use App\Http\Controllers\InstructorAntiCheatController;
+use App\Http\Controllers\AntiCheatEventController;
 
 // ── 1. Root Route ─────────────────────────────────────────────────────────────
 Route::get('/', function () {
@@ -34,13 +39,37 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register');
 });
 
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
 // ── 3. Authenticated Routes ───────────────────────────────────────────────────
-Route::middleware('auth')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
+Route::middleware(['auth', 'student'])->group(function () {
+    
     // ── Student ───────────────────────────────────────────────────────────────
     Route::get('/student/dashboard', [StudentController::class, 'dashboard'])->name('studentDashboard');
-    Route::get('/student/modules',   [ModuleController::class, 'showModules'])->name('showModules');
+    Route::get('/student/modules', [StudentModuleLibraryController::class, 'index'])
+        ->name('showModules');
+
+    Route::get('/student/modules', [StudentModuleLibraryController::class, 'index'])
+        ->name('student.modules.index');
+
+    Route::get('/student/modules/{module}', [StudentModuleLibraryController::class, 'show'])
+        ->name('student.modules.show');
+
+
+    // ── Student Assignments ──────────────────────────────────────────────────
+    Route::prefix('student/assignments')->name('student.assignments.')->group(function () {
+        Route::get('/', [StudentAssignmentController::class, 'index'])->name('index');
+        Route::get('/{assignment}', [StudentAssignmentController::class, 'show'])->name('show');
+        Route::post('/{assignment}/start', [StudentAssignmentController::class, 'start'])->name('start');
+        Route::get('/{assignment}/attempt/{submission}', [StudentAssignmentController::class, 'take'])->name('take');
+        Route::post('/{assignment}/attempt/{submission}/submit', [StudentAssignmentController::class, 'submit'])->name('submit');
+        Route::get('/{assignment}/attempt/{submission}/result', [StudentAssignmentController::class, 'result'])->name('result');
+    });
+
+    // ── Anti-Cheat Event Logging for Instructor Assignments ──────────────────
+    Route::post('/anti-cheat/events', [AntiCheatEventController::class, 'store'])
+        ->name('anti-cheat.events.store');
 
     // ── IDE ───────────────────────────────────────────────────────────────────
     Route::get('/ide',                         [IdeController::class, 'index'])->name('ide.index');
@@ -55,7 +84,6 @@ Route::middleware('auth')->group(function () {
 
     // ── MCQ Challenge System ──────────────────────────────────────────────────
     Route::get('/challenges',                                           [ChallengesController::class, 'index'])->name('challenges');
-    Route::post('/challenges/enroll',                                   [ChallengesController::class, 'enrollOrganization'])->name('challenges.enroll');
     Route::get('/challenges/map/{slug}',                                [ChallengesController::class, 'map'])->name('challenges.map');
     Route::get('/challenges/{slug}/quiz/{challenge}',                   [ChallengesController::class, 'showQuiz'])->name('challenges.quiz');
     Route::post('/challenges/{slug}/quiz/{challenge}/submit',           [ChallengesController::class, 'submitQuiz'])->name('challenges.quiz.submit');
@@ -160,6 +188,27 @@ Route::middleware('auth')
         Route::post('/apply', [InstructorApplicationController::class, 'apply'])->name('apply.submit');
         Route::get('/dashboard', [InstructorController::class, 'dashboard'])->name('dashboard');
 
+
+        // Anti-cheat configuration for instructor assignments only
+        Route::get('/anti-cheat', [InstructorAntiCheatController::class, 'index'])->name('anti-cheat.index');
+        Route::post('/anti-cheat', [InstructorAntiCheatController::class, 'store'])->name('anti-cheat.store');
+        Route::put('/anti-cheat/{setting}', [InstructorAntiCheatController::class, 'update'])->name('anti-cheat.update');
+        Route::delete('/anti-cheat/{setting}', [InstructorAntiCheatController::class, 'destroy'])->name('anti-cheat.destroy');
+
+        // Assignment management
+        Route::prefix('assignments')->name('assignments.')->group(function () {
+            Route::get('/', [InstructorAssignmentController::class, 'index'])->name('index');
+            Route::get('/create', [InstructorAssignmentController::class, 'create'])->name('create');
+            Route::post('/', [InstructorAssignmentController::class, 'store'])->name('store');
+            Route::get('/{assignment}', [InstructorAssignmentController::class, 'show'])->name('show');
+            Route::get('/{assignment}/edit', [InstructorAssignmentController::class, 'edit'])->name('edit');
+            Route::put('/{assignment}', [InstructorAssignmentController::class, 'update'])->name('update');
+            Route::delete('/{assignment}', [InstructorAssignmentController::class, 'destroy'])->name('destroy');
+            Route::patch('/{assignment}/publish', [InstructorAssignmentController::class, 'publish'])->name('publish');
+            Route::patch('/{assignment}/close', [InstructorAssignmentController::class, 'close'])->name('close');
+            Route::patch('/{assignment}/archive', [InstructorAssignmentController::class, 'archive'])->name('archive');
+        });
+
         // Class management
         Route::prefix('classes')->name('classes.')->group(function () {
             Route::get('/',        [InstructorClassController::class, 'index'])->name('index');
@@ -180,6 +229,7 @@ Route::middleware('auth')
             Route::post  ('/{class}/students/approve-bulk',       [ClassStudentController::class, 'approveBulk']) ->name('students.approve-bulk');
             Route::delete('/{class}/students/{student}',          [ClassStudentController::class, 'remove'])      ->name('students.remove');
             Route::delete('/{class}/students',                    [ClassStudentController::class, 'removeBulk'])  ->name('students.remove-bulk');
+            Route::post('/{class}/students/add-by-email', [ClassStudentController::class, 'addByEmail'])          ->name('students.add-by-email');
         });
     });
 
@@ -192,4 +242,7 @@ Route::middleware(['auth'])
 
         Route::post('/module-library/assign', [ModuleLibraryController::class, 'assign'])
             ->name('module-library.assign');
+
+        Route::get('/module-library/{module}', [ModuleLibraryController::class, 'show'])
+            ->name('module-library.show');
     });

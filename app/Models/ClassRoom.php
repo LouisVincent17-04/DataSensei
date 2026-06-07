@@ -106,6 +106,11 @@ class ClassRoom extends Model
         return $this->hasMany(ClassModuleAssignment::class, 'class_id');
     }
 
+    public function assignmentPosts(): HasMany
+    {
+        return $this->hasMany(ClassAssignment::class, 'class_id');
+    }
+
     // ─── Accessors ───────────────────────────────────────────────────────────
 
     public function getStudentCountAttribute(): int

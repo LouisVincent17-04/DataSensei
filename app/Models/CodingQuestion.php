@@ -16,6 +16,11 @@ class CodingQuestion extends Model
         'order_index',
         'time_limit_seconds',
         'base_xp',
+        'source_requirements',
+    ];
+
+    protected $casts = [
+        'source_requirements' => 'array',
     ];
 
     public function challenge(): BelongsTo

@@ -107,12 +107,27 @@ class CodingQuizController extends Controller
 
                 if ($remaining <= 0 && !$existing->expired) {
                     $existing->update(['expired' => true]);
+                    $existing->refresh();
+                }
+
+                // Expired questions are treated as finished-without-XP, not active.
+                // This lets the next unsolved question start instead of trapping the user
+                // forever on a 00:00 timer.
+                if ($existing->expired || $remaining <= 0) {
+                    $attempts[$question->id] = [
+                        'state'             => 'expired',
+                        'remaining_seconds' => 0,
+                        'expired'           => true,
+                        'started_at'        => $existing->started_at->toIso8601String(),
+                        'has_attempt'       => true,
+                    ];
+                    continue;
                 }
 
                 $attempts[$question->id] = [
                     'state'             => 'active',
                     'remaining_seconds' => $remaining,
-                    'expired'           => $remaining <= 0,
+                    'expired'           => false,
                     'started_at'        => $existing->started_at->toIso8601String(),
                     'has_attempt'       => true,
                 ];
@@ -254,6 +269,10 @@ class CodingQuizController extends Controller
             'input' => 'nullable|string|max:5000',
         ]);
 
+        if ($expiredResponse = $this->rejectIfQuestionExpired($question)) {
+            return $expiredResponse;
+        }
+
         $result = $this->execute($request->input('code'), $request->input('input') ?? '');
 
         return response()->json([
@@ -331,8 +350,49 @@ class CodingQuizController extends Controller
                 'xp_earned'          => 0,
                 'results'            => [],
                 'expired'            => true,
+                'unlock_next'        => true,
+                'message'            => 'Time limit exceeded. No XP earned for this question. You may proceed to the next question.',
                 'challenge_complete' => false,
             ]);
+        }
+
+        // ── Source-code / instruction validation ─────────────────────────
+        // Output-only tests are not enough for tasks like:
+        //   Create greeting = "Hello" and print greeting.
+        // Without this, print("Hello") passes even though the required variable was never created.
+        $sourceErrors = $this->validateSourceRequirements(
+            $request->input('code'),
+            $question->source_requirements ?? null
+        );
+
+        if (!empty($sourceErrors)) {
+            $submission = CodingSubmission::create([
+                'user_id'            => $userId,
+                'coding_question_id' => $question->id,
+                'code'               => $request->input('code'),
+                'language'           => $question->language,
+                'status'             => 'failed',
+                'tests_passed'       => 0,
+                'tests_total'        => $question->testCases->count(),
+                'xp_earned'          => 0,
+                'time_taken_seconds' => $timeTaken,
+                'test_results'       => [],
+                'error_message'      => 'Instruction check failed: ' . implode(' ', $sourceErrors),
+            ]);
+
+            return response()->json([
+                'submission_id'       => $submission->id,
+                'status'              => 'failed',
+                'tests_passed'        => 0,
+                'tests_total'         => $question->testCases->count(),
+                'xp_earned'           => 0,
+                'results'             => [],
+                'expired'             => false,
+                'source_failed'       => true,
+                'instruction_errors'  => $sourceErrors,
+                'message'             => 'Your output may be correct, but the required coding instructions were not followed.',
+                'challenge_complete'  => false,
+            ], 422);
         }
 
         // ── Grade ─────────────────────────────────────────────────────────
@@ -402,6 +462,134 @@ class CodingQuizController extends Controller
             'challenge_complete' => $challengeComplete,
             'redirect_url'       => $challengeComplete ? route('challenges.coding.map', $slug) : null,
         ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SOURCE REQUIREMENTS — validates that the student's SOURCE CODE follows
+    // the task instructions, not only the final output.
+    // ─────────────────────────────────────────────────────────────────────────
+    private function validateSourceRequirements(string $code, mixed $requirements): array
+    {
+        if (empty($requirements)) {
+            return [];
+        }
+
+        if (is_string($requirements)) {
+            $decoded = json_decode($requirements, true);
+            $requirements = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($requirements)) {
+            return [];
+        }
+
+        $errors = [];
+
+        foreach (($requirements['required_variables'] ?? []) as $variable) {
+            $variable = (string) $variable;
+            if (!preg_match('/\b' . preg_quote($variable, '/') . '\b/', $code)) {
+                $errors[] = "Required variable `{$variable}` was not found.";
+            }
+        }
+
+        foreach (($requirements['required_assignments'] ?? []) as $assignment) {
+            $variable = (string) ($assignment['variable'] ?? '');
+            if ($variable === '') continue;
+
+            $value = $assignment['value'] ?? null;
+            $type  = $assignment['value_type'] ?? 'string';
+            $pattern = $this->assignmentPattern($variable, $value, $type);
+
+            if (!preg_match($pattern, $code)) {
+                $display = is_bool($value) ? ($value ? 'True' : 'False') : (string) $value;
+                $errors[] = "Required assignment missing: `{$variable} = {$display}`.";
+            }
+        }
+
+        foreach (($requirements['required_print_variables'] ?? []) as $variable) {
+            $variable = (string) $variable;
+            $pattern = '/\bprint\s*\(\s*' . preg_quote($variable, '/') . '\s*\)/';
+            if (!preg_match($pattern, $code)) {
+                $errors[] = "You must print the variable using `print({$variable})`.";
+            }
+        }
+
+        foreach (($requirements['forbidden_print_literals'] ?? []) as $literal) {
+            $literal = (string) $literal;
+            $pattern = '/\bprint\s*\(\s*([\'\"])' . preg_quote($literal, '/') . '\\1\s*\)/';
+            if (preg_match($pattern, $code)) {
+                $errors[] = "Do not directly print `{$literal}`. Store it in the required variable and print the variable.";
+            }
+        }
+
+        foreach (($requirements['required_regex'] ?? []) as $rule) {
+            $pattern = is_array($rule) ? ($rule['pattern'] ?? null) : $rule;
+            $message = is_array($rule) ? ($rule['message'] ?? 'A required code pattern is missing.') : 'A required code pattern is missing.';
+            if ($pattern && @preg_match($pattern, '') !== false && !preg_match($pattern, $code)) {
+                $errors[] = $message;
+            }
+        }
+
+        foreach (($requirements['forbidden_regex'] ?? []) as $rule) {
+            $pattern = is_array($rule) ? ($rule['pattern'] ?? null) : $rule;
+            $message = is_array($rule) ? ($rule['message'] ?? 'A forbidden code pattern was found.') : 'A forbidden code pattern was found.';
+            if ($pattern && @preg_match($pattern, '') !== false && preg_match($pattern, $code)) {
+                $errors[] = $message;
+            }
+        }
+
+        if (!empty($errors) && !empty($requirements['message'])) {
+            array_unshift($errors, (string) $requirements['message']);
+        }
+
+        return array_values(array_unique($errors));
+    }
+
+    private function assignmentPattern(string $variable, mixed $value, string $type): string
+    {
+        $var = preg_quote($variable, '/');
+
+        return match ($type) {
+            'string' => '/^\s*' . $var . '\s*=\s*([\'\"])' . preg_quote((string) $value, '/') . '\\1\s*(?:#.*)?$/m',
+            'bool'   => '/^\s*' . $var . '\s*=\s*' . ($value ? 'True' : 'False') . '\s*(?:#.*)?$/m',
+            'none'   => '/^\s*' . $var . '\s*=\s*None\s*(?:#.*)?$/m',
+            default  => '/^\s*' . $var . '\s*=\s*' . preg_quote((string) $value, '/') . '\s*(?:#.*)?$/m',
+        };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TIMEOUT GUARD — Run and Submit must not allow coding after time is out.
+    // ─────────────────────────────────────────────────────────────────────────
+    private function rejectIfQuestionExpired(CodingQuestion $question): ?\Illuminate\Http\JsonResponse
+    {
+        $attempt = CodingQuestionAttempt::where('user_id', Auth::id())
+            ->where('coding_question_id', $question->id)
+            ->first();
+
+        if (!$attempt) {
+            return response()->json([
+                'status'  => 'expired',
+                'expired' => true,
+                'error'   => 'No active attempt was found. Please reload the challenge.',
+            ], 403);
+        }
+
+        $remaining = $this->remainingSeconds($attempt, $question);
+
+        if ($remaining <= 0 || $attempt->expired) {
+            if (!$attempt->expired) {
+                $attempt->update(['expired' => true]);
+            }
+
+            return response()->json([
+                'status'       => 'expired',
+                'expired'      => true,
+                'unlock_next'  => true,
+                'error'        => 'Time limit exceeded. No XP can be earned for this question.',
+            ], 403);
+        }
+
+        return null;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

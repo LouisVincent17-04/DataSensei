@@ -53,6 +53,19 @@
     .page-challenges-hero-title span { color: var(--accent); }
     .page-challenges-hero-subtitle { font-size: 1.05rem; color: var(--muted); line-height: 1.6; }
 
+    .page-challenges-institution-note {
+      max-width: 760px;
+      margin: 0 auto 24px;
+      padding: 0 20px;
+      color: var(--muted);
+      font-size: .875rem;
+      line-height: 1.6;
+      text-align: center;
+    }
+    .page-challenges-institution-note strong {
+      color: var(--accent);
+    }
+
     /* ── ALERTS ── */
     .page-challenges-alert-container { max-width: 700px; margin: 0 auto 20px; width: 100%; padding: 0 20px; }
     .page-challenges-alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 10px; }
@@ -94,6 +107,9 @@
     
     .page-challenges-lock-overlay { position: absolute; top: 20px; right: 20px; color: var(--dim); transition: color 0.2s; }
     .page-challenges-card.is-locked:hover .page-challenges-lock-overlay { color: var(--text); }
+    .page-challenges-card.is-bonus { border-color: rgba(245,158,11,0.55); box-shadow: 0 0 26px rgba(245,158,11,0.08); }
+    .page-challenges-card-badge { position:absolute; top:16px; right:16px; padding:5px 9px; border-radius:999px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.32); color:#fbbf24; font-size:.68rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+    .page-challenges-lock-reason { display:block; margin-top: 10px; color: var(--dim); font-size: .76rem; line-height: 1.45; }
 
     /* ── MODAL ── */
     .page-challenges-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity 0.2s; }
@@ -140,6 +156,10 @@
       <p class="page-challenges-hero-subtitle">Choose your starting point based on your current experience level to receive a personalized curriculum map.</p>
     </div>
 
+    <div class="page-challenges-institution-note">
+      Paths now unlock through progression. Complete the previous difficulty to move forward; exceptional speed and accuracy can unlock the next-next difficulty early.
+    </div>
+
     <div class="page-challenges-alert-container">
       @if(session('success'))
         <div class="page-challenges-alert page-challenges-alert-success">
@@ -147,23 +167,27 @@
           {{ session('success') }}
         </div>
       @endif
-      @error('invite_code')
+      @if($errors->any())
         <div class="page-challenges-alert page-challenges-alert-error">
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          {{ $message }}
+          {{ $errors->first() }}
         </div>
-      @enderror
+      @endif
+
+      @include('student.partials.exceptional-unlock-notifications', ['exceptionalNotifications' => $exceptionalNotifications ?? []])
     </div>
 
     <div class="page-challenges-grid">
 
       @foreach($categories as $cat)
         @php
-          $isLocked = ($cat->slug === 'university-student' && !$hasUniversity);
+          $lockInfo = $pathLocks[$cat->slug] ?? ['unlocked' => true, 'reason' => 'Available.', 'bonus_unlocked' => false, 'unlock_type' => 'starter'];
+          $isLocked = !($lockInfo['unlocked'] ?? false);
+          $isBonusUnlocked = (bool) ($lockInfo['bonus_unlocked'] ?? false);
         @endphp
 
         @if($isLocked)
-          <div class="page-challenges-card is-locked" onclick="openInviteModal()">
+          <div class="page-challenges-card is-locked">
             <div class="page-challenges-lock-overlay">
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
             </div>
@@ -172,22 +196,33 @@
             </div>
             <h2 class="page-challenges-card-title" style="color: var(--muted);">{{ $cat->name }}</h2>
             <span class="page-challenges-card-audience" style="color: var(--dim);">{{ $cat->target_audience }}</span>
-            <p class="page-challenges-card-desc" style="color: var(--dim);">{{ $cat->description }}</p>
+            <p class="page-challenges-card-desc" style="color: var(--dim);">
+              {{ $cat->description }}
+              <span class="page-challenges-lock-reason">{{ $lockInfo['reason'] ?? 'Complete the required previous path to unlock this.' }}</span>
+            </p>
             <div class="page-challenges-card-action" style="color: var(--dim);">
-              Unlock this path
+              Locked
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
             </div>
           </div>
         @else
-          <a href="{{ route('challenges.map', $cat->slug) }}" class="page-challenges-card">
+          <a href="{{ route('challenges.map', $cat->slug) }}" class="page-challenges-card {{ $isBonusUnlocked ? 'is-bonus' : '' }}">
+            @if($isBonusUnlocked)
+              <div class="page-challenges-card-badge">Exceptional Unlock</div>
+            @endif
             <div class="page-challenges-card-icon">
               {!! $cat->icon_svg !!}
             </div>
             <h2 class="page-challenges-card-title">{{ $cat->name }}</h2>
             <span class="page-challenges-card-audience">{{ $cat->target_audience }}</span>
-            <p class="page-challenges-card-desc">{{ $cat->description }}</p>
+            <p class="page-challenges-card-desc">
+              {{ $cat->description }}
+              @if($isBonusUnlocked)
+                <span class="page-challenges-lock-reason" style="color:#fbbf24;">{{ $lockInfo['reason'] }}</span>
+              @endif
+            </p>
             <div class="page-challenges-card-action">
-              Select Path
+              {{ $isBonusUnlocked ? 'Open Early-Unlocked Path' : 'Select Path' }}
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path fill="none" stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </div>
           </a>
@@ -198,46 +233,6 @@
 
   </div>
 </div>
-
-{{-- ── INVITE MODAL ── --}}
-<div class="page-challenges-modal-overlay" id="page-challenges-inviteModal" onclick="closeOnBackdrop(event)">
-  <div class="page-challenges-modal-card">
-    <div class="page-challenges-modal-header">
-      <h3 class="page-challenges-modal-title">Join Organization</h3>
-      <button class="page-challenges-modal-close" onclick="closeInviteModal()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <p class="page-challenges-modal-desc">This path requires an active university or organization affiliation. Enter the invite code provided by your instructor.</p>
-    <form action="{{ route('challenges.enroll') }}" method="POST">
-      @csrf
-      <div class="page-challenges-form-group">
-        <label class="page-challenges-form-label" for="page-challenges-inviteCode">Invite Code</label>
-        <input type="text" id="page-challenges-inviteCode" name="invite_code" class="page-challenges-form-input" placeholder="e.g. UCLM-DS-2026" required autocomplete="off">
-      </div>
-      <button type="submit" class="page-challenges-modal-submit">Verify &amp; Enroll</button>
-    </form>
-  </div>
-</div>
-
-<script>
-  function openInviteModal() {
-    document.getElementById('page-challenges-inviteModal').classList.add('is-active');
-    setTimeout(() => document.getElementById('page-challenges-inviteCode').focus(), 100);
-  }
-  
-  function closeInviteModal() {
-    document.getElementById('page-challenges-inviteModal').classList.remove('is-active');
-  }
-  
-  function closeOnBackdrop(e) {
-    if (e.target.id === 'page-challenges-inviteModal') closeInviteModal();
-  }
-  
-  @if($errors->has('invite_code'))
-    openInviteModal();
-  @endif
-</script>
 
 </body>
 </html>

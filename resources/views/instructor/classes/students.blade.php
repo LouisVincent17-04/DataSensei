@@ -121,6 +121,67 @@
     .strip-value { font-size: 1.5rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
     .strip-label { font-size: .75rem; color: var(--muted); margin-top: 4px; }
 
+    /* ── Add Student by Email ───────────────────────────── */
+    .add-student-card {
+      background: linear-gradient(135deg, rgba(59,130,246,.10), rgba(16,185,129,.06)), var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .add-student-copy h3 {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin-bottom: 5px;
+    }
+    .add-student-copy p {
+      color: var(--muted);
+      font-size: .84rem;
+      line-height: 1.55;
+      max-width: 560px;
+    }
+    .add-student-form {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .add-student-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .add-student-field label {
+      color: var(--dim);
+      font-size: .68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .add-student-field input {
+      width: 300px;
+      max-width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: .875rem;
+      outline: none;
+      padding: 10px 12px;
+    }
+    .add-student-field input:focus {
+      border-color: var(--accent);
+    }
+    .add-student-field input::placeholder {
+      color: var(--dim);
+    }
+
     /* ── Toolbar ──────────────────────────────────────── */
     .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .search-box {
@@ -380,6 +441,15 @@
         </div>
       @endif
 
+      @error('email')
+        <div class="flash flash-error">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {{ $message }}
+        </div>
+      @enderror
+
       <!-- Page Header -->
       <div class="page-header">
         <div>
@@ -458,6 +528,38 @@
           </div>
         </div>
       </div>
+
+      <!-- Add Student by Gmail -->
+      <section class="add-student-card">
+        <div class="add-student-copy">
+          <h3>Add Student by Gmail</h3>
+          <p>
+            This searches the registered users table by email, then adds the matching student account to this class.
+            The student must already have a DataSensei student account.
+          </p>
+        </div>
+
+        <form method="POST" action="{{ route('instructor.classes.students.add-by-email', $class) }}" class="add-student-form">
+          @csrf
+          <div class="add-student-field">
+            <label>Student Gmail / Email</label>
+            <input
+              type="email"
+              name="email"
+              value="{{ old('email') }}"
+              placeholder="student@gmail.com"
+              required
+            >
+          </div>
+
+          <button type="submit" class="btn btn-accent">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Add Student
+          </button>
+        </form>
+      </section>
 
       <!-- Bulk Action Bar (shown when rows are checked) -->
       <div class="bulk-bar" id="bulkBar">

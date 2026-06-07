@@ -1,0 +1,131 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+/**
+ * Runs coding challenge seeders only for topics where coding is appropriate.
+ *
+ * Included modules:
+ * 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24
+ *
+ * Excluded because they are better assessed with MCQ, fill-in-the-blank,
+ * proof/case analysis, or reflection assignments instead of coding challenges:
+ * - Module 4: Mathematical Analysis I
+ * - Module 5: Methods of Proof
+ * - Module 18: Privacy, Ethics & Data Governance
+ */
+class RelevantCodingChallengeSeedersSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $this->call([
+            Module1CodingChallengeSeederNewbie::class,
+            Module1CodingChallengeSeederUniversityStudent::class,
+            Module1CodingChallengeSeederIntermediate::class,
+            Module1CodingChallengeSeederAdvanced::class,
+            Module1CodingChallengeSeederProfessional::class,
+            Module2CodingChallengeSeederNewbie::class,
+            Module2CodingChallengeSeederUniversityStudent::class,
+            Module2CodingChallengeSeederIntermediate::class,
+            Module2CodingChallengeSeederAdvanced::class,
+            Module2CodingChallengeSeederProfessional::class,
+            Module3CodingChallengeSeederNewbie::class,
+            Module3CodingChallengeSeederUniversityStudent::class,
+            Module3CodingChallengeSeederIntermediate::class,
+            Module3CodingChallengeSeederAdvanced::class,
+            Module3CodingChallengeSeederProfessional::class,
+            Module6CodingChallengeSeederNewbie::class,
+            Module6CodingChallengeSeederUniversityStudent::class,
+            Module6CodingChallengeSeederIntermediate::class,
+            Module6CodingChallengeSeederAdvanced::class,
+            Module6CodingChallengeSeederProfessional::class,
+            Module7CodingChallengeSeederNewbie::class,
+            Module7CodingChallengeSeederUniversityStudent::class,
+            Module7CodingChallengeSeederIntermediate::class,
+            Module7CodingChallengeSeederAdvanced::class,
+            Module7CodingChallengeSeederProfessional::class,
+            Module8CodingChallengeSeederNewbie::class,
+            Module8CodingChallengeSeederUniversityStudent::class,
+            Module8CodingChallengeSeederIntermediate::class,
+            Module8CodingChallengeSeederAdvanced::class,
+            Module8CodingChallengeSeederProfessional::class,
+            Module9CodingChallengeSeederNewbie::class,
+            Module9CodingChallengeSeederUniversityStudent::class,
+            Module9CodingChallengeSeederIntermediate::class,
+            Module9CodingChallengeSeederAdvanced::class,
+            Module9CodingChallengeSeederProfessional::class,
+            Module10CodingChallengeSeederNewbie::class,
+            Module10CodingChallengeSeederUniversityStudent::class,
+            Module10CodingChallengeSeederIntermediate::class,
+            Module10CodingChallengeSeederAdvanced::class,
+            Module10CodingChallengeSeederProfessional::class,
+            Module11CodingChallengeSeederNewbie::class,
+            Module11CodingChallengeSeederUniversityStudent::class,
+            Module11CodingChallengeSeederIntermediate::class,
+            Module11CodingChallengeSeederAdvanced::class,
+            Module11CodingChallengeSeederProfessional::class,
+            Module12CodingChallengeSeederNewbie::class,
+            Module12CodingChallengeSeederUniversityStudent::class,
+            Module12CodingChallengeSeederIntermediate::class,
+            Module12CodingChallengeSeederAdvanced::class,
+            Module12CodingChallengeSeederProfessional::class,
+            Module13CodingChallengeSeederNewbie::class,
+            Module13CodingChallengeSeederUniversityStudent::class,
+            Module13CodingChallengeSeederIntermediate::class,
+            Module13CodingChallengeSeederAdvanced::class,
+            Module13CodingChallengeSeederProfessional::class,
+            Module14CodingChallengeSeederNewbie::class,
+            Module14CodingChallengeSeederUniversityStudent::class,
+            Module14CodingChallengeSeederIntermediate::class,
+            Module14CodingChallengeSeederAdvanced::class,
+            Module14CodingChallengeSeederProfessional::class,
+            Module15CodingChallengeSeederNewbie::class,
+            Module15CodingChallengeSeederUniversityStudent::class,
+            Module15CodingChallengeSeederIntermediate::class,
+            Module15CodingChallengeSeederAdvanced::class,
+            Module15CodingChallengeSeederProfessional::class,
+            Module16CodingChallengeSeederNewbie::class,
+            Module16CodingChallengeSeederUniversityStudent::class,
+            Module16CodingChallengeSeederIntermediate::class,
+            Module16CodingChallengeSeederAdvanced::class,
+            Module16CodingChallengeSeederProfessional::class,
+            Module17CodingChallengeSeederNewbie::class,
+            Module17CodingChallengeSeederUniversityStudent::class,
+            Module17CodingChallengeSeederIntermediate::class,
+            Module17CodingChallengeSeederAdvanced::class,
+            Module17CodingChallengeSeederProfessional::class,
+            Module19CodingChallengeSeederNewbie::class,
+            Module19CodingChallengeSeederUniversityStudent::class,
+            Module19CodingChallengeSeederIntermediate::class,
+            Module19CodingChallengeSeederAdvanced::class,
+            Module19CodingChallengeSeederProfessional::class,
+            Module20CodingChallengeSeederNewbie::class,
+            Module20CodingChallengeSeederUniversityStudent::class,
+            Module20CodingChallengeSeederIntermediate::class,
+            Module20CodingChallengeSeederAdvanced::class,
+            Module20CodingChallengeSeederProfessional::class,
+            Module21CodingChallengeSeederNewbie::class,
+            Module21CodingChallengeSeederUniversityStudent::class,
+            Module21CodingChallengeSeederIntermediate::class,
+            Module21CodingChallengeSeederAdvanced::class,
+            Module21CodingChallengeSeederProfessional::class,
+            Module22CodingChallengeSeederNewbie::class,
+            Module22CodingChallengeSeederUniversityStudent::class,
+            Module22CodingChallengeSeederIntermediate::class,
+            Module22CodingChallengeSeederAdvanced::class,
+            Module22CodingChallengeSeederProfessional::class,
+            Module23CodingChallengeSeederNewbie::class,
+            Module23CodingChallengeSeederUniversityStudent::class,
+            Module23CodingChallengeSeederIntermediate::class,
+            Module23CodingChallengeSeederAdvanced::class,
+            Module23CodingChallengeSeederProfessional::class,
+            Module24CodingChallengeSeederNewbie::class,
+            Module24CodingChallengeSeederUniversityStudent::class,
+            Module24CodingChallengeSeederIntermediate::class,
+            Module24CodingChallengeSeederAdvanced::class,
+            Module24CodingChallengeSeederProfessional::class,
+        ]);
+    }
+}

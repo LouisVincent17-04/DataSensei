@@ -322,15 +322,16 @@
             @php
               $qState  = $attempts[$q->id]['state'] ?? 'locked';
               $dotCls  = match($qState) {
-                'done'   => 'done',
-                'active' => ($i === ($activeIdx ?? 0) ? 'active' : ''),
-                default  => 'locked',
+                'done'    => 'done',
+                'expired' => 'failed',
+                'active'  => ($i === ($activeIdx ?? 0) ? 'active' : ''),
+                default   => 'locked',
               };
             @endphp
             <div class="q-dot {{ $dotCls }}"
                  data-index="{{ $i }}"
                  data-state="{{ $qState }}"
-                 title="Q{{ $i + 1 }}{{ $qState === 'locked' ? ' (locked)' : '' }}"
+                 title="Q{{ $i + 1 }}{{ $qState === 'locked' ? ' (locked)' : ($qState === 'expired' ? ' (time expired)' : '') }}"
                  onclick="gotoQ({{ $i }})"></div>
           @endforeach
         </div>
@@ -349,8 +350,10 @@
           $prior      = $priorSubmissions[$question->id] ?? null;
           $qState     = $attempts[$question->id]['state'] ?? 'locked';
           $isDone     = $qState === 'done';
+          $isExpired  = $qState === 'expired';
+          $isFinished = $isDone || $isExpired;
           $isLocked   = $qState === 'locked';
-          $isActive   = $i === ($activeIdx ?? 0) && !$isDone;
+          $isActive   = $i === ($activeIdx ?? 0) && !$isFinished;
           $runUrl     = route('challenges.coding.run',    ['slug' => $slug, 'challenge' => $challenge->id, 'question' => $question->id]);
           $subUrl     = route('challenges.coding.submit', ['slug' => $slug, 'challenge' => $challenge->id, 'question' => $question->id]);
         @endphp
@@ -403,6 +406,8 @@
               <span class="pill pill-time">⏱ {{ intval($question->time_limit_seconds / 60) }}m</span>
               @if($isDone)
                 <span class="pill pill-done">✓ Solved</span>
+              @elseif($isExpired)
+                <span class="pill pill-time">⏱ Time Expired</span>
               @endif
             </div>
           </div>
@@ -434,7 +439,7 @@
               @endif
 
               {{-- Run button --}}
-              <button class="btn btn-run" id="btn-run-{{ $i }}" onclick="runCode({{ $i }})" {{ ($isDone || $isLocked) ? 'disabled' : '' }}>
+              <button class="btn btn-run" id="btn-run-{{ $i }}" onclick="runCode({{ $i }})" {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>
                 <div class="spinner" id="run-spinner-{{ $i }}"></div>
                 <svg id="run-icon-{{ $i }}" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
                 Run
@@ -456,10 +461,10 @@
               </button>
 
               {{-- Submit button --}}
-              <button class="btn btn-submit" id="btn-submit-{{ $i }}" onclick="submitCode({{ $i }})" {{ ($isDone || $isLocked) ? 'disabled' : '' }}>
+              <button class="btn btn-submit" id="btn-submit-{{ $i }}" onclick="submitCode({{ $i }})" {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>
                 <div class="spinner" id="sub-spinner-{{ $i }}"></div>
                 <svg id="sub-icon-{{ $i }}" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                {{ $isDone ? '✓ Solved' : 'Run & Submit' }}
+                {{ $isDone ? '✓ Solved' : ($isExpired ? '⏱ Expired' : 'Run & Submit') }}
               </button>
             </div>
 
@@ -469,7 +474,7 @@
                         spellcheck="false"
                         placeholder="# Write your Python solution here..."
                         onkeydown="handleTab(event)"
-                        {{ ($isDone || $isLocked) ? 'disabled' : '' }}>{{ $prior ? $prior->code : ($question->starter_code ?? '') }}</textarea>
+                        {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>{{ $prior ? $prior->code : ($question->starter_code ?? '') }}</textarea>
             </div>
 
             {{-- stdin panel --}}
@@ -547,7 +552,7 @@ const TOTAL    = {{ $challenge->codingQuestions->count() }};
 let   currentQ = {{ $activeIdx ?? 0 }};
 
 // ── Question states from server ──────────────────────────────────────────
-// state: 'done' | 'active' | 'locked'
+// state: 'done' | 'expired' | 'active' | 'locked'
 // Only one question can be 'active' at a time.
 // The active index is the first unsolved question.
 const ACTIVE_IDX = {{ $activeIdx ?? 'null' }};
@@ -744,17 +749,95 @@ function syncTimerDisplay() {
   timerEl.classList.toggle('urgent', s <= 60 && s > 0);
 }
 
-function handleExpired(idx) {
+function handleExpired(idx, data = {}) {
   const panel = document.getElementById(`qpanel-${idx}`);
   if (!panel) return;
+
   panel.dataset.done = '1';
-  document.getElementById(`btn-submit-${idx}`).disabled = true;
+  panel.dataset.state = 'expired';
+  Q_STATE[idx] = 'expired';
+  qStates[idx] = {
+    status: 'expired',
+    passed: 0,
+    total: data.tests_total || 0,
+    xp: 0,
+  };
+
+  if (activeTimer && activeTimer.questionIdx === idx) {
+    activeTimer.remaining = 0;
+  }
+  activeTimer = null;
+  pingCounter = 0;
+
+  const timerEl = document.getElementById('timerEl');
+  timerEl.classList.remove('hidden', 'finished');
+  timerEl.classList.add('urgent');
+  document.getElementById('timerLabel').textContent = 'Elapsed';
+  document.getElementById('timerTxt').textContent = '00:00';
+
+  const editor = document.getElementById(`editor-${idx}`);
+  const runBtn = document.getElementById(`btn-run-${idx}`);
+  const subBtn = document.getElementById(`btn-submit-${idx}`);
+  const retryBtn = document.getElementById(`btn-retry-${idx}`);
+  if (editor) editor.disabled = true;
+  if (runBtn) runBtn.disabled = true;
+  if (subBtn) subBtn.disabled = true;
+  if (retryBtn) retryBtn.style.display = 'none';
+
   const verdictEl = document.getElementById(`verdict-${idx}`);
-  if (verdictEl) { verdictEl.className = 'verdict verdict-error'; verdictEl.textContent = '⏱ Time Expired'; }
-  if (activeTimer && activeTimer.questionIdx === idx) activeTimer.remaining = 0;
+  if (verdictEl) {
+    verdictEl.className = 'verdict verdict-error';
+    verdictEl.textContent = '⏱ Time Expired';
+  }
+
+  const scoreEl = document.getElementById(`result-score-${idx}`);
+  const xpEl = document.getElementById(`result-xp-${idx}`);
+  const stderrEl = document.getElementById(`stderr-${idx}`);
+  if (scoreEl) scoreEl.textContent = '0 / ' + (data.tests_total || 0) + ' tests';
+  if (xpEl) xpEl.textContent = '+0 XP';
+  if (stderrEl) {
+    stderrEl.style.display = 'block';
+    stderrEl.textContent = data.message || data.error || 'Time limit exceeded. No XP earned. You may proceed to the next question.';
+  }
+
   openOutput(idx);
   switchTab(idx, 'submit');
-  syncTimerDisplay();
+  dotUpdate(idx);
+  unlockNextAfterTimeout(idx);
+}
+
+function unlockNextAfterTimeout(idx) {
+  const nextIdx = idx + 1;
+
+  if (nextIdx < TOTAL) {
+    Q_STATE[nextIdx] = 'active';
+
+    const nextDot = document.querySelector(`.q-dot[data-index="${nextIdx}"]`);
+    if (nextDot) {
+      nextDot.classList.remove('locked');
+      nextDot.dataset.state = 'active';
+    }
+
+    const nextPanel = document.getElementById(`qpanel-${nextIdx}`);
+    if (nextPanel) {
+      nextPanel.dataset.state = 'active';
+      const overlay = nextPanel.querySelector('.locked-overlay');
+      if (overlay) overlay.remove();
+
+      const nextEditor = document.getElementById(`editor-${nextIdx}`);
+      const nextRun = document.getElementById(`btn-run-${nextIdx}`);
+      const nextSub = document.getElementById(`btn-submit-${nextIdx}`);
+      if (nextEditor) nextEditor.disabled = false;
+      if (nextRun) nextRun.disabled = false;
+      if (nextSub) nextSub.disabled = false;
+    }
+
+    document.getElementById(`btn-next-${idx}`).style.display = 'inline-flex';
+    if (currentQ === idx) document.getElementById('btnNext').disabled = false;
+  } else {
+    document.getElementById(`btn-finish-${idx}`).style.display = 'inline-flex';
+    document.getElementById('btnFinishFooter').style.display = 'inline-flex';
+  }
 }
 
 (function initTimer() {
@@ -848,8 +931,9 @@ function dotUpdate(idx) {
   const dot = document.querySelector(`.q-dot[data-index="${idx}"]`);
   if (!dot) return;
   dot.classList.remove('active', 'done', 'failed');
-  if (Q_STATE[idx] === 'done')   { dot.classList.add('done');   return; }
-  if (Q_STATE[idx] === 'locked') { dot.classList.add('locked'); return; }
+  if (Q_STATE[idx] === 'done')    { dot.classList.add('done');   return; }
+  if (Q_STATE[idx] === 'expired') { dot.classList.add('failed'); return; }
+  if (Q_STATE[idx] === 'locked')  { dot.classList.add('locked'); return; }
   // active question
   const st = qStates[idx];
   if (idx === currentQ)             dot.classList.add('active');
@@ -924,6 +1008,13 @@ async function runCode(idx) {
     }
     const data = await resp.json();
 
+    if (data.status === 'expired' || data.expired) {
+      handleExpired(idx, data);
+      outBox.textContent = data.error || data.message || 'Time limit exceeded. You may proceed to the next question.';
+      outBox.classList.add('is-error');
+      return;
+    }
+
     if (data.status === 'error') {
       outBox.textContent = data.stderr || data.output || '(runtime error — no output)';
       outBox.classList.add('is-error');
@@ -984,12 +1075,20 @@ async function submitCode(idx, auto = false) {
 
     // Time expired — server confirms
     if (data.status === 'expired' || data.expired) {
-      handleExpired(idx);
+      handleExpired(idx, data);
+      return;
+    }
+
+    if (data.source_failed) {
+      qStates[idx] = { status: 'failed', passed: 0, total: data.tests_total, xp: 0 };
+      dotUpdate(idx);
+      renderSubmitResults(idx, data);
+      document.getElementById(`btn-retry-${idx}`).style.display = 'inline-flex';
       return;
     }
 
     if (resp.status === 403 || resp.status === 422) {
-      showOutputError(idx, data.error || 'Submission rejected by server.');
+      showOutputError(idx, data.error || data.message || 'Submission rejected by server.');
       return;
     }
 
@@ -1091,6 +1190,7 @@ function setSubLoading(idx, on) {
 }
 
 function resetSubmit(idx) {
+  if (Q_STATE[idx] === 'expired') return;
   // Re-enables the editor after a failed submit so user can retry.
   // Timer is deliberately NOT touched.
   const panel = document.getElementById(`qpanel-${idx}`);
@@ -1121,8 +1221,8 @@ function renderSubmitResults(idx, data) {
   const [cls, label] = verdictMap[data.status] ?? ['verdict-fail', 'Unknown'];
   verdictEl.className   = `verdict ${cls}`;
   verdictEl.textContent = label;
-  scoreEl.textContent   = `${data.tests_passed} / ${data.tests_total} tests`;
-  xpEl.textContent      = data.xp_earned > 0 ? `+${data.xp_earned} XP` : '';
+  scoreEl.textContent   = `${data.tests_passed ?? 0} / ${data.tests_total ?? 0} tests`;
+  xpEl.textContent      = (data.xp_earned ?? 0) > 0 ? `+${data.xp_earned} XP` : '';
 
   (data.results || []).forEach(r => {
     const card   = document.getElementById(`tc-${r.test_case_id}`);
@@ -1155,9 +1255,13 @@ function renderSubmitResults(idx, data) {
     hiddenEl.appendChild(d);
   });
 
-  const stderr = (data.results || []).find(r => r.stderr)?.stderr;
+  const instructionErrors = data.instruction_errors || [];
+  const stderr = instructionErrors.length
+    ? instructionErrors.join('\\n')
+    : (data.results || []).find(r => r.stderr)?.stderr;
+
   if (stderr) { stderrEl.style.display = 'block'; stderrEl.textContent = stderr; }
-  else          { stderrEl.style.display = 'none'; }
+  else        { stderrEl.style.display = 'none'; }
 }
 
 function showOutputError(idx, msg) {
@@ -1238,6 +1342,17 @@ function handleTab(e) {
   ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en);
   ta.selectionStart = ta.selectionEnd = s + 4;
 }
+
+
+// Expose functions used by inline onclick/onkeydown handlers.
+window.gotoQ = gotoQ;
+window.toggleStdin = toggleStdin;
+window.runCode = runCode;
+window.submitCode = submitCode;
+window.resetSubmit = resetSubmit;
+window.switchTab = switchTab;
+window.showCompletion = showCompletion;
+window.handleTab = handleTab;
 
 // Drag-to-resize problem pane
 document.querySelectorAll('.resizer').forEach(handle => {

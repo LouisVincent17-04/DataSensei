@@ -1,106 +1,183 @@
 <?php
-// ═══════════════════════════════════════════════════════════════════════
-//  app/Http/Controllers/ClassStudentController.php
-// ═══════════════════════════════════════════════════════════════════════
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\ClassRoom;   // rename to whatever your model is called
+use App\Models\ClassRoom;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class ClassStudentController extends Controller
 {
-    // ── List (enrolled + pending) ────────────────────────────────────────
+    /**
+     * Check if the logged-in instructor owns/manages this class.
+     */
+    private function ensureCanManageClass(ClassRoom $class): void
+    {
+        abort_unless(Auth::check(), 403, 'You must be logged in.');
+
+        abort_unless(
+            (int) $class->instructor_id === (int) Auth::id(),
+            403,
+            'You are not allowed to manage this class.'
+        );
+    }
+
+    /**
+     * Get the institution that should own the student enrollment.
+     *
+     * Priority:
+     * 1. class.institution_id, if your classes table has it
+     * 2. instructor.institution_id
+     */
+    private function resolveInstitutionIdForEnrollment(ClassRoom $class): ?int
+    {
+        $classInstitutionId = $class->institution_id ?? null;
+        $instructorInstitutionId = Auth::user()->institution_id ?? null;
+
+        return $classInstitutionId ?: $instructorInstitutionId;
+    }
+
     public function index(Request $request, ClassRoom $class)
     {
-        $this->authorize('manage', $class); // or gate check of your choice
+        $this->ensureCanManageClass($class);
 
-        $tab    = $request->input('tab', 'enrolled');
+        $tab = $request->input('tab', 'enrolled');
         $search = $request->input('search');
 
-        // Base query: role = 1 (student), in this class
-        $base = $class->students()                  // belongsToMany via class_student
-                      ->where('role', 1)
-                      ->with('institution');         // eager-load if you have a belongs-to
+        $base = $class->students()
+            ->where('role', 1)
+            ->with('institution');
 
         if ($search) {
             $base->where(function ($q) use ($search) {
-                $q->where('name',  'like', "%{$search}%")
+                $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
-        // If you add an `approved` boolean column to class_student later,
-        // split enrolled vs pending here:
-        //   enrolled: pivot.approved = true
-        //   pending : pivot.approved = false / null
-        //
-        // For now we show all enrolled students in both tabs
-        // (add ->wherePivot('approved', ...) once the column exists).
-
-        $students = (clone $base)->paginate(20)->withQueryString();
+        $students = (clone $base)
+            ->paginate(20)
+            ->withQueryString();
 
         return view('instructor.classes.students', [
-            'class'         => $class,
-            'students'      => $students,
-            'tab'           => $tab,
+            'class' => $class,
+            'students' => $students,
+            'tab' => $tab,
             'enrolledCount' => $class->students()->where('role', 1)->count(),
-            'pendingCount'  => 0,  // update when pivot.approved column is added
-            'avgXp'         => (int) $class->students()->where('role', 1)->avg('xp'),
+            'pendingCount' => 0,
+            'avgXp' => (int) $class->students()->where('role', 1)->avg('xp'),
         ]);
     }
 
-    // ── Approve single ───────────────────────────────────────────────────
+    /**
+     * Add a student to the class by Gmail/email.
+     *
+     * This is now the only safe way to enroll students into an institution/class.
+     * Students can no longer self-enroll by sharing an institution code.
+     */
+    public function addByEmail(Request $request, ClassRoom $class)
+    {
+        $this->ensureCanManageClass($class);
+
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+
+        $student = User::whereRaw('LOWER(email) = ?', [$email])
+            ->where('role', 1)
+            ->first();
+
+        if (!$student) {
+            throw ValidationException::withMessages([
+                'email' => 'No student account was found with that email. The user must register as a student first.',
+            ]);
+        }
+
+        $institutionId = $this->resolveInstitutionIdForEnrollment($class);
+
+        if (!$institutionId) {
+            throw ValidationException::withMessages([
+                'email' => 'Cannot add this student because this instructor/class has no institution assigned.',
+            ]);
+        }
+
+        /*
+         * Do not lock/block a student just because they already have institution_id.
+         * If empty, assign the instructor/class institution.
+         * If already set, keep it as-is. This prevents unwanted overwrites while still allowing class enrollment.
+         */
+        if (empty($student->institution_id)) {
+            $student->institution_id = $institutionId;
+            $student->save();
+        }
+
+        $alreadyEnrolled = $class->students()
+            ->where('users.id', $student->id)
+            ->exists();
+
+        if ($alreadyEnrolled) {
+            return back()->with('error', "{$student->name} is already in this class.");
+        }
+
+        $pivotData = [];
+
+        /*
+         * If your class_student pivot table has enrolled_at, keep this.
+         * If it does not, remove this line.
+         */
+        $pivotData['enrolled_at'] = now();
+
+        $class->students()->attach($student->id, $pivotData);
+
+        return back()->with('success', "{$student->name} ({$student->email}) has been added to {$class->name}.");
+    }
+
     public function approve(ClassRoom $class, User $student)
     {
-        $this->authorize('manage', $class);
-
-        // $class->students()->updateExistingPivot($student->id, ['approved' => true]);
+        $this->ensureCanManageClass($class);
 
         return back()->with('success', "{$student->name} has been approved.");
     }
 
-    // ── Approve bulk ─────────────────────────────────────────────────────
     public function approveBulk(Request $request, ClassRoom $class)
     {
-        $this->authorize('manage', $class);
+        $this->ensureCanManageClass($class);
 
         $ids = collect($request->input('student_ids', []))
-                ->map(fn ($id) => (int) $id)
-                ->filter()
-                ->toArray();
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->toArray();
 
         if (empty($ids)) {
             return back()->with('error', 'No students selected.');
         }
 
-        // $class->students()->wherePivotIn('student_id', $ids)
-        //       ->each(fn ($s) => $class->students()->updateExistingPivot($s->id, ['approved' => true]));
-
         return back()->with('success', count($ids) . ' student(s) approved.');
     }
 
-    // ── Remove single ────────────────────────────────────────────────────
     public function remove(ClassRoom $class, User $student)
     {
-        $this->authorize('manage', $class);
+        $this->ensureCanManageClass($class);
 
         $class->students()->detach($student->id);
 
         return back()->with('success', "{$student->name} has been removed from the class.");
     }
 
-    // ── Remove bulk ──────────────────────────────────────────────────────
     public function removeBulk(Request $request, ClassRoom $class)
     {
-        $this->authorize('manage', $class);
+        $this->ensureCanManageClass($class);
 
         $ids = collect($request->input('student_ids', []))
-                ->map(fn ($id) => (int) $id)
-                ->filter()
-                ->toArray();
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->toArray();
 
         if (empty($ids)) {
             return back()->with('error', 'No students selected.');
@@ -111,40 +188,3 @@ class ClassStudentController extends Controller
         return back()->with('success', count($ids) . ' student(s) removed.');
     }
 }
-
-
-// ═══════════════════════════════════════════════════════════════════════
-//  routes/web.php  — add inside your instructor-middleware group
-// ═══════════════════════════════════════════════════════════════════════
-
-/*
-Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'role:instructor'])->group(function () {
-
-    // … your existing class routes …
-
-    // Students roster
-    Route::get   ('classes/{class}/students',                [ClassStudentController::class, 'index'])       ->name('classes.students');
-    Route::post  ('classes/{class}/students/{student}/approve', [ClassStudentController::class, 'approve'])  ->name('classes.students.approve');
-    Route::post  ('classes/{class}/students/approve-bulk',   [ClassStudentController::class, 'approveBulk']) ->name('classes.students.approve-bulk');
-    Route::delete('classes/{class}/students/{student}',      [ClassStudentController::class, 'remove'])      ->name('classes.students.remove');
-    Route::delete('classes/{class}/students',                [ClassStudentController::class, 'removeBulk'])  ->name('classes.students.remove-bulk');
-
-});
-*/
-
-
-// ═══════════════════════════════════════════════════════════════════════
-//  app/Models/ClassRoom.php  — relationships needed by the view
-// ═══════════════════════════════════════════════════════════════════════
-
-/*
-public function students(): BelongsToMany
-{
-    return $this->belongsToMany(
-        User::class,
-        'class_student',
-        'class_id',
-        'student_id'
-    )->withPivot('enrolled_at')->withTimestamps();
-}
-*/

@@ -58,7 +58,7 @@ class ChallengesController extends Controller
     public function index()
     {
         $categories    = ChallengeCategory::orderBy('order_index')->get();
-        $hasUniversity = Auth::check() && !empty(Auth::user()->organization_id);
+        $hasUniversity = Auth::check() && !empty(Auth::user()->institution_id);
 
         if ($categories->isEmpty()) {
             $categories = $this->fallbackCategories();
@@ -72,7 +72,7 @@ class ChallengesController extends Controller
     public function codingIndex()
     {
         $categories    = ChallengeCategory::orderBy('order_index')->get();
-        $hasUniversity = Auth::check() && !empty(Auth::user()->organization_id);
+        $hasUniversity = Auth::check() && !empty(Auth::user()->institution_id);
 
         if ($categories->isEmpty()) {
             $categories = $this->fallbackCategories();
@@ -341,22 +341,16 @@ class ChallengesController extends Controller
         return redirect()->route('challenges.coding.map', $slug)->with('success', $message);
     }
 
-    // ─── ORGANIZATION ENROLL ────────────────────────────────────────────────────
+    // ─── ORGANIZATION ENROLL DISABLED ────────────────────────────────────────────
+    //
+    // Students should no longer self-enroll using an organization/institution code.
+    // Institution enrollment must now be done by the instructor/admin by adding
+    // the student's registered Gmail/email to a class.
 
     public function enrollOrganization(Request $request)
     {
-        $request->validate(['invite_code' => 'required|string']);
-
-        $org = DB::table('organizations')->where('invite_code', $request->invite_code)->first();
-
-        if ($org) {
-            $user                  = Auth::user();
-            $user->organization_id = $org->id;
-            $user->save();
-
-            return back()->with('success', 'Successfully enrolled in ' . $org->name . '! Your university path is now unlocked.');
-        }
-
-        return back()->withErrors(['invite_code' => 'Invalid invite code. Please check and try again.']);
+        return back()->withErrors([
+            'invite_code' => 'Institution code enrollment is disabled. Ask your instructor to add your registered Gmail/email to the class.',
+        ]);
     }
 }

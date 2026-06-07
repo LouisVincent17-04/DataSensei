@@ -180,6 +180,14 @@ Hello
 ```
 MD,
                 'starter_code'        => "# Write your solution below\n",
+                'source_requirements' => [
+                    'required_assignments' => [
+                        ['variable' => 'greeting', 'value' => 'Hello', 'value_type' => 'string'],
+                    ],
+                    'required_print_variables' => ['greeting'],
+                    'forbidden_print_literals' => ['Hello'],
+                    'message' => 'Create greeting = "Hello" and print the variable using print(greeting). Do not directly print the literal "Hello".',
+                ],
                 'time_limit_seconds'  => 600,
                 'base_xp'             => 100,
             ],
@@ -201,6 +209,14 @@ Expected output:
 ```
 MD,
                 'starter_code'        => "# Write your solution below\n",
+                'source_requirements' => [
+                    'required_assignments' => [
+                        ['variable' => 'x', 'value' => 10, 'value_type' => 'number'],
+                        ['variable' => 'y', 'value' => 3.5, 'value_type' => 'number'],
+                    ],
+                    'required_print_variables' => ['x', 'y'],
+                    'message' => 'Create x = 10 and y = 3.5, then print the variables. Do not only print the expected output directly.',
+                ],
                 'time_limit_seconds'  => 600,
                 'base_xp'             => 100,
             ],
@@ -217,6 +233,14 @@ True
 ```
 MD,
                 'starter_code'        => "# Write your solution below\n",
+                'source_requirements' => [
+                    'required_assignments' => [
+                        ['variable' => 'is_sunny', 'value' => true, 'value_type' => 'bool'],
+                    ],
+                    'required_print_variables' => ['is_sunny'],
+                    'forbidden_print_literals' => ['True'],
+                    'message' => 'Create is_sunny = True and print the variable using print(is_sunny).',
+                ],
                 'time_limit_seconds'  => 600,
                 'base_xp'             => 100,
             ],
@@ -1066,6 +1090,10 @@ MD,
         $questionIds = [];
 
         foreach ($questionDefs as $def) {
+            if (array_key_exists('source_requirements', $def) && is_array($def['source_requirements'])) {
+                $def['source_requirements'] = json_encode($def['source_requirements'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            }
+
             $row = DB::table('coding_questions')->where([
                 'challenge_id' => $challenge->id,
                 'order_index'  => $def['order_index'],
@@ -1079,6 +1107,11 @@ MD,
                 ));
             } else {
                 $id = $row->id;
+
+                // Keep existing questions updated when this seeder changes instructions/source requirements.
+                DB::table('coding_questions')
+                    ->where('id', $id)
+                    ->update(array_merge($def, ['updated_at' => now()]));
             }
 
             $questionIds[$def['order_index']] = $id;

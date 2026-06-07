@@ -6,5 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
 {
-    //
+    protected $fillable = [
+        'user_id',
+        'type',
+        'notification_text',
+        'is_read',
+    ];
+
+    protected $casts = [
+        'is_read' => 'boolean',
+    ];
 }

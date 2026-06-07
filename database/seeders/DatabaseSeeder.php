@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
         
 
          $this->call([
+            AssignmentLibrarySeeder::class,
             // Module1LessonsSeeder::class,
             // Module2LessonsSeeder::class,
             // Module3LessonsSeeder::class,

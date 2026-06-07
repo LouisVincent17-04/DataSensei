@@ -104,4 +104,17 @@ class User extends Authenticatable
     {
         return $this->hasMany(InstructorApplication::class);
     }
+
+
+    public function classesAsStudent()
+    {
+        return $this->belongsToMany(ClassRoom::class, 'class_student', 'student_id', 'class_id')
+                    ->withPivot('enrolled_at')
+                    ->withTimestamps();
+    }
+
+    public function assignmentSubmissions()
+    {
+        return $this->hasMany(AssignmentSubmission::class, 'student_id');
+    }
 }

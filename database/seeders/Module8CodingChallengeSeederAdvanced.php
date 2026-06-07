@@ -1446,9 +1446,9 @@ MD,
             \DB::table('test_cases')->insert([
                 'coding_question_id' => $question,
                 'is_hidden'          => $i > 2 ? 1 : 0,
-                'input_data'         => "Input data for test case " . $i,
+                'input'              => "Input data for test case " . $i,
                 'expected_output'    => "Output for test case " . $i,
-                'weight'             => 25,
+                'order_index'        => $i,
                 'created_at'         => now(),
                 'updated_at'         => now(),
             ]);
