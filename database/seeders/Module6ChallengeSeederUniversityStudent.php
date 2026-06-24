@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module6ChallengeSeederUniversityStudent extends Seeder
 {
@@ -16,479 +14,508 @@ class Module6ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Modeling and Simulation')
-                 ->delete();
+        $title = 'Modeling and Simulation';
 
-        $this->command->info("Creating Module 6 — Modeling and Simulation (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 6 — Modeling and Simulation (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Modeling and Simulation',
-            'description'           => 'Analytical questions on simulation methodology, probability distributions, discrete-event simulation, simple ODE-based models, and basic Monte Carlo calculations. Requires tracing logic and interpreting model outputs.',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 750,
-            'order_index'           => 6,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Modeling and Simulation. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 6,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 university-level Modeling and Simulation questions...");
-
         $qaData = [
-
-            // ── PROBABILITY DISTRIBUTIONS IN SIMULATION ───────────────────
             [
-                'q' => 'Which probability distribution is most commonly used to model the TIME BETWEEN random events (e.g. customer arrivals)?',
+                'q' => 'Item 1: In Modeling and Simulation, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Normal distribution', false],
-                    ['Exponential distribution', true],
-                    ['Uniform distribution', false],
-                    ['Binomial distribution', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Poisson distribution models:',
+                'q' => 'Item 2: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['The time until an event occurs', false],
-                    ['The number of events occurring in a fixed time interval', true],
-                    ['Continuous outcomes between 0 and 1', false],
-                    ['The sum of independent normal variables', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If customer arrivals follow a Poisson process with rate λ = 5 per hour, what is the expected number of arrivals in 2 hours?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Modeling and Simulation when dealing with assumptions?',
                 'opts' => [
-                    ['5', false],
-                    ['2.5', false],
-                    ['10', true],
-                    ['25', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The inter-arrival time for a Poisson process with rate λ follows which distribution?',
+                'q' => 'Item 4: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Poisson with mean λ', false],
-                    ['Exponential with mean 1/λ', true],
-                    ['Normal with mean λ', false],
-                    ['Uniform between 0 and λ', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A uniform distribution U(a, b) has its probability spread:',
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['Concentrated near the mean', false],
-                    ['Equally across all values between a and b', true],
-                    ['Only at the endpoints a and b', false],
-                    ['Concentrated at a', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which distribution would you use to model a single yes/no (success/failure) trial with probability p of success?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['Normal', false],
-                    ['Poisson', false],
-                    ['Bernoulli', true],
-                    ['Exponential', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Central Limit Theorem is important in simulation because it says:',
+                'q' => 'Item 7: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['All simulation outputs follow a uniform distribution', false],
-                    ['The mean of many independent simulation runs will approximate a normal distribution regardless of the underlying distribution', true],
-                    ['You need at least 1 million runs for any valid simulation', false],
-                    ['Simulation outputs are always normally distributed', false],
-                ],
-            ],
-
-            // ── DISCRETE-EVENT SIMULATION ─────────────────────────────────
-            [
-                'q' => 'In discrete-event simulation (DES), the simulation advances by:',
-                'opts' => [
-                    ['Fixed equal time steps', false],
-                    ['Jumping from one event to the next in time', true],
-                    ['Continuously integrating differential equations', false],
-                    ['Random time jumps with no schedule', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is an "event" in discrete-event simulation?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['A Python exception', false],
-                    ['An instantaneous occurrence that changes the state of the system', true],
-                    ['A loop iteration', false],
-                    ['A fixed time interval', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a queue simulation (e.g. a bank), which two events are fundamental?',
+                'q' => 'Item 9: When comparing two approaches in Modeling and Simulation, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['Open and Close', false],
-                    ['Arrival and Departure', true],
-                    ['Start and Pause', false],
-                    ['Enter and Exit Queue (same event)', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In queuing theory, the notation M/M/1 represents a queue where:',
+                'q' => 'Item 10: What does a strong final answer in Modeling and Simulation include?',
                 'opts' => [
-                    ['Multiple servers, multiple queues, 1 customer type', false],
-                    ['Markovian arrivals, Markovian service times, and 1 server', true],
-                    ['Manual arrivals, manual service, 1 queue', false],
-                    ['Mixed arrivals, mixed service, 1 hour limit', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For an M/M/1 queue, the system is STABLE (queue does not grow infinitely) when:',
+                'q' => 'Item 11: In Modeling and Simulation, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The arrival rate λ equals the service rate μ', false],
-                    ['The arrival rate λ is greater than the service rate μ', false],
-                    ['The arrival rate λ is less than the service rate μ', true],
-                    ['There are no arrivals', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In an M/M/1 queue with arrival rate λ = 3/hr and service rate μ = 5/hr, what is the server utilisation ρ?',
+                'q' => 'Item 12: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['5/3', false],
-                    ['3/5 = 0.6', true],
-                    ['3 × 5 = 15', false],
-                    ['5 − 3 = 2', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The "event calendar" (future event list) in DES is typically implemented as:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Modeling and Simulation when dealing with bias check?',
                 'opts' => [
-                    ['A stack (LIFO)', false],
-                    ['A priority queue ordered by event time', true],
-                    ['A random array', false],
-                    ['A linked list ordered by event type', false],
-                ],
-            ],
-
-            // ── ODE-BASED MODELS ──────────────────────────────────────────
-            [
-                'q' => 'The Euler method for numerically solving dy/dt = f(t, y) updates y as:',
-                'opts' => [
-                    ['y_new = y_old / f(t, y)', false],
-                    ['y_new = y_old + h · f(t, y)', true],
-                    ['y_new = y_old − h · f(t, y)', false],
-                    ['y_new = h · f(t, y)', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the Euler method, a SMALLER step size h generally produces:',
+                'q' => 'Item 14: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A faster but less accurate solution', false],
-                    ['A slower but more accurate solution', true],
-                    ['An identical solution regardless', false],
-                    ['An unstable solution', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The logistic growth model is dP/dt = rP(1 − P/K). What does K represent?',
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['The initial population', false],
-                    ['The carrying capacity (maximum sustainable population)', true],
-                    ['The growth rate', false],
-                    ['The time variable', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the logistic model, when P approaches K, the growth rate dP/dt approaches:',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['Infinity', false],
-                    ['r', false],
-                    ['0', true],
-                    ['K', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The SIR model in epidemiology has three compartments. What do S, I, R stand for?',
+                'q' => 'Item 17: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Stable, Infected, Recovered', false],
-                    ['Susceptible, Infected, Recovered', true],
-                    ['Susceptible, Immune, Resistant', false],
-                    ['Seeded, Infected, Removed', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the SIR model, the basic reproduction number R₀ > 1 means:',
+                'q' => 'Item 18: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['The disease dies out immediately', false],
-                    ['Each infected person infects more than one other person on average — the disease spreads', true],
-                    ['The recovered population grows faster than the infected', false],
-                    ['The simulation has reached steady state', false],
-                ],
-            ],
-
-            // ── MONTE CARLO — ANALYTICAL ──────────────────────────────────
-            [
-                'q' => 'You run a Monte Carlo simulation to estimate π by sampling points in a unit square. In 1000 trials, 785 points land inside the quarter-circle. Your estimate of π is approximately:',
-                'opts' => [
-                    ['785/1000', false],
-                    ['4 × 785/1000 = 3.14', true],
-                    ['785/4', false],
-                    ['1000/785', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Monte Carlo integration, the estimate of ∫₀¹ f(x) dx using N samples is:',
+                'q' => 'Item 19: When comparing two approaches in Modeling and Simulation, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['N × f(0.5)', false],
-                    ['(1/N) × Σf(xᵢ) where xᵢ are uniform random samples', true],
-                    ['f(x₁) + f(xₙ) / 2', false],
-                    ['N × max f(x)', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The standard error of a Monte Carlo estimate based on N samples scales as:',
+                'q' => 'Item 20: What does a strong final answer in Modeling and Simulation include?',
                 'opts' => [
-                    ['1/N', false],
-                    ['1/N²', false],
-                    ['1/√N', true],
-                    ['√N', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'To halve the standard error in a Monte Carlo simulation, you must:',
+                'q' => 'Item 21: In Modeling and Simulation, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Double the number of samples', false],
-                    ['Quadruple the number of samples', true],
-                    ['Use a better random seed', false],
-                    ['Use a finer time step', false],
-                ],
-            ],
-
-            // ── RANDOM VARIATE GENERATION ────────────────────────────────
-            [
-                'q' => 'The inverse transform method generates random variates from a distribution F by computing:',
-                'opts' => [
-                    ['x = F(U) where U ~ Uniform(0,1)', false],
-                    ['x = F⁻¹(U) where U ~ Uniform(0,1)', true],
-                    ['x = 1 − U where U ~ Uniform(0,1)', false],
-                    ['x = F(U²)', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'To generate an Exponential(λ) random variate using the inverse transform, you compute:',
+                'q' => 'Item 22: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['x = λ · ln(U)', false],
-                    ['x = −(1/λ) · ln(U)', true],
-                    ['x = 1 / (λ · U)', false],
-                    ['x = U / λ', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Box-Muller transform generates:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Modeling and Simulation when dealing with assumptions?',
                 'opts' => [
-                    ['Uniform random numbers', false],
-                    ['Exponential random variates', false],
-                    ['Standard normal random variates from uniform inputs', true],
-                    ['Poisson random variates', false],
-                ],
-            ],
-
-            // ── SIMULATION OUTPUT ANALYSIS ────────────────────────────────
-            [
-                'q' => 'The "warm-up period" (transient phase) in a simulation refers to:',
-                'opts' => [
-                    ['The time it takes to install the simulation software', false],
-                    ['The initial period where the simulation has not yet reached steady state and data should be discarded', true],
-                    ['The period after the simulation ends', false],
-                    ['The first random seed iteration', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why is autocorrelation a problem when analysing simulation output?',
+                'q' => 'Item 24: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['It makes the model run slower', false],
-                    ['Correlated observations violate the independence assumption of standard confidence intervals', true],
-                    ['It introduces bias in random number generation', false],
-                    ['It only affects discrete-event simulations', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The method of BATCH MEANS in simulation output analysis works by:',
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['Running one long simulation split into batches to obtain approximately independent mean estimates', true],
-                    ['Running multiple short simulations and averaging all outputs', false],
-                    ['Using only the first 10% of simulation data', false],
-                    ['Averaging every second data point', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A 95% confidence interval from simulation output means:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['There is a 95% chance the true value is in this specific interval', false],
-                    ['If we repeated the experiment many times, 95% of the constructed intervals would contain the true value', true],
-                    ['95% of all simulation runs fall within the interval', false],
-                    ['The simulation is 95% accurate', false],
-                ],
-            ],
-
-            // ── SYSTEM DYNAMICS ───────────────────────────────────────────
-            [
-                'q' => 'In system dynamics, a "stock" represents:',
-                'opts' => [
-                    ['A financial asset', false],
-                    ['An accumulation — a quantity that builds up or drains over time', true],
-                    ['A rate of change', false],
-                    ['An event in the simulation', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In system dynamics, a "flow" represents:',
+                'q' => 'Item 27: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The current value of a stock', false],
-                    ['The rate at which a stock increases or decreases', true],
-                    ['A connection between two agents', false],
-                    ['An external input to the system', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A POSITIVE feedback loop in a system:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['Stabilises the system toward equilibrium', false],
-                    ['Reinforces change — growth leads to more growth (or decline leads to more decline)', true],
-                    ['Always causes the system to crash', false],
-                    ['Reduces all variables to zero', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A NEGATIVE (balancing) feedback loop in a system:',
+                'q' => 'Item 29: When comparing two approaches in Modeling and Simulation, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['Amplifies deviations from the target', false],
-                    ['Acts to stabilise the system — pushes it back toward a goal or equilibrium', true],
-                    ['Always causes oscillation', false],
-                    ['Only exists in biological models', false],
-                ],
-            ],
-
-            // ── TRACING & CALCULATIONS ────────────────────────────────────
-            [
-                'q' => 'Using Euler\'s method with h = 1 for dy/dt = y, y(0) = 1:\nWhat is y(1)?',
-                'opts' => [
-                    ['e ≈ 2.718', false],
-                    ['1', false],
-                    ['2', true],
-                    ['1.5', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Using Euler\'s method with h = 0.5 for dy/dt = y, y(0) = 1:\nWhat is y(1) after two steps?',
+                'q' => 'Item 30: What does a strong final answer in Modeling and Simulation include?',
                 'opts' => [
-                    ['2', false],
-                    ['2.25', true],
-                    ['e', false],
-                    ['2.5', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A logistic model has r = 0.3, K = 1000, P(0) = 100.\nIs dP/dt positive, negative, or zero at t = 0?',
+                'q' => 'Item 31: In Modeling and Simulation, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Negative', false],
-                    ['Zero', false],
-                    ['Positive', true],
-                    ['Cannot be determined', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the SIR model with β = 0.3 and γ = 0.1, what is R₀?',
+                'q' => 'Item 32: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['0.3', false],
-                    ['0.1', false],
-                    ['3', true],
-                    ['30', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'For a random walk starting at position 0, where each step is +1 or −1 with equal probability, the EXPECTED position after 100 steps is:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Modeling and Simulation when dealing with bias check?',
                 'opts' => [
-                    ['100', false],
-                    ['10', false],
-                    ['0', true],
-                    ['50', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For the same random walk (start at 0, ±1 steps), the expected DISTANCE from origin (root mean square) after n steps is:',
+                'q' => 'Item 34: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['n', false],
-                    ['n²', false],
-                    ['√n', true],
-                    ['n/2', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A simulation of a coin flip is run 10,000 times. The expected proportion of heads is approximately:',
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['0.25', false],
-                    ['0.75', false],
-                    ['0.5', true],
-                    ['1.0', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In an M/M/1 queue with ρ = 0.6, the average number of customers IN THE SYSTEM (Ls) is:\nLs = ρ / (1 − ρ)',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['0.6', false],
-                    ['1.0', false],
-                    ['1.5', true],
-                    ['2.5', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In the same M/M/1 queue (λ = 3/hr, μ = 5/hr), average waiting time in system Ws = 1/(μ − λ) equals:',
+                'q' => 'Item 37: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['1/5 hr', false],
-                    ['1/2 hr', true],
-                    ['1/3 hr', false],
-                    ['1/8 hr', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which Python library provides a straightforward ODE solver used in simulation?',
+                'q' => 'Item 38: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['pandas', false],
-                    ['scipy.integrate (odeint / solve_ivp)', true],
-                    ['matplotlib', false],
-                    ['sklearn', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The NumPy function used to generate N uniform random numbers between 0 and 1 is:',
+                'q' => 'Item 39: When comparing two approaches in Modeling and Simulation, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['np.random.randn(N)', false],
-                    ['np.random.uniform(0, 1, N)', true],
-                    ['np.linspace(0, 1, N)', false],
-                    ['np.random.normal(0, 1, N)', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 40: What does a strong final answer in Modeling and Simulation include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Modeling and Simulation, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Modeling and Simulation when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Modeling and Simulation, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Modeling and Simulation fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Modeling and Simulation?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Modeling and Simulation, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Modeling and Simulation include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 6 — Modeling and Simulation (University Student).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: University Student");
+        $this->command->info('Module 6 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

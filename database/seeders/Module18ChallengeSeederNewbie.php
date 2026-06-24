@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module18ChallengeSeederNewbie extends Seeder
 {
@@ -16,540 +14,508 @@ class Module18ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Privacy, Ethics & Data Governance';
 
-        $this->command->info("Creating Module 18 — Privacy, Ethics & Data Governance (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 18 — Privacy, Ethics & Data Governance (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Privacy, Ethics & Data Governance',
-            'description'           => 'Test your very first knowledge of data ethics, privacy, and governance — what they mean, why they matter, and the key vocabulary every data professional should know. No prior experience assumed!',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 18,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Privacy, Ethics & Data Governance. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 18,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-friendly ethics & privacy questions...");
-
         $qaData = [
-
-            // ── WHY ETHICS & PRIVACY MATTER ───────────────────────────────
             [
-                'q' => 'Why does ethics matter in data science?',
+                'q' => 'Item 1: In Privacy, Ethics & Data Governance, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['It makes code run faster', false],
-                    ['It ensures data is used responsibly and does not harm people', true],
-                    ['It is only required for government projects', false],
-                    ['It only matters when working with numbers', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "data privacy" mean?',
+                'q' => 'Item 2: A learner working on Privacy, Ethics & Data Governance gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Keeping your computer password secret', false],
-                    ['The right of individuals to control how their personal information is collected and used', true],
-                    ['Encrypting only financial data', false],
-                    ['Deleting all data after one use', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of a data ethics violation?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Privacy Ethics and Data Governance when dealing with assumptions?',
                 'opts' => [
-                    ['Storing data in a database', false],
-                    ['Sharing a customer\'s personal medical records without their permission', true],
-                    ['Using a spreadsheet to analyze sales', false],
-                    ['Visualizing public weather data', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A data scientist\'s work affects real people. This is why they must consider:',
+                'q' => 'Item 4: For Privacy, Ethics & Data Governance, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Only the speed of their code', false],
-                    ['The potential harm or benefit their work may cause to individuals and society', true],
-                    ['Only the accuracy of their models', false],
-                    ['Only the opinions of their manager', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which word describes treating all people fairly and without discrimination in data-driven decisions?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Privacy Ethics and Data Governance fails on one test case?',
                 'opts' => [
-                    ['Speed', false],
-                    ['Fairness', true],
-                    ['Compression', false],
-                    ['Scalability', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Transparency" in data science means:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Privacy, Ethics & Data Governance tasks?',
                 'opts' => [
-                    ['Making data invisible to users', false],
-                    ['Being open about how data is collected, used, and how decisions are made', true],
-                    ['Only showing data to managers', false],
-                    ['Using clear fonts in reports', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Accountability" in data governance means:',
+                'q' => 'Item 7: In a Privacy Ethics and Data Governance assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Counting rows in a dataset', false],
-                    ['Someone is responsible for ensuring data is handled correctly and ethically', true],
-                    ['Giving everyone access to all data', false],
-                    ['Automatically approving data requests', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A company builds a hiring algorithm that rejects more women than men for no valid reason. This is an example of:',
+                'q' => 'Item 8: Which situation is most likely an edge case in Privacy, Ethics & Data Governance?',
                 'opts' => [
-                    ['Good model performance', false],
-                    ['Algorithmic bias', true],
-                    ['Data compression', false],
-                    ['Feature engineering', false],
-                ],
-            ],
-
-            // ── PERSONAL DATA ─────────────────────────────────────────────
-            [
-                'q' => '"Personal data" refers to:',
-                'opts' => [
-                    ['Any number stored in a database', false],
-                    ['Any information that can identify a specific individual', true],
-                    ['Only a person\'s name', false],
-                    ['Company financial records', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which of the following is personal data?',
+                'q' => 'Item 9: When comparing two approaches in Privacy Ethics and Data Governance, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['The average temperature in Manila in July', false],
-                    ['A person\'s home address', true],
-                    ['The number of cars sold last quarter', false],
-                    ['A country\'s GDP', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of SENSITIVE personal data?',
+                'q' => 'Item 10: What does a strong final answer in Privacy, Ethics & Data Governance include?',
                 'opts' => [
-                    ['A person\'s favorite color', false],
-                    ['A person\'s health condition or medical records', true],
-                    ['A public company\'s stock price', false],
-                    ['A product\'s average rating', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Anonymization" of data means:',
+                'q' => 'Item 11: In Privacy, Ethics & Data Governance, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Making data available only at night', false],
-                    ['Removing or altering information so that individuals can no longer be identified', true],
-                    ['Encrypting data with a password', false],
-                    ['Deleting the entire dataset', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is NOT considered personal data?',
+                'q' => 'Item 12: A learner working on Privacy, Ethics & Data Governance gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A person\'s phone number', false],
-                    ['A person\'s email address', false],
-                    ['The total population of a city', true],
-                    ['A person\'s biometric fingerprint', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => '"Data minimization" means collecting:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Privacy Ethics and Data Governance when dealing with bias check?',
                 'opts' => [
-                    ['As much data as possible for future use', false],
-                    ['Only the data that is necessary for a specific purpose', true],
-                    ['Data only from large databases', false],
-                    ['Minimal text data', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A website asks for your birth year, name, and credit card number just to show you the weather forecast. This violates the principle of:',
+                'q' => 'Item 14: For Privacy, Ethics & Data Governance, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Data accuracy', false],
-                    ['Data minimization', true],
-                    ['Data compression', false],
-                    ['Transparency', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Pseudonymization" means:',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Privacy Ethics and Data Governance fails on one test case?',
                 'opts' => [
-                    ['Deleting all personal data permanently', false],
-                    ['Replacing identifying fields with fake names or codes, but the data can still be re-linked with a key', true],
-                    ['Encrypting data with a public key', false],
-                    ['Sharing data anonymously online', false],
-                ],
-            ],
-
-            // ── CONSENT & LEGAL BASIS ─────────────────────────────────────
-            [
-                'q' => '"Consent" in data privacy means:',
-                'opts' => [
-                    ['A company can use data however it wants', false],
-                    ['An individual freely and clearly agrees to their data being collected and used for a specific purpose', true],
-                    ['A user cannot say no to data collection', false],
-                    ['Data is shared between two companies', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'GDPR stands for:',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Privacy, Ethics & Data Governance tasks?',
                 'opts' => [
-                    ['General Data Protection Regulation', true],
-                    ['Global Data Privacy Rules', false],
-                    ['Government Data Processing Requirements', false],
-                    ['General Digital Privacy Reform', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The GDPR primarily protects citizens of:',
+                'q' => 'Item 17: In a Privacy Ethics and Data Governance assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The United States', false],
-                    ['The European Union', true],
-                    ['The Philippines', false],
-                    ['China', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Under GDPR, individuals have the "right to be forgotten." This means:',
+                'q' => 'Item 18: Which situation is most likely an edge case in Privacy, Ethics & Data Governance?',
                 'opts' => [
-                    ['Companies must forget their own passwords', false],
-                    ['Individuals can request that a company delete their personal data', true],
-                    ['Data is automatically deleted after 1 year', false],
-                    ['Employees can erase their work records', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a valid "legal basis" for processing personal data under GDPR?',
+                'q' => 'Item 19: When comparing two approaches in Privacy Ethics and Data Governance, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['The data is interesting to the company', false],
-                    ['The individual gave their consent', true],
-                    ['The company is profitable', false],
-                    ['The data was found online', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A pre-ticked checkbox on a website that signs you up for marketing emails WITHOUT your active choice violates which principle?',
+                'q' => 'Item 20: What does a strong final answer in Privacy, Ethics & Data Governance include?',
                 'opts' => [
-                    ['Data accuracy', false],
-                    ['Free and informed consent', true],
-                    ['Data minimization', false],
-                    ['Accountability', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'CCPA is a privacy law that protects residents of:',
+                'q' => 'Item 21: In Privacy, Ethics & Data Governance, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Canada', false],
-                    ['California, USA', true],
-                    ['The United Kingdom', false],
-                    ['Australia', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Philippines has its own data privacy law. It is called:',
+                'q' => 'Item 22: A learner working on Privacy, Ethics & Data Governance gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The GDPR Extension Act', false],
-                    ['The Data Privacy Act of 2012', true],
-                    ['The Philippine Cybersecurity Act', false],
-                    ['The National Data Law', false],
-                ],
-            ],
-
-            // ── ALGORITHMIC BIAS ──────────────────────────────────────────
-            [
-                'q' => 'Algorithmic bias occurs when:',
-                'opts' => [
-                    ['An algorithm runs slower than expected', false],
-                    ['An algorithm produces systematically unfair outcomes for certain groups of people', true],
-                    ['An algorithm uses too much memory', false],
-                    ['An algorithm is trained on too much data', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a common SOURCE of algorithmic bias?',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Privacy Ethics and Data Governance when dealing with assumptions?',
                 'opts' => [
-                    ['Using Python instead of R', false],
-                    ['Training data that reflects historical discrimination or stereotypes', true],
-                    ['Having too many features in the model', false],
-                    ['Using a linear regression model', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A facial recognition system works well for light-skinned people but poorly for dark-skinned people. This is an example of:',
+                'q' => 'Item 24: For Privacy, Ethics & Data Governance, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Good model accuracy', false],
-                    ['Representation bias (unequal representation in training data)', true],
-                    ['Overfitting', false],
-                    ['Data leakage', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'To detect bias in a machine learning model, you should:',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Privacy Ethics and Data Governance fails on one test case?',
                 'opts' => [
-                    ['Only look at overall accuracy', false],
-                    ['Evaluate model performance separately across different demographic groups', true],
-                    ['Ignore the training data source', false],
-                    ['Train the model on more data from the majority group', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Protected attributes" in fairness are characteristics like:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Privacy, Ethics & Data Governance tasks?',
                 'opts' => [
-                    ['Model accuracy and F1 score', false],
-                    ['Race, gender, age, religion, and disability status', true],
-                    ['Column names in a dataset', false],
-                    ['Training set size', false],
-                ],
-            ],
-
-            // ── FAIRNESS FRAMEWORKS ───────────────────────────────────────
-            [
-                'q' => '"Demographic parity" (equal representation) in a fair model means:',
-                'opts' => [
-                    ['All demographic groups receive the same positive outcome rate', true],
-                    ['All demographic groups have the same population size', false],
-                    ['The model uses demographic data as features', false],
-                    ['Only one demographic group is modeled', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a strategy to reduce algorithmic bias?',
+                'q' => 'Item 27: In a Privacy Ethics and Data Governance assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Ignoring demographic information completely', false],
-                    ['Auditing model outcomes across demographic groups and rebalancing training data', true],
-                    ['Increasing model complexity', false],
-                    ['Using only numerical features', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Equal opportunity" as a fairness metric focuses on:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Privacy, Ethics & Data Governance?',
                 'opts' => [
-                    ['Equal number of features for each group', false],
-                    ['Equal true positive rates across groups — qualified candidates are equally likely to be selected', true],
-                    ['Equal dataset sizes', false],
-                    ['Equal model training time per group', false],
-                ],
-            ],
-
-            // ── PRIVACY-ENHANCING TECHNOLOGIES ───────────────────────────
-            [
-                'q' => '"Differential privacy" is a technique that:',
-                'opts' => [
-                    ['Adds random noise to data outputs to protect individual privacy while preserving overall patterns', true],
-                    ['Deletes different types of data', false],
-                    ['Compares two datasets for differences', false],
-                    ['Encrypts data using two different keys', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => '"Federated learning" protects privacy by:',
+                'q' => 'Item 29: When comparing two approaches in Privacy Ethics and Data Governance, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Sending all user data to a central server', false],
-                    ['Training models locally on each device and only sharing model updates, not raw data', true],
-                    ['Deleting data after training', false],
-                    ['Using only public datasets', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Encryption" of data means:',
+                'q' => 'Item 30: What does a strong final answer in Privacy, Ethics & Data Governance include?',
                 'opts' => [
-                    ['Making data unreadable to anyone without the correct key', true],
-                    ['Compressing data to save storage space', false],
-                    ['Deleting sensitive columns from a table', false],
-                    ['Backing up data to the cloud', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A "data breach" is:',
+                'q' => 'Item 31: In Privacy, Ethics & Data Governance, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Intentionally publishing public data', false],
-                    ['Unauthorized access to or release of private data', true],
-                    ['Backing up data to a new server', false],
-                    ['Updating a privacy policy document', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"K-anonymity" ensures that each individual in a dataset:',
+                'q' => 'Item 32: A learner working on Privacy, Ethics & Data Governance gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Has a unique identifier', false],
-                    ['Is indistinguishable from at least k−1 other individuals based on identifying attributes', true],
-                    ['Has their data encrypted k times', false],
-                    ['Consented k times before data was collected', false],
-                ],
-            ],
-
-            // ── DATA GOVERNANCE ───────────────────────────────────────────
-            [
-                'q' => '"Data governance" refers to:',
-                'opts' => [
-                    ['The government collecting citizen data', false],
-                    ['The policies, processes, and standards for managing data responsibly across an organization', true],
-                    ['A specific type of database software', false],
-                    ['Storing data on government servers', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A "data steward" in an organization is responsible for:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Privacy Ethics and Data Governance when dealing with bias check?',
                 'opts' => [
-                    ['Writing all the code in the organization', false],
-                    ['Ensuring data quality, accessibility, and proper use within their domain', true],
-                    ['Only deleting old data', false],
-                    ['Managing the CEO\'s calendar', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Data lineage" means tracking:',
+                'q' => 'Item 34: For Privacy, Ethics & Data Governance, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A dataset\'s file size over time', false],
-                    ['Where data came from, how it was transformed, and how it flows through a system', true],
-                    ['The age of the data scientists in a team', false],
-                    ['The number of columns in a dataset', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A "data catalog" is used to:',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Privacy Ethics and Data Governance fails on one test case?',
                 'opts' => [
-                    ['List all the employees in a data team', false],
-                    ['Document and organize metadata about an organization\'s data assets so they can be found and understood', true],
-                    ['Store backup copies of all databases', false],
-                    ['Monitor server uptime', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Access control" in data governance means:',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Privacy, Ethics & Data Governance tasks?',
                 'opts' => [
-                    ['Controlling how fast data is accessed', false],
-                    ['Defining who is allowed to view, modify, or use specific data', true],
-                    ['Giving everyone in the company equal access to all data', false],
-                    ['Controlling the internet connection speed', false],
-                ],
-            ],
-
-            // ── RESPONSIBLE AI ────────────────────────────────────────────
-            [
-                'q' => '"Explainability" in AI means:',
-                'opts' => [
-                    ['The AI can speak and explain itself verbally', false],
-                    ['Being able to understand and communicate why an AI model made a specific decision', true],
-                    ['The AI model documentation is written in simple English', false],
-                    ['The AI only makes binary decisions', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A "black box" model is one where:',
+                'q' => 'Item 37: In a Privacy Ethics and Data Governance assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The model only works in dark mode', false],
-                    ['The internal decision-making process is hidden and difficult to interpret', true],
-                    ['The model is stored in a black database', false],
-                    ['Only one person has access to the model', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'SHAP and LIME are tools used to help with AI:',
+                'q' => 'Item 38: Which situation is most likely an edge case in Privacy, Ethics & Data Governance?',
                 'opts' => [
-                    ['Speed and performance', false],
-                    ['Explainability — understanding which features influenced a model\'s prediction', true],
-                    ['Data cleaning and preprocessing', false],
-                    ['Model deployment and scaling', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Responsible AI" includes which of the following principles?',
+                'q' => 'Item 39: When comparing two approaches in Privacy Ethics and Data Governance, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Maximizing profit above all else', false],
-                    ['Fairness, transparency, accountability, and privacy', true],
-                    ['Using only the largest models available', false],
-                    ['Sharing all model weights publicly', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An AI model used in criminal sentencing should be:',
+                'q' => 'Item 40: What does a strong final answer in Privacy, Ethics & Data Governance include?',
                 'opts' => [
-                    ['Completely automated with no human review', false],
-                    ['Transparent, explainable, and subject to human oversight and appeal', true],
-                    ['Only accessible to the judge', false],
-                    ['Trained on data from only one country', false],
-                ],
-            ],
-
-            // ── ETHICAL DATA SCIENCE PRACTICE ─────────────────────────────
-            [
-                'q' => 'Before collecting data from users, a responsible data scientist should first:',
-                'opts' => [
-                    ['Build the model and collect data later', false],
-                    ['Consider what data is truly needed, how it will be used, and obtain proper consent', true],
-                    ['Collect as much data as possible to be safe', false],
-                    ['Share the data with partners immediately', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'When sharing findings from a data analysis, an ethical data scientist should:',
+                'q' => 'Item 41: In Privacy, Ethics & Data Governance, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Only report results that support the business goal', false],
-                    ['Report results honestly, including limitations and potential biases', true],
-                    ['Remove all visualizations to keep it simple', false],
-                    ['Only share results with senior management', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A data scientist discovers that a model they deployed is discriminating against elderly users. The ethical action is:',
+                'q' => 'Item 42: A learner working on Privacy, Ethics & Data Governance gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Ignore it as long as overall accuracy is high', false],
-                    ['Immediately report it and work to fix or remove the model', true],
-                    ['Reduce the model\'s confidence threshold', false],
-                    ['Delete the elderly users from the dataset', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Privacy by design" means:',
+                'q' => 'Item 43: Which mistake most commonly weakens work in Privacy Ethics and Data Governance when dealing with assumptions?',
                 'opts' => [
-                    ['Building a privacy policy document after the product launches', false],
-                    ['Building privacy protections into the system from the very beginning, not as an afterthought', true],
-                    ['Using a private cloud server', false],
-                    ['Designing a website that only registered users can visit', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which action best demonstrates an ethical data science practice?',
+                'q' => 'Item 44: For Privacy, Ethics & Data Governance, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Using a model in production without testing for bias', false],
-                    ['Documenting data sources, model assumptions, limitations, and fairness audits', true],
-                    ['Keeping all model details secret from stakeholders', false],
-                    ['Collecting user data without informing them', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'When in doubt about whether using certain data is ethical, a data scientist should:',
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Privacy Ethics and Data Governance fails on one test case?',
                 'opts' => [
-                    ['Use the data anyway since it is already collected', false],
-                    ['Consult with ethics guidelines, legal teams, or a data ethics board before proceeding', true],
-                    ['Delete all data and start over', false],
-                    ['Ask only their direct manager and proceed immediately', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Privacy, Ethics & Data Governance tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Privacy Ethics and Data Governance assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Privacy, Ethics & Data Governance?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Privacy Ethics and Data Governance, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Privacy, Ethics & Data Governance include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 18 — Privacy, Ethics & Data Governance (Newbie).");
+        $this->command->info('Module 18 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

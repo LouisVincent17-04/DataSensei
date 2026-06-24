@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module9ChallengeSeederNewbie extends Seeder
 {
@@ -16,512 +14,508 @@ class Module9ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Applied Matrix Analysis';
 
-        $this->command->info("Creating Module 9 — Applied Matrix Analysis (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 9 — Applied Matrix Analysis (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Applied Matrix Analysis',
-            'description'           => 'Test your knowledge of the very basics of matrices — what they are, how to read them, and simple operations like addition and scalar multiplication. No advanced math assumed!',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 9,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Applied Matrix Analysis. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 9,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-friendly questions...");
-
         $qaData = [
-
-            // ── WHAT IS A MATRIX ──────────────────────────────────────────
             [
-                'q' => 'What is a matrix in mathematics?',
+                'q' => 'Item 1: In Applied Matrix Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A single number', false],
-                    ['A rectangular array of numbers arranged in rows and columns', true],
-                    ['A type of graph', false],
-                    ['A list of words', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What do we call the horizontal lines of numbers in a matrix?',
+                'q' => 'Item 2: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Columns', false],
-                    ['Rows', true],
-                    ['Diagonals', false],
-                    ['Layers', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What do we call the vertical lines of numbers in a matrix?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Rows', false],
-                    ['Levels', false],
-                    ['Columns', true],
-                    ['Stacks', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix with 3 rows and 2 columns has what size (dimensions)?',
+                'q' => 'Item 4: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['2 × 3', false],
-                    ['3 × 2', true],
-                    ['6 × 1', false],
-                    ['3 × 3', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which notation correctly refers to the element in row 2, column 3 of matrix A?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['A(3,2)', false],
-                    ['A[2,3]', false],
-                    ['A₂₃', true],
-                    ['A(2+3)', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix that has the same number of rows and columns is called a _____ matrix.',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['Rectangular matrix', false],
-                    ['Square matrix', true],
-                    ['Identity matrix', false],
-                    ['Zero matrix', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a matrix called if all of its entries are zero?',
+                'q' => 'Item 7: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Identity matrix', false],
-                    ['Diagonal matrix', false],
-                    ['Zero matrix', true],
-                    ['Unit matrix', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'How many elements (entries) does a 2 × 4 matrix have in total?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['6', false],
-                    ['8', true],
-                    ['4', false],
-                    ['2', false],
-                ],
-            ],
-
-            // ── READING A MATRIX ─────────────────────────────────────────
-            [
-                'q' => "Given matrix A = [[1, 2], [3, 4]], what is the value of A₁₂ (row 1, column 2)?",
-                'opts' => [
-                    ['1', false],
-                    ['3', false],
-                    ['2', true],
-                    ['4', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Given matrix A = [[5, 6], [7, 8]], what is A₂₁ (row 2, column 1)?",
+                'q' => 'Item 9: When comparing two approaches in Applied Matrix Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['6', false],
-                    ['5', false],
-                    ['8', false],
-                    ['7', true],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A = [[4, 0], [0, 9]]. What is the value of A₁₁?",
+                'q' => 'Item 10: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['0', false],
-                    ['9', false],
-                    ['4', true],
-                    ['1', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A = [[2, 5, 1], [3, 0, 4]]. What is A₂₃ (row 2, column 3)?",
+                'q' => 'Item 11: In Applied Matrix Analysis, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['3', false],
-                    ['0', false],
-                    ['5', false],
-                    ['4', true],
-                ],
-            ],
-
-            // ── MATRIX ADDITION ──────────────────────────────────────────
-            [
-                'q' => 'To add two matrices, what must be true about their sizes?',
-                'opts' => [
-                    ['One must be square', false],
-                    ['They must be the same size (same dimensions)', true],
-                    ['They can be any size', false],
-                    ['One must be all zeros', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is [[1, 2], [3, 4]] + [[5, 6], [7, 8]]?",
+                'q' => 'Item 12: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['[[6, 8], [10, 12]]', true],
-                    ['[[5, 12], [21, 32]]', false],
-                    ['[[6, 6], [10, 10]]', false],
-                    ['[[4, 4], [4, 4]]', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is [[3, 1], [0, 2]] + [[2, 4], [5, 1]]?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with bias check?',
                 'opts' => [
-                    ['[[5, 4], [5, 4]]', false],
-                    ['[[5, 5], [5, 3]]', true],
-                    ['[[1, 3], [5, 1]]', false],
-                    ['[[6, 4], [0, 2]]', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If A and B are both 2×3 matrices, what is the size of A + B?',
+                'q' => 'Item 14: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['3×2', false],
-                    ['4×6', false],
-                    ['2×3', true],
-                    ['1×1', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Can you add a 2×2 matrix to a 3×3 matrix?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['Yes, always', false],
-                    ['Yes, if one is all zeros', false],
-                    ['No, they must be the same size', true],
-                    ['Yes, but only if both are square', false],
-                ],
-            ],
-
-            // ── SCALAR MULTIPLICATION ────────────────────────────────────
-            [
-                'q' => 'What does "scalar multiplication" mean for a matrix?',
-                'opts' => [
-                    ['Adding two matrices together', false],
-                    ['Multiplying two matrices together', false],
-                    ['Multiplying every element in the matrix by a single number', true],
-                    ['Flipping the matrix upside down', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is 3 × [[1, 2], [3, 4]]?",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['[[3, 2], [3, 4]]', false],
-                    ['[[3, 6], [9, 12]]', true],
-                    ['[[1, 6], [9, 4]]', false],
-                    ['[[4, 5], [6, 7]]', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is 2 × [[0, 5], [3, 1]]?",
+                'q' => 'Item 17: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['[[0, 10], [6, 2]]', true],
-                    ['[[2, 5], [3, 2]]', false],
-                    ['[[0, 25], [9, 1]]', false],
-                    ['[[2, 7], [5, 3]]', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "If you multiply any matrix by the scalar 0, what do you get?",
+                'q' => 'Item 18: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['The same matrix unchanged', false],
-                    ['The identity matrix', false],
-                    ['A zero matrix', true],
-                    ['An error', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "If you multiply a matrix by the scalar 1, what do you get?",
+                'q' => 'Item 19: When comparing two approaches in Applied Matrix Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['A zero matrix', false],
-                    ['The same matrix unchanged', true],
-                    ['The transpose of the matrix', false],
-                    ['The inverse of the matrix', false],
-                ],
-            ],
-
-            // ── MATRIX SUBTRACTION ───────────────────────────────────────
-            [
-                'q' => "What is [[5, 3], [2, 8]] − [[1, 1], [1, 1]]?",
-                'opts' => [
-                    ['[[4, 2], [1, 7]]', true],
-                    ['[[6, 4], [3, 9]]', false],
-                    ['[[4, 3], [2, 8]]', false],
-                    ['[[5, 3], [2, 7]]', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is [[7, 2], [4, 6]] − [[3, 2], [4, 5]]?",
+                'q' => 'Item 20: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['[[10, 4], [8, 11]]', false],
-                    ['[[3, 0], [0, 1]]', false],
-                    ['[[4, 0], [0, 1]]', true],
-                    ['[[4, 0], [0, 6]]', false],
-                ],
-            ],
-
-            // ── TRANSPOSE ────────────────────────────────────────────────
-            [
-                'q' => 'What does "transposing" a matrix mean?',
-                'opts' => [
-                    ['Multiplying all elements by -1', false],
-                    ['Swapping the rows and columns', true],
-                    ['Adding 1 to every element', false],
-                    ['Reversing the order of rows', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the transpose of [[1, 2], [3, 4]]?",
+                'q' => 'Item 21: In Applied Matrix Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['[[4, 3], [2, 1]]', false],
-                    ['[[2, 1], [4, 3]]', false],
-                    ['[[1, 3], [2, 4]]', true],
-                    ['[[1, 2], [3, 4]]', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "If A has size 2×3, what is the size of its transpose Aᵀ?",
+                'q' => 'Item 22: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['2×3', false],
-                    ['3×3', false],
-                    ['3×2', true],
-                    ['2×2', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix that is equal to its own transpose (A = Aᵀ) is called a _____ matrix.',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Identity matrix', false],
-                    ['Symmetric matrix', true],
-                    ['Diagonal matrix', false],
-                    ['Triangular matrix', false],
-                ],
-            ],
-
-            // ── IDENTITY MATRIX ──────────────────────────────────────────
-            [
-                'q' => 'What is special about the identity matrix?',
-                'opts' => [
-                    ['All entries are 1', false],
-                    ['All entries are 0', false],
-                    ['1s on the main diagonal and 0s everywhere else', true],
-                    ['It has only one row', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the 2×2 identity matrix?",
+                'q' => 'Item 24: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['[[0, 1], [1, 0]]', false],
-                    ['[[1, 1], [1, 1]]', false],
-                    ['[[1, 0], [0, 1]]', true],
-                    ['[[0, 0], [0, 0]]', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'If you multiply any matrix A by the identity matrix I of the right size, what do you get?',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['The zero matrix', false],
-                    ['The transpose of A', false],
-                    ['A itself (unchanged)', true],
-                    ['The inverse of A', false],
-                ],
-            ],
-
-            // ── VECTORS ──────────────────────────────────────────────────
-            [
-                'q' => 'A matrix with only one column is called a _____ vector.',
-                'opts' => [
-                    ['Row vector', false],
-                    ['Column vector', true],
-                    ['Zero vector', false],
-                    ['Unit vector', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix with only one row is called a _____ vector.',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['Column vector', false],
-                    ['Row vector', true],
-                    ['Square vector', false],
-                    ['Null vector', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the dimension (size) of the column vector [[3], [5], [7]]?",
+                'q' => 'Item 27: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['1×3', false],
-                    ['3×3', false],
-                    ['3×1', true],
-                    ['1×1', false],
-                ],
-            ],
-
-            // ── SCALAR vs VECTOR vs MATRIX ───────────────────────────────
-            [
-                'q' => 'Which of these is a scalar (a single number, not a matrix)?',
-                'opts' => [
-                    ['[[3, 4]]', false],
-                    ['[[1], [2]]', false],
-                    ['7', true],
-                    ['[[0, 0], [0, 0]]', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'How many rows does the matrix [[9, 2, 1], [4, 5, 6], [7, 8, 3]] have?',
+                'q' => 'Item 28: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['2', false],
-                    ['9', false],
-                    ['3', true],
-                    ['1', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the total number of entries in a 4×3 matrix?',
+                'q' => 'Item 29: When comparing two approaches in Applied Matrix Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['7', false],
-                    ['12', true],
-                    ['4', false],
-                    ['3', false],
-                ],
-            ],
-
-            // ── DIAGONAL MATRIX ──────────────────────────────────────────
-            [
-                'q' => 'What defines a diagonal matrix?',
-                'opts' => [
-                    ['Every entry is a 1', false],
-                    ['Non-zero entries only on the main diagonal, zeros elsewhere', true],
-                    ['All rows are the same', false],
-                    ['It has no inverse', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which of these is a diagonal matrix?",
+                'q' => 'Item 30: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['[[1, 2], [0, 3]]', false],
-                    ['[[5, 0], [0, 3]]', true],
-                    ['[[1, 1], [1, 1]]', false],
-                    ['[[0, 2], [2, 0]]', false],
-                ],
-            ],
-
-            // ── UPPER / LOWER TRIANGULAR ─────────────────────────────────
-            [
-                'q' => 'An upper triangular matrix has all zeros _____ the main diagonal.',
-                'opts' => [
-                    ['Above', false],
-                    ['On', false],
-                    ['Below', true],
-                    ['To the right of', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which of these is an upper triangular matrix?",
+                'q' => 'Item 31: In Applied Matrix Analysis, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['[[0, 0], [3, 5]]', false],
-                    ['[[1, 4], [0, 2]]', true],
-                    ['[[1, 0], [3, 2]]', false],
-                    ['[[3, 3], [3, 3]]', false],
-                ],
-            ],
-
-            // ── BASIC PROPERTIES ─────────────────────────────────────────
-            [
-                'q' => 'Is matrix addition commutative? (Does A + B = B + A?)',
-                'opts' => [
-                    ['No, never', false],
-                    ['Only if both are square', false],
-                    ['Yes, always', true],
-                    ['Only if both are diagonal', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If A is a 3×3 matrix, what is A + 0 (where 0 is the 3×3 zero matrix)?',
+                'q' => 'Item 32: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The zero matrix', false],
-                    ['The identity matrix', false],
-                    ['A (unchanged)', true],
-                    ['Twice A', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What operation "flips" a matrix so that element aᵢⱼ becomes aⱼᵢ?',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with bias check?',
                 'opts' => [
-                    ['Scalar multiplication', false],
-                    ['Matrix addition', false],
-                    ['Transpose', true],
-                    ['Inversion', false],
-                ],
-            ],
-
-            // ── MISC ─────────────────────────────────────────────────────
-            [
-                'q' => 'Matrices are widely used in which of the following real-world applications?',
-                'opts' => [
-                    ['Cooking recipes', false],
-                    ['Computer graphics, engineering, and data science', true],
-                    ['Only in pure math classrooms', false],
-                    ['Only in statistics textbooks', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What letter is most commonly used to represent a matrix in math notation?',
+                'q' => 'Item 34: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['x', false],
-                    ['n', false],
-                    ['A (or other capital letters)', true],
-                    ['f', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A 1×1 matrix has exactly _____ element.',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['0', false],
-                    ['2', false],
-                    ['1', true],
-                    ['4', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Matrices are said to be "equal" when what condition is met?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['They have the same number of rows', false],
-                    ['They have the same size AND every corresponding entry is equal', true],
-                    ['All their entries sum to the same number', false],
-                    ['They are both square', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the main diagonal of a matrix?',
+                'q' => 'Item 37: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The bottom row', false],
-                    ['The entries aᵢⱼ where i = j (top-left to bottom-right)', true],
-                    ['The last column', false],
-                    ['Any row chosen by the user', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Applied Matrix Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Applied Matrix Analysis, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Applied Matrix Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Applied Matrix Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Applied Matrix Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Applied Matrix Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Applied Matrix Analysis, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Applied Matrix Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 9 — Applied Matrix Analysis (Newbie).");
+        $this->command->info('Module 9 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

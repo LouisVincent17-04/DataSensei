@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module5ChallengeSeederNewbie extends Seeder
 {
@@ -16,516 +14,508 @@ class Module5ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Methods of Proof';
 
-        $this->command->info("Creating Module 5 — Methods of Proof (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 5 — Methods of Proof (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Methods of Proof',
-            'description'           => 'Test your basic understanding of mathematical proof techniques — direct proof, contrapositive, contradiction, and more. Perfect for beginners just getting started with logic and proof writing.',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 5,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Methods of Proof. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 5,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-friendly questions on Methods of Proof...");
-
         $qaData = [
-
-            // ── 5.1 INTRODUCTION TO MATHEMATICAL PROOF ───────────────────
             [
-                'q' => 'What is a mathematical proof?',
+                'q' => 'Item 1: In Methods of Proof, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A guess about whether a statement is true', false],
-                    ['A logical argument that shows a statement must be true', true],
-                    ['An example that shows a statement works once', false],
-                    ['A definition of a mathematical term', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "theorem" in mathematics?',
+                'q' => 'Item 2: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A statement that has not been proven yet', false],
-                    ['A statement that has been proven to be true', true],
-                    ['A statement that is always false', false],
-                    ['An assumption we accept without proof', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is an "axiom" (or postulate) in mathematics?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Proof Methods when dealing with assumptions?',
                 'opts' => [
-                    ['A statement that must be proven before it can be used', false],
-                    ['A statement accepted as true without proof, used as a starting point', true],
-                    ['A statement that is sometimes true and sometimes false', false],
-                    ['A statement that contradicts a theorem', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does it mean for a mathematical statement to be a "proposition"?',
+                'q' => 'Item 4: For Methods of Proof, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A statement that is neither true nor false', false],
-                    ['A declarative statement that is either true or false', true],
-                    ['A question asked in mathematics', false],
-                    ['A proven theorem used to prove other theorems', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is a "lemma" in mathematics?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Proof Methods fails on one test case?',
                 'opts' => [
-                    ['A major, important theorem', false],
-                    ['A helper result proved in order to help prove a larger theorem', true],
-                    ['An unproven conjecture', false],
-                    ['A type of number system', false],
-                ],
-            ],
-
-            // ── 5.2 DIRECT PROOF ─────────────────────────────────────────
-            [
-                'q' => 'What is a direct proof?',
-                'opts' => [
-                    ['A proof that assumes the conclusion is false', false],
-                    ['A proof that starts from the hypothesis and logically reaches the conclusion', true],
-                    ['A proof that uses a counterexample', false],
-                    ['A proof that works backwards from the conclusion', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a direct proof of "If P, then Q," where do you start?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
                 'opts' => [
-                    ['By assuming Q is false', false],
-                    ['By assuming P is true', true],
-                    ['By assuming both P and Q are false', false],
-                    ['By assuming Q is true', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An integer n is called "even" if it can be written as:',
+                'q' => 'Item 7: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['n = 2k + 1 for some integer k', false],
-                    ['n = 2k for some integer k', true],
-                    ['n = k² for some integer k', false],
-                    ['n = k/2 for some integer k', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An integer n is called "odd" if it can be written as:',
+                'q' => 'Item 8: Which situation is most likely an edge case in Methods of Proof?',
                 'opts' => [
-                    ['n = 2k for some integer k', false],
-                    ['n = 2k + 1 for some integer k', true],
-                    ['n = k + 1 for some integer k', false],
-                    ['n = 2k − 1 for some integer k', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'To directly prove "If n is even, then n² is even," you would first write n = 2k and then compute n². What is n²?',
+                'q' => 'Item 9: When comparing two approaches in Proof Methods, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['2k²', false],
-                    ['4k²', true],
-                    ['2k + 2', false],
-                    ['k²', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If n = 2k, then n² = 4k² = 2(2k²). Why does this show n² is even?',
+                'q' => 'Item 10: What does a strong final answer in Methods of Proof include?',
                 'opts' => [
-                    ['Because 4k² ends in an even digit', false],
-                    ['Because n² is written as 2 times an integer, matching the definition of even', true],
-                    ['Because k must be an even number too', false],
-                    ['Because squaring always gives an even result', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is the best first step in a direct proof of "If n is odd, then n + 1 is even"?',
+                'q' => 'Item 11: In Methods of Proof, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Assume n + 1 is odd', false],
-                    ['Write n = 2k + 1 for some integer k', true],
-                    ['Write n = 2k for some integer k', false],
-                    ['Assume the conclusion is false', false],
-                ],
-            ],
-
-            // ── 5.3 PROOF BY CONTRAPOSITIVE ───────────────────────────────
-            [
-                'q' => 'What is the contrapositive of the statement "If P, then Q"?',
-                'opts' => [
-                    ['If Q, then P', false],
-                    ['If not Q, then not P', true],
-                    ['If not P, then not Q', false],
-                    ['If P, then not Q', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Is the contrapositive of a true statement always true?',
+                'q' => 'Item 12: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['No, they can have different truth values', false],
-                    ['Yes, a statement and its contrapositive are logically equivalent', true],
-                    ['Only if the original statement is about even numbers', false],
-                    ['Only in some special cases', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the contrapositive of "If it is raining, then the ground is wet"?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Proof Methods when dealing with bias check?',
                 'opts' => [
-                    ['If the ground is wet, then it is raining', false],
-                    ['If the ground is not wet, then it is not raining', true],
-                    ['If it is not raining, then the ground is not wet', false],
-                    ['If the ground is wet, then it is not raining', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why would you choose a proof by contrapositive instead of a direct proof?',
+                'q' => 'Item 14: For Methods of Proof, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Because contrapositive proofs are always shorter', false],
-                    ['Because sometimes it is easier to prove "not Q → not P" than "P → Q" directly', true],
-                    ['Because direct proofs are not valid in all cases', false],
-                    ['Because the contrapositive gives a different result', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the contrapositive of "If n² is odd, then n is odd"?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Proof Methods fails on one test case?',
                 'opts' => [
-                    ['If n is odd, then n² is odd', false],
-                    ['If n is not odd, then n² is not odd" — i.e., "If n is even, then n² is even"', true],
-                    ['If n² is even, then n is odd', false],
-                    ['If n is even, then n² is odd', false],
-                ],
-            ],
-
-            // ── 5.4 PROOF BY CONTRADICTION ────────────────────────────────
-            [
-                'q' => 'What is the main idea of a proof by contradiction?',
-                'opts' => [
-                    ['Assume the statement is true and derive an obvious fact', false],
-                    ['Assume the statement is false and derive a logical impossibility', true],
-                    ['Show the statement works for one specific example', false],
-                    ['Prove the contrapositive of the statement', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'When you "derive a contradiction," what have you found?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
                 'opts' => [
-                    ['Two statements that are both true but unrelated', false],
-                    ['A statement that is both true and false at the same time, which is impossible', true],
-                    ['A counterexample to the original statement', false],
-                    ['An alternative proof method', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In the classic proof that √2 is irrational, the first step is to assume:',
+                'q' => 'Item 17: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['√2 = 0', false],
-                    ['√2 is rational, i.e., √2 = p/q in lowest terms', true],
-                    ['√2 is a whole number', false],
-                    ['√2 is negative', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which Latin phrase is often written at the end of a proof by contradiction to mark the moment a contradiction is found?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Methods of Proof?',
                 'opts' => [
-                    ['Q.E.D.', false],
-                    ['Reductio ad absurdum', true],
-                    ['Ex falso quodlibet', false],
-                    ['Modus ponens', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'To prove "There is no largest even number" by contradiction, you would start by assuming:',
+                'q' => 'Item 19: When comparing two approaches in Proof Methods, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['All even numbers are negative', false],
-                    ['There exists a largest even number N', true],
-                    ['Every even number is divisible by 4', false],
-                    ['Even numbers do not exist', false],
-                ],
-            ],
-
-            // ── 5.5 PROOF BY CASES (EXHAUSTION) ──────────────────────────
-            [
-                'q' => 'What is a proof by cases (exhaustion)?',
-                'opts' => [
-                    ['A proof that tests every possible input value individually', false],
-                    ['A proof that splits all possibilities into cases and proves the statement holds in each case', true],
-                    ['A proof that only checks the most likely case', false],
-                    ['A proof by contradiction applied repeatedly', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'To prove a statement about all integers using cases, a common split is:',
+                'q' => 'Item 20: What does a strong final answer in Methods of Proof include?',
                 'opts' => [
-                    ['Case 1: n = 0, Case 2: n ≠ 0', false],
-                    ['Case 1: n is even, Case 2: n is odd', true],
-                    ['Case 1: n is positive, Case 2: n = 1', false],
-                    ['Case 1: n < 100, Case 2: n ≥ 100', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Why must the cases in a proof by exhaustion cover ALL possibilities?',
+                'q' => 'Item 21: In Methods of Proof, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['To make the proof look more complete', false],
-                    ['Because if any possibility is missed, the proof is incomplete and invalid', true],
-                    ['Because extra cases add extra proof points', false],
-                    ['Cases do not need to be exhaustive', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'To prove "n² + n is always even for any integer n," which case split makes the most sense?',
+                'q' => 'Item 22: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Case 1: n > 0, Case 2: n ≤ 0', false],
-                    ['Case 1: n is even, Case 2: n is odd', true],
-                    ['Case 1: n = 1, Case 2: n = 2', false],
-                    ['Case 1: n is prime, Case 2: n is composite', false],
-                ],
-            ],
-
-            // ── 5.6 MATHEMATICAL INDUCTION ────────────────────────────────
-            [
-                'q' => 'Mathematical induction is used to prove statements about:',
-                'opts' => [
-                    ['Real numbers only', false],
-                    ['All positive integers (or natural numbers)', true],
-                    ['Irrational numbers only', false],
-                    ['Statements that have no pattern', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What are the two main steps of a proof by mathematical induction?',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Proof Methods when dealing with assumptions?',
                 'opts' => [
-                    ['Guess and check', false],
-                    ['Base case and inductive step', true],
-                    ['Contradiction and resolution', false],
-                    ['Direct step and contrapositive step', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the base case of a proof by induction, what do you do?',
+                'q' => 'Item 24: For Methods of Proof, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Assume the statement is true for n = k', false],
-                    ['Prove the statement is true for the smallest value (usually n = 1)', true],
-                    ['Show the statement fails for n = 0', false],
-                    ['Prove the statement for all values at once', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In the inductive step, what is the "inductive hypothesis"?',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Proof Methods fails on one test case?',
                 'opts' => [
-                    ['The statement we are trying to prove', false],
-                    ['The assumption that the statement is true for some arbitrary n = k', true],
-                    ['The base case result', false],
-                    ['A guess that the statement might be true', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'After assuming the statement is true for n = k (inductive hypothesis), what must you then prove?',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
                 'opts' => [
-                    ['That the statement is true for n = k − 1', false],
-                    ['That the statement is true for n = k + 1', true],
-                    ['That k must be even', false],
-                    ['That the base case holds again', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The "domino analogy" for induction says: if the first domino falls (base case) and each falling domino knocks over the next (inductive step), then:',
+                'q' => 'Item 27: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Only the first few dominos fall', false],
-                    ['All dominos will eventually fall', true],
-                    ['The last domino falls first', false],
-                    ['No dominos fall at all', false],
-                ],
-            ],
-
-            // ── 5.7 STRONG INDUCTION ──────────────────────────────────────
-            [
-                'q' => 'How does strong induction differ from regular (weak) induction?',
-                'opts' => [
-                    ['Strong induction only proves the base case', false],
-                    ['In strong induction, you assume the statement is true for ALL values from the base case up to k (not just k alone)', true],
-                    ['Strong induction skips the inductive step', false],
-                    ['Strong induction is a weaker form of proof', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Strong induction is especially useful when proving statements where the next case (n = k + 1) depends on:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Methods of Proof?',
                 'opts' => [
-                    ['Only n = k', false],
-                    ['Multiple earlier values, not just n = k', true],
-                    ['Only the base case', false],
-                    ['Values larger than k + 1', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which of the following is a classic example where strong induction is more convenient than weak induction?',
+                'q' => 'Item 29: When comparing two approaches in Proof Methods, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Proving 1 + 2 + ... + n = n(n+1)/2', false],
-                    ['Proving every integer ≥ 2 has a prime factorization', true],
-                    ['Proving the sum of the first n even numbers', false],
-                    ['Proving n < 2n for all n ≥ 1', false],
-                ],
-            ],
-
-            // ── 5.8 EXISTENCE AND UNIQUENESS PROOFS ───────────────────────
-            [
-                'q' => 'An existence proof shows that:',
-                'opts' => [
-                    ['A mathematical object does NOT exist', false],
-                    ['At least one mathematical object with a given property exists', true],
-                    ['A mathematical object is the only one of its kind', false],
-                    ['A statement is true for all integers', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the simplest way to give a "constructive" existence proof?',
+                'q' => 'Item 30: What does a strong final answer in Methods of Proof include?',
                 'opts' => [
-                    ['Show the object cannot exist', false],
-                    ['Directly exhibit (build or name) a specific object that satisfies the required property', true],
-                    ['Use contradiction to show existence', false],
-                    ['Prove it by strong induction', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A uniqueness proof shows that:',
+                'q' => 'Item 31: In Methods of Proof, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['At least one solution exists', false],
-                    ['The solution that exists is the only one with the given property', true],
-                    ['No solution exists', false],
-                    ['There are infinitely many solutions', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A standard technique to prove uniqueness is to assume there are two objects x and y that both satisfy the property, and then show:',
+                'q' => 'Item 32: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['x and y are both even numbers', false],
-                    ['x = y, meaning they must be the same object', true],
-                    ['x and y cannot both exist', false],
-                    ['x > y always', false],
-                ],
-            ],
-
-            // ── 5.9 DISPROVING: COUNTEREXAMPLES ───────────────────────────
-            [
-                'q' => 'What is a counterexample?',
-                'opts' => [
-                    ['An example that proves a statement is true', false],
-                    ['A specific example that shows a universal statement is false', true],
-                    ['A type of proof by contradiction', false],
-                    ['A proof technique for existence statements', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'To disprove the statement "All prime numbers are odd," which counterexample works?',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Proof Methods when dealing with bias check?',
                 'opts' => [
-                    ['3 (an odd prime)', false],
-                    ['2 (an even prime)', true],
-                    ['1 (not prime)', false],
-                    ['4 (an even non-prime)', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'How many counterexamples are needed to disprove a universal statement "For all n, P(n)"?',
+                'q' => 'Item 34: For Methods of Proof, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['At least ten', false],
-                    ['Just one', true],
-                    ['At least half of all possible cases', false],
-                    ['Every possible case must fail', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'To disprove "For all integers n, n² > n," which counterexample works?',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Proof Methods fails on one test case?',
                 'opts' => [
-                    ['n = 5 (since 25 > 5)', false],
-                    ['n = 1 (since 1² = 1, which is not greater than 1)', true],
-                    ['n = −2 (since 4 > −2)', false],
-                    ['n = 100 (since 10000 > 100)', false],
-                ],
-            ],
-
-            // ── 5.10 CHOOSING THE RIGHT PROOF STRATEGY ────────────────────
-            [
-                'q' => 'If a statement says "There exists an integer n such that n + 5 = 12," the best proof strategy is:',
-                'opts' => [
-                    ['Proof by contradiction', false],
-                    ['Existence proof — just find the specific n (n = 7)', true],
-                    ['Mathematical induction', false],
-                    ['Proof by cases', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If a statement says "For all integers n, if n² is even then n is even," a good proof strategy is:',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
                 'opts' => [
-                    ['Find a counterexample', false],
-                    ['Proof by contrapositive: assume n is odd, then show n² is odd', true],
-                    ['Proof by exhaustion over all integers', false],
-                    ['Existence proof', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'If a statement says "For all n ≥ 1, 1 + 2 + ... + n = n(n+1)/2," the best strategy is:',
+                'q' => 'Item 37: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Direct proof using algebra alone', false],
-                    ['Mathematical induction', true],
-                    ['Proof by contradiction', false],
-                    ['Provide one numerical example', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which abbreviation is written at the end of a completed proof to signal it is finished?',
+                'q' => 'Item 38: Which situation is most likely an edge case in Methods of Proof?',
                 'opts' => [
-                    ['P.S.', false],
-                    ['Q.E.D. (or a filled square ∎)', true],
-                    ['N.B.', false],
-                    ['i.e.', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'To disprove a universal statement "For all n, P(n)," what is your goal?',
+                'q' => 'Item 39: When comparing two approaches in Proof Methods, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Prove P(n) is true for the majority of values', false],
-                    ['Find at least one specific n where P(n) is false', true],
-                    ['Prove P(n) is true for n = 1', false],
-                    ['Show P(n) leads to a contradiction', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which proof method is being used when you split the proof into "Case 1: n is even" and "Case 2: n is odd"?',
+                'q' => 'Item 40: What does a strong final answer in Methods of Proof include?',
                 'opts' => [
-                    ['Proof by contradiction', false],
-                    ['Proof by cases (exhaustion)', true],
-                    ['Proof by contrapositive', false],
-                    ['Mathematical induction', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does "without loss of generality" (WLOG) mean in a proof?',
+                'q' => 'Item 41: In Methods of Proof, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['We are skipping an important case', false],
-                    ['By symmetry, we can assume a particular condition and the argument covers all other cases too', true],
-                    ['The proof only works for one specific case', false],
-                    ['We are using the contrapositive', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 42: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Proof Methods when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Methods of Proof, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Proof Methods fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Methods of Proof?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Proof Methods, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Methods of Proof include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 5 — Methods of Proof (Newbie).");
+        $this->command->info('Module 5 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

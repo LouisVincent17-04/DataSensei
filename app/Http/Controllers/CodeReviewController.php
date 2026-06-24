@@ -2,118 +2,134 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Http\JsonResponse;
 
 class CodeReviewController extends Controller
 {
-    private string $ollamaUrl = 'http://localhost:11434/api/generate';
-    private string $model     = 'deepseek-coder';
-    private int    $timeout   = 90;
-
-    // ── Used for initial auto-review on every Run ──────────────────────────
     private string $reviewPrompt = <<<'PROMPT'
-You are a strict code and SQL reviewer for an educational platform.
+You are DataSensei's Code Feedback Assistant.
 
-Your ONLY job is to review code that is submitted to you. Always respond using exactly this format:
+Your job is to review Python or SQL code submitted by a student after they run it.
+Use the latest code and the latest run output/error as the source of truth.
+Do not pretend you executed anything yourself; only use the provided output/error.
 
-Status: <Correct | Has Issues>
+When the user just ran code, always respond using exactly this format:
+
+Status: <Correct | Has Issues | Needs More Context>
 Issues:
 - <issue or "None">
 Suggestions:
 - <suggestion or "None">
 
 Rules:
-- Be brief. One line per point.
-- Do not add preamble or closing remarks.
-- NEVER write, generate, produce, or provide code or SQL of any kind — not even examples or fixes.
-  If asked to generate code, respond only with: "I'm a reviewer, not a code generator."
+- Be brief and beginner-friendly.
+- One line per point.
+- For Python: check syntax, indentation, input handling, imports, logic, output, and matplotlib/file issues.
+- For SQL: check syntax, table/column names, joins, WHERE clauses, grouping, unsafe UPDATE/DELETE, and data type issues.
+- If the code is correct but output is missing, say that no output was produced.
+- Do not generate a full solution unless the student clearly asks for a sample or explanation.
 PROMPT;
 
-    // ── Used for follow-up questions ───────────────────────────────────────
     private string $chatPrompt = <<<'PROMPT'
-You are a helpful code review assistant for an educational platform.
+You are DataSensei's Code Feedback Assistant.
 
-Your role is to answer follow-up questions about code or SQL that has already been reviewed.
+The student is asking a follow-up question about the latest Python or SQL code they ran.
+Stay anchored to the latest code, latest run output/error, and previous context provided.
+Do not lose the topic. If the student asks "why", "how", "what does this mean", or "fix this", answer using the latest code context.
 
 Rules:
-- NEVER write, generate, produce, or provide code or SQL of any kind — not even examples, fixes, or snippets.
-  If asked to generate code, respond only with: "I'm a reviewer, not a code generator. I can only help you understand your existing code."
-- You may explain what is wrong and WHY, describe what a fix should conceptually do, or point to relevant concepts — but never produce working code.
-- Keep answers clear and concise.
+- Answer normally, not in the structured review format.
+- Keep the answer short, clear, and beginner-friendly.
+- You may show a small corrected fragment only when it is necessary to explain the fix.
+- Do not invent database tables, columns, files, outputs, or previous messages that were not provided.
 PROMPT;
 
-    /**
-     * POST /api/code-review
-     *
-     * Body fields:
-     *   mode     — "review" (initial auto-review) or "chat" (follow-up question)
-     *   code     — the code or SQL being discussed
-     *   language — "python" | "mysql" (informational, used in prompt context)
-     *   question — required when mode=chat
-     */
     public function review(Request $request): JsonResponse
     {
-        $request->validate([
-            'mode'     => 'required|in:review,chat',
-            'code'     => 'required|string|max:10000',
-            'language' => 'nullable|string|max:20',
-            'question' => 'nullable|string|max:2000',
+        $validated = $request->validate([
+            'mode' => ['required', 'in:review,chat'],
+            'code' => ['required', 'string', 'max:10000'],
+            'language' => ['nullable', 'string', 'max:20'],
+            'question' => ['nullable', 'string', 'max:2000'],
+            'run_output' => ['nullable', 'string', 'max:10000'],
+            'previous_context' => ['nullable', 'string', 'max:8000'],
         ]);
 
-        $mode     = $request->input('mode');
-        $code     = trim($request->input('code'));
-        $language = trim($request->input('language', 'python'));
-        $question = trim($request->input('question', ''));
+        $mode = $validated['mode'];
+        $code = trim($validated['code']);
+        $language = trim($validated['language'] ?? 'python');
+        $question = trim($validated['question'] ?? '');
+        $runOutput = trim($validated['run_output'] ?? '');
+        $previousContext = trim($validated['previous_context'] ?? '');
 
-        // ── Build prompt based on mode ─────────────────────────────────────
-        if ($mode === 'chat') {
-            if ($question === '') {
-                return response()->json([
-                    'ok'      => false,
-                    'message' => 'A follow-up question is required for chat mode.',
-                ], 422);
-            }
-
-            $prompt = "{$this->chatPrompt}\n\n"
-                    . "Context — the {$language} code being discussed:\n```\n{$code}\n```\n\n"
-                    . "User question: {$question}";
-
-            $temperature = 0.4;
-            $numPredict  = 768;
-
-        } else {
-            // mode === 'review'
-            $prompt = "{$this->reviewPrompt}\n\n"
-                    . "Code to review ({$language}):\n```\n{$code}\n```";
-
-            $temperature = 0.2;
-            $numPredict  = 512;
+        if ($mode === 'chat' && $question === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'A follow-up question is required for chat mode.',
+            ], 422);
         }
 
-        // ── Call Ollama ────────────────────────────────────────────────────
-        $response = Http::timeout($this->timeout)->post($this->ollamaUrl, [
-            'model'   => $this->model,
-            'prompt'  => $prompt,
-            'stream'  => false,
-            'options' => [
-                'temperature' => $temperature,
-                'num_predict' => $numPredict,
-            ],
-        ]);
+        [$prompt, $temperature, $numPredict] = $mode === 'chat'
+            ? $this->buildChatPrompt($language, $code, $runOutput, $previousContext, $question)
+            : $this->buildReviewPrompt($language, $code, $runOutput);
 
-        if ($response->failed()) {
+        try {
+            $response = Http::timeout((int) config('code_execution.ollama.timeout_seconds', 90))->post(
+                (string) config('code_execution.ollama.url', 'http://localhost:11434/api/generate'),
+                [
+                    'model' => (string) config('code_execution.ollama.model', 'deepseek-coder'),
+                    'prompt' => $prompt,
+                    'stream' => false,
+                    'options' => [
+                        'temperature' => $temperature,
+                        'num_predict' => $numPredict,
+                    ],
+                ]
+            );
+        } catch (\Throwable $exception) {
             return response()->json([
-                'ok'      => false,
-                'message' => "Could not reach Ollama at {$this->ollamaUrl}. "
-                           . "Make sure Ollama is running (`ollama serve`) and {$this->model} is pulled.",
+                'ok' => false,
+                'message' => 'Code feedback service is currently unavailable: ' . $exception->getMessage(),
             ], 502);
         }
 
-        $body    = $response->json();
-        $message = $body['response'] ?? 'Empty response from Ollama.';
+        if ($response->failed()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Code feedback service could not be reached. Make sure Ollama is running and the configured model is available.',
+            ], 502);
+        }
 
-        return response()->json(['ok' => true, 'message' => trim($message)]);
+        $body = $response->json();
+        $message = trim((string) ($body['response'] ?? ''));
+
+        return response()->json([
+            'ok' => true,
+            'message' => $message !== '' ? $message : 'Empty response from the code feedback service.',
+        ]);
+    }
+
+    private function buildChatPrompt(string $language, string $code, string $runOutput, string $previousContext, string $question): array
+    {
+        $prompt = "{$this->chatPrompt}\n\n"
+            . "Language: {$language}\n\n"
+            . "Previous context:\n" . ($previousContext !== '' ? $previousContext : 'None') . "\n\n"
+            . "Latest code being discussed:\n```{$language}\n{$code}\n```\n\n"
+            . "Latest run output/error:\n```text\n" . ($runOutput !== '' ? $runOutput : 'None') . "\n```\n\n"
+            . "Student question: {$question}";
+
+        return [$prompt, 0.35, 768];
+    }
+
+    private function buildReviewPrompt(string $language, string $code, string $runOutput): array
+    {
+        $prompt = "{$this->reviewPrompt}\n\n"
+            . "Language: {$language}\n\n"
+            . "Code to review:\n```{$language}\n{$code}\n```\n\n"
+            . "Latest run output/error:\n```text\n" . ($runOutput !== '' ? $runOutput : 'None') . "\n```";
+
+        return [$prompt, 0.2, 512];
     }
 }

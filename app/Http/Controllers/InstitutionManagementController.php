@@ -41,7 +41,9 @@ class InstitutionManagementController extends Controller
      */
     public function create()
     {
-        return view('superadmin.institutions.create');
+        return redirect()
+            ->route('superadmin.institutions.index')
+            ->with('info', 'Use the Create Institution form on this page.');
     }
 
     /**
@@ -86,7 +88,9 @@ class InstitutionManagementController extends Controller
      */
     public function edit(Institution $institution)
     {
-        return view('superadmin.institutions.edit', compact('institution'));
+        return redirect()
+            ->route('superadmin.institutions.index')
+            ->with('info', 'Use the Edit action on the institutions page.');
     }
 
     /**

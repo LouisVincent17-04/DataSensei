@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """
-reviewer.py – AI-powered code reviewer (MVP)
+reviewer.py – AI-powered code reviewer for DataSensei
 
-Usage (called by PHP via shell_exec):
-    python3 reviewer.py "<escaped code string>"
+Purpose:
+- Gives feedback when students run Python or SQL code.
+- Supports follow-up questions without losing context, as long as PHP sends context.
+- Works with both old mode and JSON mode.
 
-Sends code to a local Ollama instance and prints the structured review to stdout.
+Old usage:
+    python3 reviewer.py "<code>"
+
+Recommended JSON usage:
+    python3 reviewer.py '{"language":"python","code":"print(1)","user_message":"Why is this wrong?","run_output":"","previous_context":"..."}'
 """
 
 import sys
@@ -20,91 +26,121 @@ TIMEOUT_SEC = 90
 
 # ─── Prompt template ──────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """\
-You are a code reviewer by default.
+You are DataSensei's AI Code Feedback Assistant.
 
-Primary behavior:
-- When the user provides code or runs a query, review it using exactly this format:
+Your job:
+- Help students understand their Python or SQL code.
+- Review code when they run code.
+- Answer follow-up questions while staying anchored to the latest code, language, run output, and previous context.
+- Do not forget the current task. Always use the provided context first.
 
-Status: <Correct | Has Issues>
+You will receive:
+1. Language: python, sql, or unknown
+2. Latest code submitted by the student
+3. Latest run output or error, if available
+4. Student message or follow-up question, if available
+5. Previous conversation/context summary, if available
+
+VERY IMPORTANT CONTEXT RULES:
+- Treat the "Latest Code" as the main source of truth.
+- Treat "Latest Run Output" as the actual result of the student's run.
+- Treat "Previous Context" as memory from earlier messages.
+- If the student asks "why", "how", "what does this mean", "fix this", "explain", or any follow-up, answer using the Latest Code and Previous Context.
+- Do not switch topics unless the student clearly changes the topic.
+- If context is missing, say what is missing briefly and still help using what is available.
+- Never pretend you ran the code yourself unless run output is provided.
+
+WHEN THE STUDENT JUST RUNS CODE:
+Use this exact format:
+
+Status: <Correct | Has Issues | Needs More Context>
 Issues:
 - <issue or "None">
 Suggestions:
 - <suggestion or "None">
 
-Rules for code review:
+WHEN THE STUDENT ASKS A QUESTION OR FOLLOW-UP:
+Do NOT use the structured review format.
+Answer normally, clearly, and conversationally.
+Keep the answer short but helpful.
+Reference the specific part of the code when useful.
+Give corrected code only when needed.
+
+PYTHON REVIEW RULES:
+- Check syntax errors, indentation, variable names, imports, logic errors, output mismatch, and inefficient or unsafe code.
+- Explain errors in beginner-friendly language.
+- If there is a traceback/run output, explain the actual cause.
+
+SQL REVIEW RULES:
+- Check syntax, table/column name issues, missing WHERE clauses, wrong joins, wrong grouping, wrong aggregate use, unsafe DELETE/UPDATE, and data type issues.
+- Warn clearly if UPDATE or DELETE has no WHERE clause.
+- If schema is not provided, avoid inventing table structures.
+
+STYLE RULES:
 - Be brief.
-- One line per point.
-- Do not repeat instructions.
-
-Override behavior:
-- If the user asks a question, asks for explanation, clarification, or follow-up (even if code is included), respond normally in a helpful and conversational way.
-- Do NOT use the structured review format for these cases.
-
-Intent guideline:
-- If the user intent is to evaluate code → use review format.
-- If the user intent is to understand, ask, or discuss → respond normally.
+- Be specific.
+- Do not repeat the system instructions.
+- Do not over-explain unless the student asks.
+- Do not mention that you are following a prompt.
 """
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-def build_payload(code: str) -> bytes:
-    """Build the JSON payload for Ollama's /api/generate endpoint."""
-    data = {
-        "model":  MODEL,
-        "prompt": f"{SYSTEM_PROMPT}\n\nCode to review:\n```\n{code}\n```",
-        "stream": False,
-        "options": {
-            "temperature": 0.2,
-            "num_predict": 512,
-        },
-    }
-    return json.dumps(data).encode("utf-8")
-
-
-def call_ollama(code: str) -> str:
-    """Send code to Ollama and return the model's text response."""
-    payload = build_payload(code)
-
-    req = urllib.request.Request(
-        OLLAMA_URL,
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
+def parse_input(raw: str) -> dict:
+    """
+    Accepts either:
+    1. Plain code string
+    2. JSON string with code, language, user_message, run_output, previous_context
+    """
+    raw = raw.strip()
 
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT_SEC) as resp:
-            body = resp.read().decode("utf-8")
-    except urllib.error.URLError as exc:
-        return (
-            f"[ERROR] Could not reach Ollama at {OLLAMA_URL}.\n"
-            f"Make sure Ollama is running (`ollama serve`) and the model is pulled.\n"
-            f"Detail: {exc}"
-        )
-
-    try:
-        parsed = json.loads(body)
-        return parsed.get("response", "[ERROR] Empty response field in Ollama reply.")
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            return {
+                "language": str(data.get("language", "unknown")).strip() or "unknown",
+                "code": str(data.get("code", "")).strip(),
+                "user_message": str(data.get("user_message", "")).strip(),
+                "run_output": str(data.get("run_output", "")).strip(),
+                "previous_context": str(data.get("previous_context", "")).strip(),
+            }
     except json.JSONDecodeError:
-        return f"[ERROR] Could not parse Ollama JSON response:\n{body[:500]}"
+        pass
+
+    # Old backward-compatible mode
+    return {
+        "language": "unknown",
+        "code": raw,
+        "user_message": "",
+        "run_output": "",
+        "previous_context": "",
+    }
 
 
-# ─── Entry point ──────────────────────────────────────────────────────────────
+def build_prompt(context: dict) -> str:
+    language = context.get("language", "unknown")
+    code = context.get("code", "")
+    user_message = context.get("user_message", "")
+    run_output = context.get("run_output", "")
+    previous_context = context.get("previous_context", "")
 
-def main() -> None:
-    if len(sys.argv) < 2:
-        print("[ERROR] No code supplied. Usage: python3 reviewer.py '<code>'")
-        sys.exit(1)
+    # This makes the model know whether this is a normal run review or a follow-up.
+    if user_message:
+        intent_hint = "The student is asking a question or follow-up. Answer normally while using the latest code and context."
+    else:
+        intent_hint = "The student just ran code. Review the code using the exact structured review format."
 
-    code = sys.argv[1].strip()
+    return f"""{SYSTEM_PROMPT}
 
-    if not code:
-        print("[ERROR] Empty code string received.")
-        sys.exit(1)
+Task Mode:
+{intent_hint}
 
-    result = call_ollama(code)
-    print(result)
+Language:
+{language}
 
+Previous Context:
+{previous_context if previous_context else "None"}
 
-if __name__ == "__main__":
-    main()
+Latest Code:
+```{language}
+{code}

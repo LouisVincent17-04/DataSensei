@@ -23,7 +23,9 @@
             <h1 class="page-title">{{ $assignment->title }}</h1>
             <p class="page-subtitle">Attempt #{{ $submission->attempt_no }} · Submitted {{ $submission->submitted_at ? $submission->submitted_at->format('M d, Y h:i A') : 'Not submitted' }}</p>
           </div>
-          <a href="{{ route('student.assignments.index') }}" class="btn secondary">Back to Assignments</a>
+          <a href="{{ $resultBackRoute ?? route('student.assignments.index') }}" class="btn secondary">
+            {{ $resultBackLabel ?? 'Back to Assignments' }}
+          </a>
         </div>
 
         @if(session('success')) <div class="alert success">{{ session('success') }}</div> @endif

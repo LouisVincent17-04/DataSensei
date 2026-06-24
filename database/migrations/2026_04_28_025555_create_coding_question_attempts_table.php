@@ -26,7 +26,7 @@ return new class extends Migration
             $table->foreignId('coding_question_id')
                   ->constrained('coding_questions')
                   ->cascadeOnDelete();
-            $table->timestamp('started_at');          // wall-clock when first opened
+            $table->dateTime('started_at');          // wall-clock when first opened
             $table->boolean('expired')->default(false); // flipped true when time runs out
             $table->timestamps();
 

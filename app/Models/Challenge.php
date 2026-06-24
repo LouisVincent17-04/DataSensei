@@ -40,4 +40,10 @@ class Challenge extends Model
     {
         return $this->hasMany(CodingQuestion::class)->orderBy('order_index');
     }
+
+    /** MCQ attempt sessions with server-side timers and autosaved answers. */
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(ChallengeAttempt::class);
+    }
 }

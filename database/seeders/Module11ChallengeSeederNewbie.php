@@ -14,339 +14,508 @@ class Module11ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Introduction to Bayesian Data Analysis';
 
-        $this->command->info("Creating Module 11 — Introduction to Bayesian Data Analysis (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 11 — Introduction to Bayesian Data Analysis (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Introduction to Bayesian Data Analysis',
-            'description'           => 'Test your knowledge of the very basics of Bayesian thinking — what it means to update beliefs with evidence, key vocabulary like prior and posterior, and simple probability concepts. No advanced math required!',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 11,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Introduction to Bayesian Data Analysis. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 11,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 30 newbie-friendly questions...");
-
         $qaData = [
-
-            // ── WHAT IS BAYESIAN THINKING ─────────────────────────────────
             [
-                'q' => 'What is the main idea behind Bayesian thinking?',
+                'q' => 'Item 1: In Introduction to Bayesian Data Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['You can never change your mind once you form an opinion', false],
-                    ['You update your beliefs when you get new evidence', true],
-                    ['You only trust data that has been collected perfectly', false],
-                    ['Probability is always exactly 0 or 1', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Bayesian analysis, what is a "prior"?',
+                'q' => 'Item 2: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The final conclusion after seeing all the data', false],
-                    ['Your belief about something BEFORE seeing new evidence', true],
-                    ['The total number of data points collected', false],
-                    ['A type of graph used in statistics', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "posterior" in Bayesian analysis?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Your updated belief AFTER seeing new evidence', true],
-                    ['Your belief before seeing any data', false],
-                    ['The probability that the data is wrong', false],
-                    ['A chart showing all possible outcomes', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following best describes Bayesian probability?',
+                'q' => 'Item 4: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The long-run frequency of an event over many trials', false],
-                    ['A degree of belief or confidence in a statement', true],
-                    ['The exact value from a mathematical formula', false],
-                    ['Only applies to coin flips and dice rolls', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'You believe there is a 30% chance of rain today. In Bayesian terms, this 30% is your:',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Bayesian Data Analysis fails on one test case?',
                 'opts' => [
-                    ['Posterior', false],
-                    ['Likelihood', false],
-                    ['Prior', true],
-                    ['Evidence', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'After checking the weather forecast and seeing dark clouds, you now think there is a 75% chance of rain. This 75% is your:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
                 'opts' => [
-                    ['Prior', false],
-                    ['Likelihood', false],
-                    ['Posterior', true],
-                    ['Sample size', false],
-                ],
-            ],
-
-            // ── BAYES THEOREM BASICS ──────────────────────────────────────
-            [
-                'q' => "Bayes' Theorem is named after which person?",
-                'opts' => [
-                    ['Thomas Bayes', true],
-                    ['Isaac Newton', false],
-                    ['Albert Einstein', false],
-                    ['Carl Gauss', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does Bayes' Theorem help us calculate?",
+                'q' => 'Item 7: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The average of a set of numbers', false],
-                    ['The probability of an event given that another event has occurred', true],
-                    ['The standard deviation of a dataset', false],
-                    ['The total number of outcomes in an experiment', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the formula P(A|B), what does the vertical bar "|" mean?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
                 'opts' => [
-                    ['A divided by B', false],
-                    ['A plus B', false],
-                    ['"given that" — the probability of A given B has happened', true],
-                    ['A multiplied by B', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'If P(Rain) = 0.3, what is P(No Rain)?',
+                'q' => 'Item 9: When comparing two approaches in Bayesian Data Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['0.3', false],
-                    ['0.6', false],
-                    ['0.7', true],
-                    ['1.3', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Probabilities must always be between which two values?',
+                'q' => 'Item 10: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
                 'opts' => [
-                    ['-1 and 1', false],
-                    ['0 and 1', true],
-                    ['0 and 100', false],
-                    ['1 and 10', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If two events cannot happen at the same time, they are called:',
+                'q' => 'Item 11: In Introduction to Bayesian Data Analysis, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Independent events', false],
-                    ['Dependent events', false],
-                    ['Mutually exclusive events', true],
-                    ['Conditional events', false],
-                ],
-            ],
-
-            // ── LIKELIHOOD ────────────────────────────────────────────────
-            [
-                'q' => 'In Bayesian terms, what is the "likelihood"?',
-                'opts' => [
-                    ['How confident you are before seeing data', false],
-                    ['How probable the observed data is, given a specific hypothesis', true],
-                    ['The final updated belief after all analysis', false],
-                    ['The number of times an experiment was repeated', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A coin lands heads 8 out of 10 flips. The likelihood measures:',
+                'q' => 'Item 12: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['How fair the coin is after flipping', false],
-                    ['How probable getting 8 heads out of 10 is for a given coin bias', true],
-                    ['The total number of possible outcomes', false],
-                    ['Whether the flipper is skilled or not', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which of the following is the correct order in Bayesian updating?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with bias check?',
                 'opts' => [
-                    ['Posterior → Prior → Likelihood', false],
-                    ['Likelihood → Prior → Posterior', false],
-                    ['Prior → Likelihood → Posterior', true],
-                    ['Data → Posterior → Prior', false],
-                ],
-            ],
-
-            // ── PRIOR DISTRIBUTIONS BASICS ────────────────────────────────
-            [
-                'q' => 'What is a "uniform prior"?',
-                'opts' => [
-                    ['A prior that says some outcomes are much more likely than others', false],
-                    ['A prior that gives equal probability to all possible outcomes', true],
-                    ['A prior based on expert knowledge', false],
-                    ['A prior taken from a previous experiment', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If you have no idea whether a coin is fair or not, which prior is most appropriate?',
+                'q' => 'Item 14: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A prior strongly favoring heads', false],
-                    ['A uniform prior giving all biases equal chance', true],
-                    ['A prior strongly favoring tails', false],
-                    ['No prior is needed', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An "informative prior" is one that:',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Bayesian Data Analysis fails on one test case?',
                 'opts' => [
-                    ['Contains no useful information', false],
-                    ['Reflects existing knowledge or beliefs about the parameter', true],
-                    ['Is always correct', false],
-                    ['Can only be used with large datasets', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why do we use priors in Bayesian analysis?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
                 'opts' => [
-                    ['To make the math simpler by ignoring data', false],
-                    ['To incorporate existing knowledge before seeing new data', true],
-                    ['To ensure the posterior is always the same as the prior', false],
-                    ['To make the likelihood equal to 1', false],
-                ],
-            ],
-
-            // ── SIMPLE REASONING ──────────────────────────────────────────
-            [
-                'q' => 'You test positive for a rare disease. The test is not perfect. What does Bayesian thinking suggest you should consider?',
-                'opts' => [
-                    ['Only the test result — it must be correct', false],
-                    ['Both the rarity of the disease (prior) and the test accuracy (likelihood)', true],
-                    ['Ignore the test and assume the worst', false],
-                    ['Run the test again with no changes', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In Bayesian analysis, as you collect MORE data, your posterior generally:',
+                'q' => 'Item 17: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Becomes more and more like your prior', false],
-                    ['Becomes dominated by the data and less influenced by the prior', true],
-                    ['Stays exactly the same as the prior', false],
-                    ['Becomes impossible to calculate', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Two people have different priors about the same event. After seeing the same large dataset, their posteriors will:',
+                'q' => 'Item 18: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
                 'opts' => [
-                    ['Remain very different forever', false],
-                    ['Tend to converge and become similar', true],
-                    ['Both become zero', false],
-                    ['Both become one', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does it mean to "update" a belief in Bayesian analysis?',
+                'q' => 'Item 19: When comparing two approaches in Bayesian Data Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Delete your old belief completely', false],
-                    ['Combine your prior belief with new evidence to form a posterior', true],
-                    ['Replace your belief with someone else\'s opinion', false],
-                    ['Keep your belief exactly the same no matter what', false],
-                ],
-            ],
-
-            // ── KEY VOCABULARY ────────────────────────────────────────────
-            [
-                'q' => 'What does "P(A)" mean in probability notation?',
-                'opts' => [
-                    ['The value of A', false],
-                    ['The probability of event A occurring', true],
-                    ['A divided by something', false],
-                    ['The posterior of A', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "hypothesis" in the context of Bayesian analysis?',
+                'q' => 'Item 20: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
                 'opts' => [
-                    ['A proven fact', false],
-                    ['A statement or model about the world that we assign a probability to', true],
-                    ['A type of chart', false],
-                    ['The final answer after all computations', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is "evidence" in Bayesian analysis?',
+                'q' => 'Item 21: In Introduction to Bayesian Data Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['The prior belief', false],
-                    ['The observed data that we use to update our beliefs', true],
-                    ['The posterior distribution', false],
-                    ['A type of statistical test', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The term "posterior predictive" refers to:',
+                'q' => 'Item 22: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A prediction made before collecting any data', false],
-                    ['A prediction for new data based on the posterior distribution', true],
-                    ['The prior before any update', false],
-                    ['A type of prior distribution', false],
-                ],
-            ],
-
-            // ── EVERYDAY BAYESIAN THINKING ────────────────────────────────
-            [
-                'q' => 'A doctor knows a disease affects 1 in 1000 people. A test for the disease is 99% accurate. If you test positive, which factor is important for interpreting the result?',
-                'opts' => [
-                    ['Only the 99% accuracy matters', false],
-                    ['Both the 1-in-1000 base rate and the test accuracy matter', true],
-                    ['Only the base rate matters', false],
-                    ['Neither factor matters', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Your friend says, "I flipped a coin 5 times and got heads every time, so it MUST be biased." What does Bayesian thinking say?',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Your friend is definitely correct', false],
-                    ['5 heads is unlikely but possible for a fair coin — more data is needed before concluding bias', true],
-                    ['The coin is definitely fair', false],
-                    ['Probability does not apply to coins', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which statement best describes the Bayesian approach to statistics?',
+                'q' => 'Item 24: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Probability describes only the long-run frequency of repeatable experiments', false],
-                    ['Probability represents our degree of belief, which we update with data', true],
-                    ['Statistics should never include personal beliefs', false],
-                    ['Only large datasets can be analyzed with Bayesian methods', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Bayesian analysis is different from "frequentist" statistics mainly because:',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Bayesian Data Analysis fails on one test case?',
                 'opts' => [
-                    ['Bayesian analysis does not use data', false],
-                    ['Bayesian analysis incorporates prior beliefs; frequentist does not', true],
-                    ['Frequentist analysis always gives better answers', false],
-                    ['Bayesian analysis can only be done by computers', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 27: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 28: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 29: When comparing two approaches in Bayesian Data Analysis, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 30: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 31: In Introduction to Bayesian Data Analysis, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
+                'opts' => [
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 32: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Bayesian Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Bayesian Data Analysis, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Introduction to Bayesian Data Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Bayesian Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Bayesian Data Analysis, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 30 questions seeded for Module 11 — Introduction to Bayesian Data Analysis (Newbie).");
+        $this->command->info('Module 11 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

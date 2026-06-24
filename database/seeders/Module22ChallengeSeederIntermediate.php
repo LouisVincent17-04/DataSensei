@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module22ChallengeSeederIntermediate extends Seeder
 {
@@ -16,355 +14,508 @@ class Module22ChallengeSeederIntermediate extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'intermediate')->first();
 
-        if (!$category) {
-            $this->command->error("Intermediate category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Intermediate category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Remove existing challenges for this category (cascades to questions/options)
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Big Data & Cloud Computing';
 
-        $this->command->info("Creating Module 22 — Big Data & Cloud Computing (Intermediate)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 22 — Big Data & Cloud Computing (Intermediate) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Big Data & Cloud Computing',
-            'description'           => 'Apply your Big Data and Cloud knowledge to multi-step problems, code tracing, cost calculations, and architectural design decisions reflecting real data engineering scenarios across Spark, Kafka, Airflow, and cloud platforms.',
-            'time_limit_seconds'    => 1500,
-            'base_xp'               => 1500,
-            'order_index'           => 22,
+            'title' => $title,
+            'description' => 'A detailed 50-item Intermediate MCQ challenge for Big Data & Cloud Computing. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1800,
+            'base_xp' => 800,
+            'order_index' => 22,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 intermediate-level questions on Big Data & Cloud Computing...");
-
         $qaData = [
-
-            // ── 22.1 BIG DATA & THE 5 Vs ─────────────────────────────────
             [
-                'q' => "A company processes 10 TB of log data per day from 5,000 microservices. Each log line is a JSON object with 40 fields, but only 3 fields are queried regularly. Engineers debate between storing logs as:\n\nOption A: Row-oriented JSON files\nOption B: Columnar Parquet files partitioned by service and date\n\nWhich addresses the 'Volume' and 'Variety' Vs most effectively and why?",
+                'q' => 'Item 1: In Big Data & Cloud Computing, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Option A — JSON is more flexible for variety', false],
-                    ['Option B — Parquet\'s columnar storage skips unused columns (reducing I/O from 40 to 3 columns per query) while partitioning by service/date prunes irrelevant files, handling both volume efficiency and varied service sources', true],
-                    ['Both options are equivalent for this workload', false],
-                    ['Option A — JSON is faster for 40-field records', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Calculate the storage cost of a Big Data system:\n• Raw data ingested: 5 TB/day\n• Replication factor: 3\n• Retention: 90 days\n• Compression ratio: 4:1 (after Parquet compression)\n\nTotal compressed and replicated storage after 90 days = ?",
+                'q' => 'Item 2: A learner working on Big Data & Cloud Computing gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['5 TB × 90 = 450 TB', false],
-                    ['5 TB / 4 × 3 × 90 = 337.5 TB', true],
-                    ['5 TB × 3 × 90 = 1350 TB', false],
-                    ['5 TB / 4 × 90 = 112.5 TB (without replication)', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You receive a dataset with 15% missing values in a critical feature, 8% duplicate rows, and timestamps stored inconsistently (mix of Unix epoch and ISO 8601 strings). Which 'V' does this dataset primarily violate, and what is the correct remediation order?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Big Data and Cloud Computing when dealing with assumptions?',
                 'opts' => [
-                    ['Volume — remove rows until the dataset is smaller', false],
-                    ['Veracity — the data is untrustworthy. Remediation order: (1) deduplicate, (2) standardise timestamps, (3) impute or flag missing values — deduplication first prevents double-counting in imputation statistics', true],
-                    ['Velocity — the data is arriving too slowly', false],
-                    ['Variety — too many different field types', false],
-                ],
-            ],
-
-            // ── 22.2 CLOUD COMPUTING ──────────────────────────────────────
-            [
-                'q' => "A data science team needs to run a 72-hour model training job on a cluster of 8 GPUs. After training, the cluster sits idle. Compare costs:\n\nOption A: Reserved instances (pre-paid annually) at $0.90/hr each\nOption B: On-demand spot instances at $1.80/hr each (with potential interruption)\nOption C: On-demand standard instances at $3.50/hr each\n\nFor 72 hours × 8 GPUs, which is cheapest and what is its cost?",
-                'opts' => [
-                    ['Option A: $0.90 × 8 × 72 = $518.40 (cheapest only if used year-round — here the idle time makes reservations wasteful)', false],
-                    ['Option B: $1.80 × 8 × 72 = $1,036.80', false],
-                    ['Option C: $3.50 × 8 × 72 = $2,016.00', false],
-                    ['Option B at $1,036.80 is cheapest for a single 72-hour burst — spot instances offer the best hourly rate for short jobs and the team can handle interruption with checkpointing', true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "An organisation stores sensitive patient health data. Regulations require data to never leave the country. They also need burst compute capacity for quarterly model retraining. Which architecture is most appropriate?",
+                'q' => 'Item 4: For Big Data & Cloud Computing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Full public cloud — AWS handles compliance automatically', false],
-                    ['Hybrid cloud — sensitive data stays in private on-premise storage meeting data residency requirements; burst compute jobs pull anonymised feature data to a public cloud for training', true],
-                    ['Full private cloud — reject public cloud entirely', false],
-                    ['Multi-cloud with data replicated across AWS and GCP in multiple regions', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does the following AWS CLI command do?\n\naws s3 cp s3://my-data-lake/raw/2024/ s3://my-data-lake/archive/2024/ --recursive --storage-class GLACIER",
+                'q' => 'Item 5: Which response shows the best Intermediate practice when a method in Big Data and Cloud Computing fails on one test case?',
                 'opts' => [
-                    ['Deletes all files from the raw 2024 prefix', false],
-                    ['Copies all objects under raw/2024/ recursively to archive/2024/ and changes their storage class to Glacier (cold, infrequent-access storage) — a cost optimisation for old data', true],
-                    ['Creates a backup of the S3 bucket to a local machine', false],
-                    ['Moves files from raw to archive and deletes the source', false],
-                ],
-            ],
-
-            // ── 22.3 DISTRIBUTED STORAGE ──────────────────────────────────
-            [
-                'q' => "An HDFS cluster has 10 data nodes. A 1.28 GB file is written with block size 128 MB and replication factor 3. How many total block replicas exist across the cluster?",
-                'opts' => [
-                    ['10 replicas (one per node)', false],
-                    ['30 replicas — 10 blocks × 3 replicas each', true],
-                    ['3 replicas total (one per replica set)', false],
-                    ['12 replicas — 10 blocks + 2 extra for fault tolerance', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does the following Parquet-reading PySpark code output, and why is it efficient?\n\ndf = spark.read.parquet('s3://bucket/sales/')\nresult = df.filter(df.year == 2024).select('revenue', 'region')\nresult.show()",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Big Data & Cloud Computing tasks?',
                 'opts' => [
-                    ['It reads all columns from all partitions, then filters and selects in memory', false],
-                    ['Spark\'s Catalyst optimizer applies predicate pushdown (skipping non-2024 partitions) and column pruning (reading only revenue and region columns from Parquet) — minimising I/O before data enters the cluster', true],
-                    ['The filter runs after show(), making it inefficient', false],
-                    ['Parquet files cannot be read directly from S3', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The difference between Apache Parquet and Apache ORC columnar formats is:\n\nA) Parquet is better supported by Spark and cloud ecosystems; ORC was optimised for Hive and older Hadoop workloads\nB) ORC is row-oriented; Parquet is columnar\nC) Parquet cannot store nested data structures\nD) ORC does not support compression",
+                'q' => 'Item 7: In a Big Data and Cloud Computing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['A', true],
-                    ['B', false],
-                    ['C', false],
-                    ['D', false],
-                ],
-            ],
-
-            // ── 22.4 APACHE SPARK ─────────────────────────────────────────
-            [
-                'q' => "Trace through the following PySpark code and determine the output:\n\nfrom pyspark.sql import SparkSession\nspark = SparkSession.builder.getOrCreate()\ndata = [(1, 'A', 100), (2, 'B', 200), (3, 'A', 150), (4, 'B', 300)]\ndf = spark.createDataFrame(data, ['id', 'group', 'value'])\nresult = df.groupBy('group').agg({'value': 'sum'})\nresult.show()",
-                'opts' => [
-                    ['+-----+----------+\n|group|sum(value)|\n+-----+----------+\n|    A|       250|\n|    B|       500|\n+-----+----------+', true],
-                    ['The code raises an error — agg() does not accept dict syntax', false],
-                    ['Only one row is returned because groupBy returns a single group', false],
-                    ['The output is unsorted with sum = 750 in one row', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is a Spark 'shuffle' operation and why is it expensive?\n\ndf1.join(df2, on='customer_id')",
+                'q' => 'Item 8: Which situation is most likely an edge case in Big Data & Cloud Computing?',
                 'opts' => [
-                    ['A shuffle randomly samples rows — it is cheap and O(1)', false],
-                    ['A shuffle redistributes data across partitions so that rows with the same join key end up on the same executor — this requires network data transfer between all nodes, making it the most expensive operation in Spark', true],
-                    ['A shuffle sorts each partition independently with no network I/O', false],
-                    ['Shuffles only occur for groupBy, never for joins', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A Spark job processing 500 GB of data has 200 tasks but only 4 executor cores. What is the correct calculation for the minimum number of 'waves' (rounds of parallel task execution)?",
+                'q' => 'Item 9: When comparing two approaches in Big Data and Cloud Computing, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['200 / 4 = 50 waves — each wave runs 4 tasks simultaneously', true],
-                    ['200 × 4 = 800 waves', false],
-                    ['500 / 4 = 125 waves based on data size', false],
-                    ['Only 1 wave — Spark runs all tasks simultaneously', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is 'data skew' in Spark and what is its performance impact?\n\ndf.groupBy('country').count()",
+                'q' => 'Item 10: What does a strong final answer in Big Data & Cloud Computing include?',
                 'opts' => [
-                    ['Data skew means the data is not sorted — it has no performance impact', false],
-                    ['If one country (e.g. USA) has 80% of records, the partition holding USA data takes much longer than others — one executor becomes the bottleneck while others finish quickly, creating a straggler that delays the entire stage', true],
-                    ['Data skew occurs when the cluster has too many executor cores', false],
-                    ['Skew only affects joins, not groupBy operations', false],
-                ],
-            ],
-
-            // ── 22.5 APACHE KAFKA ─────────────────────────────────────────
-            [
-                'q' => "A Kafka topic has 6 partitions and a consumer group has 4 consumers. How are partitions assigned?",
-                'opts' => [
-                    ['Each consumer gets 1.5 partitions — Kafka splits partitions fractionally', false],
-                    ['Kafka assigns partitions round-robin: 2 consumers each handle 2 partitions, and 2 consumers each handle 1 partition (6 partitions across 4 consumers = 2+2+1+1)', true],
-                    ['Only 4 partitions are used; 2 are left empty', false],
-                    ['All 4 consumers read all 6 partitions simultaneously', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is a Kafka 'offset' and why is it important for fault tolerance?",
+                'q' => 'Item 11: In Big Data & Cloud Computing, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The offset is the size in bytes of each Kafka message', false],
-                    ['The offset is a monotonically increasing integer identifying each message\'s position within a partition — consumers track their offset so that after a crash they can resume reading exactly where they left off, preventing data loss or duplication', true],
-                    ['The offset is the latency between producer and consumer in milliseconds', false],
-                    ['The offset is the number of partitions minus the number of consumers', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A Kafka producer sends order events. Orders for the same customer must be processed in order. What configuration ensures this?",
+                'q' => 'Item 12: A learner working on Big Data & Cloud Computing gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['Use a single partition for all customers', false],
-                    ['Set the message key to the customer_id — Kafka routes all messages with the same key to the same partition, guaranteeing order within that partition for that customer', true],
-                    ['Enable Kafka transactions on the consumer side', false],
-                    ['Set replication factor to 1 to avoid reordering', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the difference between Kafka Streams and Apache Flink for stream processing?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Big Data and Cloud Computing when dealing with bias check?',
                 'opts' => [
-                    ['Kafka Streams only supports batch processing; Flink is real-time only', false],
-                    ['Kafka Streams is a lightweight library that runs inside your application (no separate cluster needed) and only reads from Kafka; Flink is a full distributed stream processing engine that supports multiple sources and more complex stateful operations', true],
-                    ['Flink is written in Python; Kafka Streams is written in Java only', false],
-                    ['They are equivalent tools with the same architecture', false],
-                ],
-            ],
-
-            // ── 22.6 CLOUD DATA WAREHOUSES ────────────────────────────────
-            [
-                'q' => "A BigQuery table has 10 TB of data. A query reads the entire table and costs $5/TB. A data engineer adds a partition on the `event_date` column and a user queries only one day's data (approximately 27 GB). Calculate the savings per query.",
-                'opts' => [
-                    ['No savings — BigQuery always scans the full table', false],
-                    ['Unpartitioned: 10 TB × $5 = $50. Partitioned: 0.027 TB × $5 = $0.135. Savings = $49.865 per query — a ~370x cost reduction', true],
-                    ['Savings = $5 - $0.027 = $4.973', false],
-                    ['Savings = 10 TB - 27 GB = approximately 9.97 TB', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In Snowflake, what is a 'virtual warehouse' and how does it differ from the storage layer?",
+                'q' => 'Item 14: For Big Data & Cloud Computing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A virtual warehouse is where Snowflake stores compressed data files', false],
-                    ['A virtual warehouse is an independent cluster of compute nodes that executes queries — multiple virtual warehouses can run queries simultaneously against the same shared storage without contention', true],
-                    ['A virtual warehouse is Snowflake\'s name for a data lake', false],
-                    ['A virtual warehouse is a Snowflake account that exists only in a test environment', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is 'materialized view' in a cloud data warehouse and when should it be used?",
+                'q' => 'Item 15: Which response shows the best Intermediate practice when a method in Big Data and Cloud Computing fails on one test case?',
                 'opts' => [
-                    ['A view that only shows the most recent 1000 rows', false],
-                    ['A pre-computed, cached result of a query stored as a table — used for frequently-run expensive aggregations where staleness (refresh lag) is acceptable, trading storage cost for query speed', true],
-                    ['A view that can be modified directly like a table', false],
-                    ['A view that materialises only when the user logs in', false],
-                ],
-            ],
-
-            // ── 22.7 DATA PIPELINES, ETL/ELT & AIRFLOW ───────────────────
-            [
-                'q' => "The following Airflow DAG definition has a bug. Identify it:\n\nfrom airflow import DAG\nfrom airflow.operators.python import PythonOperator\nfrom datetime import datetime\n\ndag = DAG('my_pipeline', start_date=datetime(2024, 1, 1), schedule_interval='@daily')\n\nextract = PythonOperator(task_id='extract', python_callable=extract_fn, dag=dag)\nload = PythonOperator(task_id='load', python_callable=load_fn, dag=dag)\ntransform = PythonOperator(task_id='transform', python_callable=transform_fn, dag=dag)\n\nextract >> load >> transform",
-                'opts' => [
-                    ['The DAG is missing a catchup=False parameter', false],
-                    ['The task dependency order is wrong — data should be extracted, then transformed, then loaded: extract >> transform >> load', true],
-                    ['PythonOperator cannot be used in modern Airflow', false],
-                    ['The schedule_interval @daily is not a valid cron expression', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a dbt project, what is the difference between a 'model' and a 'test'?",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Big Data & Cloud Computing tasks?',
                 'opts' => [
-                    ['Models are Python scripts; tests are SQL queries', false],
-                    ['A dbt model is a SQL SELECT statement that defines a transformation (materialised as a table or view in the warehouse); a dbt test is a data quality assertion that validates model outputs (e.g. not_null, unique, accepted_values)', true],
-                    ['Tests run before models in the dbt build order', false],
-                    ['Models and tests are synonyms in dbt terminology', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is 'idempotency' in data pipeline design and why is it critical?",
+                'q' => 'Item 17: In a Big Data and Cloud Computing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Idempotency means a pipeline runs faster on subsequent executions', false],
-                    ['An idempotent pipeline produces the same result regardless of how many times it is run — critical because retries after failures should not cause duplicate records or partial updates in the destination', true],
-                    ['Idempotency means a pipeline can process any file format', false],
-                    ['An idempotent pipeline uses incremental loading exclusively', false],
-                ],
-            ],
-
-            // ── 22.8 DATA LAKES, LAKEHOUSES & DELTA LAKE ─────────────────
-            [
-                'q' => "Delta Lake uses a transaction log (_delta_log/) to provide ACID guarantees. What information is stored in this log?",
-                'opts' => [
-                    ['The raw data files with ACID metadata embedded', false],
-                    ['A sequence of JSON commit files recording every operation (add file, remove file, schema change) — this log is what enables time travel, schema enforcement, and concurrent writer isolation', true],
-                    ['Encrypted copies of all Delta table data', false],
-                    ['Only DELETE and UPDATE operations — INSERT operations are logged separately', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does the following Delta Lake Python command do?\n\nfrom delta.tables import DeltaTable\ndt = DeltaTable.forPath(spark, '/data/customers')\ndt.vacuum(retentionHours=168)",
+                'q' => 'Item 18: Which situation is most likely an edge case in Big Data & Cloud Computing?',
                 'opts' => [
-                    ['Deletes all data older than 168 days from the Delta table', false],
-                    ['Removes data files no longer referenced by the transaction log that are older than 168 hours (7 days) — reclaims storage used by old versions while keeping 7 days of time travel history', true],
-                    ['Compresses all Parquet files into a single file after 168 hours', false],
-                    ['Flushes the Delta cache after 168 hours of inactivity', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A lakehouse architecture combines a data lake and a data warehouse. Which scenario best justifies choosing a lakehouse over separate lake + warehouse systems?",
+                'q' => 'Item 19: When comparing two approaches in Big Data and Cloud Computing, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['The team only uses SQL and structured data — a warehouse alone is sufficient', false],
-                    ['The team needs to run BI dashboards (SQL on structured data), ML training (raw files in Python), and streaming ingestion — all on the same unified storage layer without copying data between systems', true],
-                    ['The team has a very small dataset (under 1 GB)', false],
-                    ['The team wants to reduce query performance to save costs', false],
-                ],
-            ],
-
-            // ── 22.9 CLOUD SECURITY, GOVERNANCE & COMPLIANCE ─────────────
-            [
-                'q' => "A data engineer accidentally gives all analysts `BigQuery Admin` role instead of `BigQuery Data Viewer`. What is the security risk and correct fix?",
-                'opts' => [
-                    ['No risk — Admin and Viewer roles are equivalent for read-only analysts', false],
-                    ['BigQuery Admin allows deleting datasets, modifying permissions, and creating expensive jobs — violating least privilege. Fix: revoke Admin, grant Data Viewer + Job User roles only', true],
-                    ['The fix is to enable MFA for all analyst accounts', false],
-                    ['Admin role is required to run SELECT queries in BigQuery', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Under GDPR, a user requests deletion of all their personal data from your data lake. Your data lake contains raw JSON logs with user_id fields spread across 3 years of Parquet files. What is the main technical challenge?",
+                'q' => 'Item 20: What does a strong final answer in Big Data & Cloud Computing include?',
                 'opts' => [
-                    ['Parquet files are read-only — you cannot modify them at all', false],
-                    ['Rewriting or replacing 3 years of immutable Parquet files to remove a single user\'s records is expensive — solutions include using Delta Lake\'s DELETE support, pseudonymisation, or crypto-shredding (delete the encryption key for that user\'s data)', true],
-                    ['GDPR does not apply to data stored in a data lake', false],
-                    ['Simply deleting the user\'s account satisfies the right to erasure for all associated data', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is 'data masking' and when is it applied in a cloud data platform?",
+                'q' => 'Item 21: In Big Data & Cloud Computing, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Data masking means hiding a dataset from all users', false],
-                    ['Data masking replaces sensitive data (e.g. credit card numbers, SSNs) with realistic but fictitious values — applied when sharing data with analysts or test environments where real PII should not be exposed', true],
-                    ['Data masking is equivalent to data encryption', false],
-                    ['Data masking permanently deletes sensitive columns from a dataset', false],
-                ],
-            ],
-
-            // ── 22.10 MLOps & DEPLOYING ML AT SCALE ──────────────────────
-            [
-                'q' => "A deployed ML model returns predictions via a REST API. The team notices p99 latency spikes from 50ms to 800ms during peak hours. What is the most likely cause and first mitigation to try?",
-                'opts' => [
-                    ['The model weights are corrupted — retrain the model', false],
-                    ['The single model server is CPU-bound during peak load — first mitigation: scale horizontally by adding more model server replicas behind a load balancer', true],
-                    ['REST APIs are too slow for ML — switch to gRPC', false],
-                    ['The feature store is returning incorrect features', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The following Dockerfile for an ML model has a performance issue. Identify it:\n\nFROM python:3.11\nWORKDIR /app\nCOPY . .\nRUN pip install -r requirements.txt\nRUN python train_model.py\nEXPOSE 8080\nCMD ['python', 'serve.py']",
+                'q' => 'Item 22: A learner working on Big Data & Cloud Computing gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['The WORKDIR is set incorrectly', false],
-                    ['Training the model (RUN python train_model.py) inside the Docker build bakes a specific trained model into the image — any retraining requires rebuilding the image. Models should be loaded from external storage (S3/GCS) at runtime, not baked in', true],
-                    ['pip install should come after COPY . .', false],
-                    ['EXPOSE 8080 is not valid in a Dockerfile', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is 'canary deployment' in MLOps and how does it differ from blue/green deployment?",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Big Data and Cloud Computing when dealing with assumptions?',
                 'opts' => [
-                    ['They are identical strategies with different names', false],
-                    ['Canary deployment gradually routes an increasing percentage of traffic to the new model (e.g. 5% → 20% → 100%), allowing early detection of issues with minimal user impact; blue/green switches 100% of traffic at once from the old (blue) to new (green) deployment', true],
-                    ['Canary deployment is only used for batch models; blue/green is for real-time APIs', false],
-                    ['Blue/green routing is always more expensive than canary routing', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 24: For Big Data & Cloud Computing, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 25: Which response shows the best Intermediate practice when a method in Big Data and Cloud Computing fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Big Data & Cloud Computing tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 27: In a Big Data and Cloud Computing assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 28: Which situation is most likely an edge case in Big Data & Cloud Computing?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 29: When comparing two approaches in Big Data and Cloud Computing, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 30: What does a strong final answer in Big Data & Cloud Computing include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 31: In Big Data & Cloud Computing, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
+                'opts' => [
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 32: A learner working on Big Data & Cloud Computing gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Big Data and Cloud Computing when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Big Data & Cloud Computing, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Intermediate practice when a method in Big Data and Cloud Computing fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Big Data & Cloud Computing tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Big Data and Cloud Computing assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Big Data & Cloud Computing?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Big Data and Cloud Computing, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Big Data & Cloud Computing include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Big Data & Cloud Computing, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Big Data & Cloud Computing gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Big Data and Cloud Computing when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Big Data & Cloud Computing, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Intermediate practice when a method in Big Data and Cloud Computing fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Big Data & Cloud Computing tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Big Data and Cloud Computing assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Big Data & Cloud Computing?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Big Data and Cloud Computing, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Big Data & Cloud Computing include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 22 — Big Data & Cloud Computing (Intermediate).");
+        $this->command->info('Module 22 MCQ (Intermediate) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

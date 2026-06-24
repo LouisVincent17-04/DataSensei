@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module15ChallengeSeederIntermediate extends Seeder
 {
@@ -16,427 +14,508 @@ class Module15ChallengeSeederIntermediate extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'intermediate')->first();
 
-        if (!$category) {
-            $this->command->error("Intermediate category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Intermediate category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Data Visualization';
 
-        $this->command->info("Creating Module 15 — Data Visualization (Intermediate)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 15 — Data Visualization (Intermediate) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Data Visualization',
-            'description'           => 'Tackle intermediate-level data visualization problems — multi-step code tracing, subplot layouts, customization pipelines, statistical chart interpretation, and choosing the right combination of chart types and parameters for real analytical scenarios.',
-            'time_limit_seconds'    => 1500, // 25 minutes
-            'base_xp'               => 1000,
-            'order_index'           => 15,
+            'title' => $title,
+            'description' => 'A detailed 50-item Intermediate MCQ challenge for Data Visualization. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1800,
+            'base_xp' => 800,
+            'order_index' => 15,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 intermediate-level questions...");
-
         $qaData = [
-
-            // ── 15.1 INTRODUCTION TO DATA VISUALIZATION ───────────────────
             [
-                'q' => "What is the output of the following code?\n\nimport matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.set_xlim(0, 10)\nax.set_ylim(-5, 5)\nax.axhline(0, color='black')\nplt.show()\n\nDescribe what is rendered.",
+                'q' => 'Item 1: In Data Visualization, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['An empty plot with x from 0 to 10, y from -5 to 5, and a horizontal black line at y=0', true],
-                    ['A plot that raises a ValueError because axhline needs data first', false],
-                    ['A horizontal line across the entire screen at y=0 with no axes shown', false],
-                    ['A scatter plot with a regression line', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You need to create a visualization pipeline that:\n1. Loads a CSV with pandas\n2. Filters rows where sales > 1000\n3. Plots a bar chart of product vs filtered sales\n\nWhich step order is correct?",
+                'q' => 'Item 2: A learner working on Data Visualization gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['Plot → Load → Filter', false],
-                    ['Filter → Load → Plot', false],
-                    ['Load → Filter → Plot', true],
-                    ['Load → Plot → Filter', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which of the following correctly sets a Seaborn theme to 'darkgrid' AND changes the font scale to 1.4 before plotting?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Data Visualization when dealing with assumptions?',
                 'opts' => [
-                    ["sns.set_style('darkgrid')\nsns.set(font_scale=1.4)", true],
-                    ["sns.theme('darkgrid', font_scale=1.4)", false],
-                    ["plt.style.use('darkgrid')\nplt.font_scale(1.4)", false],
-                    ["sns.style('dark', scale=1.4)", false],
-                ],
-            ],
-
-            // ── 15.2 MATPLOTLIB: LINE & BAR CHARTS ────────────────────────
-            [
-                'q' => "What does the following code produce?\n\nimport matplotlib.pyplot as plt\nx = [1, 2, 3, 4]\ny1 = [10, 20, 15, 25]\ny2 = [5, 15, 10, 20]\nplt.plot(x, y1, label='Product A')\nplt.plot(x, y2, label='Product B')\nplt.legend()\nplt.show()",
-                'opts' => [
-                    ['Two separate charts, one per product', false],
-                    ['A single chart with two lines and a legend labeling each line', true],
-                    ['A bar chart comparing Product A and Product B', false],
-                    ['An error because two datasets cannot share one plot', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A student wants a grouped bar chart comparing Male and Female scores across 3 subjects. Which approach is correct in Matplotlib?",
+                'q' => 'Item 4: For Data Visualization, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Call plt.bar() twice with offset x positions using numpy arrays and width adjustments', true],
-                    ['Call plt.bar() twice with the same x positions — Matplotlib stacks them automatically', false],
-                    ['Use plt.groupbar() with a group parameter', false],
-                    ['Grouped bar charts require Seaborn — Matplotlib cannot create them', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does `plt.fill_between(x, y1, y2, alpha=0.3)` do?",
+                'q' => 'Item 5: Which response shows the best Intermediate practice when a method in Data Visualization fails on one test case?',
                 'opts' => [
-                    ['Draws a line from y1 to y2 at each x position', false],
-                    ['Fills the area between two lines (y1 and y2) with a semi-transparent shaded region', true],
-                    ['Blends the colors of y1 and y2 into a gradient', false],
-                    ['Raises an error because fill_between requires 4 arguments', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the correct way to plot a stacked bar chart where 'female' values are stacked on top of 'male' values?\n\ncategories = ['A', 'B', 'C']\nmale   = [30, 45, 20]\nfemale = [25, 35, 40]",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Data Visualization tasks?',
                 'opts' => [
-                    ["plt.bar(categories, male)\nplt.bar(categories, female)", false],
-                    ["plt.bar(categories, male)\nplt.bar(categories, female, bottom=male)", true],
-                    ["plt.stack([male, female], categories)", false],
-                    ["plt.bar(categories, male + female)", false],
-                ],
-            ],
-
-            // ── 15.3 HISTOGRAMS, BOX PLOTS & DISTRIBUTIONS ────────────────
-            [
-                'q' => "What does `sns.violinplot()` show that a standard box plot does NOT?",
-                'opts' => [
-                    ['The mean and median of the distribution', false],
-                    ['The full probability density shape of the distribution in addition to the quartiles', true],
-                    ['Outliers as individual dots outside the whiskers', false],
-                    ['The correlation between two variables', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A dataset of heights (cm) is plotted as a histogram with bins=[150, 155, 160, 165, 170, 175, 180]. The tallest bar is at the 165–170 bin with a count of 80. The next tallest is 160–165 with 60. What does this suggest?",
+                'q' => 'Item 7: In a Data Visualization assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The mode of the dataset is between 165 and 170 cm', true],
-                    ['The mean must be exactly 167.5 cm', false],
-                    ['The dataset has a strong left skew', false],
-                    ['There are 80 total data points in the dataset', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `plt.hist(data, density=True)` change compared to `plt.hist(data)`?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Data Visualization?',
                 'opts' => [
-                    ['The y-axis shows probability density instead of raw counts, so the histogram integrates to 1', true],
-                    ['It compresses the data to fit within [0, 1] on the x-axis', false],
-                    ['It shows only the densest 50% of data points', false],
-                    ['It switches from a histogram to a KDE plot', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does `sns.kdeplot(data)` visualize?",
+                'q' => 'Item 9: When comparing two approaches in Data Visualization, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['A bar chart of key data events', false],
-                    ['A smooth curve estimating the probability density function of the data', true],
-                    ['A scatter plot of kernel coordinates', false],
-                    ['A heatmap of data density across a 2D grid', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You compare box plots of salary data for 5 departments. Department C has a much wider IQR than the others. What does this mean?",
+                'q' => 'Item 10: What does a strong final answer in Data Visualization include?',
                 'opts' => [
-                    ['Department C has the highest median salary', false],
-                    ['Department C has the most outliers', false],
-                    ['Department C has greater salary spread (more variability) among its employees than other departments', true],
-                    ['The box plot for Department C was created with wrong data', false],
-                ],
-            ],
-
-            // ── 15.4 SCATTER PLOTS & CORRELATION ANALYSIS ─────────────────
-            [
-                'q' => "A scatter plot of ice cream sales (y) vs. temperature (x) shows a strong positive trend. A student concludes that eating ice cream raises temperature. What is wrong?",
-                'opts' => [
-                    ['The student should have used a bar chart instead', false],
-                    ['Correlation does not imply causation — both variables may be driven by season or time of year', true],
-                    ['The scatter plot needs a regression line to establish causation', false],
-                    ['The conclusion is correct if the correlation coefficient is above 0.9', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `sns.regplot(x='age', y='income', data=df)` add compared to `sns.scatterplot()`?",
+                'q' => 'Item 11: In Data Visualization, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Color coding by category', false],
-                    ['A fitted linear regression line with a confidence interval band', true],
-                    ['A histogram in the margins', false],
-                    ['Interactive hover tooltips', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You create a scatter plot and notice a clear curved (non-linear) pattern instead of a straight line. Which chart addition BEST highlights this non-linearity?",
+                'q' => 'Item 12: A learner working on Data Visualization gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['Add plt.axhline() at the mean', false],
-                    ['Use sns.regplot() with `order=2` to fit a polynomial regression curve', true],
-                    ['Increase the marker size with s=200', false],
-                    ['Switch to a box plot', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does `plt.scatter(x, y, c=z, cmap='viridis')` do?\n\n(x, y, z are numeric arrays of the same length)",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Data Visualization when dealing with bias check?',
                 'opts' => [
-                    ['Creates a 3D scatter plot with z as the depth axis', false],
-                    ['Colors each dot by its z value using the viridis colormap, adding a third encoded variable', true],
-                    ['Assigns random colors to dots using the viridis palette', false],
-                    ['Raises a TypeError because scatter only accepts 2 positional arguments', false],
-                ],
-            ],
-
-            // ── 15.5 HEATMAPS & CORRELATION MATRICES ──────────────────────
-            [
-                'q' => "What does `sns.heatmap(corr, mask=np.triu(np.ones_like(corr, dtype=bool)))` achieve?",
-                'opts' => [
-                    ['Shows only the upper triangle of the correlation matrix', false],
-                    ['Shows only the lower triangle of the correlation matrix by masking the upper half', true],
-                    ['Removes all positive correlations from the heatmap', false],
-                    ['Applies a diagonal mask that hides the main diagonal', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A heatmap of a 10×10 correlation matrix is hard to read. Which technique BEST improves readability?",
+                'q' => 'Item 14: For Data Visualization, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Increase figsize, show only the lower triangle, and use a diverging colormap like "coolwarm"', true],
-                    ['Convert the heatmap to a pie chart', false],
-                    ['Reduce annot font to 4pt so all values fit', false],
-                    ['Switch from Seaborn to Matplotlib heatmap for better performance', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You have a pivot table `df_pivot` with months as rows and products as columns, values are sales totals. What does the following produce?\n\nsns.heatmap(df_pivot, annot=True, fmt='.0f', cmap='YlGnBu')",
+                'q' => 'Item 15: Which response shows the best Intermediate practice when a method in Data Visualization fails on one test case?',
                 'opts' => [
-                    ['A scatter plot of sales by month and product', false],
-                    ['A heatmap showing sales totals for each month-product combination with integer annotations', true],
-                    ['A bar chart of total sales grouped by month', false],
-                    ['An error because pivot tables cannot be passed to sns.heatmap()', false],
-                ],
-            ],
-
-            // ── 15.6 PAIR PLOTS & FACETGRIDS ──────────────────────────────
-            [
-                'q' => "What does `sns.pairplot(df, diag_kind='kde')` change compared to the default `sns.pairplot(df)`?",
-                'opts' => [
-                    ['The off-diagonal plots change from scatter to KDE', false],
-                    ['The diagonal plots change from histograms to KDE curves', true],
-                    ['All plots become KDE density plots including the off-diagonal', false],
-                    ['Nothing changes — diag_kind is ignored in pairplot', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You create a FacetGrid to show monthly sales distributions for 12 months in a 3×4 grid. Which code correctly sets this up?",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Data Visualization tasks?',
                 'opts' => [
-                    ["g = sns.FacetGrid(df, col='month', col_wrap=4)\ng.map(sns.histplot, 'sales')", true],
-                    ["sns.subplots(3, 4, data=df, x='month', y='sales')", false],
-                    ["g = sns.FacetGrid(df, row=3, col=4)\ng.plot(histplot, 'sales')", false],
-                    ["plt.facet(df, 'month', kind='hist', grid=(3,4))", false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "In a pair plot of the Iris dataset with `hue='species'`, what does the diagonal KDE plot for the 'petal_length' column show?",
+                'q' => 'Item 17: In a Data Visualization assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['A scatter of petal_length against itself', false],
-                    ['Overlapping KDE distributions of petal_length for each species, showing how each species differs', true],
-                    ['The correlation value between petal_length and itself (always 1.0)', false],
-                    ['A box plot of petal_length per species', false],
-                ],
-            ],
-
-            // ── 15.7 PIE, DONUT & PART-TO-WHOLE CHARTS ────────────────────
-            [
-                'q' => "How do you create a donut chart in Matplotlib?\n\nlabels = ['A', 'B', 'C']\nsizes  = [40, 35, 25]",
-                'opts' => [
-                    ["plt.donut(sizes, labels=labels, hole=0.4)", false],
-                    ["plt.pie(sizes, labels=labels, wedgeprops={'width': 0.5})", true],
-                    ["plt.ring(sizes, labels=labels, inner=0.4)", false],
-                    ["plt.pie(sizes, labels=labels, hole=True)", false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `autopct='%.1f%%'` do in `plt.pie(sizes, autopct='%.1f%%')`?",
+                'q' => 'Item 18: Which situation is most likely an edge case in Data Visualization?',
                 'opts' => [
-                    ['Automatically colors each slice as a percentage of blue', false],
-                    ['Displays the percentage value of each slice formatted to 1 decimal place inside the slice', true],
-                    ['Converts raw values to percentages before plotting', false],
-                    ['Shows the actual values instead of percentages', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A pie chart has 12 slices for monthly revenue shares. Several slices are between 7% and 9%. What problem does this create?",
+                'q' => 'Item 19: When comparing two approaches in Data Visualization, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['Matplotlib cannot render more than 10 slices', false],
-                    ['Too many similarly-sized slices make it nearly impossible to distinguish or rank the months accurately', true],
-                    ['The chart will crash because slices must differ by at least 5%', false],
-                    ['The labels will overlap, but the chart is still accurate', false],
-                ],
-            ],
-
-            // ── 15.8 SUBPLOTS, LAYOUTS & CUSTOMIZATION ────────────────────
-            [
-                'q' => "What does the following code create?\n\nfig = plt.figure(figsize=(12, 8))\nax1 = fig.add_subplot(2, 2, 1)\nax2 = fig.add_subplot(2, 2, 2)\nax3 = fig.add_subplot(2, 1, 2)",
-                'opts' => [
-                    ['Three subplots: two small ones in the top row and one wide one spanning the full bottom row', true],
-                    ['A 2×2 grid with 4 equal subplots', false],
-                    ['Three subplots stacked vertically', false],
-                    ['An error because subplot positions overlap', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `plt.subplots_adjust(hspace=0.5, wspace=0.3)` do?",
+                'q' => 'Item 20: What does a strong final answer in Data Visualization include?',
                 'opts' => [
-                    ['Sets the height and width of the entire figure', false],
-                    ['Adjusts the vertical (hspace) and horizontal (wspace) spacing between subplots', true],
-                    ['Resizes the fonts in all subplot titles', false],
-                    ['Applies a uniform margin of 0.5 inches to the figure', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "You want a twin x-axis chart where the left y-axis shows temperature and the right y-axis shows rainfall on the same chart. Which code is correct?",
+                'q' => 'Item 21: In Data Visualization, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ["fig, ax1 = plt.subplots()\nax2 = ax1.twinx()\nax1.plot(months, temp)\nax2.bar(months, rain)", true],
-                    ["fig, (ax1, ax2) = plt.subplots(1, 2)\nax1.plot(months, temp)\nax2.bar(months, rain)", false],
-                    ["plt.plot(months, temp)\nplt.plot(months, rain, secondary=True)", false],
-                    ["ax1 = plt.subplot(1)\nax2 = plt.subplot(2, twin=True)", false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `plt.annotate('Peak', xy=(5, 90), xytext=(6, 70), arrowprops=dict(arrowstyle='->'))`do?",
+                'q' => 'Item 22: A learner working on Data Visualization gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['Adds a text label "Peak" at position (6, 70) with an arrow pointing to (5, 90)', true],
-                    ['Draws an arrow from (5, 90) to (6, 70) with no text', false],
-                    ['Creates a peak detection marker at the highest value in the chart', false],
-                    ['Raises an error because annotate requires a patch object', false],
-                ],
-            ],
-
-            // ── 15.9 INTERACTIVE CHARTS WITH PLOTLY ───────────────────────
-            [
-                'q' => "What does the following Plotly code create?\n\nimport plotly.express as px\nfig = px.scatter(df, x='gdp', y='life_expectancy',\n                 size='population', color='continent',\n                 hover_name='country')\nfig.show()",
-                'opts' => [
-                    ['A static scatter plot of GDP vs life expectancy', false],
-                    ['An interactive bubble chart where dot size = population, color = continent, and hovering shows country name', true],
-                    ['A heatmap of GDP by continent', false],
-                    ['An error because scatter does not accept both size and color', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `fig.update_layout(title='My Chart', xaxis_title='X', yaxis_title='Y')` do in Plotly?",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Data Visualization when dealing with assumptions?',
                 'opts' => [
-                    ['Creates a new figure replacing the existing one', false],
-                    ['Updates the chart\'s title and axis labels on an existing Plotly figure', true],
-                    ['Exports the figure with those labels to a PDF', false],
-                    ['Only works on bar charts — not scatter or line charts', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the difference between `fig.show()` and `fig.write_html('chart.html')` in Plotly?",
+                'q' => 'Item 24: For Data Visualization, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['fig.show() saves to HTML; fig.write_html() displays in browser', false],
-                    ['fig.show() displays the chart interactively in the current environment; fig.write_html() saves it as a standalone interactive HTML file', true],
-                    ['They are identical — both save the file', false],
-                    ['fig.write_html() requires an internet connection to render', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "How do you add a dropdown menu to select between different traces in a Plotly figure?",
+                'q' => 'Item 25: Which response shows the best Intermediate practice when a method in Data Visualization fails on one test case?',
                 'opts' => [
-                    ['Use `fig.add_dropdown(options=[...])`', false],
-                    ['Use `fig.update_layout(updatemenus=[...])` with button definitions that toggle trace visibility', true],
-                    ['Plotly does not support dropdown menus — use Dash instead', false],
-                    ['Use `px.dropdown(fig, column=\'category\')`', false],
-                ],
-            ],
-
-            // ── 15.10 BEST PRACTICES, COLOR & STORYTELLING ────────────────
-            [
-                'q' => "A visualization report shows 6 charts. The analyst uses 6 completely different color schemes for each chart. What is the best practice critique?",
-                'opts' => [
-                    ['Each chart should use different colors to avoid confusion', false],
-                    ['Inconsistent color usage breaks visual continuity — the same category should use the same color throughout the report', true],
-                    ['Six colors is too many — only 3 colors are allowed per report', false],
-                    ['The issue is the number of charts, not the color scheme', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You need to visualize the geographic sales distribution of a company across 30 Philippine provinces. Which chart type is MOST appropriate?",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Data Visualization tasks?',
                 'opts' => [
-                    ['A 30-slice pie chart', false],
-                    ['A choropleth map where province regions are colored by sales intensity', true],
-                    ['A bar chart with 30 bars sorted alphabetically', false],
-                    ['A scatter plot with province names on the x-axis', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is wrong with adding 3D effects (depth, shadows) to a simple 2D bar chart in a business presentation?",
+                'q' => 'Item 27: In a Data Visualization assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['3D effects are only supported by Plotly, not Matplotlib', false],
-                    ['3D effects add visual clutter and can distort the perceived height of bars, making comparisons less accurate', true],
-                    ['The audience expects 3D visualizations in modern presentations', false],
-                    ['Nothing — 3D always improves the visual appeal of charts', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You are creating a visualization to tell the story of COVID-19 case trends over 2 years across 5 countries. Which combination is BEST?",
+                'q' => 'Item 28: Which situation is most likely an edge case in Data Visualization?',
                 'opts' => [
-                    ['Five separate pie charts, one per country', false],
-                    ['A multi-line chart with annotated key events (e.g., lockdowns, vaccine rollout) and a consistent color per country', true],
-                    ['A heatmap of cases with countries on x and months on y, with no annotations', false],
-                    ['A scatter plot of total cases vs. total deaths only', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does the `alpha` parameter control in Matplotlib plots like `plt.bar(x, y, alpha=0.6)`?",
+                'q' => 'Item 29: When comparing two approaches in Data Visualization, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['The angle of bars in a horizontal bar chart', false],
-                    ['The transparency of the chart element — 0 is fully transparent, 1 is fully opaque', true],
-                    ['The font size of axis labels', false],
-                    ['The statistical significance threshold for the chart', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A Matplotlib chart has overlapping x-axis tick labels that are impossible to read. Which is the MOST effective fix?",
+                'q' => 'Item 30: What does a strong final answer in Data Visualization include?',
                 'opts' => [
-                    ['Reduce the figure DPI to make labels smaller', false],
-                    ['Use `plt.xticks(rotation=45, ha=\'right\')` to rotate labels diagonally', true],
-                    ['Remove all x-axis labels using plt.xticks([])', false],
-                    ['Switch to a pie chart to avoid x-axis labels', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `plt.style.use('seaborn-v0_8-whitegrid')` do?",
+                'q' => 'Item 31: In Data Visualization, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Imports Seaborn into the current session', false],
-                    ['Applies a pre-defined Matplotlib style with a white background and grid lines, mimicking Seaborn\'s whitegrid style', true],
-                    ['Converts all Matplotlib charts to Seaborn charts', false],
-                    ['Loads the Seaborn color palette but keeps the Matplotlib default grid', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 32: A learner working on Data Visualization gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Data Visualization when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Data Visualization, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Intermediate practice when a method in Data Visualization fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Data Visualization tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Data Visualization assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Data Visualization?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Data Visualization, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Data Visualization include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Data Visualization, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Data Visualization gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Data Visualization when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Data Visualization, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Intermediate practice when a method in Data Visualization fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Data Visualization tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Data Visualization assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Data Visualization?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Data Visualization, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Data Visualization include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 15 — Data Visualization (Intermediate).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Intermediate");
+        $this->command->info('Module 15 MCQ (Intermediate) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module5ChallengeSeederIntermediate extends Seeder
 {
@@ -16,390 +14,508 @@ class Module5ChallengeSeederIntermediate extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'intermediate')->first();
 
-        if (!$category) {
-            $this->command->error("Intermediate category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Intermediate category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Methods of Proof';
 
-        $this->command->info("Creating Module 5 — Methods of Proof (Intermediate)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 5 — Methods of Proof (Intermediate) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Methods of Proof',
-            'description'           => 'Apply proof techniques to multi-step problems, trace through structured arguments, identify flaws in attempted proofs, and construct your own proofs on number theory and combinatorics topics.',
-            'time_limit_seconds'    => 1500,
-            'base_xp'               => 1500,
-            'order_index'           => 5,
+            'title' => $title,
+            'description' => 'A detailed 50-item Intermediate MCQ challenge for Methods of Proof. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1800,
+            'base_xp' => 800,
+            'order_index' => 5,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 intermediate-level questions on Methods of Proof...");
-
         $qaData = [
-
-            // ── DIRECT PROOF — MULTI-STEP ─────────────────────────────────
             [
-                'q' => "Consider the following proof attempt:\n\nClaim: If n is divisible by 6, then n² is divisible by 36.\nProof: Let n = 6k. Then n² = 36k². Since 36k² = 36 · k², n² is divisible by 36. ∎\n\nIs this proof correct?",
+                'q' => 'Item 1: In Methods of Proof, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['No — the proof never uses k', false],
-                    ['Yes — the proof is complete and correct', true],
-                    ['No — we need to verify divisibility by 4 separately', false],
-                    ['No — n must also be shown to be positive', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Claim: For all integers m and n, if m and n are both odd, then mn + m + n is odd.\n\nLet m = 2a+1, n = 2b+1. Compute mn + m + n.",
+                'q' => 'Item 2: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['4ab + 2a + 2b + 2', false],
-                    ['4ab + 4a + 4b + 3', false],
-                    ['4ab + 2a + 2b + 1 + 2a + 1 + 2b + 1 = 4ab + 4a + 4b + 3', true],
-                    ['2ab + a + b + 1', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Continuing: mn + m + n = 4ab + 4a + 4b + 3 = 2(2ab + 2a + 2b + 1) + 1.\n\nWhat does this show?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Proof Methods when dealing with assumptions?',
                 'opts' => [
-                    ['mn + m + n is even', false],
-                    ['mn + m + n is odd, completing the direct proof', true],
-                    ['mn + m + n equals 3', false],
-                    ['We need to check one more case', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Direct Proof Claim: For all integers n, n³ − n is divisible by 3.\n\nFactor n³ − n.",
+                'q' => 'Item 4: For Methods of Proof, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['n(n − 1)(n + 1)', true],
-                    ['n(n² − 1)', false],
-                    ['(n−1)(n+1)²', false],
-                    ['n²(n − 1)', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "n³ − n = n(n−1)(n+1) is the product of three consecutive integers. Why must 3 divide this product?",
+                'q' => 'Item 5: Which response shows the best Intermediate practice when a method in Proof Methods fails on one test case?',
                 'opts' => [
-                    ['Because n is always divisible by 3', false],
-                    ['Among any three consecutive integers, exactly one must be divisible by 3', true],
-                    ['Because (n−1)(n+1) = n² − 1 is always divisible by 3', false],
-                    ['Because n³ is always divisible by 3', false],
-                ],
-            ],
-
-            // ── PROOF BY CONTRAPOSITIVE — MULTI-STEP ─────────────────────
-            [
-                'q' => "Claim: For integers a and b, if ab is odd, then both a and b are odd.\n\nThe contrapositive of this statement is:",
-                'opts' => [
-                    ['If a and b are odd, then ab is odd', false],
-                    ['If a is even or b is even, then ab is even', true],
-                    ['If ab is even, then both a and b are even', false],
-                    ['If a is even and b is even, then ab is odd', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In the contrapositive proof above (WLOG assume a is even, so a = 2k). What is ab?",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
                 'opts' => [
-                    ['2kb', true],
-                    ['k + b', false],
-                    ['2k + b', false],
-                    ['kb', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "ab = 2kb = 2(kb). Since kb is an integer, ab = 2(integer). What is the conclusion for the original claim?",
+                'q' => 'Item 7: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['ab can be either even or odd', false],
-                    ['If at least one of a or b is even, then ab is even — therefore, if ab is odd, both a and b must be odd', true],
-                    ['Both a and b must be even', false],
-                    ['ab is odd only when a = b', false],
-                ],
-            ],
-
-            // ── PROOF BY CONTRADICTION — MULTI-STEP ──────────────────────
-            [
-                'q' => "Claim: log₂(3) is irrational.\n\nProof by contradiction: Assume log₂(3) = p/q where p, q are positive integers. This means 2^(p/q) = 3. Raise both sides to the power q:\n\n2^p = 3^q\n\nWhy is this a contradiction?",
-                'opts' => [
-                    ['Because p and q must be equal', false],
-                    ['Because the left side is even and the right side is odd — they can never be equal', true],
-                    ['Because logarithms are always rational', false],
-                    ['Because 2^p grows faster than 3^q', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Flawed proof: 'Claim: √4 is irrational. Proof: Assume √4 = p/q in lowest terms. Then 4q² = p², so p is even. Let p = 2m; then 4q² = 4m², so q² = m², so q is even. Both p and q are even — contradiction!' What is wrong?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Methods of Proof?',
                 'opts' => [
-                    ['The algebra is incorrect: 4q² ≠ p²', false],
-                    ['The assumption is wrong: √4 = 2 is rational, so the contradiction only shows the assumption is consistent', false],
-                    ['The "contradiction" found (both even) is genuine, but the claim is false: √4 = 2 IS rational, so the proof is invalid from the start', true],
-                    ['The proof is correct — √4 is irrational', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Claim: There is no integer that is both even and odd.\n\nBy contradiction, assume n is both even and odd. Then n = 2a and n = 2b + 1. Therefore 2a = 2b + 1, so 2(a − b) = 1. Why is this a contradiction?",
+                'q' => 'Item 9: When comparing two approaches in Proof Methods, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['Because a and b must be equal', false],
-                    ['Because 2(a − b) is even but 1 is odd — an integer cannot be both', true],
-                    ['Because a − b must be negative', false],
-                    ['Because 2a and 2b+1 are never equal for any values', false],
-                ],
-            ],
-
-            // ── PROOF BY CASES — MULTI-STEP ───────────────────────────────
-            [
-                'q' => "Claim: For all integers n, n(n+1) is even.\n\nCase 1 (n even): n = 2k → n(n+1) = 2k(2k+1). Is this even?",
-                'opts' => [
-                    ['Not necessarily', false],
-                    ['Yes — it equals 2 · k(2k+1)', true],
-                    ['Only if k is also even', false],
-                    ['No — (2k+1) could make it odd', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Case 2 (n odd): n = 2k+1 → n(n+1) = (2k+1)(2k+2) = (2k+1)·2(k+1). Is this even?",
+                'q' => 'Item 10: What does a strong final answer in Methods of Proof include?',
                 'opts' => [
-                    ['No — the (2k+1) factor makes it odd', false],
-                    ['Yes — it equals 2·(2k+1)(k+1)', true],
-                    ['Only if k+1 is prime', false],
-                    ['It equals 2k+2, which may be odd', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "After showing n(n+1) is even in both cases, how do you formally close a proof by cases?",
+                'q' => 'Item 11: In Methods of Proof, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['State that we checked one representative example', false],
-                    ['State that since every integer is either even or odd, and the property holds in both cases, it holds for all integers n', true],
-                    ['State that the cases are independent so only one needs to be true', false],
-                    ['State that the result follows from mathematical induction', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Claim: For all real x, |x| ≥ 0.\n\nWhich case structure best covers all possibilities?",
+                'q' => 'Item 12: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['Case 1: x is rational; Case 2: x is irrational', false],
-                    ['Case 1: x ≥ 0 (so |x| = x ≥ 0); Case 2: x < 0 (so |x| = −x > 0)', true],
-                    ['Case 1: x = 0; Case 2: x = 1', false],
-                    ['Case 1: x is even; Case 2: x is odd', false],
-                ],
-            ],
-
-            // ── MATHEMATICAL INDUCTION — MULTI-STEP ───────────────────────
-            [
-                'q' => "Claim: For all n ≥ 1, the sum of the first n odd numbers equals n².\n(1 + 3 + 5 + ... + (2n−1) = n²)\n\nBase case (n = 1): The first odd number is 1 = 1². Is the base case verified?",
-                'opts' => [
-                    ['No — we need to check n = 2 as well', false],
-                    ['Yes — 1 = 1² ✓', true],
-                    ['No — the formula gives 0 when n = 1', false],
-                    ['Only if 1 is defined as odd', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Inductive step: Assume 1 + 3 + ... + (2k−1) = k². Now consider the sum for n = k+1:\n[1 + 3 + ... + (2k−1)] + (2k+1) = k² + (2k+1).\n\nSimplify k² + (2k+1).",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Proof Methods when dealing with bias check?',
                 'opts' => [
-                    ['(k+1)²', true],
-                    ['k² + 2k', false],
-                    ['k(k+2)', false],
-                    ['(k+2)²', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Since k² + (2k+1) = (k+1)², the formula n² holds for n = k+1. What can you now conclude by induction?",
+                'q' => 'Item 14: For Methods of Proof, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The formula holds for k = 1 only', false],
-                    ['The formula 1 + 3 + ... + (2n−1) = n² holds for all n ≥ 1', true],
-                    ['The formula holds only for odd values of n', false],
-                    ['We need to also verify n = 2 separately', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Claim: For all n ≥ 0, 3 divides (4^n − 1).\n\nBase case (n = 0): 4⁰ − 1 = 0. Is 3 | 0?",
+                'q' => 'Item 15: Which response shows the best Intermediate practice when a method in Proof Methods fails on one test case?',
                 'opts' => [
-                    ['No — 0 is not divisible by 3', false],
-                    ['Yes — 0 = 3 × 0, so 3 | 0 ✓', true],
-                    ['The base case should start at n = 1', false],
-                    ['0 is undefined in divisibility', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Inductive step: Assume 3 | (4^k − 1). Show 3 | (4^(k+1) − 1).\n4^(k+1) − 1 = 4 · 4^k − 1 = 4(4^k − 1) + 3.\n\nWhy does this show 3 | (4^(k+1) − 1)?",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
                 'opts' => [
-                    ['Because 4 is divisible by 3', false],
-                    ['Because 4(4^k − 1) is divisible by 3 (by hypothesis) and 3 is divisible by 3, so their sum is divisible by 3', true],
-                    ['Because 4^(k+1) is always divisible by 3', false],
-                    ['Because we added and subtracted 1', false],
-                ],
-            ],
-
-            // ── STRONG INDUCTION — MULTI-STEP ─────────────────────────────
-            [
-                'q' => "Strong induction claim: Every integer n ≥ 8 can be expressed as 3a + 5b for non-negative integers a, b.\n\nBase cases must include n = 8, 9, 10 (to cover a full cycle). Which expression works for n = 8?",
-                'opts' => [
-                    ['3(1) + 5(0) = 3', false],
-                    ['3(1) + 5(1) = 8 ✓', true],
-                    ['3(2) + 5(1) = 11', false],
-                    ['3(0) + 5(2) = 10', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "For the inductive step (n ≥ 11): by the strong inductive hypothesis, (n−3) ≥ 8 can be written as 3a + 5b. Therefore n = (n−3) + 3 = 3(a+1) + 5b. What makes this a valid use of the hypothesis?",
+                'q' => 'Item 17: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Because n − 3 ≥ 8 is in the range covered by the base cases and hypothesis', true],
-                    ['Because we added 3, which is a prime', false],
-                    ['Because a + 1 is always even', false],
-                    ['Because strong induction guarantees any result', false],
-                ],
-            ],
-
-            // ── EXISTENCE AND UNIQUENESS — INTERMEDIATE ────────────────────
-            [
-                'q' => "Claim: There exist irrational numbers x and y such that x^y is rational.\n\nLet x = y = √2. Then x^y = √2^(√2). If this is rational, we are done. If it is irrational, let x = √2^(√2) and y = √2. Then x^y = (√2^(√2))^(√2) = √2^2 = 2, which is rational.\n\nWhat type of existence proof is this?",
-                'opts' => [
-                    ['Constructive — we name the exact irrational numbers', false],
-                    ['Non-constructive — we show existence without knowing which case applies', true],
-                    ['Proof by induction', false],
-                    ['Proof by contrapositive', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Uniqueness proof structure: Assume x₁ and x₂ are both solutions. Show x₁ = x₂.\n\nFor the equation 3x − 5 = 7, if 3x₁ − 5 = 7 and 3x₂ − 5 = 7, subtracting gives 3x₁ − 3x₂ = 0, so 3(x₁ − x₂) = 0. Conclude:",
+                'q' => 'Item 18: Which situation is most likely an edge case in Methods of Proof?',
                 'opts' => [
-                    ['x₁ and x₂ can be different', false],
-                    ['x₁ = x₂, proving the solution is unique', true],
-                    ['x₁ and x₂ are both zero', false],
-                    ['We need more information', false],
-                ],
-            ],
-
-            // ── COUNTEREXAMPLES — INTERMEDIATE ────────────────────────────
-            [
-                'q' => "Claim: 'For all positive integers n, n² + n + 41 is prime.' This famous formula fails at n = 40. Verify: 40² + 40 + 41 = ?",
-                'opts' => [
-                    ['1640 (not divisible by 41)', false],
-                    ['41² = 1681 = 41 × 41 (composite)', true],
-                    ['1721 (prime)', false],
-                    ['1600 (even, so composite)', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Claim: 'For all integers m, n: if m | n² then m | n.' Find a counterexample.",
+                'q' => 'Item 19: When comparing two approaches in Proof Methods, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['m = 4, n = 6: 4 | 36 but 4 ∤ 6 ✓ counterexample', true],
-                    ['m = 3, n = 9: 3 | 81 and 3 | 9 — does NOT disprove', false],
-                    ['m = 2, n = 4: 2 | 16 and 2 | 4 — does NOT disprove', false],
-                    ['No counterexample exists', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Claim: 'The product of any two irrational numbers is irrational.' Disprove with a counterexample.",
+                'q' => 'Item 20: What does a strong final answer in Methods of Proof include?',
                 'opts' => [
-                    ['π × π = π² (irrational) — does NOT disprove', false],
-                    ['√2 × √3 = √6 (irrational) — does NOT disprove', false],
-                    ['√2 × √2 = 2 (rational) — counterexample ✓', true],
-                    ['No counterexample exists', false],
-                ],
-            ],
-
-            // ── PROOF STRATEGY AND FLAW DETECTION ────────────────────────
-            [
-                'q' => "Flawed Proof: 'Claim: 1 = 2. Let a = b. Then a² = ab. So a² − b² = ab − b². Factor: (a−b)(a+b) = b(a−b). Divide both sides by (a−b): a + b = b. Since a = b: 2b = b. Divide by b: 2 = 1.' What is the flaw?",
-                'opts' => [
-                    ['The factoring step is wrong', false],
-                    ['Dividing by (a−b) is dividing by zero since a = b means a − b = 0', true],
-                    ['The initial assumption a = b is false', false],
-                    ['The factoring of a² − b² is incorrect', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Flawed Induction: 'All horses are the same color.'\nBase: 1 horse — trivially same color.\nInductive step: Assume any group of k horses are the same color. Take k+1 horses. Remove horse 1: the remaining k are same color. Remove horse k+1: the remaining k (including horse 1) are same color. So all k+1 are same color.'\n\nWhere does the induction fail?",
+                'q' => 'Item 21: In Methods of Proof, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['The base case is wrong — one horse can have many colors', false],
-                    ['The step from k=1 to k=2 fails: removing each end horse leaves only 1 horse, so the two groups do not overlap and we cannot conclude horse 1 and horse 2 are the same color', true],
-                    ['The inductive hypothesis is incorrectly stated', false],
-                    ['The proof is actually correct', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a divisibility proof, which step below contains an error?\n\nStep A: Let n = 4k + 2 for some integer k.\nStep B: Then n² = 16k² + 16k + 4.\nStep C: Factor: n² = 4(4k² + 4k + 1).\nStep D: Therefore 8 | n².",
+                'q' => 'Item 22: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['Step A', false],
-                    ['Step B', false],
-                    ['Step C', false],
-                    ['Step D — 4(4k² + 4k + 1) is divisible by 4, and (4k²+4k+1) is odd, so 8 does NOT divide n²', true],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "To prove 'For all n ≥ 1, Σᵢ₌₁ⁿ i³ = [n(n+1)/2]²,' which proof strategy is most direct?",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Proof Methods when dealing with assumptions?',
                 'opts' => [
-                    ['Proof by contradiction', false],
-                    ['Mathematical induction', true],
-                    ['Proof by cases (even/odd n)', false],
-                    ['Non-constructive existence proof', false],
-                ],
-            ],
-
-            // ── COMBINATORICS AND NUMBER THEORY PROOFS ────────────────────
-            [
-                'q' => "Claim: For all n ≥ 1, 2^n > n.\n\nInductive step: Assume 2^k > k. Show 2^(k+1) > k+1.\n2^(k+1) = 2 · 2^k > 2k (by hypothesis). Is 2k ≥ k + 1 for k ≥ 1?",
-                'opts' => [
-                    ['No — 2k < k+1 for all k', false],
-                    ['Yes — 2k ≥ k + 1 iff k ≥ 1, which is given', true],
-                    ['Only for even k', false],
-                    ['Only for k ≥ 5', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Claim: gcd(a, b) = gcd(b, a mod b) (Euclidean Algorithm — the key lemma).\n\nThe proof of this lemma is a direct proof. You write a = bq + r where r = a mod b. If d divides both a and b, then d divides:\n",
+                'q' => 'Item 24: For Methods of Proof, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Only a', false],
-                    ['a − bq = r as well, so d divides both b and r', true],
-                    ['Only b and q', false],
-                    ['Only q', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Claim: If p is prime and p | ab, then p | a or p | b.\n\nThis property is known as:",
+                'q' => 'Item 25: Which response shows the best Intermediate practice when a method in Proof Methods fails on one test case?',
                 'opts' => [
-                    ['Fermat\'s Little Theorem', false],
-                    ['Euclid\'s Lemma', true],
-                    ['The Division Algorithm', false],
-                    ['Bezout\'s Identity', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Claim: The integer n is divisible by 9 if and only if the sum of its digits is divisible by 9.\n\nThe proof uses the fact that 10 ≡ 1 (mod 9). Therefore 10^k ≡ ?",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
                 'opts' => [
-                    ['10^k ≡ k (mod 9)', false],
-                    ['10^k ≡ 1 (mod 9) for all k ≥ 0', true],
-                    ['10^k ≡ 0 (mod 9)', false],
-                    ['10^k ≡ −1 (mod 9)', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A well-ordering proof relies on the Well-Ordering Principle, which states:",
+                'q' => 'Item 27: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Every integer has a smallest prime factor', false],
-                    ['Every non-empty set of non-negative integers has a smallest element', true],
-                    ['Every decreasing sequence of integers is finite', false],
-                    ['Every set of rational numbers is bounded below', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 28: Which situation is most likely an edge case in Methods of Proof?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 29: When comparing two approaches in Proof Methods, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 30: What does a strong final answer in Methods of Proof include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 31: In Methods of Proof, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
+                'opts' => [
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 32: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Proof Methods when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Methods of Proof, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Intermediate practice when a method in Proof Methods fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Methods of Proof?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Proof Methods, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Methods of Proof include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Methods of Proof, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Methods of Proof gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Proof Methods when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Methods of Proof, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Intermediate practice when a method in Proof Methods fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Methods of Proof tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Proof Methods assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Methods of Proof?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Proof Methods, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Methods of Proof include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 5 — Methods of Proof (Intermediate).");
+        $this->command->info('Module 5 MCQ (Intermediate) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module20ChallengeSeederNewbie extends Seeder
 {
@@ -16,537 +14,508 @@ class Module20ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Analysis of Unstructured Data')
-                 ->delete();
+        $title = 'Analysis of Unstructured Data';
 
-        $this->command->info("Creating Module 20 — Analysis of Unstructured Data (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 20 — Analysis of Unstructured Data (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Analysis of Unstructured Data',
-            'description'           => 'Test your understanding of the very basics of unstructured data — what it is, common types, why it is challenging, and the key ideas behind text, image, and audio data. No prior coding experience required.',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 20,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Analysis of Unstructured Data. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 20,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-level Analysis of Unstructured Data questions...");
-
         $qaData = [
-
-            // ── 20.1 WHAT IS UNSTRUCTURED DATA ───────────────────────────
             [
-                'q' => 'Which of the following is an example of UNSTRUCTURED data?',
+                'q' => 'Item 1: In Analysis of Unstructured Data, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A spreadsheet of employee salaries', false],
-                    ['A database table of customer orders', false],
-                    ['A collection of social media posts', true],
-                    ['A CSV file of product prices', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of STRUCTURED data?',
+                'q' => 'Item 2: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A PDF document', false],
-                    ['A recorded phone call', false],
-                    ['A relational database table with rows and columns', true],
-                    ['A folder of photos', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Approximately what percentage of all data in the world is estimated to be unstructured?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['10%', false],
-                    ['30%', false],
-                    ['80–90%', true],
-                    ['50%', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is NOT a common type of unstructured data?',
+                'q' => 'Item 4: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Images', false],
-                    ['Audio recordings', false],
-                    ['A SQL database with defined schemas', true],
-                    ['Video files', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Why is unstructured data more difficult to analyse than structured data?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Unstructured Data Analysis fails on one test case?',
                 'opts' => [
-                    ['It is always encrypted', false],
-                    ['It does not fit neatly into rows and columns, making it harder to query and process', true],
-                    ['It is always too small to be useful', false],
-                    ['It can only be stored on paper', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a typical FIRST step in any unstructured data pipeline?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
                 'opts' => [
-                    ['Training a neural network', false],
-                    ['Collecting and ingesting the raw unstructured data', true],
-                    ['Visualising the final results', false],
-                    ['Deploying the model to production', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which field most commonly works with analysing unstructured text data?',
+                'q' => 'Item 7: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Network engineering', false],
-                    ['Natural Language Processing (NLP)', true],
-                    ['Hardware design', false],
-                    ['Database administration', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Semi-structured data is best described as:',
+                'q' => 'Item 8: Which situation is most likely an edge case in Analysis of Unstructured Data?',
                 'opts' => [
-                    ['Data with no organisation at all', false],
-                    ['Data that has some organisational properties (like tags) but does not fit a strict schema — e.g. JSON, XML', true],
-                    ['Data stored only in images', false],
-                    ['Data that has been cleaned and structured', false],
-                ],
-            ],
-
-            // ── 20.2 TEXT PREPROCESSING ───────────────────────────────────
-            [
-                'q' => 'What is "tokenisation" in text preprocessing?',
-                'opts' => [
-                    ['Encrypting text for security', false],
-                    ['Splitting text into smaller units such as words or sentences', true],
-                    ['Removing all vowels from text', false],
-                    ['Converting text to numbers only', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What are "stop words" in NLP?',
+                'q' => 'Item 9: When comparing two approaches in Unstructured Data Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Words that cause a program to stop running', false],
-                    ['Very common words (like "the", "is", "and") that are often removed because they carry little meaning', true],
-                    ['Words longer than 10 characters', false],
-                    ['Words that appear only once in a document', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "lowercasing" do in text preprocessing?',
+                'q' => 'Item 10: What does a strong final answer in Analysis of Unstructured Data include?',
                 'opts' => [
-                    ['Removes all numbers from text', false],
-                    ['Converts all characters to lower case so "Hello" and "hello" are treated the same', true],
-                    ['Removes punctuation from text', false],
-                    ['Splits sentences into words', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is stemming in NLP?',
+                'q' => 'Item 11: In Analysis of Unstructured Data, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Adding prefixes to words', false],
-                    ['Reducing a word to its root form — e.g. "running" → "run"', true],
-                    ['Counting the number of words in a sentence', false],
-                    ['Translating words to another language', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is lemmatisation?',
+                'q' => 'Item 12: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A faster but cruder version of stemming', false],
-                    ['Reducing a word to its dictionary base form (lemma), considering context — e.g. "better" → "good"', true],
-                    ['Removing stop words', false],
-                    ['Splitting text into paragraphs', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which of the following would be removed during punctuation removal?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with bias check?',
                 'opts' => [
-                    ['"hello"', false],
-                    ['123', false],
-                    ['! , . ? ; :', true],
-                    ['all vowels', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'After tokenising the sentence "The cat sat on the mat", how many tokens are there?',
+                'q' => 'Item 14: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['4', false],
-                    ['5', false],
-                    ['6', true],
-                    ['7', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "normalisation" mean in the context of text preprocessing?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Unstructured Data Analysis fails on one test case?',
                 'opts' => [
-                    ['Making all text the same font size', false],
-                    ['Transforming text into a consistent, standard form — e.g. expanding contractions, fixing spelling', true],
-                    ['Sorting words alphabetically', false],
-                    ['Converting text to binary', false],
-                ],
-            ],
-
-            // ── 20.3 BAG-OF-WORDS & TF-IDF ───────────────────────────────
-            [
-                'q' => 'The Bag-of-Words (BoW) model represents a document as:',
-                'opts' => [
-                    ['A sequence of words in order', false],
-                    ['A count of how many times each word appears, ignoring word order', true],
-                    ['A list of sentences', false],
-                    ['A set of unique words only', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does TF stand for in TF-IDF?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
                 'opts' => [
-                    ['Text Frequency', false],
-                    ['Term Frequency', true],
-                    ['Token Function', false],
-                    ['Total Features', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does IDF stand for in TF-IDF?',
+                'q' => 'Item 17: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Inverse Document Frequency', true],
-                    ['Internal Data Filter', false],
-                    ['Index of Document Features', false],
-                    ['Integrated Data Format', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A word that appears in EVERY document in a corpus will have an IDF value of:',
+                'q' => 'Item 18: Which situation is most likely an edge case in Analysis of Unstructured Data?',
                 'opts' => [
-                    ['A very high value', false],
-                    ['1', false],
-                    ['0 (or very close to 0)', true],
-                    ['Equal to its term frequency', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The main weakness of the Bag-of-Words model is:',
+                'q' => 'Item 19: When comparing two approaches in Unstructured Data Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['It cannot handle long documents', false],
-                    ['It ignores word order and context', true],
-                    ['It always produces negative values', false],
-                    ['It requires labelled training data', false],
-                ],
-            ],
-
-            // ── 20.4 WORD EMBEDDINGS ──────────────────────────────────────
-            [
-                'q' => 'What is a word embedding?',
-                'opts' => [
-                    ['A way to hide secret messages in text', false],
-                    ['A dense numerical vector representation of a word that captures its meaning', true],
-                    ['A list of all synonyms for a word', false],
-                    ['A method to compress text into fewer characters', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Word2Vec is a technique that trains word embeddings by:',
+                'q' => 'Item 20: What does a strong final answer in Analysis of Unstructured Data include?',
                 'opts' => [
-                    ['Counting word frequencies in a document', false],
-                    ['Predicting a word from its surrounding context (or vice versa) in large text corpora', true],
-                    ['Translating words between languages', false],
-                    ['Removing stop words from text', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a well-trained word embedding model, words with similar meanings will have:',
+                'q' => 'Item 21: In Analysis of Unstructured Data, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Vectors that are far apart', false],
-                    ['Identical vectors', false],
-                    ['Vectors that are close together (high similarity)', true],
-                    ['Vectors that sum to zero', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'GloVe word embeddings are trained using:',
+                'q' => 'Item 22: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Only the local context window (like Word2Vec)', false],
-                    ['Global word co-occurrence statistics from the entire corpus', true],
-                    ['Sentence-level labels', false],
-                    ['Image pixel values', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'FastText differs from Word2Vec because it:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Uses sentences as the basic unit instead of words', false],
-                    ['Represents words as the sum of their character n-grams, handling rare and misspelt words better', true],
-                    ['Requires much larger training datasets', false],
-                    ['Only works on English text', false],
-                ],
-            ],
-
-            // ── 20.5 TOPIC MODELING ───────────────────────────────────────
-            [
-                'q' => 'What is topic modeling?',
-                'opts' => [
-                    ['Training a classifier to label emails as spam or not spam', false],
-                    ['An unsupervised technique to discover hidden themes or topics in a collection of documents', true],
-                    ['Counting the most frequent words in a document', false],
-                    ['Translating documents into a different language', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'LDA stands for:',
+                'q' => 'Item 24: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Linear Discriminant Analysis', false],
-                    ['Latent Dirichlet Allocation', true],
-                    ['Layered Data Abstraction', false],
-                    ['Language Detection Algorithm', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In LDA topic modeling, each document is modelled as:',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Unstructured Data Analysis fails on one test case?',
                 'opts' => [
-                    ['A single topic', false],
-                    ['A mixture of topics', true],
-                    ['A list of sentences', false],
-                    ['A single word', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'NMF stands for:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
                 'opts' => [
-                    ['Normalised Matrix Factorisation', false],
-                    ['Non-negative Matrix Factorization', true],
-                    ['Natural Model Framework', false],
-                    ['Numeric Matrix Features', false],
-                ],
-            ],
-
-            // ── 20.6 SENTIMENT ANALYSIS ───────────────────────────────────
-            [
-                'q' => 'Sentiment analysis is used to:',
-                'opts' => [
-                    ['Identify the topic of a document', false],
-                    ['Determine the emotional tone (positive, negative, neutral) expressed in text', true],
-                    ['Count the number of sentences in a document', false],
-                    ['Translate text between languages', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following sentences would most likely be classified as NEGATIVE sentiment?',
+                'q' => 'Item 27: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['"The product arrived on time and works perfectly."', false],
-                    ['"I love this app, it is so easy to use!"', false],
-                    ['"This is the worst experience I have ever had."', true],
-                    ['"The item was delivered yesterday."', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A lexicon-based sentiment approach works by:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Analysis of Unstructured Data?',
                 'opts' => [
-                    ['Training a neural network on labelled reviews', false],
-                    ['Using a pre-built dictionary of words tagged as positive or negative to score text', true],
-                    ['Counting the length of sentences', false],
-                    ['Identifying named entities in text', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which Python library provides a simple pre-built sentiment analyser called VADER?',
+                'q' => 'Item 29: When comparing two approaches in Unstructured Data Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['scikit-learn', false],
-                    ['NLTK', true],
-                    ['pandas', false],
-                    ['matplotlib', false],
-                ],
-            ],
-
-            // ── 20.7 NAMED ENTITY RECOGNITION ────────────────────────────
-            [
-                'q' => 'Named Entity Recognition (NER) is a task that:',
-                'opts' => [
-                    ['Generates new sentences from existing text', false],
-                    ['Identifies and classifies proper nouns (people, places, organisations, dates) in text', true],
-                    ['Counts the frequency of all nouns', false],
-                    ['Translates text to a structured table', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the sentence "Apple was founded in Cupertino by Steve Jobs", a NER model would identify:',
+                'q' => 'Item 30: What does a strong final answer in Analysis of Unstructured Data include?',
                 'opts' => [
-                    ['apple, cupertino, steve, jobs as verbs', false],
-                    ['"Apple" as an ORG, "Cupertino" as a GPE (location), "Steve Jobs" as a PERSON', true],
-                    ['Only "Apple" as a food item', false],
-                    ['No entities — this sentence has none', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which popular Python NLP library provides a fast, production-ready NER pipeline?',
+                'q' => 'Item 31: In Analysis of Unstructured Data, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['NumPy', false],
-                    ['spaCy', true],
-                    ['SciPy', false],
-                    ['Seaborn', false],
-                ],
-            ],
-
-            // ── 20.8 IMAGE DATA ───────────────────────────────────────────
-            [
-                'q' => 'In a digital image, a pixel stores:',
-                'opts' => [
-                    ['A word from a caption', false],
-                    ['A colour value — typically a combination of Red, Green, and Blue (RGB) intensities', true],
-                    ['A sound frequency', false],
-                    ['A timestamp', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A greyscale image with 28×28 pixels has how many total pixel values?',
+                'q' => 'Item 32: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['56', false],
-                    ['784', true],
-                    ['2,352', false],
-                    ['28', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'An RGB image with dimensions 64×64 pixels has a total array shape of:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with bias check?',
                 'opts' => [
-                    ['(64, 64)', false],
-                    ['(64, 64, 1)', false],
-                    ['(64, 64, 3)', true],
-                    ['(3, 64)', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is image normalisation in preprocessing?',
+                'q' => 'Item 34: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Resizing the image to a square shape', false],
-                    ['Scaling pixel values (e.g. from 0–255 to 0–1) to make training more stable', true],
-                    ['Converting the image to greyscale', false],
-                    ['Rotating the image by 90 degrees', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is data augmentation in image processing?',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Unstructured Data Analysis fails on one test case?',
                 'opts' => [
-                    ['Adding more labels to a dataset', false],
-                    ['Creating new training images by applying transformations (flipping, rotation, cropping) to existing ones', true],
-                    ['Removing blurry images from a dataset', false],
-                    ['Converting colour images to greyscale', false],
-                ],
-            ],
-
-            // ── 20.9 AUDIO DATA ───────────────────────────────────────────
-            [
-                'q' => 'What is a waveform in audio data?',
-                'opts' => [
-                    ['A visual bar chart of word frequencies', false],
-                    ['A representation of a sound signal showing amplitude over time', true],
-                    ['A type of image compression', false],
-                    ['A list of spoken words', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a spectrogram?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
                 'opts' => [
-                    ['A chart showing how many times each word appears', false],
-                    ['A visual representation of the frequency content of a sound signal over time', true],
-                    ['A type of neural network layer', false],
-                    ['A tool for removing noise from images', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The sample rate of an audio file refers to:',
+                'q' => 'Item 37: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The volume of the recording', false],
-                    ['The number of audio samples captured per second (e.g. 44,100 Hz = 44,100 samples/sec)', true],
-                    ['The file size of the audio', false],
-                    ['The number of speakers in the recording', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'MFCC stands for:',
+                'q' => 'Item 38: Which situation is most likely an edge case in Analysis of Unstructured Data?',
                 'opts' => [
-                    ['Mean Frequency Coefficient Compression', false],
-                    ['Mel-Frequency Cepstral Coefficients', true],
-                    ['Maximum Feature Count Classifier', false],
-                    ['Multi-Function Convolutional Computation', false],
-                ],
-            ],
-
-            // ── 20.10 TRANSFORMERS & LLMs ────────────────────────────────
-            [
-                'q' => 'What is a transformer in the context of NLP?',
-                'opts' => [
-                    ['An electrical device that converts voltage', false],
-                    ['A deep learning architecture that uses attention mechanisms to process sequences in parallel', true],
-                    ['A rule-based grammar checker', false],
-                    ['A tool for converting audio to text only', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'BERT is a transformer model that stands for:',
+                'q' => 'Item 39: When comparing two approaches in Unstructured Data Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Binary Encoder Recurrent Transformer', false],
-                    ['Bidirectional Encoder Representations from Transformers', true],
-                    ['Baseline Embedding Retrieval Technique', false],
-                    ['Batch Encoder for Recurrent Tasks', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the key innovation of the attention mechanism in transformers?',
+                'q' => 'Item 40: What does a strong final answer in Analysis of Unstructured Data include?',
                 'opts' => [
-                    ['It processes text one character at a time', false],
-                    ['It allows the model to focus on relevant parts of the input when producing each output, regardless of distance', true],
-                    ['It stores every word in a database', false],
-                    ['It converts text to images for processing', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A Large Language Model (LLM) is pre-trained on:',
+                'q' => 'Item 41: In Analysis of Unstructured Data, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A small curated dataset of 1,000 sentences', false],
-                    ['A massive corpus of text from the internet and books, learning general language patterns', true],
-                    ['Only labelled classification data', false],
-                    ['Audio recordings of human speech', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Fine-tuning a pre-trained LLM means:',
+                'q' => 'Item 42: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Training the model from scratch on a new dataset', false],
-                    ['Further training the model on a smaller, task-specific dataset to adapt it for a particular use case', true],
-                    ['Deleting the original model weights', false],
-                    ['Making the model smaller by removing layers', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a well-known example of a Large Language Model?',
+                'q' => 'Item 43: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Random Forest', false],
-                    ['K-Means Clustering', false],
-                    ['GPT (Generative Pre-trained Transformer)', true],
-                    ['Linear Regression', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 44: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Unstructured Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Analysis of Unstructured Data?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Unstructured Data Analysis, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Analysis of Unstructured Data include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 20 — Analysis of Unstructured Data (Newbie).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Newbie");
+        $this->command->info('Module 20 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module6ChallengeSeederNewbie extends Seeder
 {
@@ -16,515 +14,508 @@ class Module6ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Modeling and Simulation')
-                 ->delete();
+        $title = 'Modeling and Simulation';
 
-        $this->command->info("Creating Module 6 — Modeling and Simulation (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 6 — Modeling and Simulation (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Modeling and Simulation',
-            'description'           => 'Test your understanding of the very basics of modeling and simulation — what models are, why we simulate, types of models, and simple real-world analogies. No prior math or coding experience required.',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 6,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Modeling and Simulation. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 6,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-level Modeling and Simulation questions...");
-
         $qaData = [
-
-            // ── WHAT IS A MODEL ───────────────────────────────────────────
             [
-                'q' => 'In the context of science and data, what is a "model"?',
+                'q' => 'Item 1: In Modeling and Simulation, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A physical sculpture of a real object', false],
-                    ['A simplified representation of a real-world system used to understand or predict behaviour', true],
-                    ['A type of database table', false],
-                    ['A Python function that prints output', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why do we use models instead of studying the real system directly?',
+                'q' => 'Item 2: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Because real systems are always too small to observe', false],
-                    ['Models are cheaper, safer, and faster to experiment with than the real system', true],
-                    ['Models are always 100% accurate', false],
-                    ['Real systems cannot be measured', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of a real-world model?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Modeling and Simulation when dealing with assumptions?',
                 'opts' => [
-                    ['A weather forecast map', true],
-                    ['A cloud in the sky', false],
-                    ['A running computer fan', false],
-                    ['A printed photograph', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A model is always:',
+                'q' => 'Item 4: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A perfect copy of reality', false],
-                    ['An abstraction — it leaves out some details on purpose', true],
-                    ['Written in Python', false],
-                    ['Based on physical experiments only', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which statement best describes the purpose of simulation?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['To replace the real system permanently', false],
-                    ['To run experiments on a model to observe how the system behaves over time', true],
-                    ['To generate random numbers', false],
-                    ['To train machine learning models', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A flight simulator used to train pilots is an example of:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['A real aircraft', false],
-                    ['A physical model', false],
-                    ['A computer simulation of a real system', true],
-                    ['A statistical report', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "validating a model" mean?',
+                'q' => 'Item 7: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Writing the model in Python', false],
-                    ['Checking that the model accurately represents the real system it is meant to describe', true],
-                    ['Running the model many times', false],
-                    ['Deleting unused variables', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is NOT a good reason to build a simulation?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['The real experiment is too dangerous', false],
-                    ['The real experiment is too expensive', false],
-                    ['You want to decorate a report', true],
-                    ['The real system does not exist yet', false],
-                ],
-            ],
-
-            // ── TYPES OF MODELS ───────────────────────────────────────────
-            [
-                'q' => 'A mathematical model uses:',
-                'opts' => [
-                    ['Physical materials like clay and wood', false],
-                    ['Equations and formulas to represent a system', true],
-                    ['Only graphs and charts', false],
-                    ['Only survey data', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which of the following is a mathematical model?',
+                'q' => 'Item 9: When comparing two approaches in Modeling and Simulation, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['A globe of the Earth', false],
-                    ['F = ma (Newton\'s second law)', true],
-                    ['A photograph of a river', false],
-                    ['A spreadsheet of names', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A DETERMINISTIC model is one where:',
+                'q' => 'Item 10: What does a strong final answer in Modeling and Simulation include?',
                 'opts' => [
-                    ['The output is random every time you run it', false],
-                    ['Given the same inputs, you always get the same output', true],
-                    ['The model uses probability', false],
-                    ['The model changes over time on its own', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A STOCHASTIC model is one where:',
+                'q' => 'Item 11: In Modeling and Simulation, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The output is always the same for the same input', false],
-                    ['The model includes randomness or probability', true],
-                    ['The model has no variables', false],
-                    ['The model only works with integers', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A STATIC model represents a system:',
+                'q' => 'Item 12: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['That changes continuously over time', false],
-                    ['At a single point in time — it does not evolve', true],
-                    ['That runs forever', false],
-                    ['Only in 3D space', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A DYNAMIC model represents a system:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Modeling and Simulation when dealing with bias check?',
                 'opts' => [
-                    ['That never changes', false],
-                    ['That evolves and changes over time', true],
-                    ['That only uses integers', false],
-                    ['That is always in equilibrium', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a CONTINUOUS model?',
+                'q' => 'Item 14: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A model that counts people in a queue one at a time', false],
-                    ['A model describing water temperature changing smoothly over time', true],
-                    ['A model that only runs once per day', false],
-                    ['A model that uses yes/no variables', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a DISCRETE model?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['A model tracking temperature every millisecond', false],
-                    ['A model counting the number of customers who arrive each hour', true],
-                    ['A model describing fluid pressure', false],
-                    ['A model using differential equations', false],
-                ],
-            ],
-
-            // ── SIMULATION BASICS ─────────────────────────────────────────
-            [
-                'q' => 'What is a "random number generator" used for in simulation?',
-                'opts' => [
-                    ['To sort lists faster', false],
-                    ['To introduce randomness and uncertainty into a simulation', true],
-                    ['To calculate averages', false],
-                    ['To connect to the internet', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In simulation, what does "initializing" a model mean?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['Deleting all model data', false],
-                    ['Setting the starting conditions of the simulation before it runs', true],
-                    ['Printing the results', false],
-                    ['Saving the simulation to a file', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a simulation, a "time step" refers to:',
+                'q' => 'Item 17: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The total duration of the simulation', false],
-                    ['The small unit of time by which the simulation advances each iteration', true],
-                    ['The number of variables in the model', false],
-                    ['The speed of the computer', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why would you run a simulation many times (multiple "runs")?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['Because each run uses different hardware', false],
-                    ['To get a range of possible outcomes and reduce the effect of randomness', true],
-                    ['Because one run always produces an error', false],
-                    ['To make the code run faster', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the purpose of a "seed" in a random simulation?',
+                'q' => 'Item 19: When comparing two approaches in Modeling and Simulation, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['To plant data in a database', false],
-                    ['To make the random sequence reproducible so results can be verified', true],
-                    ['To delete random values', false],
-                    ['To speed up the simulation', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which Python function sets the random seed?',
+                'q' => 'Item 20: What does a strong final answer in Modeling and Simulation include?',
                 'opts' => [
-                    ['random.reset(42)', false],
-                    ['random.seed(42)', true],
-                    ['random.start(42)', false],
-                    ['random.fix(42)', false],
-                ],
-            ],
-
-            // ── MONTE CARLO (INTRO) ───────────────────────────────────────
-            [
-                'q' => 'Monte Carlo simulation is a technique that uses:',
-                'opts' => [
-                    ['Exact mathematical formulas only', false],
-                    ['Repeated random sampling to estimate results', true],
-                    ['Physical experiments in a lab', false],
-                    ['Neural networks to predict outcomes', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Monte Carlo methods are especially useful when:',
+                'q' => 'Item 21: In Modeling and Simulation, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['The problem has an exact closed-form solution', false],
-                    ['The problem is too complex for an exact analytical solution', true],
-                    ['You only have one data point', false],
-                    ['The system has no randomness at all', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a Monte Carlo simulation to estimate π, you randomly throw darts at a square containing a circle. You use the ratio of darts that land INSIDE the circle to estimate:',
+                'q' => 'Item 22: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The area of the square', false],
-                    ['The value of π', true],
-                    ['The circumference of the circle', false],
-                    ['The number of darts thrown', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'As you increase the number of random samples in a Monte Carlo simulation, the estimate generally:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Modeling and Simulation when dealing with assumptions?',
                 'opts' => [
-                    ['Gets less accurate', false],
-                    ['Stays exactly the same', false],
-                    ['Gets more accurate (converges to the true value)', true],
-                    ['Becomes undefined', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which real-world field commonly uses Monte Carlo simulation?',
+                'q' => 'Item 24: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Interior design', false],
-                    ['Financial risk analysis', true],
-                    ['Cooking recipes', false],
-                    ['Social media management', false],
-                ],
-            ],
-
-            // ── SYSTEM COMPONENTS ─────────────────────────────────────────
-            [
-                'q' => 'In modeling, a "state variable" is:',
-                'opts' => [
-                    ['A variable that never changes', false],
-                    ['A variable that describes the current condition of the system', true],
-                    ['A variable used only for output', false],
-                    ['A variable that stores text', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a population growth model, which of these is most likely a state variable?',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['The name of the species', false],
-                    ['The current population count', true],
-                    ['The color of the animals', false],
-                    ['The date the model was created', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A "parameter" in a model is:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['A variable that changes at every time step', false],
-                    ['A fixed value that controls the behaviour of the model', true],
-                    ['A random number', false],
-                    ['The output of the model', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a simple population model, the "birth rate" is best described as:',
+                'q' => 'Item 27: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['A state variable', false],
-                    ['A parameter', true],
-                    ['A random seed', false],
-                    ['A simulation output', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the difference between an INPUT and an OUTPUT in a simulation?',
+                'q' => 'Item 28: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['There is no difference', false],
-                    ['Inputs are the values you provide to the model; outputs are the results the model produces', true],
-                    ['Inputs are always random; outputs are always fixed', false],
-                    ['Outputs are provided by the user; inputs are calculated by the model', false],
-                ],
-            ],
-
-            // ── SIMPLE MODELS & EQUATIONS ────────────────────────────────
-            [
-                'q' => 'A simple linear model predicts output as y = mx + b. If m = 3 and b = 2, what is y when x = 4?',
-                'opts' => [
-                    ['9', false],
-                    ['12', false],
-                    ['14', true],
-                    ['10', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The equation P(t) = P₀ · e^(rt) models:',
+                'q' => 'Item 29: When comparing two approaches in Modeling and Simulation, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Linear growth', false],
-                    ['Exponential growth or decay', true],
-                    ['Periodic oscillation', false],
-                    ['Random walk', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the exponential growth model P(t) = P₀ · e^(rt), what does P₀ represent?',
+                'q' => 'Item 30: What does a strong final answer in Modeling and Simulation include?',
                 'opts' => [
-                    ['The rate of growth', false],
-                    ['The initial population at time t = 0', true],
-                    ['The final population', false],
-                    ['The time variable', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the model P(t) = 100 · e^(0.05t), what is the population at t = 0?',
+                'q' => 'Item 31: In Modeling and Simulation, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['0', false],
-                    ['0.05', false],
-                    ['100', true],
-                    ['105', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If a population starts at 200 and grows by 10% each year, after 1 year the population is:',
+                'q' => 'Item 32: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['210', false],
-                    ['220', true],
-                    ['200', false],
-                    ['202', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A decay model has r = −0.1. This means the population is:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Modeling and Simulation when dealing with bias check?',
                 'opts' => [
-                    ['Growing over time', false],
-                    ['Staying the same', false],
-                    ['Shrinking over time', true],
-                    ['Oscillating', false],
-                ],
-            ],
-
-            // ── SIMULATION WORKFLOW ───────────────────────────────────────
-            [
-                'q' => 'What is the correct order for building and running a simulation?',
-                'opts' => [
-                    ['Run → Build → Validate → Analyse', false],
-                    ['Define the problem → Build the model → Run the simulation → Analyse results', true],
-                    ['Analyse → Define → Run → Build', false],
-                    ['Validate → Run → Build → Define', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is "sensitivity analysis" in the context of simulation?',
+                'q' => 'Item 34: For Modeling and Simulation, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Checking if the code has bugs', false],
-                    ['Testing how much the output changes when you slightly change the input parameters', true],
-                    ['Making the model run faster', false],
-                    ['Adding more random numbers to the model', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does it mean when a simulation has reached "steady state"?',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Modeling and Simulation fails on one test case?',
                 'opts' => [
-                    ['The simulation has crashed', false],
-                    ['The simulation has been running for exactly 1 hour', false],
-                    ['The key variables of the system are no longer changing significantly over time', true],
-                    ['All variables equal zero', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "scenario" in simulation?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
                 'opts' => [
-                    ['A bug in the simulation code', false],
-                    ['A specific set of input conditions used to run the simulation', true],
-                    ['The final output of the simulation', false],
-                    ['The visual display of the simulation', false],
-                ],
-            ],
-
-            // ── AGENT-BASED & SYSTEM THINKING ─────────────────────────────
-            [
-                'q' => 'In an agent-based model, "agents" are:',
-                'opts' => [
-                    ['The equations used in the model', false],
-                    ['Individual entities (people, animals, particles) with their own rules and behaviours', true],
-                    ['The random seeds of the simulation', false],
-                    ['The output charts of the simulation', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A traffic simulation where each car follows its own rules is an example of:',
+                'q' => 'Item 37: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['A differential equation model', false],
-                    ['An agent-based model', true],
-                    ['A static model', false],
-                    ['A linear regression model', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is "emergence" in complex system simulations?',
+                'q' => 'Item 38: Which situation is most likely an edge case in Modeling and Simulation?',
                 'opts' => [
-                    ['A bug that appears after many simulation runs', false],
-                    ['Complex behaviour that arises from many simple individual interactions', true],
-                    ['The simulation starting up for the first time', false],
-                    ['A parameter that is added late in the model', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which Python library is most commonly used to generate random numbers for simulations?',
+                'q' => 'Item 39: When comparing two approaches in Modeling and Simulation, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['pandas', false],
-                    ['matplotlib', false],
-                    ['random or numpy.random', true],
-                    ['flask', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does `numpy.random.uniform(0, 1)` return?',
+                'q' => 'Item 40: What does a strong final answer in Modeling and Simulation include?',
                 'opts' => [
-                    ['Always exactly 0.5', false],
-                    ['A random float between 0 and 1', true],
-                    ['A random integer between 0 and 1', false],
-                    ['A list of 100 random numbers', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a coin-flip simulation, which value represents "Heads" most naturally?',
+                'q' => 'Item 41: In Modeling and Simulation, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['−1', false],
-                    ['100', false],
-                    ['1', true],
-                    ['0.5', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the term for the difference between a model\'s prediction and the actual real-world value?',
+                'q' => 'Item 42: A learner working on Modeling and Simulation gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Variance', false],
-                    ['Error or residual', true],
-                    ['Iteration', false],
-                    ['Parameter', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following best describes a "simulation model" vs a "theoretical model"?',
+                'q' => 'Item 43: Which mistake most commonly weakens work in Modeling and Simulation when dealing with assumptions?',
                 'opts' => [
-                    ['They are identical in every way', false],
-                    ['A simulation model is run computationally over time; a theoretical model derives results analytically from equations', true],
-                    ['A theoretical model always uses Python; a simulation model uses mathematics', false],
-                    ['A simulation model is always more accurate than a theoretical model', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 44: For Modeling and Simulation, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Modeling and Simulation fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Modeling and Simulation tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Modeling and Simulation assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Modeling and Simulation?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Modeling and Simulation, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Modeling and Simulation include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 6 — Modeling and Simulation (Newbie).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Newbie");
+        $this->command->info('Module 6 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

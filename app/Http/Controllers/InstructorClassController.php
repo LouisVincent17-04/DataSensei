@@ -127,9 +127,8 @@ class InstructorClassController extends Controller
     {
         $this->authorizeClass($class);
 
-        // No dedicated show blade exists yet — redirect to index.
-        // When you create instructor.class_show.blade.php, replace this with:
-        // return view('instructor.class_show', compact('class', ...));
+        // No dedicated show blade exists yet, so this safely redirects to the class list.
+        // Add a dedicated class show blade later if you need a separate class detail page.
         return redirect()->route('instructor.classes.index');
     }
 
@@ -194,6 +193,43 @@ class InstructorClassController extends Controller
     public function destroy(ClassRoom $class)
     {
         $this->authorizeClass($class);
+
+        $blockingReasons = [];
+
+        if ($class->students()->exists()) {
+            $blockingReasons[] = 'it still has enrolled students';
+        }
+
+        if ($class->assignedModules()->exists()) {
+            $blockingReasons[] = 'it still has assigned modules';
+        }
+
+        if ($class->assignmentPosts()->exists()) {
+            $blockingReasons[] = 'it still has class assignments';
+        }
+
+        $hasAssignmentSubmissions = DB::table('assignment_submissions')
+            ->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
+            ->where('class_assignments.class_id', $class->id)
+            ->exists();
+
+        if ($hasAssignmentSubmissions) {
+            $blockingReasons[] = 'students already have assignment submissions';
+        }
+
+        $hasAntiCheatEvents = DB::table('anti_cheat_events')
+            ->where('class_id', $class->id)
+            ->exists();
+
+        if ($hasAntiCheatEvents) {
+            $blockingReasons[] = 'it has anti-cheat event records';
+        }
+
+        if (!empty($blockingReasons)) {
+            return redirect()
+                ->route('instructor.classes.index')
+                ->with('error', 'This class cannot be permanently deleted because ' . implode(', ', $blockingReasons) . '. Archive the class instead to preserve records.');
+        }
 
         $name = $class->name;
         $class->delete();

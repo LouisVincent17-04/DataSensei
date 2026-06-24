@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DataSensei — Instructor Applications</title>
+  @include('partials.brand-head')
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -30,8 +31,8 @@
     /* ── SIDEBAR ── */
     .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
     .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
-    .sidebar-logo span { font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
-    .sidebar-logo small { display: block; font-size: 0.7rem; color: var(--muted); margin-top: 2px; font-weight: 500; }
+    .sidebar-logo > span { font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .sidebar-logo > small { display: block; font-size: 0.7rem; color: var(--muted); margin-top: 2px; font-weight: 500; }
     .sidebar-nav { padding: 12px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
     .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; color: var(--muted); text-decoration: none; transition: background 0.12s, color 0.12s; }
     .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--text); }
@@ -134,8 +135,12 @@
   {{-- ── SIDEBAR ── --}}
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <span>DataSensei</span>
-      <small>Institution Admin</small>
+      @include('partials.brand-logo', [
+        'variant' => 'sidebar',
+        'size' => 'normal',
+        'subtext' => 'Institution Admin',
+        'href' => route('institution-admin.dashboard'),
+      ])
     </div>
     <nav class="sidebar-nav">
       <div class="nav-label">Overview</div>

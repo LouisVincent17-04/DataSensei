@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module10ChallengeSeederUniversityStudent extends Seeder
 {
@@ -16,479 +14,508 @@ class Module10ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Database Management for Data Science';
 
-        $this->command->info("Creating Module 10 — Database Management for Data Science (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 10 — Database Management for Data Science (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Database Management for Data Science',
-            'description'           => 'Deepen your SQL knowledge — trace query results, understand JOIN behaviour, work with GROUP BY and HAVING, and begin applying subqueries and normalization rules analytically.',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 1000,
-            'order_index'           => 10,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Database Management for Data Science. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 10,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 university-level questions...");
-
         $qaData = [
-
-            // ── SQL BASICS: TRACING QUERIES ───────────────────────────────
             [
-                'q' => "Given this table called employees:\n\nid | name    | dept    | salary\n1  | Alice   | HR      | 50000\n2  | Bob     | IT      | 70000\n3  | Carol   | HR      | 55000\n4  | Dave    | IT      | 80000\n\nWhat does this query return?\nSELECT name FROM employees WHERE salary > 60000;",
+                'q' => 'Item 1: In Database Management for Data Science, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Alice, Bob, Carol, Dave', false],
-                    ['Bob, Dave', true],
-                    ['Alice, Carol', false],
-                    ['Bob only', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Using the same employees table above, what does this return?\nSELECT COUNT(*) FROM employees WHERE dept = 'HR';",
+                'q' => 'Item 2: A learner working on Database Management for Data Science gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['1', false],
-                    ['2', true],
-                    ['4', false],
-                    ['0', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output of this query on the employees table?\nSELECT dept, AVG(salary) FROM employees GROUP BY dept;",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Database Management when dealing with assumptions?',
                 'opts' => [
-                    ['One row per employee with their salary', false],
-                    ['Two rows: HR with avg 52500, IT with avg 75000', true],
-                    ['One row with the overall average salary', false],
-                    ['An error because salary is not in GROUP BY', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does the HAVING clause do that WHERE cannot?",
+                'q' => 'Item 4: For Database Management for Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Filters individual rows before grouping', false],
-                    ['Filters groups AFTER a GROUP BY aggregation has been applied', true],
-                    ['Sorts the result set', false],
-                    ['Joins two tables together', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Given the employees table, what does this query return?\nSELECT dept, COUNT(*) AS cnt\nFROM employees\nGROUP BY dept\nHAVING COUNT(*) > 1;",
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Database Management fails on one test case?',
                 'opts' => [
-                    ['All four departments', false],
-                    ['Only HR and IT (both have 2 employees)', true],
-                    ['Nothing — HAVING needs WHERE first', false],
-                    ['Only the department with the most employees', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the correct order of SQL clauses in a SELECT statement?",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Database Management for Data Science tasks?',
                 'opts' => [
-                    ['SELECT → WHERE → FROM → GROUP BY → HAVING → ORDER BY', false],
-                    ['SELECT → FROM → WHERE → GROUP BY → HAVING → ORDER BY', true],
-                    ['FROM → GROUP BY → WHERE → SELECT → HAVING → ORDER BY', false],
-                    ['FROM → SELECT → WHERE → ORDER BY → GROUP BY → HAVING', false],
-                ],
-            ],
-
-            // ── JOINs: TRACING & ANALYSIS ─────────────────────────────────
-            [
-                'q' => "Table orders: order_id | customer_id | amount\n1 | 101 | 200\n2 | 102 | 150\n3 | 103 | 300\n\nTable customers: customer_id | name\n101 | Ana\n102 | Ben\n\nHow many rows does INNER JOIN on customer_id return?",
-                'opts' => [
-                    ['3', false],
-                    ['2', true],
-                    ['5', false],
-                    ['1', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Using the same tables above, how many rows does a LEFT JOIN (orders LEFT JOIN customers) return?",
+                'q' => 'Item 7: In a Database Management assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['2', false],
-                    ['3', true],
-                    ['5', false],
-                    ['1', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a LEFT JOIN, what value appears in the customer name column for order_id = 3 (customer_id 103, who is not in the customers table)?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Database Management for Data Science?',
                 'opts' => [
-                    ['0', false],
-                    ['"unknown"', false],
-                    ['NULL', true],
-                    ['An error is thrown', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is a self-join?",
+                'q' => 'Item 9: When comparing two approaches in Database Management, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['A JOIN between a table and itself using aliases', true],
-                    ['A JOIN that does not need ON clause', false],
-                    ['A JOIN where all rows match', false],
-                    ['A JOIN between two identical tables in different databases', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A CROSS JOIN between a table of 4 rows and a table of 3 rows produces how many rows?",
+                'q' => 'Item 10: What does a strong final answer in Database Management for Data Science include?',
                 'opts' => [
-                    ['7', false],
-                    ['4', false],
-                    ['12', true],
-                    ['1', false],
-                ],
-            ],
-
-            // ── SUBQUERIES ────────────────────────────────────────────────
-            [
-                'q' => "What does this query do?\nSELECT name FROM employees\nWHERE salary > (SELECT AVG(salary) FROM employees);",
-                'opts' => [
-                    ['Returns all employees', false],
-                    ['Returns employees whose salary is above the company average', true],
-                    ['Returns the average salary', false],
-                    ['Returns only the employee with the highest salary', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Where can a subquery be placed in a SQL statement?",
+                'q' => 'Item 11: In Database Management for Data Science, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Only inside the WHERE clause', false],
-                    ['In the WHERE, FROM, or SELECT clause', true],
-                    ['Only inside the FROM clause', false],
-                    ['Only inside the HAVING clause', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is a correlated subquery?",
+                'q' => 'Item 12: A learner working on Database Management for Data Science gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['A subquery that runs only once and passes its result to the outer query', false],
-                    ['A subquery that references a column from the outer query and is re-evaluated for each outer row', true],
-                    ['A subquery written after FROM', false],
-                    ['A subquery that uses GROUP BY', false],
-                ],
-            ],
-
-            // ── CTEs ──────────────────────────────────────────────────────
-            [
-                'q' => "Which of the following is a correct CTE syntax?\n\n(A)\nWITH top_earners AS (\n  SELECT * FROM employees WHERE salary > 60000\n)\nSELECT * FROM top_earners;\n\n(B)\nCTE top_earners AS (\n  SELECT * FROM employees WHERE salary > 60000\n)\nSELECT * FROM top_earners;",
-                'opts' => [
-                    ['Only (B) is correct', false],
-                    ['Only (A) is correct', true],
-                    ['Both are correct', false],
-                    ['Neither is correct', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the main advantage of a CTE over a subquery?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Database Management when dealing with bias check?',
                 'opts' => [
-                    ['CTEs always run faster than subqueries', false],
-                    ['CTEs make complex queries more readable and can be referenced multiple times in the same query', true],
-                    ['CTEs permanently store the result as a table', false],
-                    ['CTEs are the only way to use recursive queries', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A recursive CTE is used for:",
+                'q' => 'Item 14: For Database Management for Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Aggregating data across multiple tables', false],
-                    ['Traversing hierarchical or tree-structured data (e.g., org charts, categories)', true],
-                    ['Running a query on a schedule', false],
-                    ['Creating temporary indexes', false],
-                ],
-            ],
-
-            // ── WINDOW FUNCTIONS ──────────────────────────────────────────
-            [
-                'q' => "What is the output of ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) for the employees table?\n\nAlice | HR | 50000\nCarol | HR | 55000\nBob   | IT | 70000\nDave  | IT | 80000\n\nWhat row number does Alice get within HR?",
-                'opts' => [
-                    ['1', false],
-                    ['2', true],
-                    ['3', false],
-                    ['4', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the difference between RANK() and DENSE_RANK()?",
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Database Management fails on one test case?',
                 'opts' => [
-                    ['They are identical', false],
-                    ['RANK() skips numbers after a tie (1,1,3); DENSE_RANK() does not skip (1,1,2)', true],
-                    ['DENSE_RANK() skips numbers; RANK() does not', false],
-                    ['RANK() only works on strings; DENSE_RANK() works on numbers', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "LAG(salary, 1) OVER (ORDER BY id) returns:",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Database Management for Data Science tasks?',
                 'opts' => [
-                    ['The salary of the next row', false],
-                    ['The salary of the previous row', true],
-                    ['The average of the previous and current salary', false],
-                    ['NULL for all rows', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does SUM(salary) OVER (PARTITION BY dept) compute?",
+                'q' => 'Item 17: In a Database Management assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The salary for each individual employee', false],
-                    ['A running total of all salaries', false],
-                    ['The total salary for the department of each row, repeated for every row in that department', true],
-                    ['The maximum salary in the entire table', false],
-                ],
-            ],
-
-            // ── NORMALIZATION ─────────────────────────────────────────────
-            [
-                'q' => "A table stores: order_id, customer_name, customer_email, product_name, product_price.\nCustomer email repeats for every order. This violates which normal form?",
-                'opts' => [
-                    ['First Normal Form (1NF)', false],
-                    ['Second Normal Form (2NF) — non-key attributes depend on only part of the composite key', false],
-                    ['Both 2NF and 3NF — transitive dependencies exist; customer data should be in its own table', true],
-                    ['No normal form is violated', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Second Normal Form (2NF) requires that:",
+                'q' => 'Item 18: Which situation is most likely an edge case in Database Management for Data Science?',
                 'opts' => [
-                    ['No column stores multiple values', false],
-                    ['The table is in 1NF AND every non-key attribute is fully dependent on the entire primary key (no partial dependencies)', true],
-                    ['No two rows have the same values', false],
-                    ['All data is in a single table', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Third Normal Form (3NF) eliminates:",
+                'q' => 'Item 19: When comparing two approaches in Database Management, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['Partial dependencies', false],
-                    ['Transitive dependencies (non-key column depends on another non-key column)', true],
-                    ['Multi-valued columns', false],
-                    ['All NULL values', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Denormalization is the process of:",
+                'q' => 'Item 20: What does a strong final answer in Database Management for Data Science include?',
                 'opts' => [
-                    ['Normalizing a database to 4NF', false],
-                    ['Intentionally introducing redundancy to improve read query performance', true],
-                    ['Removing all indexes from a database', false],
-                    ['Deleting duplicate rows', false],
-                ],
-            ],
-
-            // ── INDEXING ──────────────────────────────────────────────────
-            [
-                'q' => "Which type of index enforces that all values in a column are unique?",
-                'opts' => [
-                    ['Composite index', false],
-                    ['Full-text index', false],
-                    ['Unique index', true],
-                    ['Clustered index', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A clustered index determines:",
+                'q' => 'Item 21: In Database Management for Data Science, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Which column is the primary key', false],
-                    ['The physical order in which rows are stored on disk', true],
-                    ['How many indexes a table can have', false],
-                    ['The maximum number of rows in a table', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "How many clustered indexes can a single table have?",
+                'q' => 'Item 22: A learner working on Database Management for Data Science gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['Unlimited', false],
-                    ['Only one', true],
-                    ['One per column', false],
-                    ['Two', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A composite index on columns (last_name, first_name) is MOST useful for which query?",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Database Management when dealing with assumptions?',
                 'opts' => [
-                    ['SELECT * FROM users WHERE first_name = \'Ana\';', false],
-                    ['SELECT * FROM users WHERE last_name = \'Smith\';', true],
-                    ['SELECT * FROM users WHERE age = 30;', false],
-                    ['SELECT * FROM users ORDER BY email;', false],
-                ],
-            ],
-
-            // ── PYTHON + SQL ──────────────────────────────────────────────
-            [
-                'q' => "What does the following pandas code do?\n\nimport pandas as pd\nfrom sqlalchemy import create_engine\nengine = create_engine('sqlite:///mydb.db')\ndf = pd.read_sql('SELECT * FROM sales', engine)",
-                'opts' => [
-                    ['Creates a new table called sales', false],
-                    ['Reads the entire sales table from mydb.db into a pandas DataFrame', true],
-                    ['Deletes all rows from the sales table', false],
-                    ['Creates a SQLite database and immediately closes it', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which pandas method writes a DataFrame to a SQL table?",
+                'q' => 'Item 24: For Database Management for Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['df.to_csv()', false],
-                    ['df.to_sql()', true],
-                    ['df.to_excel()', false],
-                    ['df.push_sql()', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does if_exists='replace' do in df.to_sql('table', engine, if_exists='replace')?",
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Database Management fails on one test case?',
                 'opts' => [
-                    ['Adds new rows to the existing table', false],
-                    ['Drops the existing table and creates a new one with the DataFrame data', true],
-                    ['Raises an error if the table already exists', false],
-                    ['Updates existing rows that match the index', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the role of SQLAlchemy's connection string (e.g., 'postgresql://user:pass@localhost/dbname')?",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Database Management for Data Science tasks?',
                 'opts' => [
-                    ['It encrypts the database', false],
-                    ['It specifies the database type, credentials, host, and database name needed to connect', true],
-                    ['It runs a SQL query immediately on import', false],
-                    ['It defines the table schema', false],
-                ],
-            ],
-
-            // ── NoSQL ─────────────────────────────────────────────────────
-            [
-                'q' => "In MongoDB, data is stored as:",
-                'opts' => [
-                    ['Rows in a table', false],
-                    ['JSON-like documents in collections', true],
-                    ['Key-value pairs only', false],
-                    ['Nodes and edges', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which SQL concept is most similar to a MongoDB 'collection'?",
+                'q' => 'Item 27: In a Database Management assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['A column', false],
-                    ['A row', false],
-                    ['A table', true],
-                    ['An index', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Redis is a popular example of which type of NoSQL database?",
+                'q' => 'Item 28: Which situation is most likely an edge case in Database Management for Data Science?',
                 'opts' => [
-                    ['Document store', false],
-                    ['Graph database', false],
-                    ['Key-value store', true],
-                    ['Column-family store', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "When is a NoSQL database generally PREFERRED over a relational database?",
+                'q' => 'Item 29: When comparing two approaches in Database Management, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['When data has complex, fixed relationships and requires ACID transactions', false],
-                    ['When data is unstructured, rapidly changing in schema, or needs massive horizontal scaling', true],
-                    ['When you need to run complex multi-table SQL JOINs', false],
-                    ['When storage space is extremely limited', false],
-                ],
-            ],
-
-            // ── MISC ANALYTICAL ───────────────────────────────────────────
-            [
-                'q' => "What is the difference between WHERE and HAVING in SQL?",
-                'opts' => [
-                    ['WHERE filters after GROUP BY; HAVING filters before GROUP BY', false],
-                    ['WHERE filters individual rows before grouping; HAVING filters groups after aggregation', true],
-                    ['They are interchangeable', false],
-                    ['WHERE works on numeric columns only; HAVING works on all columns', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which SQL statement is used to change the structure of an existing table (e.g., add a column)?",
+                'q' => 'Item 30: What does a strong final answer in Database Management for Data Science include?',
                 'opts' => [
-                    ['UPDATE TABLE', false],
-                    ['MODIFY TABLE', false],
-                    ['ALTER TABLE', true],
-                    ['CHANGE TABLE', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does the COALESCE(col, 0) function return?",
+                'q' => 'Item 31: In Database Management for Data Science, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Always returns 0', false],
-                    ['Returns col if col is not NULL, otherwise returns 0', true],
-                    ['Returns the maximum of col and 0', false],
-                    ['Converts col to a string', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does EXPLAIN (or EXPLAIN ANALYZE) do in SQL?",
+                'q' => 'Item 32: A learner working on Database Management for Data Science gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['Explains the meaning of each column in plain text', false],
-                    ['Shows the query execution plan, including how the database intends to execute the query and estimated costs', true],
-                    ['Adds a comment to the query', false],
-                    ['Converts the SQL to Python code', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Which isolation level prevents dirty reads but allows non-repeatable reads?",
+                'q' => 'Item 33: Which mistake most commonly weakens work in Database Management when dealing with bias check?',
                 'opts' => [
-                    ['SERIALIZABLE', false],
-                    ['READ UNCOMMITTED', false],
-                    ['READ COMMITTED', true],
-                    ['REPEATABLE READ', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does ACID stand for in database transactions?",
+                'q' => 'Item 34: For Database Management for Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Availability, Consistency, Integrity, Durability', false],
-                    ['Atomicity, Consistency, Isolation, Durability', true],
-                    ['Atomicity, Concurrency, Integrity, Distribution', false],
-                    ['Access, Control, Index, Data', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The VIEW in SQL is:",
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Database Management fails on one test case?',
                 'opts' => [
-                    ['A physical copy of a table stored on disk', false],
-                    ['A saved SELECT query that behaves like a virtual table', true],
-                    ['An index on a specific column', false],
-                    ['A stored procedure', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the purpose of the UNION operator in SQL?",
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Database Management for Data Science tasks?',
                 'opts' => [
-                    ['Joins two tables on a common column', false],
-                    ['Combines the result sets of two SELECT queries, removing duplicates', true],
-                    ['Multiplies the rows of two tables', false],
-                    ['Creates a new table from two existing tables', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "How does UNION ALL differ from UNION?",
+                'q' => 'Item 37: In a Database Management assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['UNION ALL removes duplicates; UNION keeps them', false],
-                    ['UNION ALL keeps all rows including duplicates; UNION removes duplicates', true],
-                    ['They are exactly the same', false],
-                    ['UNION ALL only works with numeric columns', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Database Management for Data Science?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Database Management, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Database Management for Data Science include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Database Management for Data Science, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Database Management for Data Science gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Database Management when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Database Management for Data Science, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Database Management fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Database Management for Data Science tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Database Management assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Database Management for Data Science?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Database Management, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Database Management for Data Science include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 10 — Database Management for Data Science (University Student).");
+        $this->command->info('Module 10 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

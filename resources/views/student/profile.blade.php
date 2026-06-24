@@ -84,6 +84,55 @@
     .page-profile-status-pending{color:var(--warn2);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.1)}
     .page-profile-status-approved{color:var(--success);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.1)}
     .page-profile-status-rejected{color:var(--warn);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.1)}
+
+
+    /* ─── Rank Showcase: DataSensei Progression System ───────────────────── */
+    .page-profile-info-section{gap:24px;flex-wrap:wrap}
+    .page-profile-rank-showcase{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1;--rank-glow:rgba(148,163,184,.28);position:relative;isolation:isolate;overflow:hidden;min-width:330px;max-width:470px;flex:1;padding:18px;border-radius:24px;border:1px solid color-mix(in srgb,var(--rank-b) 38%,transparent);background:radial-gradient(circle at 12% 0%,rgba(255,255,255,.13),transparent 31%),linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),linear-gradient(135deg,rgba(17,24,39,.94),rgba(15,23,42,.84));box-shadow:0 22px 60px rgba(0,0,0,.34),0 0 38px var(--rank-glow);transform:translateZ(0)}
+    .page-profile-rank-showcase::before{content:"";position:absolute;inset:-2px;background:conic-gradient(from 135deg,transparent 0 12%,var(--rank-a),var(--rank-b),var(--rank-c),transparent 72%);opacity:.55;filter:blur(28px);z-index:-2;animation:rank-orbit 7s linear infinite}
+    .page-profile-rank-showcase::after{content:"";position:absolute;inset:1px;border-radius:23px;background:linear-gradient(135deg,rgba(15,23,42,.82),rgba(17,24,39,.54));z-index:-1}
+    .page-profile-rank-aurora{position:absolute;inset:-80px;background:radial-gradient(circle at 18% 26%,color-mix(in srgb,var(--rank-a) 45%,transparent),transparent 30%),radial-gradient(circle at 82% 18%,color-mix(in srgb,var(--rank-b) 45%,transparent),transparent 28%),radial-gradient(circle at 55% 96%,color-mix(in srgb,var(--rank-c) 36%,transparent),transparent 31%);opacity:.78;filter:blur(12px);animation:rank-aurora 9s ease-in-out infinite alternate;pointer-events:none}
+    .page-profile-rank-shell{position:relative;display:grid;grid-template-columns:82px 1fr;gap:16px;align-items:center}
+    .page-profile-rank-emblem{position:relative;width:82px;height:82px;border-radius:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,color-mix(in srgb,var(--rank-a) 34%,#020617),color-mix(in srgb,var(--rank-b) 20%,#020617));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -20px 36px rgba(0,0,0,.22),0 14px 30px var(--rank-glow);border:1px solid color-mix(in srgb,var(--rank-c) 48%,transparent)}
+    .page-profile-rank-emblem span{font-size:2rem;font-weight:900;letter-spacing:-.06em;color:#fff;text-shadow:0 0 18px var(--rank-b),0 2px 18px rgba(0,0,0,.65)}
+    .page-profile-rank-emblem::before{content:"";position:absolute;inset:8px;border-radius:18px;border:1px solid rgba(255,255,255,.2)}
+    .page-profile-rank-kicker{font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:color-mix(in srgb,var(--rank-c) 82%,#fff);margin-bottom:4px}
+    .page-profile-rank-title{font-size:1.7rem;font-weight:900;line-height:.95;color:#fff;letter-spacing:-.045em;text-shadow:0 0 26px var(--rank-glow)}
+    .page-profile-rank-subtitle{font-size:.76rem;color:rgba(226,232,240,.78);margin-top:7px;line-height:1.45}
+    .page-profile-rank-progress{position:relative;height:11px;border-radius:999px;background:rgba(2,6,23,.55);border:1px solid rgba(255,255,255,.12);overflow:hidden;margin-top:14px;box-shadow:inset 0 1px 10px rgba(0,0,0,.45)}
+    .page-profile-rank-progress-fill{height:100%;width:var(--rank-progress,0%);border-radius:inherit;background:linear-gradient(90deg,var(--rank-a),var(--rank-b),var(--rank-c));box-shadow:0 0 24px var(--rank-glow);position:relative;transition:width .55s cubic-bezier(.2,.8,.2,1)}
+    .page-profile-rank-progress-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:rank-shimmer 2.8s ease-in-out infinite}
+    .page-profile-rank-foot{display:flex;justify-content:space-between;gap:12px;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:rgba(203,213,225,.8)}
+    .page-profile-rank-foot strong{color:#fff}
+    .rank-tier-1{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1;--rank-glow:rgba(148,163,184,.28)}
+    .rank-tier-2{--rank-a:#0f766e;--rank-b:#14b8a6;--rank-c:#99f6e4;--rank-glow:rgba(20,184,166,.30)}
+    .rank-tier-3{--rank-a:#2563eb;--rank-b:#38bdf8;--rank-c:#bfdbfe;--rank-glow:rgba(56,189,248,.34)}
+    .rank-tier-4{--rank-a:#7c3aed;--rank-b:#a855f7;--rank-c:#ddd6fe;--rank-glow:rgba(168,85,247,.38)}
+    .rank-tier-5{--rank-a:#c026d3;--rank-b:#ec4899;--rank-c:#fbcfe8;--rank-glow:rgba(236,72,153,.42)}
+    .rank-tier-6{--rank-a:#ea580c;--rank-b:#f97316;--rank-c:#fed7aa;--rank-glow:rgba(249,115,22,.44)}
+    .rank-tier-7{--rank-a:#dc2626;--rank-b:#f43f5e;--rank-c:#fecdd3;--rank-glow:rgba(244,63,94,.46)}
+    .rank-tier-8{--rank-a:#f59e0b;--rank-b:#facc15;--rank-c:#fb7185;--rank-glow:rgba(250,204,21,.64)}
+    .page-profile-rank-showcase.rank-tier-8{border-color:rgba(250,204,21,.62);background:radial-gradient(circle at 15% 0%,rgba(254,243,199,.24),transparent 31%),radial-gradient(circle at 88% 12%,rgba(244,63,94,.22),transparent 25%),linear-gradient(135deg,rgba(69,26,3,.88),rgba(15,23,42,.82) 55%,rgba(76,5,25,.76));box-shadow:0 30px 90px rgba(0,0,0,.42),0 0 60px rgba(250,204,21,.34),0 0 110px rgba(244,63,94,.20)}
+    .page-profile-rank-showcase.rank-tier-8 .page-profile-rank-emblem{border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff7ed,#facc15 28%,#f59e0b 52%,#881337 100%);box-shadow:0 0 38px rgba(250,204,21,.52),0 0 84px rgba(251,113,133,.32),inset 0 2px 12px rgba(255,255,255,.44)}
+    .page-profile-rank-showcase.rank-tier-8 .page-profile-rank-emblem::after{content:"✦";position:absolute;right:-6px;top:-10px;font-size:1.25rem;color:#fef3c7;text-shadow:0 0 18px #facc15,18px 22px 0 rgba(254,243,199,.8),-18px 58px 0 rgba(251,113,133,.75)}
+    .page-profile-rank-path{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
+    .page-profile-rank-step{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.015));padding:14px;min-height:112px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;isolation:isolate}
+    .page-profile-rank-step::before{content:"";position:absolute;inset:auto -20% -45% -20%;height:72px;background:radial-gradient(circle,color-mix(in srgb,var(--rank-b) 42%,transparent),transparent 66%);opacity:.45;z-index:-1}
+    .page-profile-rank-step.unlocked{border-color:color-mix(in srgb,var(--rank-b) 48%,transparent);box-shadow:0 12px 30px rgba(0,0,0,.18)}
+    .page-profile-rank-step.current{transform:translateY(-2px);border-color:color-mix(in srgb,var(--rank-c) 70%,transparent);box-shadow:0 18px 44px var(--rank-glow)}
+    .page-profile-rank-step.locked{opacity:.52;filter:saturate(.55)}
+    .page-profile-rank-step-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+    .page-profile-rank-step-no{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:rgba(226,232,240,.72)}
+    .page-profile-rank-step-mark{width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--rank-a),var(--rank-b));color:#fff;font-size:.82rem;font-weight:900;box-shadow:0 0 18px var(--rank-glow)}
+    .page-profile-rank-step-name{font-size:.95rem;font-weight:800;color:#fff;margin-bottom:5px}
+    .page-profile-rank-step-exp{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:rgba(203,213,225,.78)}
+    .page-profile-rank-empty{font-size:.82rem;color:var(--muted);line-height:1.6}
+    @keyframes rank-orbit{to{transform:rotate(360deg)}}
+    @keyframes rank-aurora{0%{transform:translate3d(-10px,-6px,0) scale(1)}100%{transform:translate3d(14px,10px,0) scale(1.08)}}
+    @keyframes rank-shimmer{0%,35%{transform:translateX(-100%)}75%,100%{transform:translateX(100%)}}
+    @media(max-width:1050px){.page-profile-rank-showcase{order:3;max-width:none;width:100%}.page-profile-stats-row{order:2}}
+    @media(max-width:700px){.page-profile-rank-showcase{min-width:0}.page-profile-rank-shell{grid-template-columns:1fr;text-align:center}.page-profile-rank-emblem{margin:0 auto}.page-profile-rank-foot{flex-direction:column;align-items:center}.page-profile-rank-path{grid-template-columns:1fr}}
+
     ::-webkit-scrollbar{width:6px;height:6px}
     ::-webkit-scrollbar-track{background:transparent}
     ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:4px}
@@ -132,6 +181,30 @@
       isset($instructorApplication) &&
       $instructorApplication &&
       $instructorApplication->status === 'rejected';
+
+
+  $currentRank = $currentRank ?? null;
+  $nextRank = $nextRank ?? null;
+  $ranks = $ranks ?? collect();
+  $rankProgressPercent = isset($rankProgressPercent) ? max(0, min(100, (float) $rankProgressPercent)) : 0;
+  $currentRankPosition = $currentRankPosition ?? 1;
+  $totalRanks = $totalRanks ?? max(1, $ranks->count());
+  $currentRankTier = (int) ($currentRank->rank_id ?? 1);
+  $rankTierClass = 'rank-tier-' . max(1, min(8, $currentRankTier));
+  $rankName = $currentRank->rank_name ?? 'Unranked';
+  $rankExpRequired = (int) ($currentRank->exp_required ?? 0);
+  $rankXpToNext = $rankXpToNext ?? 0;
+  $rankEmblems = [
+      1 => '△',
+      2 => '◇',
+      3 => '◆',
+      4 => '✦',
+      5 => '✧',
+      6 => '✹',
+      7 => '✺',
+      8 => '✵',
+  ];
+  $rankEmblem = $rankEmblems[$currentRankTier] ?? '◆';
 @endphp
 
 <div class="page-layout-wrapper">
@@ -183,9 +256,46 @@
 
                 <div class="page-profile-badges">
                   <span class="page-profile-badge page-profile-badge-ds">{{ $roleLabel }}</span>
+                  <span class="page-profile-badge page-profile-badge-rank">{{ $rankName }} Rank</span>
                   <span class="page-profile-badge page-profile-badge-rank">
                     {{ $currentUser->institution_id ? 'Institution Connected' : 'No Institution Yet' }}
                   </span>
+                </div>
+              </div>
+            </div>
+
+
+
+            <div class="page-profile-rank-showcase {{ $rankTierClass }}" style="--rank-progress: {{ $rankProgressPercent }}%;">
+              <div class="page-profile-rank-aurora"></div>
+              <div class="page-profile-rank-shell">
+                <div class="page-profile-rank-emblem" aria-hidden="true">
+                  <span>{{ $rankEmblem }}</span>
+                </div>
+
+                <div class="page-profile-rank-details">
+                  <div class="page-profile-rank-kicker">Current Rank • Tier {{ $currentRankPosition }} of {{ $totalRanks }}</div>
+                  <div class="page-profile-rank-title">{{ $rankName }}</div>
+                  <div class="page-profile-rank-subtitle">
+                    @if ($nextRank)
+                      Earn {{ number_format($rankXpToNext) }} more XP to reach {{ $nextRank->rank_name }}.
+                    @else
+                      You are at the highest DataSensei rank. This is the peak progression design.
+                    @endif
+                  </div>
+
+                  <div class="page-profile-rank-progress" aria-label="Rank progress">
+                    <div class="page-profile-rank-progress-fill"></div>
+                  </div>
+
+                  <div class="page-profile-rank-foot">
+                    <span><strong>{{ number_format($currentUser->xp ?? 0) }}</strong> XP owned</span>
+                    @if ($nextRank)
+                      <span><strong>{{ number_format($nextRank->exp_required) }}</strong> XP next</span>
+                    @else
+                      <span><strong>MAX</strong> rank unlocked</span>
+                    @endif
+                  </div>
                 </div>
               </div>
             </div>
@@ -292,6 +402,45 @@
                 </form>
               </div>
             </div>
+
+            <div class="page-profile-card page-profile-rank-path-card">
+              <div class="page-profile-card-header">
+                <div>
+                  <div class="page-profile-card-title">Rank Progression</div>
+                  <div class="page-profile-card-subtitle">These are ranks, not trophies. Your total XP automatically determines the highest rank you qualify for.</div>
+                </div>
+              </div>
+
+              <div class="page-profile-card-body">
+                @if ($ranks->isNotEmpty())
+                  <div class="page-profile-rank-path">
+                    @foreach ($ranks as $rank)
+                      @php
+                        $rankTier = (int) $rank->rank_id;
+                        $isUnlockedRank = (int) ($currentUser->xp ?? 0) >= (int) $rank->exp_required;
+                        $isCurrentRank = $currentRank && (int) $currentRank->rank_id === $rankTier;
+                        $stepClass = $isCurrentRank ? 'current' : ($isUnlockedRank ? 'unlocked' : 'locked');
+                        $stepEmblem = $rankEmblems[$rankTier] ?? '◆';
+                      @endphp
+
+                      <div class="page-profile-rank-step rank-tier-{{ max(1, min(8, $rankTier)) }} {{ $stepClass }}">
+                        <div class="page-profile-rank-step-top">
+                          <span class="page-profile-rank-step-no">TIER {{ $rankTier }}</span>
+                          <span class="page-profile-rank-step-mark">{{ $stepEmblem }}</span>
+                        </div>
+                        <div class="page-profile-rank-step-name">{{ $rank->rank_name }}</div>
+                        <div class="page-profile-rank-step-exp">{{ number_format($rank->exp_required) }} XP required</div>
+                      </div>
+                    @endforeach
+                  </div>
+                @else
+                  <p class="page-profile-rank-empty">
+                    No ranks found yet. Run the ranks migration first, then reload the profile page.
+                  </p>
+                @endif
+              </div>
+            </div>
+
           </div>
         @endif
 

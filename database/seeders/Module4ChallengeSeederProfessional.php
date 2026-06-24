@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module4ChallengeSeederProfessional extends Seeder
 {
@@ -16,454 +14,508 @@ class Module4ChallengeSeederProfessional extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'professional')->first();
 
-        if (!$category) {
-            $this->command->error("Professional category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Professional category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Mathematical Analysis I')
-                 ->delete();
+        $title = 'Mathematical Analysis I';
 
-        $this->command->info("Creating Module 4 — Mathematical Analysis I (Professional)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 4 — Mathematical Analysis I (Professional) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Mathematical Analysis I',
-            'description'           => 'Professional-grade problems covering functional analysis, real-world numerical methods, production-level mathematical code review, stochastic analysis, and edge cases in computation. Designed for working data scientists, ML engineers, and applied mathematicians.',
-            'time_limit_seconds'    => 2400,
-            'base_xp'               => 2000,
-            'order_index'           => 4,
+            'title' => $title,
+            'description' => 'A detailed 50-item Professional MCQ challenge for Mathematical Analysis I. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 2400,
+            'base_xp' => 1250,
+            'order_index' => 4,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 professional-level Mathematical Analysis I questions...");
-
         $qaData = [
-
-            // ── FUNCTIONAL ANALYSIS ───────────────────────────────────────
             [
-                'q' => "A Banach space is a normed vector space that is:",
+                'q' => 'Item 1: In Mathematical Analysis I, which action best supports production judgment, reliability, governance, and communication when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Finite-dimensional', false],
-                    ['Complete with respect to its norm (every Cauchy sequence converges)', true],
-                    ['Equipped with an inner product', false],
-                    ['Closed under differentiation', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Hilbert space L²([a,b]) consists of functions that are:",
+                'q' => 'Item 2: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the Professional level?',
                 'opts' => [
-                    ['Continuous on [a,b]', false],
-                    ['Square-integrable: ∫ₐᵇ |f(x)|² dx < ∞', true],
-                    ['Differentiable everywhere on [a,b]', false],
-                    ['Bounded on [a,b]', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Riesz Representation Theorem states that every bounded linear functional on a Hilbert space H can be written as:",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Mathematical Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['F(x) = ‖x‖', false],
-                    ['F(x) = ⟨x, y⟩ for a unique y ∈ H', true],
-                    ['F(x) = sup|x|', false],
-                    ['F(x) = ∫ x dx', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In which space does the Fourier transform define an isometry (Parseval's/Plancherel's theorem)?",
+                'q' => 'Item 4: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['C([a,b])', false],
-                    ['L¹(ℝ)', false],
-                    ['L²(ℝ)', true],
-                    ['L∞(ℝ)', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "The Hahn-Banach theorem guarantees:",
+                'q' => 'Item 5: Which response shows the best Professional practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['Every Hilbert space has an orthonormal basis', false],
-                    ['A bounded linear functional on a subspace can be extended to the whole space without increasing its norm', true],
-                    ['Every continuous function is Riemann integrable', false],
-                    ['Every Banach space is reflexive', false],
-                ],
-            ],
-
-            // ── MEASURE THEORY & LEBESGUE ─────────────────────────────────
-            [
-                'q' => "The Dominated Convergence Theorem states: if |fₙ| ≤ g (integrable) and fₙ → f pointwise, then:",
-                'opts' => [
-                    ['∫ fₙ → 0', false],
-                    ['∫ fₙ → ∫ f (limit and integral can be exchanged)', true],
-                    ['fₙ converges uniformly', false],
-                    ['g must equal f', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A function is Lebesgue integrable but NOT Riemann integrable. Which is the classic example?",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
                 'opts' => [
-                    ['f(x) = 1/x on (0,1]', false],
-                    ['f(x) = sin(x)/x', false],
-                    ['The Dirichlet function: f(x) = 1 if x ∈ ℚ, 0 otherwise', true],
-                    ['f(x) = x^(−1/2) on (0,1]', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Egorov's theorem states that for finite measure spaces, pointwise a.e. convergence implies:",
+                'q' => 'Item 7: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['L² convergence', false],
-                    ['Uniform convergence on the entire space', false],
-                    ['Almost uniform convergence (uniform convergence outside a set of arbitrarily small measure)', true],
-                    ['L¹ convergence', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Fatou's lemma states: for non-negative measurable fₙ,\n∫ lim inf fₙ dμ ≤ ?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Mathematical Analysis I?',
                 'opts' => [
-                    ['∫ lim sup fₙ dμ', false],
-                    ['lim inf ∫ fₙ dμ', true],
-                    ['lim sup ∫ fₙ dμ', false],
-                    ['∑ ∫ fₙ dμ', false],
-                ],
-            ],
-
-            // ── PRODUCTION PYTHON — REAL-WORLD CODE REVIEW ───────────────
-            [
-                'q' => "This production gradient descent has a critical numerical issue. Identify it:\n\nimport numpy as np\n\ndef gradient_descent(grad_f, x0, lr=0.1, n_iter=1000):\n    x = x0\n    for i in range(n_iter):\n        x = x - lr * grad_f(x)\n    return x\n\n# Minimizing f(x) = x^100\nresult = gradient_descent(lambda x: 100 * x**99, x0=np.float32(2.0))\nprint(result)",
-                'opts' => [
-                    ['lr=0.1 is too large — the gradient 100·2^99 is astronomically large, causing immediate overflow', true],
-                    ['Should use float64 not float32', false],
-                    ['n_iter=1000 is insufficient', false],
-                    ['The lambda gradient formula is wrong', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A data scientist runs this integral estimation in production. What is the problem?\n\nimport scipy.integrate as integrate\n\ndef compute_kl_divergence(p_samples, q_func):\n    \"\"\"Estimate KL(P||Q) = E_p[log p(x)/q(x)]\"\"\"\n    log_ratios = [np.log(p) - np.log(q_func(x))\n                  for x, p in p_samples]\n    return np.mean(log_ratios)\n\n# q_func can return 0 for out-of-support samples",
+                'q' => 'Item 9: When comparing two approaches in Mathematical Analysis, what should a Professional learner prioritize?',
                 'opts' => [
-                    ['np.mean is not appropriate for KL divergence', false],
-                    ['log(0) = −∞ when q_func(x) = 0, causing NaN/−inf in production', true],
-                    ['Should use scipy.integrate instead of manual summation', false],
-                    ['p_samples should be sorted first', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the numerical issue in this Jacobian computation?\n\nimport numpy as np\n\ndef jacobian(f, x, h=1e-8):\n    n = len(x)\n    J = np.zeros((n, n))\n    for i in range(n):\n        x_plus = x.copy(); x_plus[i] += h\n        x_minus = x.copy(); x_minus[i] -= h\n        J[:, i] = (f(x_plus) - f(x_minus)) / (2 * h)\n    return J",
+                'q' => 'Item 10: What does a strong final answer in Mathematical Analysis I include?',
                 'opts' => [
-                    ['Central differences are wrong — should be forward differences', false],
-                    ['The code is correct; central differences with h=1e-8 is standard practice', true],
-                    ['Should divide by h² not 2h', false],
-                    ['Cannot use numpy for Jacobians', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "This ML pipeline computes a covariance matrix. Identify the edge case failure:\n\ndef compute_cov(X):\n    \"\"\"X: (n_samples, n_features)\"\"\"\n    mean = X.mean(axis=0)\n    centered = X - mean\n    return (centered.T @ centered) / (len(X) - 1)\n\n# Called with X of shape (1, 10)",
+                'q' => 'Item 11: In Mathematical Analysis I, which action best supports production judgment, reliability, governance, and communication when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The centering step is wrong', false],
-                    ['With only 1 sample, len(X) − 1 = 0 → division by zero', true],
-                    ['Should divide by len(X) not len(X) − 1', false],
-                    ['centered.T @ centered gives the wrong shape', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A colleague implements the trapezoidal rule for integrating a probability density. What subtle error exists?\n\nimport numpy as np\n\ndef integrate_pdf(pdf, a, b, n=1000):\n    x = np.linspace(a, b, n)\n    y = np.array([pdf(xi) for xi in x])\n    h = (b - a) / n           # <-- here\n    return h * (y[0]/2 + np.sum(y[1:-1]) + y[-1]/2)\n\n# Should integrate to 1.0 for a valid PDF",
+                'q' => 'Item 12: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the Professional level?',
                 'opts' => [
-                    ['Should use n+1 points: h = (b−a)/n but linspace(a,b,n) gives n points with spacing (b−a)/(n−1)', true],
-                    ['The boundary terms y[0]/2 and y[-1]/2 are wrong', false],
-                    ['PDF values should be summed not averaged', false],
-                    ['h should be (b−a)/(n²)', false],
-                ],
-            ],
-
-            // ── STOCHASTIC ANALYSIS & PROBABILITY ────────────────────────
-            [
-                'q' => "A standard Brownian motion W(t) satisfies which of the following properties?",
-                'opts' => [
-                    ['W(t) − W(s) ~ N(0, t−s) for t > s, with independent increments', true],
-                    ['W(t) is differentiable everywhere', false],
-                    ['W(t) has finite total variation on any interval', false],
-                    ['W(t) is deterministic given W(0) = 0', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Itô's lemma for f(t, W(t)) states:\ndf = ?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Mathematical Analysis when dealing with bias check?',
                 'opts' => [
-                    ['df = ∂f/∂t dt + ∂f/∂W dW', false],
-                    ['df = ∂f/∂t dt + ∂f/∂W dW + (1/2)(∂²f/∂W²) dt', true],
-                    ['df = f\'(W) dW', false],
-                    ['df = (∂f/∂t + ∂f/∂W) dW', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The central limit theorem states that for i.i.d. random variables X₁,…,Xₙ with mean μ and variance σ², (X̄ − μ)/(σ/√n) converges in distribution to:",
+                'q' => 'Item 14: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A uniform distribution', false],
-                    ['A Poisson distribution', false],
-                    ['N(0, 1)', true],
-                    ['A t-distribution', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Law of Large Numbers (strong version) states that as n → ∞, X̄ₙ converges to μ:",
+                'q' => 'Item 15: Which response shows the best Professional practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['In distribution', false],
-                    ['In probability only', false],
-                    ['Almost surely (with probability 1)', true],
-                    ['In L∞ norm', false],
-                ],
-            ],
-
-            // ── NUMERICAL METHODS AT SCALE ────────────────────────────────
-            [
-                'q' => "Runge-Kutta 4th order (RK4) for ODEs has what global truncation error?",
-                'opts' => [
-                    ['O(h)', false],
-                    ['O(h²)', false],
-                    ['O(h⁴)', true],
-                    ['O(h⁵)', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In Gaussian quadrature with n points, the exact integration is achieved for polynomials of degree up to:",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
                 'opts' => [
-                    ['n − 1', false],
-                    ['n', false],
-                    ['2n − 1', true],
-                    ['2n + 1', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the computational advantage of the Fast Fourier Transform (FFT) over the naive DFT?",
+                'q' => 'Item 17: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['FFT reduces O(n²) to O(n log n)', true],
-                    ['FFT reduces O(n log n) to O(n)', false],
-                    ['FFT avoids floating point entirely', false],
-                    ['FFT requires less memory', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "LU decomposition solves Ax = b in O(n³). For which scenario is it most efficient compared to iterative methods?",
+                'q' => 'Item 18: Which situation is most likely an edge case in Mathematical Analysis I?',
                 'opts' => [
-                    ['Very large sparse systems (n > 10⁶)', false],
-                    ['Multiple right-hand sides b with the same A — factorize once, solve many times in O(n²)', true],
-                    ['Symmetric positive-definite matrices only', false],
-                    ['When A has condition number > 10⁶', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "When applying the conjugate gradient method to solve Ax = b, the matrix A must be:",
+                'q' => 'Item 19: When comparing two approaches in Mathematical Analysis, what should a Professional learner prioritize?',
                 'opts' => [
-                    ['Orthogonal', false],
-                    ['Diagonal', false],
-                    ['Symmetric positive-definite', true],
-                    ['Upper triangular', false],
-                ],
-            ],
-
-            // ── EDGE CASES & REAL-WORLD FAILURES ─────────────────────────
-            [
-                'q' => "A softmax function in a neural network is implemented as:\n\ndef softmax(x):\n    return np.exp(x) / np.sum(np.exp(x))\n\nFor input x = [1000, 1000, 1000], what happens and how do you fix it?",
-                'opts' => [
-                    ['Returns correct [1/3, 1/3, 1/3] — no issue', false],
-                    ['np.exp(1000) overflows to inf; fix by subtracting max(x): np.exp(x − max(x))', true],
-                    ['Returns [0, 0, 0] due to underflow', false],
-                    ['Division by zero because all values are equal', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A production system computes log-likelihood:\n\nlog_lik = np.sum(np.log(probabilities))\n\nWhere `probabilities` is an array of predicted probabilities from a model. What is the critical edge case?",
+                'q' => 'Item 20: What does a strong final answer in Mathematical Analysis I include?',
                 'opts' => [
-                    ['np.log is not vectorized', false],
-                    ['If any probability = 0, log(0) = −∞, crashing the loss computation; clip to np.clip(p, 1e-15, 1)', true],
-                    ['Should use log2 not log', false],
-                    ['np.sum does not handle large arrays', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is catastrophic cancellation in floating-point arithmetic, in the context of numerical analysis?",
+                'q' => 'Item 21: In Mathematical Analysis I, which action best supports production judgment, reliability, governance, and communication when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Overflow when adding two large numbers', false],
-                    ['Significant loss of precision when subtracting two nearly equal floating-point numbers', true],
-                    ['Underflow when dividing a small number by a large number', false],
-                    ['Rounding error accumulation over millions of iterations', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A Monte Carlo integration of f(x) on [0,1] uses:\n\nresult = np.mean([f(np.random.uniform()) for _ in range(N)])\n\nThe standard error of this estimate scales as:",
+                'q' => 'Item 22: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the Professional level?',
                 'opts' => [
-                    ['O(1/N)', false],
-                    ['O(1/N²)', false],
-                    ['O(1/√N)', true],
-                    ['O(ln N / N)', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In production ML training, gradient explosion in deep networks is detected when:",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Mathematical Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['The gradient norm approaches zero', false],
-                    ['The loss decreases too slowly', false],
-                    ['Gradient norms become extremely large (NaN/Inf), causing parameter updates to blow up', true],
-                    ['The learning rate is too small', false],
-                ],
-            ],
-
-            // ── ADVANCED OPTIMIZATION ─────────────────────────────────────
-            [
-                'q' => "In convex optimization, the KKT (Karush-Kuhn-Tucker) conditions are necessary and sufficient for optimality when:",
-                'opts' => [
-                    ['The objective is linear', false],
-                    ['The problem is convex and constraint qualification holds (e.g., Slater\'s condition)', true],
-                    ['All constraints are equality constraints', false],
-                    ['The Hessian is positive semi-definite at the boundary', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The proximal gradient method is used when minimizing f(x) + g(x) where:",
+                'q' => 'Item 24: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Both f and g are smooth', false],
-                    ['f is smooth (differentiable) but g is non-smooth (e.g., L1 norm)', true],
-                    ['f is convex and g is non-convex', false],
-                    ['g is the constraint indicator function only', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "BFGS (Broyden–Fletcher–Goldfarb–Shanno) is a quasi-Newton method that approximates:",
+                'q' => 'Item 25: Which response shows the best Professional practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['The gradient of the objective', false],
-                    ['The inverse Hessian using gradient information, avoiding direct Hessian computation', true],
-                    ['The step size using line search only', false],
-                    ['The objective function using Taylor series', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Adam optimizer maintains which two moment estimates?",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
                 'opts' => [
-                    ['First moment (mean of gradients) and second moment (uncentered variance of gradients)', true],
-                    ['Gradient and Hessian', false],
-                    ['Gradient and learning rate', false],
-                    ['Loss value and gradient norm', false],
-                ],
-            ],
-
-            // ── SPECTRAL THEORY & LINEAR OPERATORS ───────────────────────
-            [
-                'q' => "The spectral radius ρ(A) of a matrix A is defined as:",
-                'opts' => [
-                    ['The largest singular value of A', false],
-                    ['The Frobenius norm of A', false],
-                    ['The absolute value of the largest eigenvalue of A', true],
-                    ['The trace of A divided by n', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For a symmetric positive-definite matrix A, all eigenvalues are:",
+                'q' => 'Item 27: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Complex with positive imaginary parts', false],
-                    ['Zero', false],
-                    ['Strictly positive real numbers', true],
-                    ['Between -1 and 1', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Singular Value Decomposition (SVD): A = UΣVᵀ. The columns of U are:",
+                'q' => 'Item 28: Which situation is most likely an edge case in Mathematical Analysis I?',
                 'opts' => [
-                    ['The eigenvectors of A', false],
-                    ['The left singular vectors (eigenvectors of AAᵀ)', true],
-                    ['The diagonal entries of Σ', false],
-                    ['The right singular vectors (eigenvectors of AᵀA)', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "In PCA, the principal components are the eigenvectors of which matrix?",
+                'q' => 'Item 29: When comparing two approaches in Mathematical Analysis, what should a Professional learner prioritize?',
                 'opts' => [
-                    ['The data matrix X', false],
-                    ['The covariance matrix XᵀX (or sample covariance)', true],
-                    ['The Gram matrix XXᵀ', false],
-                    ['The precision matrix (inverse covariance)', false],
-                ],
-            ],
-
-            // ── REAL-WORLD APPLIED PROBLEMS ────────────────────────────────
-            [
-                'q' => "In signal processing, the Nyquist-Shannon sampling theorem states that to perfectly reconstruct a signal with maximum frequency f_max, you must sample at a rate of at least:",
-                'opts' => [
-                    ['f_max', false],
-                    ['2 · f_max', true],
-                    ['π · f_max', false],
-                    ['f_max / 2', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A data pipeline computes rolling statistics on a time series. The mathematical property being exploited when using an exponentially weighted moving average (EWMA) is:",
+                'q' => 'Item 30: What does a strong final answer in Mathematical Analysis I include?',
                 'opts' => [
-                    ['The series is periodic', false],
-                    ['The geometric decay of weights allows O(1) updates per step using the recurrence: μₜ = αxₜ + (1−α)μₜ₋₁', true],
-                    ['The series has zero mean', false],
-                    ['The Fourier transform of the weights is sparse', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a recommendation system, you minimize ‖R − UVᵀ‖²_F (matrix factorization). The Frobenius norm is defined as:",
+                'q' => 'Item 31: In Mathematical Analysis I, which action best supports production judgment, reliability, governance, and communication when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The largest singular value of (R − UVᵀ)', false],
-                    ['√(∑ᵢ∑ⱼ aᵢⱼ²)', true],
-                    ['The nuclear norm (sum of singular values)', false],
-                    ['The trace of (R − UVᵀ)', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In Gaussian process regression, the predictive mean at a new point x* is given by k(x*, X)[K(X,X) + σ²I]⁻¹y. The dominant computational cost is:",
+                'q' => 'Item 32: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the Professional level?',
                 'opts' => [
-                    ['Computing k(x*, X): O(n)', false],
-                    ['Inverting [K(X,X) + σ²I]: O(n³)', true],
-                    ['Computing the predictive variance: O(n²)', false],
-                    ['The dot product with y: O(n)', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A Fourier transform is used in time-series anomaly detection. A spike in the frequency domain at frequency f means:",
+                'q' => 'Item 33: Which mistake most commonly weakens work in Mathematical Analysis when dealing with bias check?',
                 'opts' => [
-                    ['A single outlier point in the time series', false],
-                    ['A periodic pattern with period 1/f repeating throughout the signal', true],
-                    ['The signal has mean f', false],
-                    ['The derivative of the signal equals f', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "When computing the matrix exponential e^(At) for a stiff ODE system, standard explicit methods (like Euler) require extremely small step sizes because:",
+                'q' => 'Item 34: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['e^(At) grows too fast for explicit methods', false],
-                    ['The eigenvalues of A span a wide range; stability requires h < 2/max|λ|, forcing h → 0', true],
-                    ['The matrix exponential is not differentiable', false],
-                    ['Explicit methods cannot handle matrix inputs', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In Bayesian inference, the posterior p(θ|X) ∝ p(X|θ)·p(θ). When the posterior is intractable, which method approximates it by finding the closest distribution in a family?",
+                'q' => 'Item 35: Which response shows the best Professional practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['Markov Chain Monte Carlo (MCMC)', false],
-                    ['Rejection sampling', false],
-                    ['Variational inference (minimizes KL divergence between approximate q(θ) and true posterior)', true],
-                    ['Bootstrap sampling', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Mathematical Analysis I?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Mathematical Analysis, what should a Professional learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Mathematical Analysis I include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Mathematical Analysis I, which action best supports production judgment, reliability, governance, and communication when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the Professional level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Mathematical Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Professional practice when a method in Mathematical Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Mathematical Analysis I?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Mathematical Analysis, what should a Professional learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Mathematical Analysis I include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 4 — Mathematical Analysis I (Professional).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Professional");
+        $this->command->info('Module 4 MCQ (Professional) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

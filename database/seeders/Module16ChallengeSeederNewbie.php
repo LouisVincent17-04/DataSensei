@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module16ChallengeSeederNewbie extends Seeder
 {
@@ -16,517 +14,508 @@ class Module16ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Multivariate Analysis';
 
-        $this->command->info("Creating Module 16 — Multivariate Analysis (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 16 — Multivariate Analysis (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Multivariate Analysis',
-            'description'           => 'Test your knowledge of the very basics of multivariate analysis — what it means to work with multiple variables, what covariance and correlation are, and what methods like PCA and clustering are used for. No prior experience assumed!',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 16,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Multivariate Analysis. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 16,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-friendly questions...");
-
         $qaData = [
-
-            // ── INTRODUCTION TO MULTIVARIATE DATA ────────────────────────
             [
-                'q' => 'What does "multivariate" mean in statistics?',
+                'q' => 'Item 1: In Multivariate Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Working with only one variable at a time', false],
-                    ['Working with two or more variables simultaneously', true],
-                    ['Working with very large datasets', false],
-                    ['Working with categorical data only', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a multivariate dataset?',
+                'q' => 'Item 2: A learner working on Multivariate Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A list of 100 heights', false],
-                    ['A list of 100 weights', false],
-                    ['A table recording each person\'s height, weight, and age', true],
-                    ['A single temperature reading', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In multivariate analysis, each observation is typically represented as:',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Multivariate Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['A single number', false],
-                    ['A vector of values (one value per variable)', true],
-                    ['A pie chart', false],
-                    ['A histogram', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the multivariate normal distribution?',
+                'q' => 'Item 4: For Multivariate Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A normal distribution applied to a single variable', false],
-                    ['A generalization of the normal distribution to multiple variables at once', true],
-                    ['A distribution that only applies to binary data', false],
-                    ['A distribution where all variables must be identical', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The shape of a multivariate normal distribution is determined by its mean vector and:',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Multivariate Analysis fails on one test case?',
                 'opts' => [
-                    ['Its range', false],
-                    ['Its mode', false],
-                    ['Its covariance matrix', true],
-                    ['Its histogram', false],
-                ],
-            ],
-
-            // ── COVARIANCE & CORRELATION ──────────────────────────────────
-            [
-                'q' => 'What does covariance measure between two variables?',
-                'opts' => [
-                    ['How far each variable is from the origin', false],
-                    ['How two variables change together (their joint variability)', true],
-                    ['The average value of each variable', false],
-                    ['The number of observations', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If two variables tend to increase together, their covariance is:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Multivariate Analysis tasks?',
                 'opts' => [
-                    ['Negative', false],
-                    ['Zero', false],
-                    ['Positive', true],
-                    ['Undefined', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The covariance matrix of a dataset with p variables has dimensions:',
+                'q' => 'Item 7: In a Multivariate Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['p × 1', false],
-                    ['1 × p', false],
-                    ['p × p', true],
-                    ['n × p (where n is the number of observations)', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What value appears on the diagonal of a covariance matrix?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Multivariate Analysis?',
                 'opts' => [
-                    ['The mean of each variable', false],
-                    ['The variance of each variable', true],
-                    ['The correlation between pairs of variables', false],
-                    ['Zero always', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The correlation coefficient between two variables is always between:',
+                'q' => 'Item 9: When comparing two approaches in Multivariate Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['0 and 1', false],
-                    ['−1 and 1', true],
-                    ['−∞ and +∞', false],
-                    ['0 and 100', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A correlation of 0 between two variables means:',
+                'q' => 'Item 10: What does a strong final answer in Multivariate Analysis include?',
                 'opts' => [
-                    ['They are identical', false],
-                    ['They have no linear relationship', true],
-                    ['They are perfectly inversely related', false],
-                    ['One causes the other', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the difference between covariance and correlation?',
+                'q' => 'Item 11: In Multivariate Analysis, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['They measure different things entirely', false],
-                    ['Correlation is a standardized version of covariance (scale-free, between −1 and 1)', true],
-                    ['Covariance is always larger than correlation', false],
-                    ['Correlation is only used for categorical variables', false],
-                ],
-            ],
-
-            // ── PRINCIPAL COMPONENT ANALYSIS (PCA) ───────────────────────
-            [
-                'q' => 'What is the main goal of Principal Component Analysis (PCA)?',
-                'opts' => [
-                    ['To classify data into groups', false],
-                    ['To reduce the number of variables while keeping as much variation as possible', true],
-                    ['To find the mean of all variables', false],
-                    ['To remove all correlations by deleting variables', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The first principal component captures:',
+                'q' => 'Item 12: A learner working on Multivariate Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The least variance in the data', false],
-                    ['The most variance in the data', true],
-                    ['The average of all variables', false],
-                    ['All the variance in the data', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Principal components are always:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Multivariate Analysis when dealing with bias check?',
                 'opts' => [
-                    ['Correlated with each other', false],
-                    ['Uncorrelated (orthogonal) with each other', true],
-                    ['Equal in variance', false],
-                    ['The same as the original variables', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Before applying PCA, it is common practice to:',
+                'q' => 'Item 14: For Multivariate Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Remove all negative values', false],
-                    ['Standardize (center and scale) the variables', true],
-                    ['Convert all variables to binary', false],
-                    ['Remove all zero values', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In PCA, a "scree plot" is used to:',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Multivariate Analysis fails on one test case?',
                 'opts' => [
-                    ['Plot the original data points', false],
-                    ['Visualize how much variance each principal component explains', true],
-                    ['Show the correlation matrix', false],
-                    ['Display the mean of each component', false],
-                ],
-            ],
-
-            // ── FACTOR ANALYSIS ───────────────────────────────────────────
-            [
-                'q' => 'What is the goal of Factor Analysis?',
-                'opts' => [
-                    ['To predict a numeric outcome variable', false],
-                    ['To discover underlying hidden (latent) factors that explain correlations among observed variables', true],
-                    ['To cluster data into groups', false],
-                    ['To test if two groups have different means', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Factor Analysis, a "factor loading" represents:',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Multivariate Analysis tasks?',
                 'opts' => [
-                    ['The mean value of a factor', false],
-                    ['The correlation between an observed variable and a latent factor', true],
-                    ['The number of variables in the model', false],
-                    ['The variance explained by all factors combined', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Factor Analysis is different from PCA primarily because:',
+                'q' => 'Item 17: In a Multivariate Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Factor Analysis uses more data', false],
-                    ['Factor Analysis assumes underlying latent factors cause the observed correlations; PCA is a purely mathematical transformation with no causal assumption', true],
-                    ['PCA works on categorical data; Factor Analysis does not', false],
-                    ['They are exactly the same method', false],
-                ],
-            ],
-
-            // ── MANOVA ────────────────────────────────────────────────────
-            [
-                'q' => 'What does MANOVA stand for?',
-                'opts' => [
-                    ['Multivariate Analysis of Variance', true],
-                    ['Multiple Average Numerical Output Variation Analysis', false],
-                    ['Multivariate Assessment of Nominal Variables Analysis', false],
-                    ['Mean-Adjusted Null-Output Variance Analysis', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'How is MANOVA different from ANOVA?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Multivariate Analysis?',
                 'opts' => [
-                    ['MANOVA uses fewer groups', false],
-                    ['MANOVA tests differences in multiple dependent variables simultaneously; ANOVA tests only one dependent variable at a time', true],
-                    ['MANOVA is used for categorical outcomes; ANOVA is for numeric', false],
-                    ['There is no difference', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'MANOVA is appropriate when you want to test whether group means differ across:',
+                'q' => 'Item 19: When comparing two approaches in Multivariate Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['A single dependent variable', false],
-                    ['Multiple dependent variables at the same time', true],
-                    ['Multiple independent variables only', false],
-                    ['A binary outcome', false],
-                ],
-            ],
-
-            // ── DISCRIMINANT ANALYSIS ─────────────────────────────────────
-            [
-                'q' => 'What is the main purpose of Linear Discriminant Analysis (LDA)?',
-                'opts' => [
-                    ['To reduce the number of variables', false],
-                    ['To find a linear combination of variables that best separates two or more known groups', true],
-                    ['To cluster data into unknown groups', false],
-                    ['To compute the covariance matrix', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'LDA is primarily used for:',
+                'q' => 'Item 20: What does a strong final answer in Multivariate Analysis include?',
                 'opts' => [
-                    ['Unsupervised learning (finding hidden structure)', false],
-                    ['Supervised classification (predicting which group a new observation belongs to)', true],
-                    ['Reducing the number of rows in a dataset', false],
-                    ['Computing means and variances', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Quadratic Discriminant Analysis (QDA) differs from LDA because:',
+                'q' => 'Item 21: In Multivariate Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['QDA uses fewer variables', false],
-                    ['QDA allows each group to have its own covariance matrix (more flexible than LDA)', true],
-                    ['QDA can only handle two groups', false],
-                    ['QDA is unsupervised while LDA is supervised', false],
-                ],
-            ],
-
-            // ── CLUSTER ANALYSIS ──────────────────────────────────────────
-            [
-                'q' => 'What is the goal of cluster analysis?',
-                'opts' => [
-                    ['To predict a known outcome', false],
-                    ['To group observations so that items in the same group are more similar to each other than to items in other groups', true],
-                    ['To find the mean of all variables', false],
-                    ['To test a statistical hypothesis', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'k-Means clustering requires the user to specify:',
+                'q' => 'Item 22: A learner working on Multivariate Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The size of each cluster', false],
-                    ['The number of clusters (k) in advance', true],
-                    ['The maximum variance allowed', false],
-                    ['The labels for each cluster', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In k-Means, the algorithm assigns each point to the cluster with the:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Multivariate Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Highest variance', false],
-                    ['Nearest centroid (center)', true],
-                    ['Most observations', false],
-                    ['Smallest index number', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Hierarchical clustering produces a tree-like diagram called a:',
+                'q' => 'Item 24: For Multivariate Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Scree plot', false],
-                    ['Dendrogram', true],
-                    ['Scatter plot', false],
-                    ['Box plot', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Is cluster analysis supervised or unsupervised?',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Multivariate Analysis fails on one test case?',
                 'opts' => [
-                    ['Supervised — you need known group labels', false],
-                    ['Unsupervised — no group labels are needed', true],
-                    ['Semi-supervised only', false],
-                    ['Neither — it is a hypothesis test', false],
-                ],
-            ],
-
-            // ── CANONICAL CORRELATION ANALYSIS ───────────────────────────
-            [
-                'q' => 'What does Canonical Correlation Analysis (CCA) examine?',
-                'opts' => [
-                    ['The variance within a single set of variables', false],
-                    ['The relationship between two sets of variables', true],
-                    ['The difference in means between two groups', false],
-                    ['The principal components of a dataset', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'CCA finds linear combinations of each variable set that are:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Multivariate Analysis tasks?',
                 'opts' => [
-                    ['As uncorrelated as possible', false],
-                    ['Maximally correlated with each other across the two sets', true],
-                    ['Identical to the original variables', false],
-                    ['Minimally correlated with the original variables', false],
-                ],
-            ],
-
-            // ── MDS & t-SNE ───────────────────────────────────────────────
-            [
-                'q' => 'What is the purpose of Multidimensional Scaling (MDS)?',
-                'opts' => [
-                    ['To find the mean distance between observations', false],
-                    ['To visualize high-dimensional data in a low-dimensional space while preserving pairwise distances', true],
-                    ['To classify observations into groups', false],
-                    ['To compute the correlation matrix', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 't-SNE is primarily used for:',
+                'q' => 'Item 27: In a Multivariate Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Testing hypotheses about group means', false],
-                    ['Visualizing high-dimensional data in 2D or 3D', true],
-                    ['Computing pairwise correlations', false],
-                    ['Performing cluster assignments', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which statement about t-SNE is correct?',
+                'q' => 'Item 28: Which situation is most likely an edge case in Multivariate Analysis?',
                 'opts' => [
-                    ['t-SNE results are easy to interpret quantitatively', false],
-                    ['t-SNE preserves global distances perfectly', false],
-                    ['t-SNE is mainly a visualization tool and distances in the plot should not be over-interpreted', true],
-                    ['t-SNE always produces the same result regardless of random seed', false],
-                ],
-            ],
-
-            // ── MULTIVARIATE REGRESSION ───────────────────────────────────
-            [
-                'q' => 'Multivariate regression extends simple linear regression by:',
-                'opts' => [
-                    ['Using a single predictor variable', false],
-                    ['Using multiple predictor variables to predict one or more outcome variables', true],
-                    ['Removing all correlated predictors', false],
-                    ['Applying only to categorical outcomes', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a regression equation Y = β₀ + β₁X₁ + β₂X₂ + ε, what does β₁ represent?',
+                'q' => 'Item 29: When comparing two approaches in Multivariate Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['The intercept when all predictors are zero', false],
-                    ['The expected change in Y for a one-unit increase in X₁, holding X₂ constant', true],
-                    ['The total variance explained by the model', false],
-                    ['The correlation between X₁ and X₂', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is multicollinearity in multivariate regression?',
+                'q' => 'Item 30: What does a strong final answer in Multivariate Analysis include?',
                 'opts' => [
-                    ['When the outcome variable has multiple values', false],
-                    ['When two or more predictor variables are highly correlated with each other', true],
-                    ['When the model has too many observations', false],
-                    ['When the residuals are not normally distributed', false],
-                ],
-            ],
-
-            // ── GENERAL CONCEPTS ──────────────────────────────────────────
-            [
-                'q' => 'What is a "dimension" in the context of multivariate data?',
-                'opts' => [
-                    ['The physical size of the dataset file', false],
-                    ['Each variable or feature measured for each observation', true],
-                    ['The number of rows in the dataset', false],
-                    ['A measure of statistical significance', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The "curse of dimensionality" refers to:',
+                'q' => 'Item 31: In Multivariate Analysis, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Having too many observations', false],
-                    ['The difficulty of analysis and the sparsity of data as the number of variables grows very large', true],
-                    ['Datasets that are too small', false],
-                    ['Having highly correlated variables', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Dimensionality reduction methods like PCA are useful because they:',
+                'q' => 'Item 32: A learner working on Multivariate Analysis gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Always improve prediction accuracy', false],
-                    ['Simplify data by reducing the number of variables while retaining key information', true],
-                    ['Remove all noise from the data', false],
-                    ['Guarantee independence between variables', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which of the following is an UNSUPERVISED multivariate method?',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Multivariate Analysis when dealing with bias check?',
                 'opts' => [
-                    ['LDA', false],
-                    ['MANOVA', false],
-                    ['k-Means Clustering', true],
-                    ['Multiple Regression', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a SUPERVISED multivariate method?',
+                'q' => 'Item 34: For Multivariate Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['PCA', false],
-                    ['Hierarchical Clustering', false],
-                    ['t-SNE', false],
-                    ['Linear Discriminant Analysis (LDA)', true],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A scatter plot matrix (pairs plot) is useful for:',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Multivariate Analysis fails on one test case?',
                 'opts' => [
-                    ['Viewing all pairwise relationships between variables at once', true],
-                    ['Showing the distribution of a single variable', false],
-                    ['Ranking variables by importance', false],
-                    ['Computing the correlation matrix numerically', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does a heat map of a correlation matrix show?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Multivariate Analysis tasks?',
                 'opts' => [
-                    ['The raw values of each observation', false],
-                    ['The pairwise correlations between all variables, colour-coded by strength and direction', true],
-                    ['The cluster membership of each observation', false],
-                    ['The principal component loadings only', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In multivariate statistics, an "outlier" can be detected using the Mahalanobis distance because it:',
+                'q' => 'Item 37: In a Multivariate Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Measures only the distance from the mean of a single variable', false],
-                    ['Accounts for the correlations between variables when measuring how far a point is from the center of the data', true],
-                    ['Always equals the Euclidean distance', false],
-                    ['Requires no knowledge of the covariance matrix', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Path Analysis is used to:',
+                'q' => 'Item 38: Which situation is most likely an edge case in Multivariate Analysis?',
                 'opts' => [
-                    ['Find the shortest path between observations', false],
-                    ['Test and estimate causal or directional relationships among multiple variables', true],
-                    ['Sort variables into hierarchical clusters', false],
-                    ['Reduce the dataset to two dimensions', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which multivariate method would you use to understand which variables best separate already-known species groups?',
+                'q' => 'Item 39: When comparing two approaches in Multivariate Analysis, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['PCA', false],
-                    ['k-Means Clustering', false],
-                    ['Linear Discriminant Analysis (LDA)', true],
-                    ['MDS', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which multivariate method would you use to explore unknown groupings in customer purchase data?',
+                'q' => 'Item 40: What does a strong final answer in Multivariate Analysis include?',
                 'opts' => [
-                    ['MANOVA', false],
-                    ['LDA', false],
-                    ['Cluster Analysis', true],
-                    ['Canonical Correlation Analysis', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Multivariate Analysis, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Multivariate Analysis gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Multivariate Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Multivariate Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Multivariate Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Multivariate Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Multivariate Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Multivariate Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Multivariate Analysis, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Multivariate Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 16 — Multivariate Analysis (Newbie).");
+        $this->command->info('Module 16 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

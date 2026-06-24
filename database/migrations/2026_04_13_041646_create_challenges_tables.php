@@ -60,8 +60,8 @@ return new class extends Migration
 
         Schema::dropIfExists('challenge_options');
         Schema::dropIfExists('challenge_questions');
-        Schema::dropIfExists('challenges');
         Schema::dropIfExists('challenge_user');
+        Schema::dropIfExists('challenges');
 
         Schema::enableForeignKeyConstraints();
     }

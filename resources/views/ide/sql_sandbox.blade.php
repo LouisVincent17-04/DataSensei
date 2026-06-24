@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SQL Sandbox — DataSensei</title>
+    @include('partials.brand-head')
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <style>
         /* ── Variables Matched to index.blade.php ─────────────────────────── */
@@ -56,7 +57,7 @@
         }
 
         .topbar-logo { font-weight: 700; font-size: 0.875rem; letter-spacing: -0.02em; display: flex; align-items: center; gap: 6px; }
-        .topbar-logo span { color: var(--accent); }
+        .topbar-logo .ds-brand-logo__accent { color: var(--accent); }
         .topbar-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
         
         .workspace { display: flex; flex: 1; overflow: hidden; }
@@ -185,6 +186,23 @@
         .tb-btn.run { background: var(--accent3); color: #fff; border-color: var(--accent3); font-weight: 600; }
         .tb-btn.run:hover { background: #0ea472; }
         .tb-btn.run:disabled { opacity: 0.6; cursor: not-allowed; }
+        .sql-sample-select {
+            height: 30px;
+            min-width: 190px;
+            border: 1px solid var(--border);
+            background: var(--surface3);
+            color: var(--muted);
+            border-radius: var(--radius);
+            padding: 0 10px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+        .sql-sample-select:hover,
+        .sql-sample-select:focus { color: var(--text); border-color: var(--border-hover); background: var(--surface2); }
+        .sql-sample-select option { background: var(--surface); color: var(--text); }
         
         .shortcut { font-size: 10px; color: var(--dim); margin-left: auto; }
         kbd { background: var(--surface2); border: 1px solid var(--border); padding: 1px 4px; border-radius: 3px; }
@@ -369,8 +387,12 @@
 <div class="shell">
     <div class="topbar">
         <div class="topbar-logo">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2.5"><path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z"/><path d="M8 12h8M8 16h5"/></svg>
-            Data<span>Sensei</span>
+            @include('partials.brand-logo', [
+                'variant' => 'topbar',
+                'size' => 'compact',
+                'showText' => true,
+                'href' => route('studentDashboard'),
+            ])
         </div>
         <div class="topbar-sep"></div>
         <span class="topbar-title">SQL Sandbox</span>
@@ -414,6 +436,14 @@
                 {{-- Full-width drag handle replaces the native lower-right resize grip --}}
                 <div class="editor-resize-handle" id="editor-resize-handle"></div>
                 <div class="run-bar">
+                    <select class="sql-sample-select" id="sqlSampleSelect" title="Auto-generate sample SQL" onchange="insertSqlSample(this.value); this.value='';">
+                        <option value="">Generate SQL sample...</option>
+                        <option value="simple_select">Simple SELECT</option>
+                        <option value="create_insert">CREATE + INSERT + SELECT</option>
+                        <option value="where_order">WHERE + ORDER BY</option>
+                        <option value="join_group">JOIN + GROUP BY</option>
+                        <option value="safe_update">Safe UPDATE</option>
+                    </select>
                     <button class="tb-btn run" id="run-btn" onclick="runQuery()">
                         <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
                         Run Query
@@ -515,6 +545,7 @@ const ReviewBot = (() => {
   let _busy     = false;
   let _lastCode = '';
   let _lastLang = 'mysql';
+  let _lastRunOutput = '';
   const _history = [];
 
   const $toggle = () => document.getElementById('rb-toggle');
@@ -549,10 +580,11 @@ const ReviewBot = (() => {
   }
 
   /* ── Called by runQuery() automatically ── */
-  function autoReview(sql) {
+  function autoReview(sql, runOutput = '') {
     if (!sql || !sql.trim()) return;
     _lastCode = sql;
     _lastLang = 'mysql';
+    _lastRunOutput = runOutput || '';
     _history.length = 0; // reset context per new run
 
     _open_panel();
@@ -622,6 +654,7 @@ const ReviewBot = (() => {
       form.append('mode',     'review');
       form.append('code',     code);
       form.append('language', lang || 'mysql');
+      form.append('run_output', _lastRunOutput || '');
 
       const res  = await fetch(REVIEW_URL, {
         method: 'POST',
@@ -658,6 +691,8 @@ const ReviewBot = (() => {
       form.append('code',     _lastCode);
       form.append('language', _lastLang);
       form.append('question', messages[messages.length - 1].content);
+      form.append('run_output', _lastRunOutput || '');
+      form.append('previous_context', _history.map(h => h.content).slice(-4).join('\n---\n'));
 
       const res  = await fetch(REVIEW_URL, {
         method: 'POST',
@@ -817,6 +852,99 @@ const ReviewBot = (() => {
         updateLines();
         sessionStorage.removeItem('datasensei_pending_sql_code');
     }
+
+    // ── Sample SQL generator ────────────────────────────────────────────────
+
+    const SQL_SAMPLES = {
+        simple_select: `-- Simple SELECT
+-- Run this after creating a table, or change the table name to your own table.
+SELECT * FROM students;`,
+
+        create_insert: `-- CREATE + INSERT + SELECT
+-- This creates a small table, inserts sample data, then displays the records.
+
+CREATE TABLE students (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  program TEXT NOT NULL,
+  score INTEGER NOT NULL
+);
+
+INSERT INTO students (id, name, program, score) VALUES
+  (1, 'Ana', 'BSIT', 88),
+  (2, 'Ben', 'BSCS', 74),
+  (3, 'Carlo', 'BSIT', 91),
+  (4, 'Dina', 'BSCS', 83);
+
+SELECT * FROM students;`,
+
+        where_order: `-- WHERE + ORDER BY
+-- Shows only passing students and sorts them by highest score.
+
+SELECT
+  name,
+  program,
+  score
+FROM students
+WHERE score >= 75
+ORDER BY score DESC;`,
+
+        join_group: `-- JOIN + GROUP BY
+-- Creates two related tables and summarizes average scores per program.
+
+CREATE TABLE programs (
+  id INTEGER PRIMARY KEY,
+  program_code TEXT NOT NULL,
+  program_name TEXT NOT NULL
+);
+
+CREATE TABLE student_scores (
+  id INTEGER PRIMARY KEY,
+  student_name TEXT NOT NULL,
+  program_id INTEGER NOT NULL,
+  score INTEGER NOT NULL
+);
+
+INSERT INTO programs (id, program_code, program_name) VALUES
+  (1, 'BSIT', 'Bachelor of Science in Information Technology'),
+  (2, 'BSCS', 'Bachelor of Science in Computer Science');
+
+INSERT INTO student_scores (id, student_name, program_id, score) VALUES
+  (1, 'Ana', 1, 88),
+  (2, 'Ben', 2, 74),
+  (3, 'Carlo', 1, 91),
+  (4, 'Dina', 2, 83);
+
+SELECT
+  p.program_code,
+  COUNT(s.id) AS total_students,
+  ROUND(AVG(s.score), 2) AS average_score
+FROM programs p
+JOIN student_scores s ON s.program_id = p.id
+GROUP BY p.program_code
+ORDER BY average_score DESC;`,
+
+        safe_update: `-- Safe UPDATE
+-- Always use WHERE when updating records.
+
+UPDATE students
+SET score = 90
+WHERE id = 2;
+
+SELECT * FROM students
+WHERE id = 2;`
+    };
+
+    window.insertSqlSample = key => {
+        if (!key || !SQL_SAMPLES[key]) return;
+        const current = $query.value.trim();
+        if (current && !confirm('Replace the current SQL editor content with this sample?')) {
+            return;
+        }
+        $query.value = SQL_SAMPLES[key];
+        $query.focus();
+        updateLines();
+    };
 
     // ── Snippet helpers ───────────────────────────────────────────────────
 
@@ -990,23 +1118,28 @@ const ReviewBot = (() => {
         $spinner.classList.add('show');
         $badge.style.display = 'none';
 
-        // 🤖 Trigger AI review on every Run Query
-        ReviewBot.autoReview(q);
-
         try {
             const { data } = await apiFetch(BASE + '/execute', {
                 method: 'POST',
                 body:   JSON.stringify({ query: q }),
             });
 
+            let reviewOutput = '';
             if (data.status === 'success') {
                 const cols = data.columns && data.columns.length > 0 ? data.columns : null;
                 showResult(true, cols ?? data.message, data.rows ?? []);
+                reviewOutput = cols
+                    ? `Columns: ${cols.join(', ')}\nRows returned: ${(data.rows || []).length}\nPreview: ${JSON.stringify((data.rows || []).slice(0, 5))}`
+                    : (data.message || 'SQL executed successfully.');
                 // Refresh sidebar schema in case CREATE/DROP/ALTER ran
                 loadTables();
             } else {
                 showResult(false, data.message || 'Query failed.');
+                reviewOutput = data.message || 'Query failed.';
             }
+
+            // Review after execution so the chatbot sees the actual SQL result/error.
+            ReviewBot.autoReview(q, reviewOutput);
 
         } catch (err) {
             // Only true network failures (offline, DNS, CORS) land here now.

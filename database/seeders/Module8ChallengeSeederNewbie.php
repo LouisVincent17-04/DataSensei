@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module8ChallengeSeederNewbie extends Seeder
 {
@@ -16,517 +14,508 @@ class Module8ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
+        $title = 'Statistical Methods & Experimental Design';
+
         Challenge::where('challenge_category_id', $category->id)
-            ->where('title', 'Statistical Methods & Experimental Design')
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
             ->delete();
 
-        $this->command->info("Creating Module 8 — Statistical Methods & Experimental Design (Newbie)...");
+        $this->command->info('Creating Module 8 — Statistical Methods & Experimental Design (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Statistical Methods & Experimental Design',
-            'description'           => 'Test your basic understanding of statistics — mean, median, mode, probability, and simple data concepts. No advanced math required!',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 8,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Statistical Methods & Experimental Design. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 8,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-friendly statistics questions...");
-
         $qaData = [
-
-            // ── BASIC STATS CONCEPTS ─────────────────────────────────────
             [
-                'q' => 'What is the MEAN of the data set: 2, 4, 6, 8, 10?',
+                'q' => 'Item 1: In Statistical Methods & Experimental Design, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['4', false],
-                    ['5', false],
-                    ['6', true],
-                    ['8', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the MEDIAN of: 3, 7, 1, 9, 5?',
+                'q' => 'Item 2: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['3', false],
-                    ['5', true],
-                    ['7', false],
-                    ['9', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the MODE of: 4, 2, 4, 3, 1, 4, 2?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with assumptions?',
                 'opts' => [
-                    ['2', false],
-                    ['3', false],
-                    ['4', true],
-                    ['1', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which measure of central tendency is most affected by extreme values (outliers)?',
+                'q' => 'Item 4: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Mode', false],
-                    ['Median', false],
-                    ['Mean', true],
-                    ['Range', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the RANGE of the data set: 5, 12, 3, 8, 20?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['15', false],
-                    ['17', true],
-                    ['20', false],
-                    ['8', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The range is calculated as:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['Mean minus Median', false],
-                    ['Largest value minus Smallest value', true],
-                    ['Sum of all values divided by count', false],
-                    ['Middle value of the sorted set', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'You have the scores: 10, 10, 20, 30, 30. What is the mode?',
+                'q' => 'Item 7: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['10 only', false],
-                    ['30 only', false],
-                    ['10 and 30', true],
-                    ['20', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the mean of: 0, 0, 0, 12?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
                 'opts' => [
-                    ['0', false],
-                    ['3', true],
-                    ['4', false],
-                    ['12', false],
-                ],
-            ],
-
-            // ── PROBABILITY BASICS ───────────────────────────────────────
-            [
-                'q' => 'A fair coin is flipped once. What is the probability of getting HEADS?',
-                'opts' => [
-                    ['1/4', false],
-                    ['1/3', false],
-                    ['1/2', true],
-                    ['1', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A bag has 3 red and 7 blue marbles. What is the probability of picking a RED marble?',
+                'q' => 'Item 9: When comparing two approaches in Statistical Methods and Experimental Design, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['3/7', false],
-                    ['7/10', false],
-                    ['3/10', true],
-                    ['1/3', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Probability values must always be between:',
+                'q' => 'Item 10: What does a strong final answer in Statistical Methods & Experimental Design include?',
                 'opts' => [
-                    ['-1 and 1', false],
-                    ['0 and 1', true],
-                    ['0 and 100', false],
-                    ['1 and 10', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A single die is rolled. What is the probability of rolling a 6?',
+                'q' => 'Item 11: In Statistical Methods & Experimental Design, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['1/4', false],
-                    ['1/5', false],
-                    ['1/6', true],
-                    ['1/2', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If an event is IMPOSSIBLE, its probability is:',
+                'q' => 'Item 12: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['1', false],
-                    ['0.5', false],
-                    ['-1', false],
-                    ['0', true],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'If an event is CERTAIN to happen, its probability is:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with bias check?',
                 'opts' => [
-                    ['0', false],
-                    ['0.5', false],
-                    ['1', true],
-                    ['100', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A standard deck has 52 cards. What is the probability of drawing an ACE?',
+                'q' => 'Item 14: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['1/52', false],
-                    ['4/52', true],
-                    ['13/52', false],
-                    ['2/52', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is NOT a valid probability?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['0.25', false],
-                    ['0', false],
-                    ['1', false],
-                    ['1.5', true],
-                ],
-            ],
-
-            // ── DATA TYPES & LEVELS ──────────────────────────────────────
-            [
-                'q' => 'Which of the following is an example of CATEGORICAL data?',
-                'opts' => [
-                    ['Height in centimeters', false],
-                    ['Temperature in Celsius', false],
-                    ['Eye color (blue, brown, green)', true],
-                    ['Weight in kilograms', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is NUMERICAL (quantitative) data?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['Favorite sport', false],
-                    ['Number of siblings', true],
-                    ['Country of birth', false],
-                    ['Blood type', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A survey asks "How many hours of sleep do you get?" — this data is:',
+                'q' => 'Item 17: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Categorical', false],
-                    ['Qualitative', false],
-                    ['Numerical (Quantitative)', true],
-                    ['Ordinal only', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'T-shirt sizes (Small, Medium, Large) are an example of which data type?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
                 'opts' => [
-                    ['Nominal', false],
-                    ['Ordinal', true],
-                    ['Interval', false],
-                    ['Ratio', false],
-                ],
-            ],
-
-            // ── GRAPHS & VISUALIZATION ───────────────────────────────────
-            [
-                'q' => 'Which chart is BEST for showing how a whole is divided into parts?',
-                'opts' => [
-                    ['Bar chart', false],
-                    ['Pie chart', true],
-                    ['Line graph', false],
-                    ['Histogram', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which graph is BEST for showing a trend over time?',
+                'q' => 'Item 19: When comparing two approaches in Statistical Methods and Experimental Design, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Pie chart', false],
-                    ['Bar chart', false],
-                    ['Line graph', true],
-                    ['Scatter plot', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A histogram is most similar to which other chart type?',
+                'q' => 'Item 20: What does a strong final answer in Statistical Methods & Experimental Design include?',
                 'opts' => [
-                    ['Pie chart', false],
-                    ['Bar chart', true],
-                    ['Line graph', false],
-                    ['Scatter plot', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does each bar in a bar chart typically represent?',
+                'q' => 'Item 21: In Statistical Methods & Experimental Design, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A data point', false],
-                    ['A category and its frequency or value', true],
-                    ['A probability', false],
-                    ['The median', false],
-                ],
-            ],
-
-            // ── DESCRIPTIVE STATISTICS ───────────────────────────────────
-            [
-                'q' => 'Descriptive statistics are used to:',
-                'opts' => [
-                    ['Make predictions about future data', false],
-                    ['Summarize and describe a data set', true],
-                    ['Prove cause and effect', false],
-                    ['Remove outliers from data', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a measure of SPREAD (variability)?',
+                'q' => 'Item 22: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Mean', false],
-                    ['Mode', false],
-                    ['Range', true],
-                    ['Median', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A data set where most values cluster near the mean is said to have:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with assumptions?',
                 'opts' => [
-                    ['High variability', false],
-                    ['Low variability', true],
-                    ['High skewness', false],
-                    ['No mode', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does it mean if a data set has NO mode?',
+                'q' => 'Item 24: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['All values are the same', false],
-                    ['No value repeats', true],
-                    ['The mean equals the median', false],
-                    ['The range is zero', false],
-                ],
-            ],
-
-            // ── SAMPLES & POPULATIONS ────────────────────────────────────
-            [
-                'q' => 'A POPULATION in statistics refers to:',
-                'opts' => [
-                    ['A sample of data points', false],
-                    ['The entire group being studied', true],
-                    ['The most common value in a data set', false],
-                    ['A type of chart', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A SAMPLE in statistics refers to:',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['The entire population', false],
-                    ['A subset of the population selected for study', true],
-                    ['The average of the data', false],
-                    ['The largest value in the data', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why do researchers usually study a sample instead of an entire population?',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['Samples are always more accurate', false],
-                    ['It is faster and less costly', true],
-                    ['Samples have no bias', false],
-                    ['Populations are too small to study', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a random sample, every member of the population has:',
+                'q' => 'Item 27: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['A zero chance of being selected', false],
-                    ['An equal chance of being selected', true],
-                    ['A guaranteed chance of being selected', false],
-                    ['No chance of being selected', false],
-                ],
-            ],
-
-            // ── EXPERIMENTS & VARIABLES ──────────────────────────────────
-            [
-                'q' => 'In an experiment, the variable that the researcher CHANGES is called the:',
-                'opts' => [
-                    ['Dependent variable', false],
-                    ['Controlled variable', false],
-                    ['Independent variable', true],
-                    ['Constant variable', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The variable that is MEASURED as the outcome of an experiment is called the:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
                 'opts' => [
-                    ['Independent variable', false],
-                    ['Dependent variable', true],
-                    ['Extraneous variable', false],
-                    ['Control variable', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a study testing whether caffeine improves test scores, the test score is the:',
+                'q' => 'Item 29: When comparing two approaches in Statistical Methods and Experimental Design, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Independent variable', false],
-                    ['Control variable', false],
-                    ['Dependent variable', true],
-                    ['Confounding variable', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a CONTROL GROUP in an experiment?',
+                'q' => 'Item 30: What does a strong final answer in Statistical Methods & Experimental Design include?',
                 'opts' => [
-                    ['The group that receives the treatment', false],
-                    ['The group that does NOT receive the treatment, used for comparison', true],
-                    ['The group with the highest scores', false],
-                    ['The group selected randomly', false],
-                ],
-            ],
-
-            // ── BASIC INFERENCE & HYPOTHESIS ─────────────────────────────
-            [
-                'q' => 'A NULL HYPOTHESIS (H₀) usually states that:',
-                'opts' => [
-                    ['There is a significant difference', false],
-                    ['There is no effect or no difference', true],
-                    ['The experiment has failed', false],
-                    ['The sample size is too small', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An ALTERNATIVE HYPOTHESIS (H₁) typically states that:',
+                'q' => 'Item 31: In Statistical Methods & Experimental Design, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['There is no difference', false],
-                    ['There is a significant effect or difference', true],
-                    ['The null hypothesis is true', false],
-                    ['More data is needed', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does a p-value of 0.03 roughly mean?',
+                'q' => 'Item 32: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['There is a 97% chance the result is false', false],
-                    ['There is a 3% chance of getting results this extreme if H₀ is true', true],
-                    ['The effect size is 3%', false],
-                    ['The null hypothesis is true', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'If the p-value is LESS than 0.05, we typically:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with bias check?',
                 'opts' => [
-                    ['Fail to reject the null hypothesis', false],
-                    ['Reject the null hypothesis', true],
-                    ['Accept the null hypothesis', false],
-                    ['Conclude the study is invalid', false],
-                ],
-            ],
-
-            // ── CORRELATION ──────────────────────────────────────────────
-            [
-                'q' => 'A POSITIVE correlation between two variables means:',
-                'opts' => [
-                    ['As one increases, the other decreases', false],
-                    ['As one increases, the other also increases', true],
-                    ['The two variables are unrelated', false],
-                    ['One variable causes the other', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A NEGATIVE correlation means:',
+                'q' => 'Item 34: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['As one variable increases, the other also increases', false],
-                    ['There is no relationship', false],
-                    ['As one variable increases, the other decreases', true],
-                    ['The data is invalid', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Correlation does NOT imply:',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['A relationship between variables', false],
-                    ['Causation', true],
-                    ['A pattern in data', false],
-                    ['A statistical association', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The correlation coefficient ranges from:',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['0 to 1', false],
-                    ['-1 to 0', false],
-                    ['-1 to 1', true],
-                    ['-100 to 100', false],
-                ],
-            ],
-
-            // ── GENERAL STATISTICS VOCABULARY ────────────────────────────
-            [
-                'q' => 'What does "frequency" mean in a data set?',
-                'opts' => [
-                    ['The average of the values', false],
-                    ['How often a value appears', true],
-                    ['The highest value', false],
-                    ['The spread of the data', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A survey result where almost everyone answers the same way is described as having:',
+                'q' => 'Item 37: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['High variance', false],
-                    ['Low variance', true],
-                    ['High range', false],
-                    ['No mean', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which term describes a value that is far away from most other values in a data set?',
+                'q' => 'Item 38: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
                 'opts' => [
-                    ['Mode', false],
-                    ['Mean', false],
-                    ['Outlier', true],
-                    ['Frequency', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a FREQUENCY TABLE used for?',
+                'q' => 'Item 39: When comparing two approaches in Statistical Methods and Experimental Design, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Calculating the mean of data', false],
-                    ['Showing how often each value occurs in a data set', true],
-                    ['Drawing a scatter plot', false],
-                    ['Finding the range of data', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following best describes INFERENTIAL statistics?',
+                'q' => 'Item 40: What does a strong final answer in Statistical Methods & Experimental Design include?',
                 'opts' => [
-                    ['Summarizing data you already have', false],
-                    ['Drawing conclusions about a population from a sample', true],
-                    ['Counting how many items are in a data set', false],
-                    ['Creating charts and graphs', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A researcher collects data from 200 students at one school to represent all students nationwide. The 200 students are the:',
+                'q' => 'Item 41: In Statistical Methods & Experimental Design, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Population', false],
-                    ['Parameter', false],
-                    ['Sample', true],
-                    ['Control group', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Statistical Methods and Experimental Design fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Statistical Methods and Experimental Design, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Statistical Methods & Experimental Design include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 8 — Statistical Methods & Experimental Design (Newbie).");
+        $this->command->info('Module 8 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

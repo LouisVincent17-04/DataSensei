@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module24ChallengeSeederUniversityStudent extends Seeder
 {
@@ -16,434 +14,508 @@ class Module24ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Sequential Decision Making';
 
-        $this->command->info("Creating Module 24 — Sequential Decision Making (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 24 — Sequential Decision Making (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Sequential Decision Making',
-            'description'           => 'Apply your understanding of MDPs, Bellman equations, and basic RL algorithms analytically. Expect scenario-based reasoning, simple value calculations, and algorithm tracing.',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 700,
-            'order_index'           => 24,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Sequential Decision Making. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 24,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding University Student sequential decision making questions...");
-
         $qaData = [
-
-            // ── MDP FRAMEWORK ─────────────────────────────────────────────
             [
-                'q' => 'An MDP is defined as a 5-tuple (S, A, P, R, γ). What does P represent?',
+                'q' => 'Item 1: In Sequential Decision Making, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['The policy — which action to take in each state', false],
-                    ['The transition probability P(s\'|s, a) — the chance of reaching s\' from s by taking action a', true],
-                    ['The performance metric of the agent', false],
-                    ['The priority of each state', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A grid world has 4 states. The agent is in state S1 and takes action "right". With probability 0.8 it moves to S2, and with probability 0.2 it stays in S1.\n\nP(S2 | S1, right) = ?',
+                'q' => 'Item 2: A learner working on Sequential Decision Making gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['0.2', false],
-                    ['1.0', false],
-                    ['0.8', true],
-                    ['0.5', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A deterministic policy π maps each state to:',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Sequential Decision Making when dealing with assumptions?',
                 'opts' => [
-                    ['A probability distribution over actions', false],
-                    ['Exactly one specific action', true],
-                    ['A value estimate', false],
-                    ['A set of all possible actions', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The "optimal policy" π* is the policy that:',
+                'q' => 'Item 4: For Sequential Decision Making, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Takes the fewest steps to reach the goal', false],
-                    ['Maximizes the expected cumulative discounted reward from every state', true],
-                    ['Always selects random actions', false],
-                    ['Minimizes the immediate reward', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'An "episodic" task is one that:',
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Sequential Decision Making fails on one test case?',
                 'opts' => [
-                    ['Continues indefinitely with no end', false],
-                    ['Has a clear terminal state and resets after each episode', true],
-                    ['Only runs for exactly 100 steps', false],
-                    ['Never gives any rewards', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A "continuing" (non-episodic) task is one that:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Sequential Decision Making tasks?',
                 'opts' => [
-                    ['Ends after a fixed number of steps', false],
-                    ['Runs indefinitely without a natural terminal state', true],
-                    ['Resets after every action', false],
-                    ['Always converges in 10 steps', false],
-                ],
-            ],
-
-            // ── BELLMAN EQUATION ──────────────────────────────────────────
-            [
-                'q' => 'The Bellman expectation equation for V^π(s) is:\n\n  V^π(s) = Σ_a π(a|s) · Σ_{s\'} P(s\'|s,a) · [R(s,a,s\') + γ·V^π(s\')]\n\nIf there is only one action, R = 5, γ = 0.9, and V^π(s\') = 10:\n\nV^π(s) = ?',
-                'opts' => [
-                    ['5', false],
-                    ['14', true],
-                    ['9', false],
-                    ['15', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Bellman optimality equation for V*(s) takes the maximum over actions:\n\n  V*(s) = max_a Σ_{s\'} P(s\'|s,a) · [R + γ·V*(s\')]\n\nFor state s with two actions:\n  Action A: R=2, next V* = 8, γ=0.5 → 2 + 0.5×8 = 6\n  Action B: R=4, next V* = 4, γ=0.5 → 4 + 0.5×4 = 6\n\nV*(s) = ?',
+                'q' => 'Item 7: In a Sequential Decision Making assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['4', false],
-                    ['8', false],
-                    ['6', true],
-                    ['12', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Q-function (action-value function) Q*(s, a) relates to V*(s) by:\n\n  V*(s) = max_a Q*(s, a)\n\nIf Q*(s, left) = 3, Q*(s, right) = 7, Q*(s, up) = 5, then V*(s) = ?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Sequential Decision Making?',
                 'opts' => [
-                    ['3', false],
-                    ['5', false],
-                    ['7', true],
-                    ['15', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A discounted return with γ = 0.9 for rewards [10, 5, 2] (at t=0, 1, 2) is:\n\n  G = r₀ + γ·r₁ + γ²·r₂',
+                'q' => 'Item 9: When comparing two approaches in Sequential Decision Making, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['17', false],
-                    ['14.12', false],
-                    ['15.12', false],
-                    ['16.12', true],
-                ],
-            ],
-
-            // ── DYNAMIC PROGRAMMING ────────────────────────────────────────
-            [
-                'q' => 'Policy evaluation computes V^π(s) for a given policy π. It does this by:',
-                'opts' => [
-                    ['Running the policy once and recording rewards', false],
-                    ['Repeatedly applying the Bellman expectation equation until values converge', true],
-                    ['Taking the maximum over all actions', false],
-                    ['Randomly sampling transitions', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Policy improvement makes the policy greedy with respect to the current value function:\n\n  π\'(s) = argmax_a Σ_{s\'} P(s\'|s,a) · [R + γ·V^π(s\')]\n\nThis step improves or maintains policy quality because of:',
+                'q' => 'Item 10: What does a strong final answer in Sequential Decision Making include?',
                 'opts' => [
-                    ['The policy improvement theorem — a greedy policy is at least as good as the original', true],
-                    ['The law of large numbers', false],
-                    ['The convergence of neural networks', false],
-                    ['The discount factor being less than 1', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Value iteration differs from policy iteration in that it:',
+                'q' => 'Item 11: In Sequential Decision Making, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Requires a complete policy evaluation before each improvement step', false],
-                    ['Combines the evaluation and improvement into a single update using the Bellman optimality operator', true],
-                    ['Only works for deterministic environments', false],
-                    ['Uses sampled data instead of the known model', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Both value iteration and policy iteration require knowing P(s\'|s,a) and R(s,a). This means they are:',
+                'q' => 'Item 12: A learner working on Sequential Decision Making gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['Model-free methods', false],
-                    ['Model-based methods — they require a complete model of the environment', true],
-                    ['Policy gradient methods', false],
-                    ['Sampling-based methods', false],
-                ],
-            ],
-
-            // ── MONTE CARLO ────────────────────────────────────────────────
-            [
-                'q' => 'First-visit Monte Carlo estimates V(s) as the average return from episodes where:',
-                'opts' => [
-                    ['State s was visited at least once anywhere in the episode', false],
-                    ['The first time state s is visited in each episode', true],
-                    ['State s was the starting state of the episode', false],
-                    ['State s appears at the end of the episode', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Every-visit Monte Carlo estimates V(s) by averaging returns from:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Sequential Decision Making when dealing with bias check?',
                 'opts' => [
-                    ['Only the first visit to s per episode', false],
-                    ['Every time state s is visited across all episodes', true],
-                    ['Only terminal state visits', false],
-                    ['A random sample of states', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Monte Carlo methods have HIGH variance compared to TD because:',
+                'q' => 'Item 14: For Sequential Decision Making, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['They use the exact model of the environment', false],
-                    ['Returns are computed from complete episodes, and the full return can vary widely across episodes', true],
-                    ['They update after every single step', false],
-                    ['They only use the immediate reward', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'TD(0) has lower variance than Monte Carlo but is said to have BIAS because:',
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Sequential Decision Making fails on one test case?',
                 'opts' => [
-                    ['It uses a neural network approximator', false],
-                    ['It bootstraps — using its own estimated value of the next state instead of the true return', true],
-                    ['It uses random sampling', false],
-                    ['It requires a complete model of the environment', false],
-                ],
-            ],
-
-            // ── TD & Q-LEARNING ────────────────────────────────────────────
-            [
-                'q' => 'The TD(0) update rule is:\n\n  V(s) ← V(s) + α[r + γ·V(s\') − V(s)]\n\nThe term [r + γ·V(s\') − V(s)] is called the:',
-                'opts' => [
-                    ['Policy gradient', false],
-                    ['TD error (or temporal difference error)', true],
-                    ['Discount factor', false],
-                    ['Advantage function', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Q-learning is "off-policy" because:',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Sequential Decision Making tasks?',
                 'opts' => [
-                    ['It learns without any rewards', false],
-                    ['It learns the optimal Q-function regardless of the behavior policy used to collect data', true],
-                    ['It does not use a policy at all', false],
-                    ['It trains on a separate dataset unrelated to the environment', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'SARSA is "on-policy" because:',
+                'q' => 'Item 17: In a Sequential Decision Making assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['It uses a separate target policy', false],
-                    ['It updates Q-values using the action actually taken by the current behavior policy, not the greedy optimal action', true],
-                    ['It requires the full episode before updating', false],
-                    ['It always uses a random policy', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Q-learning update is:\n\n  Q(s,a) ← Q(s,a) + α[r + γ·max_{a\'} Q(s\',a\') − Q(s,a)]\n\nWith α=0.1, γ=0.9, current Q(s,a)=5, r=3, max Q(s\',a\')=8:\n\nNew Q(s,a) = ?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Sequential Decision Making?',
                 'opts' => [
-                    ['5.42', false],
-                    ['5.52', true],
-                    ['5.30', false],
-                    ['6.20', false],
-                ],
-            ],
-
-            // ── EXPLORATION STRATEGIES ─────────────────────────────────────
-            [
-                'q' => 'With ε = 0.1 in an ε-greedy strategy, what fraction of the time does the agent explore?',
-                'opts' => [
-                    ['90%', false],
-                    ['1%', false],
-                    ['10%', true],
-                    ['50%', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Epsilon decay" is the practice of:',
+                'q' => 'Item 19: When comparing two approaches in Sequential Decision Making, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['Increasing ε over time to explore more', false],
-                    ['Gradually reducing ε over training so the agent explores less and exploits more as it learns', true],
-                    ['Setting ε to 0 from the start', false],
-                    ['Randomly changing ε at each step', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'UCB (Upper Confidence Bound) selects the arm with the highest:\n\n  Q̄(a) + c · √(ln(t) / N(a))\n\nThe term c · √(ln(t) / N(a)) serves as a bonus for:',
+                'q' => 'Item 20: What does a strong final answer in Sequential Decision Making include?',
                 'opts' => [
-                    ['Arms with the highest estimated reward', false],
-                    ['Arms that have been pulled fewer times — favoring less-explored options', true],
-                    ['Arms with the smallest variance', false],
-                    ['Arms selected most recently', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Thompson Sampling is a Bayesian exploration strategy that:',
+                'q' => 'Item 21: In Sequential Decision Making, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Always selects the arm with the highest mean reward estimate', false],
-                    ['Samples a reward estimate from each arm\'s posterior distribution and selects the arm with the highest sample', true],
-                    ['Uses a fixed ε throughout training', false],
-                    ['Only explores for the first 10 steps', false],
-                ],
-            ],
-
-            // ── DEEP Q-NETWORKS ────────────────────────────────────────────
-            [
-                'q' => 'The "deadly triad" in deep RL refers to instability caused by combining:',
-                'opts' => [
-                    ['Too many layers, too many parameters, too many episodes', false],
-                    ['Function approximation, bootstrapping, and off-policy learning simultaneously', true],
-                    ['High learning rates, high discount factors, and high epsilon', false],
-                    ['Policy gradients, value functions, and actor-critic methods', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'DQN\'s target network is updated:',
+                'q' => 'Item 22: A learner working on Sequential Decision Making gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['At every gradient step', false],
-                    ['Periodically (e.g., every C steps) by copying the online network weights', true],
-                    ['Only at the end of training', false],
-                    ['Whenever the loss exceeds a threshold', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Double DQN addresses the "overestimation bias" in standard DQN by:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Sequential Decision Making when dealing with assumptions?',
                 'opts' => [
-                    ['Using two separate replay buffers', false],
-                    ['Using the online network to select the best action but the target network to evaluate its Q-value', true],
-                    ['Doubling the number of training episodes', false],
-                    ['Running two independent DQN agents', false],
-                ],
-            ],
-
-            // ── POLICY GRADIENT & ACTOR-CRITIC ────────────────────────────
-            [
-                'q' => 'The policy gradient theorem states that the gradient of expected return with respect to policy parameters θ is:\n\n  ∇_θ J(θ) ∝ Σ_s d^π(s) Σ_a Q^π(s,a) · ∇_θ π_θ(a|s)\n\nThis tells us to increase the probability of actions that have:',
-                'opts' => [
-                    ['Low Q-values', false],
-                    ['High Q-values (positive expected return)', true],
-                    ['Zero Q-values', false],
-                    ['Negative Q-values', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The "advantage function" A(s,a) = Q(s,a) − V(s) measures:',
+                'q' => 'Item 24: For Sequential Decision Making, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The total return of the episode', false],
-                    ['How much better action a is compared to the average action in state s', true],
-                    ['The discount applied to future rewards', false],
-                    ['The difference between two consecutive states', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'An advantage value A(s, a) < 0 means the action a is:',
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Sequential Decision Making fails on one test case?',
                 'opts' => [
-                    ['Better than average in state s', false],
-                    ['Worse than average in state s — the policy should reduce its probability', true],
-                    ['The optimal action in state s', false],
-                    ['Not a valid action in state s', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'PPO clips the policy update ratio r_t(θ) = π_θ(a|s) / π_θ_old(a|s) to the range [1−ε, 1+ε].\n\nWith ε = 0.2, a ratio of 1.5 is clipped to:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Sequential Decision Making tasks?',
                 'opts' => [
-                    ['0.8', false],
-                    ['1.5', false],
-                    ['1.2', true],
-                    ['2.0', false],
-                ],
-            ],
-
-            // ── MULTI-ARMED BANDITS ────────────────────────────────────────
-            [
-                'q' => 'You have 3 bandit arms with estimated values:\n  Arm 1: Q̄ = 2.5\n  Arm 2: Q̄ = 4.1\n  Arm 3: Q̄ = 3.8\n\nUsing a purely greedy strategy (ε=0), which arm is selected?',
-                'opts' => [
-                    ['Arm 1', false],
-                    ['Arm 3', false],
-                    ['Arm 2', true],
-                    ['A random arm', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Regret" in the bandit problem is defined as:',
+                'q' => 'Item 27: In a Sequential Decision Making assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The number of wrong actions taken', false],
-                    ['The cumulative difference between the optimal reward and the reward actually obtained', true],
-                    ['The total number of explorations', false],
-                    ['The variance in rewards across arms', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Contextual bandits differ from standard bandits because:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Sequential Decision Making?',
                 'opts' => [
-                    ['They always have exactly 10 arms', false],
-                    ['They receive a "context" (state/feature vector) at each step that influences which arm is optimal', true],
-                    ['They use neural networks only', false],
-                    ['They cannot model exploration', false],
-                ],
-            ],
-
-            // ── POMDPs & REAL-WORLD ────────────────────────────────────────
-            [
-                'q' => 'In a POMDP, an observation function O(o | s\', a) gives:',
-                'opts' => [
-                    ['The reward for reaching state s\'', false],
-                    ['The probability of receiving observation o after taking action a and landing in state s\'', true],
-                    ['The optimal action to take in state s\'', false],
-                    ['The transition probability between states', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A "belief update" in a POMDP uses Bayes\' theorem to update:\n\n  b\'(s\') ∝ O(o|s\',a) · Σ_s P(s\'|s,a) · b(s)\n\nThis belief represents:',
+                'q' => 'Item 29: When comparing two approaches in Sequential Decision Making, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['The agent\'s best guess of the exact current state', false],
-                    ['The posterior probability distribution over hidden states given all past observations', true],
-                    ['The immediate reward expected from each state', false],
-                    ['The discount factor applied to future observations', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Real-world RL challenges include all EXCEPT:',
+                'q' => 'Item 30: What does a strong final answer in Sequential Decision Making include?',
                 'opts' => [
-                    ['Sparse rewards making learning slow', false],
-                    ['High-dimensional state and action spaces', false],
-                    ['Safety constraints during exploration', false],
-                    ['The environment always being fully observable and stationary', true],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Transfer learning in RL refers to:',
+                'q' => 'Item 31: In Sequential Decision Making, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Moving the agent from one computer to another', false],
-                    ['Using knowledge or policies learned in one environment to accelerate learning in a related new environment', true],
-                    ['Transferring replay buffer data between agents', false],
-                    ['Copying neural network weights randomly', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Sparse rewards in RL mean:',
+                'q' => 'Item 32: A learner working on Sequential Decision Making gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['Rewards are given every step', false],
-                    ['The agent only receives a reward at rare moments (e.g., at the end of a game), making it hard to learn which actions were responsible', true],
-                    ['All rewards are the same constant value', false],
-                    ['Rewards are never negative', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Sequential Decision Making when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Sequential Decision Making, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Sequential Decision Making fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Sequential Decision Making tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Sequential Decision Making assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Sequential Decision Making?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Sequential Decision Making, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Sequential Decision Making include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Sequential Decision Making, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Sequential Decision Making gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Sequential Decision Making when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Sequential Decision Making, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Sequential Decision Making fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Sequential Decision Making tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Sequential Decision Making assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Sequential Decision Making?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Sequential Decision Making, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Sequential Decision Making include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! Questions seeded for Module 24 — Sequential Decision Making (University Student).");
+        $this->command->info('Module 24 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

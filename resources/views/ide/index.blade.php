@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>DataSensei — IDE</title>
+  @include('partials.brand-head')
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
   {{-- CodeMirror 6 via CDN --}}
@@ -38,10 +39,10 @@
     .app { display: flex; flex-direction: column; height: 100vh; }
     .topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; user-select: none; }
     .topbar-logo { font-weight: 700; font-size: 0.875rem; letter-spacing: -0.02em; display: flex; align-items: center; gap: 6px; }
-    .topbar-logo span { color: var(--accent); }
+    .topbar-logo .ds-brand-logo__accent { color: var(--accent); }
     .topbar-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
-    .topbar-breadcrumb { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted); }
-    .topbar-breadcrumb .seg { color: var(--text); }
+    .topbar-breadcrumb { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted); min-width: 0; overflow: hidden; white-space: nowrap; }
+    .topbar-breadcrumb .seg { color: var(--text); overflow: hidden; text-overflow: ellipsis; }
     .topbar-breadcrumb .arrow { color: var(--dim); }
     .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
     .tb-btn { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.75rem; font-family: inherit; cursor: pointer; transition: all 0.15s; font-weight: 500; }
@@ -51,6 +52,22 @@
     .tb-btn.run:disabled { opacity: 0.55; cursor: not-allowed; }
     .tb-btn.save { color: var(--accent); border-color: rgba(59,130,246,0.3); }
     .tb-btn.save:hover { background: rgba(59,130,246,0.08); }
+    .tb-select {
+      height: 30px;
+      min-width: 176px;
+      border: 1px solid var(--border);
+      background: var(--surface3);
+      color: var(--muted);
+      border-radius: var(--radius);
+      padding: 0 10px;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+    .tb-select:hover, .tb-select:focus { color: var(--text); border-color: var(--border-hover); background: var(--surface2); }
+    .tb-select option { background: var(--surface); color: var(--text); }
     .workspace { display: flex; flex: 1; overflow: hidden; }
     .activity-bar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 2px; flex-shrink: 0; }
     .ab-btn { width: 36px; height: 36px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--dim); border: none; background: transparent; transition: all 0.15s; position: relative; }
@@ -294,22 +311,32 @@
 <div class="app">
   <div class="topbar">
     <div class="topbar-logo">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2.5"><path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z"/><path d="M8 12h8M8 16h5"/></svg>
-      Data<span>Sensei</span>
+      @include('partials.brand-logo', [
+        'variant' => 'topbar',
+        'size' => 'compact',
+        'showText' => true,
+        'href' => route('studentDashboard'),
+      ])
     </div>
-    <div class="topbar-sep"></div>
-    <div class="topbar-breadcrumb" id="breadcrumb">
-      <span class="seg">{{ $workspace->name }}</span>
-      <span class="arrow" id="breadcrumb-sep" style="display:none"> › </span>
+    <div class="topbar-breadcrumb" aria-label="Current file">
+      <span class="seg">Workspace</span>
+      <span class="arrow" id="breadcrumb-sep" style="display:none">/</span>
       <span class="seg" id="breadcrumb-file"></span>
     </div>
-
     <div class="topbar-actions">
       <span id="save-indicator" style="font-size:0.7rem;color:var(--accent3);display:none"></span>
       <a href="#" id="returnToLessonBtn" class="tb-btn" style="display: none; color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1);">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         Return to Lesson
       </a>
+      <select class="tb-select" id="pythonSampleSelect" title="Auto-generate sample Python code" onchange="IDE.insertPythonSample(this.value); this.value='';">
+        <option value="">Generate Python sample...</option>
+        <option value="simple">Simple Code</option>
+        <option value="input">Code with Input</option>
+        <option value="list">Code with Array/List</option>
+        <option value="matplot">Code with Matplotlib</option>
+        <option value="csv_matplot">CSV Data + Matplotlib</option>
+      </select>
       <button class="tb-btn save" id="btn-save" onclick="IDE.save()" title="Save (Ctrl+S)">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save
@@ -450,6 +477,7 @@ const ReviewBot = (() => {
   let _busy     = false;
   let _lastCode = '';
   let _lastLang = 'python';
+  let _lastRunOutput = '';
   // Accumulate review context for multi-turn follow-ups
   const _history = [];
 
@@ -485,10 +513,11 @@ const ReviewBot = (() => {
   }
 
   /* ── Called by IDE.run() automatically ── */
-  function autoReview(code, lang, filename) {
+  function autoReview(code, lang, filename, runOutput = '') {
     if (!code || !code.trim()) return;
     _lastCode = code;
     _lastLang = lang || 'python';
+    _lastRunOutput = runOutput || '';
     _history.length = 0; // reset context per new run
 
     _open_panel();
@@ -560,6 +589,7 @@ const ReviewBot = (() => {
       form.append('mode',     'review');
       form.append('code',     code);
       form.append('language', lang || 'python');
+      form.append('run_output', _lastRunOutput || '');
 
       const res  = await fetch(REVIEW_URL, {
         method: 'POST',
@@ -597,6 +627,8 @@ const ReviewBot = (() => {
       form.append('code',     _lastCode);
       form.append('language', _lastLang);
       form.append('question', messages[messages.length - 1].content);
+      form.append('run_output', _lastRunOutput || '');
+      form.append('previous_context', _history.map(h => h.content).slice(-4).join('\n---\n'));
 
       const res  = await fetch(REVIEW_URL, {
         method: 'POST',
@@ -712,24 +744,69 @@ const IDE = (() => {
   let openTabs = []; let activeTab = null; let cm = null; let treeData = [...TREE_DATA]; let cmChanging = false;
   let draggedNodeId = null;
 
+  function byId(id) { return document.getElementById(id); }
+  function setText(id, value) { const node = byId(id); if (node) node.textContent = value ?? ''; }
+  function setHtml(id, value) { const node = byId(id); if (node) node.innerHTML = value ?? ''; }
+  function setDisplay(id, value) { const node = byId(id); if (node) node.style.display = value; }
+
   function init() { 
       renderTree(); initCM(); setupResize(); setupKeyboard(); handleLessonImports(); 
       setupGlobalDropZone();
   }
 
-  // 🚀 AUTO-NAME GENERATOR (e.g. main.py -> main (1).py) 🚀
-  function generateSuggestedName(filename) {
-      const parts = filename.split('.');
-      const ext = parts.length > 1 ? '.' + parts.pop() : '';
-      let base = parts.join('.');
-      const match = base.match(/ \((\d+)\)$/);
-      if (match) {
-          const num = parseInt(match[1]) + 1;
-          base = base.replace(/ \(\d+\)$/, ` (${num})`);
-      } else {
-          base += ' (1)';
+  // Safe duplicate-name generator: main.py -> main_1.py.
+  // Avoids parentheses so generated samples always pass Laravel filename validation.
+  function splitFilename(filename) {
+      const lastDot = filename.lastIndexOf('.');
+      if (lastDot > 0 && lastDot < filename.length - 1) {
+          return { base: filename.slice(0, lastDot), ext: filename.slice(lastDot) };
       }
-      return base + ext;
+      return { base: filename, ext: '' };
+  }
+
+  function sanitizeGeneratedBase(base) {
+      return (base || 'file')
+          .replace(/[\s()]+/g, '_')
+          .replace(/[^A-Za-z0-9_.-]+/g, '_')
+          .replace(/_+/g, '_')
+          .replace(/^[_.-]+|[_.-]+$/g, '') || 'file';
+  }
+
+  function generateSuggestedName(filename, forcedIndex = null) {
+      const parts = splitFilename(filename);
+      let base = sanitizeGeneratedBase(parts.base);
+      let index = forcedIndex;
+      const match = base.match(/_(\d+)$/);
+
+      if (match) {
+          if (index === null) index = parseInt(match[1], 10) + 1;
+          base = base.replace(/_\d+$/, '');
+      }
+
+      if (index === null) index = 1;
+      return `${base}_${index}${parts.ext}`;
+  }
+
+  function getChildrenForParent(parentId) {
+      if (parentId === null || parentId === undefined) return treeData;
+      const parent = findNode(treeData, parentId);
+      return parent && Array.isArray(parent.children) ? parent.children : [];
+  }
+
+  function nodeNameExists(name, parentId = null) {
+      return getChildrenForParent(parentId).some(n => String(n.name).toLowerCase() === String(name).toLowerCase());
+  }
+
+  function nextAvailableName(filename, parentId = null) {
+      if (!nodeNameExists(filename, parentId)) return filename;
+
+      for (let i = 1; i <= 100; i++) {
+          const candidate = generateSuggestedName(filename, i);
+          if (!nodeNameExists(candidate, parentId)) return candidate;
+      }
+
+      const parts = splitFilename(filename);
+      return `${sanitizeGeneratedBase(parts.base)}_${Date.now()}${parts.ext}`;
   }
 
   // 🚀 GLOBAL EXTERNAL DESKTOP DROP ZONE 🚀
@@ -763,7 +840,7 @@ const IDE = (() => {
                   resolve();
               } catch (err) {
                   if (err.collision) {
-                      const suggested = generateSuggestedName(fileNameToUse);
+                      const suggested = nextAvailableName(fileNameToUse, parentId);
                       const newName = prompt(`A file named "${fileNameToUse}" already exists here.\nEnter a new name or cancel:`, suggested);
                       if (newName && newName.trim() !== '') { await uploadExternalFile(file, parentId, newName.trim()); } else { setStatus('Upload canceled.'); }
                   } else { termPrint('error', `Failed to upload ${file.name}: ${err.message}`); }
@@ -785,7 +862,7 @@ const IDE = (() => {
       } catch (err) {
           if (err.collision) {
               const node = findNode(treeData, nodeId);
-              const suggested = generateSuggestedName(node.name);
+              const suggested = nextAvailableName(node.name, newParentId);
               const newName = prompt(`A file named "${node.name}" already exists in that folder.\nEnter a new name or cancel:`, suggested);
               if (newName && newName.trim() !== '') { await moveInternalNode(nodeId, newParentId, newName.trim()); } else { setStatus('Move canceled.'); }
           } else { termPrint('error', 'Move failed: ' + err.message); setStatus('Error'); }
@@ -853,7 +930,7 @@ const IDE = (() => {
       hintOptions: { hint: CodeMirror.hint.anyword },
     });
     cm.on('change', () => { if (cmChanging) return; if (activeTab !== null) { const tab = openTabs.find(t => t.id === activeTab); if (tab && !tab.modified) { tab.modified = true; renderTabBar(); } } });
-    cm.on('cursorActivity', () => { const cur = cm.getCursor(); document.getElementById('status-pos').textContent = `Ln ${cur.line + 1}, Col ${cur.ch + 1}`; });
+    cm.on('cursorActivity', () => { const cur = cm.getCursor(); setText('status-pos', `Ln ${cur.line + 1}, Col ${cur.ch + 1}`); });
   }
 
   function renderTree() { const root = document.getElementById('tree-root'); root.innerHTML = ''; treeData.forEach(node => root.appendChild(buildTreeNode(node, 0))); attachCtxMenuListeners(); }
@@ -883,14 +960,14 @@ const IDE = (() => {
   }
 
   function attachCtxMenuListeners() { document.getElementById('tree-root').addEventListener('contextmenu', (e) => { const row = e.target.closest('.tree-row'); if (!row) return; e.preventDefault(); const nodeEl = row.closest('.tree-node'); const id = parseInt(nodeEl.dataset.id); const type = nodeEl.dataset.type; const name = row.querySelector('.node-name').textContent; showCtxMenu(e.clientX, e.clientY, id, type, name); }); }
-  function openFile(id, name, content) { document.querySelectorAll('.tree-row').forEach(r => r.classList.remove('active')); const nodeEl = document.querySelector(`.tree-node[data-id="${id}"]`); if (nodeEl) nodeEl.querySelector('.tree-row').classList.add('active'); document.getElementById('breadcrumb-file').textContent = name; document.getElementById('breadcrumb-sep').style.display = ''; if (!openTabs.find(t => t.id === id)) { openTabs.push({ id, name, content, modified: false }); } activeTab = id; renderTabBar(); loadTabContent(id); updateStatusLang(name); }
+  function openFile(id, name, content) { document.querySelectorAll('.tree-row').forEach(r => r.classList.remove('active')); const nodeEl = document.querySelector(`.tree-node[data-id="${id}"]`); if (nodeEl) nodeEl.querySelector('.tree-row').classList.add('active'); setText('breadcrumb-file', name); setDisplay('breadcrumb-sep', ''); if (!openTabs.find(t => t.id === id)) { openTabs.push({ id, name, content, modified: false }); } activeTab = id; renderTabBar(); loadTabContent(id); updateStatusLang(name); }
   function loadTabContent(id) { const tab = openTabs.find(t => t.id === id); if (!tab) return; document.getElementById('editor-empty').style.display = 'none'; const cmHost = document.getElementById('cm-host'); cmHost.style.display = 'block'; setTimeout(() => { cm.refresh(); }, 10); cm.focus(); cmChanging = true; cm.setValue(tab.content ?? ''); cmChanging = false; cm.clearHistory(); cm.scrollTo(0, 0); }
   function syncActiveTabContent() { if (activeTab === null) return; const tab = openTabs.find(t => t.id === activeTab); if (tab) tab.content = cm.getValue(); }
   function renderTabBar() { const bar = document.getElementById('tab-bar'); bar.innerHTML = ''; openTabs.forEach(tab => { const el = document.createElement('div'); el.className = 'tab' + (tab.id === activeTab ? ' active' : '') + (tab.modified ? ' modified' : ''); el.innerHTML = `<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${escHtml(tab.name)}${tab.modified ? '<span class="tab-dot"></span>' : ''}<span class="tab-close" data-close="${tab.id}"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>`; el.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeTab(tab.id); else switchTab(tab.id); }); bar.appendChild(el); }); }
-  function switchTab(id) { syncActiveTabContent(); activeTab = id; renderTabBar(); loadTabContent(id); const tab = openTabs.find(t => t.id === id); if (tab) { document.getElementById('breadcrumb-file').textContent = tab.name; updateStatusLang(tab.name); } }
-  function closeTab(id) { syncActiveTabContent(); const idx = openTabs.findIndex(t => t.id === id); openTabs.splice(idx, 1); if (activeTab === id) { if (openTabs.length === 0) { activeTab = null; document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; document.getElementById('breadcrumb-file').textContent = ''; document.getElementById('breadcrumb-sep').style.display = 'none'; } else { const next = openTabs[Math.min(idx, openTabs.length - 1)]; switchTab(next.id); return; } } renderTabBar(); }
+  function switchTab(id) { syncActiveTabContent(); activeTab = id; renderTabBar(); loadTabContent(id); const tab = openTabs.find(t => t.id === id); if (tab) { setText('breadcrumb-file', tab.name); updateStatusLang(tab.name); } }
+  function closeTab(id) { syncActiveTabContent(); const idx = openTabs.findIndex(t => t.id === id); openTabs.splice(idx, 1); if (activeTab === id) { if (openTabs.length === 0) { activeTab = null; document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; setText('breadcrumb-file', ''); setDisplay('breadcrumb-sep', 'none'); } else { const next = openTabs[Math.min(idx, openTabs.length - 1)]; switchTab(next.id); return; } } renderTabBar(); }
   async function save() { if (activeTab === null) return; syncActiveTabContent(); const tab = openTabs.find(t => t.id === activeTab); if (!tab) return; setStatus('Saving…'); try { const res = await api(`/ide/nodes/${tab.id}/save`, 'PATCH', { content: tab.content }); tab.modified = false; renderTabBar(); flashSave('Saved'); setStatus('Saved'); } catch(e) { setStatus('Save failed'); } }
-  function flashSave(msg) { const el = document.getElementById('save-indicator'); el.textContent = msg; el.style.display = 'inline'; el.className = 'save-flash'; setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 2000); }
+  function flashSave(msg) { const el = byId('save-indicator'); if (!el) return; el.textContent = msg; el.style.display = 'inline'; el.className = 'save-flash'; setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 2000); }
 
   let currentInputResolve = null;
   function askUserForInput(promptText) { return new Promise((resolve) => { const modal = document.getElementById('program-input-modal'); const label = document.getElementById('input-modal-label'); const input = document.getElementById('dynamic-single-input'); label.textContent = promptText; input.value = ""; modal.classList.add('open'); setTimeout(() => input.focus(), 50); currentInputResolve = resolve; }); }
@@ -910,9 +987,6 @@ const IDE = (() => {
     const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal();
     termPrint('prompt', `$ python3 ${tab.name}`); setStatus('Running…');
 
-    // 🤖 AUTO-TRIGGER CHATBOT REVIEW — fires immediately when Run is clicked
-    ReviewBot.autoReview(tab.content || cm.getValue(), 'python', tab.name);
-
     try {
       const res = await api(`/ide/nodes/${tab.id}/run`, 'POST', { stdin: inputsList.join('\n'), content: tab.content });
       if (res.output) termPrint('output', res.output); if (res.error) termPrint('error', res.error);
@@ -920,8 +994,272 @@ const IDE = (() => {
       if (!res.output && !res.error && (!res.plots || res.plots.length === 0)) termPrint('info', '(No output)');
       termPrint('info', `Exit: ${res.exit_code}  Time: ${res.execution_time_ms}ms`);
       setStatus(res.exit_code === 0 ? 'Finished' : `Error (exit ${res.exit_code})`);
+
+      const reviewOutput = [
+        res.output ? 'STDOUT:\n' + res.output : '',
+        res.error ? 'STDERR:\n' + res.error : '',
+        `Exit code: ${res.exit_code}`,
+        `Execution time: ${res.execution_time_ms}ms`,
+        res.plots && res.plots.length > 0 ? `Plots generated: ${res.plots.length}` : ''
+      ].filter(Boolean).join('\n\n');
+      ReviewBot.autoReview(tab.content || cm.getValue(), 'python', tab.name, reviewOutput);
     } catch(e) { termPrint('error', 'Request failed: ' + e.message); setStatus('Run failed');
     } finally { runBtn.disabled = false; runBtn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run`; }
+  }
+
+  const PYTHON_SAMPLES = {
+    simple: {
+      filename: 'simple_code.py',
+      title: 'Simple Code',
+      code: String.raw`# Simple Code
+# This program shows basic variables, computation, and output.
+
+name = "DataSensei Learner"
+age = 22
+score = 95
+
+print("Hello,", name)
+print("Age:", age)
+print("Score:", score)
+
+if score >= 75:
+    print("Result: Passed")
+else:
+    print("Result: Needs improvement")
+`
+    },
+    input: {
+      filename: 'input_code.py',
+      title: 'Code with Input',
+      code: String.raw`# Code with Input
+# When you run this, DataSensei will ask for the input values.
+
+name = input("Enter your name: ")
+first_score = float(input("Enter first score: "))
+second_score = float(input("Enter second score: "))
+
+average = (first_score + second_score) / 2
+
+print("Student:", name)
+print("Average:", average)
+
+if average >= 75:
+    print("Remarks: Passed")
+else:
+    print("Remarks: Failed")
+`
+    },
+    list: {
+      filename: 'list_code.py',
+      title: 'Code with Array/List',
+      code: String.raw`# Code with Array/List
+# Python uses lists to store multiple values in one variable.
+
+scores = [88, 92, 75, 81, 95]
+
+print("Scores:", scores)
+print("Number of scores:", len(scores))
+print("Highest score:", max(scores))
+print("Lowest score:", min(scores))
+print("Average score:", sum(scores) / len(scores))
+
+print("Passed scores:")
+for score in scores:
+    if score >= 75:
+        print(score)
+`
+    },
+    matplot: {
+      filename: 'matplotlib_chart.py',
+      title: 'Code with Matplotlib',
+      code: String.raw`# Code with Matplotlib
+# This program creates a simple line chart.
+
+import matplotlib.pyplot as plt
+
+weeks = [1, 2, 3, 4, 5]
+study_hours = [2, 3, 5, 4, 6]
+
+plt.plot(weeks, study_hours, marker="o")
+plt.title("Weekly Study Hours")
+plt.xlabel("Week")
+plt.ylabel("Hours")
+plt.grid(True)
+plt.show()
+`
+    },
+    csv_matplot: {
+      filename: 'csv_matplotlib_chart.py',
+      title: 'CSV Data + Matplotlib',
+      supportFiles: [
+        {
+          placeholder: 'CSV_FILENAME',
+          filename: 'student_scores.csv',
+          language: 'csv',
+          content: String.raw`Student,Score
+Ana,88
+Ben,74
+Carlo,91
+Dina,83
+Ella,96
+`
+        }
+      ],
+      code: String.raw`# CSV File with Data + Matplotlib
+# This program reads a real CSV file from your project folder and visualizes it.
+
+import csv
+import matplotlib.pyplot as plt
+
+filename = "__CSV_FILENAME__"
+
+students = []
+scores = []
+
+with open(filename, "r", newline="") as file:
+    reader = csv.DictReader(file)
+    for row in reader:
+        students.append(row["Student"])
+        scores.append(int(row["Score"]))
+
+print("CSV file:", filename)
+print("Students:", students)
+print("Scores:", scores)
+print("Average score:", sum(scores) / len(scores))
+
+plt.bar(students, scores)
+plt.title("Student Scores from CSV")
+plt.xlabel("Student")
+plt.ylabel("Score")
+plt.ylim(0, 100)
+plt.show()
+`
+    }
+  };
+
+  function renderSampleCode(sample, supportFileNames = {}) {
+    let code = sample.code || '';
+    Object.entries(supportFileNames).forEach(([placeholder, filename]) => {
+      const token = '__' + placeholder + '__';
+      code = code.split(token).join(filename);
+    });
+    return code;
+  }
+
+  async function createSampleSupportFiles(sample, parentId = null) {
+    const supportFileNames = {};
+    const supportFiles = Array.isArray(sample.supportFiles) ? sample.supportFiles : [];
+
+    for (const support of supportFiles) {
+      const placeholder = support.placeholder || 'SUPPORT_FILENAME';
+      let candidateName = nextAvailableName(support.filename, parentId);
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const res = await api('/ide/nodes', 'POST', {
+            workspace_id: WORKSPACE_ID,
+            parent_id: parentId,
+            type: 'file',
+            name: candidateName,
+            content: support.content || '',
+            language: support.language || 'text'
+          });
+
+          supportFileNames[placeholder] = res.node.name || candidateName;
+          termPrint('info', `Created data file: ${res.node.name || candidateName}`);
+          break;
+        } catch (err) {
+          if (err.collision) {
+            candidateName = generateSuggestedName(candidateName);
+            continue;
+          }
+
+          throw err;
+        }
+      }
+
+      if (!supportFileNames[placeholder]) {
+        throw new Error(`Could not generate a unique filename for ${support.filename}.`);
+      }
+    }
+
+    return supportFileNames;
+  }
+
+  function parentIdOfActiveTab() {
+    if (activeTab === null) return null;
+    const node = findNode(treeData, activeTab);
+    return node ? node.parent_id : null;
+  }
+
+  async function insertPythonSample(key) {
+    if (!key || !PYTHON_SAMPLES[key]) return;
+
+    const sample = PYTHON_SAMPLES[key];
+
+    if (activeTab === null) {
+      let candidateName = nextAvailableName(sample.filename, null);
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const supportFileNames = await createSampleSupportFiles(sample, null);
+          const generatedCode = renderSampleCode(sample, supportFileNames);
+
+          const res = await api('/ide/nodes', 'POST', {
+            workspace_id: WORKSPACE_ID,
+            parent_id: null,
+            type: 'file',
+            name: candidateName,
+            content: generatedCode,
+            language: 'python'
+          });
+          await refreshTree();
+          openFile(res.node.id, res.node.name, res.node.content ?? generatedCode);
+          setStatus(`${sample.title} generated`);
+          termPrint('info', `${sample.title} generated as ${candidateName}.`);
+          return;
+        } catch (err) {
+          if (err.collision) {
+            candidateName = generateSuggestedName(candidateName);
+            continue;
+          }
+
+          termPrint('error', err.message || 'Could not generate sample file.');
+          setStatus('Sample generation failed');
+          return;
+        }
+      }
+
+      termPrint('error', 'Could not generate a unique sample filename. Please delete an older sample or rename it.');
+      setStatus('Sample generation failed');
+      return;
+    }
+
+    const tab = openTabs.find(t => t.id === activeTab);
+    const current = cm ? cm.getValue().trim() : '';
+
+    if (current && !confirm(`Replace the current file content with "${sample.title}"?`)) {
+      setStatus('Sample canceled');
+      return;
+    }
+
+    try {
+      const supportFileNames = await createSampleSupportFiles(sample, parentIdOfActiveTab());
+      const generatedCode = renderSampleCode(sample, supportFileNames);
+
+      cm.setValue(generatedCode);
+      if (tab) {
+        tab.content = generatedCode;
+        tab.modified = true;
+      }
+      renderTabBar();
+      await refreshTree();
+      setStatus(`${sample.title} inserted`);
+      termPrint('info', `${sample.title} inserted. Supporting data files were added to the project folder. Press Save or Run when ready.`);
+    } catch (err) {
+      termPrint('error', err.message || 'Could not generate supporting data file.');
+      setStatus('Sample generation failed');
+    }
   }
 
   let _modalCallback = null; let _modalParentId = null; let _modalType = null; let _renameId = null;
@@ -930,7 +1268,7 @@ const IDE = (() => {
   function closeModal() { document.getElementById('modal-bg').classList.remove('open'); _modalCallback = null; }
   async function confirmModal() { const val = document.getElementById('modal-input').value.trim(); if (!val) return; const callback = _modalCallback; const type = _modalType; const parentId = _modalParentId; const renameId = _renameId; closeModal(); if (callback === 'create') await createNode(type, parentId, val); else if (callback === 'rename') await renameNode(renameId, val); }
   async function createNode(type, parentId, name) { setStatus('Creating…'); try { const res = await api('/ide/nodes', 'POST', { workspace_id: WORKSPACE_ID, parent_id: parentId, type, name, content: type === 'file' ? '' : null, language: 'python' }); await refreshTree(); setStatus('Created'); if (type === 'file') openFile(res.node.id, res.node.name, res.node.content ?? ''); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
-  async function renameNode(id, name) { setStatus('Renaming…'); try { await api(`/ide/nodes/${id}/rename`, 'PATCH', { name }); const tab = openTabs.find(t => t.id === id); if (tab) { tab.name = name; renderTabBar(); document.getElementById('breadcrumb-file').textContent = name; } await refreshTree(); setStatus('Renamed'); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
+  async function renameNode(id, name) { setStatus('Renaming…'); try { await api(`/ide/nodes/${id}/rename`, 'PATCH', { name }); const tab = openTabs.find(t => t.id === id); if (tab) { tab.name = name; renderTabBar(); setText('breadcrumb-file', name); } await refreshTree(); setStatus('Renamed'); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
   function confirmDelete(id, name) { if (!confirm(`Delete "${name}"? This cannot be undone.`)) return; deleteNode(id); }
   async function deleteNode(id) { setStatus('Deleting…'); try { await api(`/ide/nodes/${id}`, 'DELETE'); openTabs = openTabs.filter(t => t.id !== id); if (activeTab === id) { activeTab = openTabs.length ? openTabs[openTabs.length - 1].id : null; if (activeTab) loadTabContent(activeTab); else { document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; } } renderTabBar(); await refreshTree(); setStatus('Deleted'); } catch(e) { setStatus('Error'); } }
   async function refreshTree() { const res = await api('/ide/tree', 'GET'); treeData = res.tree; renderTree(); }
@@ -938,34 +1276,45 @@ const IDE = (() => {
   function closeCtxMenu() { document.getElementById('ctx-menu').classList.remove('open'); }
   function termPrint(type, text) { const body = document.getElementById('terminal-body'); const div = document.createElement('div'); div.className = `term-${type}`; if (type === 'prompt') div.innerHTML = `<span class="term-prompt">›</span> ${escHtml(text)}`; else div.textContent = text; body.appendChild(div); body.scrollTop = body.scrollHeight; const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal(); }
   function termPrintImage(base64) { const body = document.getElementById('terminal-body'); const wrapper = document.createElement('div'); wrapper.style.cssText = 'padding: 8px 0;'; const img = document.createElement('img'); img.src = 'data:image/png;base64,' + base64; img.style.cssText = 'max-width:100%; border-radius:6px; border:1px solid var(--border); display:block;'; wrapper.appendChild(img); body.appendChild(wrapper); body.scrollTop = body.scrollHeight; const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal(); }
-  function clearTerminal() { document.getElementById('terminal-body').innerHTML = '<div class="term-info">Terminal cleared.</div>'; }
+  function clearTerminal() { setHtml('terminal-body', '<div class="term-info">Terminal cleared.</div>'); }
   function toggleTerminal() { const panel = document.getElementById('bottom-panel'); panel.classList.toggle('collapsed'); const icon = document.getElementById('term-toggle-icon'); icon.innerHTML = panel.classList.contains('collapsed') ? '<polyline points="6 15 12 9 18 15"/>' : '<polyline points="6 9 12 15 18 9"/>'; setTimeout(() => { if(cm) cm.refresh(); }, 250); }
   function setupResize() { const handle = document.getElementById('resize-handle'); const panel = document.getElementById('bottom-panel'); let dragging = false; let startY, startH; handle.addEventListener('mousedown', (e) => { dragging = true; startY = e.clientY; startH = panel.offsetHeight; document.body.style.cursor = 'ns-resize'; document.body.style.userSelect = 'none'; }); document.addEventListener('mousemove', (e) => { if (!dragging) return; const diff = startY - e.clientY; const newH = Math.max(34, Math.min(startH + diff, 500)); panel.style.height = newH + 'px'; }); document.addEventListener('mouseup', () => { dragging = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; }); }
   function togglePanel(name) { if (name === 'explorer') { const el = document.getElementById('explorer-panel'); el.style.display = el.style.display === 'none' ? '' : 'none'; } }
   function collapseAll() { document.querySelectorAll('.tree-children').forEach(c => c.classList.remove('open')); document.querySelectorAll('.tree-row').forEach(r => r.classList.remove('open')); }
   function setupKeyboard() { document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); } if (e.key === 'Escape') { closeModal(); closeCtxMenu(); cancelInput(); } }); document.getElementById('modal-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmModal(); }); }
-  function setStatus(msg) { document.getElementById('status-msg').textContent = msg; }
-  function updateStatusLang(name) { const ext = name.split('.').pop().toLowerCase(); const map = { py: 'Python 3', js: 'JavaScript', ts: 'TypeScript', md: 'Markdown', txt: 'Plain Text' }; document.getElementById('status-lang').textContent = map[ext] || 'Python 3'; }
+  function setStatus(msg) { setText('status-msg', msg); }
+  function updateStatusLang(name) { const ext = String(name || '').split('.').pop().toLowerCase(); const map = { py: 'Python 3', js: 'JavaScript', ts: 'TypeScript', md: 'Markdown', txt: 'Plain Text' }; setText('status-lang', map[ext] || 'Python 3'); }
   function focusSearch() { if (cm) cm.execCommand('find'); }
 
   // 🚀 UPDATED API HELPER TO CATCH COLLISIONS 🚀
-  async function api(url, method, body) { 
-      const opts = { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } }; 
-      if (method !== 'GET' && body !== undefined) opts.body = JSON.stringify(body); 
-      const res = await fetch(url, opts); 
-      const json = await res.json(); 
+  async function api(url, method, body) {
+      const opts = { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } };
+      if (method !== 'GET' && body !== undefined) opts.body = JSON.stringify(body);
+
+      const res = await fetch(url, opts);
+      let json = {};
+
+      try {
+          json = await res.json();
+      } catch (_) {
+          json = {};
+      }
+
       if (!res.ok) {
-          const err = new Error(json.error || json.message || 'Request failed');
-          err.collision = json.collision;
+          const validationMessage = json.errors ? Object.values(json.errors).flat()[0] : null;
+          const err = new Error(json.error || validationMessage || json.message || 'Request failed');
+          err.collision = Boolean(json.collision);
+          err.errors = json.errors || {};
           throw err;
       }
-      return json; 
+
+      return json;
   }
 
   function findNode(nodes, id) { for (const n of nodes) { if (n.id === id) return n; if (n.children) { const found = findNode(n.children, id); if (found) return found; } } return null; }
   function escHtml(str) { return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  return { init, save, run, submitInput, cancelInput, promptCreate, promptRename, closeModal, confirmModal, clearTerminal, toggleTerminal, togglePanel, collapseAll, focusSearch };
+  return { init, save, run, submitInput, cancelInput, promptCreate, promptRename, closeModal, confirmModal, clearTerminal, toggleTerminal, togglePanel, collapseAll, focusSearch, insertPythonSample };
 })();
 
 window.addEventListener('DOMContentLoaded', IDE.init);

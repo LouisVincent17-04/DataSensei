@@ -524,7 +524,7 @@
             <div class="page-kicker">Instructor Workspace</div>
             <h1 class="page-title">Module Library</h1>
             <p class="page-subtitle">
-              Browse module versions, preview NetAcad-style lesson content, and assign the selected versions to one of your classes.
+              Browse module versions, preview DataSensei lesson content, and assign the selected versions to one of your classes.
             </p>
           </div>
 

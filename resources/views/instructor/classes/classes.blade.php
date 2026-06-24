@@ -50,15 +50,44 @@
     }
     .topbar h1 { font-size: 1.125rem; font-weight: 700; flex: 1; letter-spacing: -0.01em; }
     .topbar-search {
-      display: flex; align-items: center;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 8px 12px; gap: 10px; width: 280px;
-      transition: border-color .15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 300px;
+      height: 40px;
+      min-height: 40px;
+      max-height: 40px;
+      padding: 0 12px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: border-color .15s, background .15s;
+      flex: 0 0 auto;
     }
-    .topbar-search:focus-within { border-color: var(--accent); }
+    .topbar-search:focus-within {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+    .topbar-search svg {
+      flex: 0 0 auto;
+      color: var(--muted);
+    }
     .topbar-search input {
-      background: none; border: none; outline: none;
-      color: var(--text); font-size: .875rem; font-family: inherit; width: 100%;
+      flex: 1;
+      width: 100%;
+      height: 38px;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: .875rem;
+      line-height: 1.2;
+      font-family: inherit;
+      appearance: none;
     }
     .topbar-search input::placeholder { color: var(--dim); }
     .topbar-btn {
@@ -329,6 +358,7 @@
 
     $instructor = Auth::user();
     $stripes = ['stripe-blue', 'stripe-purple', 'stripe-green', 'stripe-amber'];
+    $hasAnyClasses = ((int) $totalActive + (int) $totalArchived) > 0;
 
     if (!function_exists('classInitials')) {
         function classInitials(string $name): string {
@@ -356,13 +386,6 @@
         </svg>
         <input type="text" name="search" placeholder="Search classes…" value="{{ request('search') }}" />
       </form>
-
-      <a href="{{ route('instructor.classes.create') }}" class="btn btn-accent" style="gap:8px;">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        New Class
-      </a>
 
       <a href="{{ route('profile') }}" class="topbar-btn" title="Profile">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -396,12 +419,14 @@
           <h2>{{ $showArchived ? 'Archived Classes' : 'Active Classes' }}</h2>
           <p>Manage your class sections, enrolments, and assignments.</p>
         </div>
-        <a href="{{ route('instructor.classes.create') }}" class="btn btn-accent">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Create New Class
-        </a>
+        @if ($hasAnyClasses)
+          <a href="{{ route('instructor.classes.create') }}" class="btn btn-accent">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Create New Class
+          </a>
+        @endif
       </div>
 
       {{-- Stats Strip --}}

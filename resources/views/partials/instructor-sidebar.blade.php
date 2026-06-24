@@ -9,14 +9,12 @@
   @endphp
 
   <div class="sidebar-logo">
-    <div class="wordmark">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2.5">
-        <path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z"/>
-        <path d="M8 12h8M8 16h5"/>
-      </svg>
-      Data<span>Sensei</span>
-    </div>
-    <div class="tagline">Instructor Workspace</div>
+    @include('partials.brand-logo', [
+      'variant' => 'sidebar',
+      'size' => 'normal',
+      'subtext' => 'Instructor Workspace',
+      'href' => $safeRoute('instructor.dashboard', '/instructor/dashboard'),
+    ])
   </div>
 
   <nav class="nav-group">
@@ -47,7 +45,7 @@
   <nav class="nav-group">
     <div class="nav-label">Assignments</div>
 
-    <a href="{{ $safeRoute('modules.module_list', '/modules/module-library') }}"
+    <a href="{{ $safeRoute('modules.module-library.index', '/modules/module-library') }}"
        class="nav-item {{ request()->routeIs('modules.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
@@ -73,6 +71,18 @@
     </a>
 
 
+
+
+    <a href="{{ $safeRoute('instructor.tos.index', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.tos.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 5h16M4 12h16M4 19h16"/>
+      </svg>
+      Table of Specification
+      <span class="badge">TOS</span>
+    </a>
+
+
     <a href="{{ $safeRoute('instructor.anti-cheat.index', '#') }}"
        class="nav-item {{ request()->routeIs('instructor.anti-cheat.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -82,6 +92,18 @@
       Anti-Cheat
       <span class="badge badge-warn">Assignments</span>
     </a>
+
+
+
+    <a href="{{ $safeRoute('instructor.anti-cheat.events', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.anti-cheat.events') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M12 9v4m0 4h.01"/>
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+      Anti-Cheat Events
+    </a>
+
 
     <a href="{{ $safeRoute('instructor.submissions.index', '#') }}"
        class="nav-item {{ request()->routeIs('instructor.submissions.*') ? 'active' : '' }}">
@@ -112,7 +134,7 @@
       ILO Mastery
     </a>
 
-    <a href="{{ $safeRoute('instructor.students.risk', '#') }}"
+    <a href="{{ $safeRoute('instructor.risk.index', '#') }}"
        class="nav-item {{ request()->routeIs('instructor.risk.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M12 9v4m0 4h.01"/>
@@ -195,27 +217,6 @@
   .sidebar-logo {
     padding: 24px;
     border-bottom: 1px solid var(--border);
-  }
-
-  .sidebar-logo .wordmark {
-    font-weight: 800;
-    font-size: 1.25rem;
-    letter-spacing: -0.025em;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .sidebar-logo .wordmark span {
-    color: var(--accent);
-  }
-
-  .sidebar-logo .tagline {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 4px;
-    font-weight: 600;
   }
 
   .nav-group {

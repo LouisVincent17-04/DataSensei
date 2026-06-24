@@ -4,16 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\Institution;
 use App\Models\InstructorApplication;
+use App\Models\Rank;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
 
 class ProfileController extends Controller
 {
     public function show(Request $request)
     {
         $user = Auth::user();
+
+        [
+            $ranks,
+            $currentRank,
+            $nextRank,
+            $rankProgressPercent,
+            $rankXpToNext,
+            $currentRankPosition,
+            $totalRanks,
+        ] = $this->buildRankViewData($user);
 
         $activeTab = $request->query('tab', 'general');
 
@@ -34,8 +46,79 @@ class ProfileController extends Controller
             'user',
             'activeTab',
             'institutions',
-            'instructorApplication'
+            'instructorApplication',
+            'ranks',
+            'currentRank',
+            'nextRank',
+            'rankProgressPercent',
+            'rankXpToNext',
+            'currentRankPosition',
+            'totalRanks'
         ));
+    }
+
+    private function buildRankViewData(User $user): array
+    {
+        $xp = max(0, (int) ($user->xp ?? 0));
+        $ranks = collect();
+
+        try {
+            $ranks = Rank::query()
+                ->orderBy('exp_required')
+                ->get();
+        } catch (Throwable $exception) {
+            // Keeps the profile page usable before php artisan migrate is run.
+            $ranks = collect();
+        }
+
+        $currentRank = $ranks
+            ->filter(fn ($rank) => (int) $rank->exp_required <= $xp)
+            ->sortByDesc('exp_required')
+            ->first();
+
+        if (! $currentRank && $ranks->isNotEmpty()) {
+            $currentRank = $ranks->first();
+        }
+
+        $nextRank = $ranks
+            ->filter(fn ($rank) => (int) $rank->exp_required > $xp)
+            ->sortBy('exp_required')
+            ->first();
+
+        $rankProgressPercent = 0.0;
+        $rankXpToNext = 0;
+
+        if ($currentRank && $nextRank) {
+            $currentFloor = (int) $currentRank->exp_required;
+            $nextFloor = (int) $nextRank->exp_required;
+            $range = max(1, $nextFloor - $currentFloor);
+            $earnedInRange = max(0, $xp - $currentFloor);
+
+            $rankProgressPercent = round(min(100, ($earnedInRange / $range) * 100), 2);
+            $rankXpToNext = max(0, $nextFloor - $xp);
+        } elseif ($currentRank) {
+            $rankProgressPercent = 100.0;
+        }
+
+        $currentRankPosition = 1;
+        $rankValues = $ranks->values();
+
+        if ($currentRank) {
+            $foundIndex = $rankValues->search(fn ($rank) => (int) $rank->rank_id === (int) $currentRank->rank_id);
+            $currentRankPosition = $foundIndex === false ? 1 : ((int) $foundIndex + 1);
+        }
+
+        $totalRanks = max(1, $ranks->count());
+
+        return [
+            $ranks,
+            $currentRank,
+            $nextRank,
+            $rankProgressPercent,
+            $rankXpToNext,
+            $currentRankPosition,
+            $totalRanks,
+        ];
     }
 
     public function update(Request $request)

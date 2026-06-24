@@ -268,7 +268,8 @@
             @php
               $pos     = $positions[$i];
               $passed  = in_array($ch->id, $completedChallengeIds);
-              $tried   = isset($bestScores[$ch->id]); 
+              $tried   = isset($bestScores[$ch->id]);
+              $hasActiveAttempt = in_array($ch->id, $activeAttemptIds ?? []); 
 
               if ($passed) {
                   $state = 'completed';
@@ -334,33 +335,33 @@
                 @endif
 
                 @if($state === 'completed')
-                  <div class="challenge-map-node-status" style="color: var(--accent3); margin-bottom: 8px;">✅ Challenge Completed</div>
+                  <div class="challenge-map-node-status" style="color: var(--accent3); margin-bottom: 8px;">Challenge Completed</div>
                   <a href="{{ route('challenges.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}" class="challenge-map-btn-retry">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
-                    Retry for Better Score
+                    {{ $hasActiveAttempt ? 'Resume Practice' : 'Practice Again' }}
                   </a>
 
                 @elseif($state === 'failed')
-                  <div class="challenge-map-node-status" style="color: #ef4444; margin-bottom: 8px;">❌ Needs 70% to Pass</div>
+                  <div class="challenge-map-node-status" style="color: #ef4444; margin-bottom: 8px;">Needs 70% to Pass</div>
                   <a href="{{ route('challenges.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}" class="challenge-map-btn-start">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
-                    Try Again
+                    {{ $hasActiveAttempt ? 'Resume Attempt' : 'Try Again' }}
                   </a>
 
                 @elseif($state === 'active')
                   <a href="{{ route('challenges.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}" class="challenge-map-btn-start">
-                    Start Challenge
+                    {{ $hasActiveAttempt ? 'Resume Attempt' : 'Start Challenge' }}
                     <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                     </svg>
                   </a>
 
                 @else
-                  <div class="challenge-map-node-status">🔒 Complete prior modules to unlock</div>
+                  <div class="challenge-map-node-status">Complete prior modules to unlock</div>
                 @endif
 
               </div>

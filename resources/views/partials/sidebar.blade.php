@@ -1,14 +1,12 @@
 {{-- ── SIDEBAR PARTIAL ── --}}
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="wordmark">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2.5">
-        <path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z"/>
-        <path d="M8 12h8M8 16h5"/>
-      </svg>
-      Data<span>Sensei</span>
-    </div>
-    <div class="tagline">AI-Powered Learning Platform</div>
+    @include('partials.brand-logo', [
+      'variant' => 'sidebar',
+      'size' => 'normal',
+      'subtext' => 'Data Science Learning Platform',
+      'href' => route('studentDashboard'),
+    ])
   </div>
 
   <nav class="nav-group">
@@ -43,16 +41,49 @@
       Assignments
     </a>
 
+
+    <a href="{{ route('student.achievements.index') }}"
+       class="nav-item {{ request()->routeIs('student.achievements.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M8 21h8M12 17v4"/>
+        <path d="M7 4h10v4a5 5 0 01-10 0V4z"/>
+        <path d="M5 5H3v2a4 4 0 004 4M19 5h2v2a4 4 0 01-4 4"/>
+      </svg>
+      Achievements
+      <span class="badge">XP</span>
+    </a>
+
+    <a href="{{ route('student.leaderboard.index') }}"
+       class="nav-item {{ request()->routeIs('student.leaderboard.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 19V9m8 10V5m8 14v-7"/>
+        <path d="M3 19h18"/>
+      </svg>
+      Leaderboard
+    </a>
+
+
+
+    <a href="{{ route('student.advanced-topics.index') }}"
+       class="nav-item {{ request()->routeIs('student.advanced-topics.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+      Advanced Suggestions
+      <span class="badge">Next</span>
+    </a>
+
     <a href="{{ route('ide.index') }}"
        class="nav-item {{ request()->routeIs('ide.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <polyline points="16 18 22 12 16 6"/>
         <polyline points="8 6 2 12 8 18"/>
       </svg>
-      IDE &amp; Compiler
+      Python IDE
     </a>
 
-    <a href="#" class="nav-item">
+    <a href="{{ route('student.analytics.index') }}"
+       class="nav-item {{ request()->routeIs('student.analytics.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
@@ -72,7 +103,7 @@
       <span class="badge">3</span>
     </a>
 
-  <a href="{{ route('challenges.coding', ['slug' => 'example-slug']) }}"
+  <a href="{{ route('challenges.coding') }}"
     class="nav-item {{ request()->routeIs('challenges.coding', 'challenges.coding.map', 'challenges.coding.quiz') ? 'active' : '' }}">
     <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <rect x="3" y="4" width="18" height="12" rx="2" ry="2"></rect>
@@ -83,7 +114,8 @@
   </a>
 
 
-  <a href="{{ route('sql-sandbox.index') }}" class="nav-item">
+  <a href="{{ route('sql-sandbox.index') }}"
+     class="nav-item {{ request()->routeIs('sql-sandbox.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
           <path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"></path>
@@ -92,7 +124,21 @@
       SQL Sandbox
   </a>
 
-    <a href="#" class="nav-item">
+  <a href="{{ route('student.data-toolkit.index') }}"
+     class="nav-item {{ request()->routeIs('student.data-toolkit.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 19V5a2 2 0 012-2h12a2 2 0 012 2v14"/>
+        <path d="M4 19h16"/>
+        <path d="M8 15v-3"/>
+        <path d="M12 15V8"/>
+        <path d="M16 15v-5"/>
+      </svg>
+      Data Toolkit
+      <span class="badge">Stats</span>
+  </a>
+
+    <a href="{{ route('student.submissions.index') }}"
+       class="nav-item {{ request()->routeIs('student.submissions.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
@@ -151,10 +197,7 @@
     /* ── CENTRALIZED SIDEBAR CSS ── */
     .sidebar { width: 260px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; }
     .sidebar-logo { padding: 24px; border-bottom: 1px solid var(--border); }
-    .sidebar-logo .wordmark { font-weight: 700; font-size: 1.25rem; letter-spacing: -0.025em; color: var(--text); display: flex; align-items: center; gap: 8px; }
-    .sidebar-logo .wordmark span { color: var(--accent); }
-    .sidebar-logo .tagline { font-size: 0.75rem; color: var(--muted); margin-top: 4px; font-weight: 500; }
-    
+
     .nav-group { padding: 24px 16px 0; }
     .nav-label { font-size: 0.75rem; font-weight: 600; color: var(--dim); letter-spacing: 0.05em; text-transform: uppercase; padding: 0 12px; margin-bottom: 8px; }
     .nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.875rem; font-weight: 500; color: var(--muted); transition: all 0.15s ease; text-decoration: none; margin-bottom: 2px; }

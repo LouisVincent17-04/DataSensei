@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module9ChallengeSeederIntermediate extends Seeder
 {
@@ -16,503 +14,508 @@ class Module9ChallengeSeederIntermediate extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'intermediate')->first();
 
-        if (!$category) {
-            $this->command->error("Intermediate category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Intermediate category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Applied Matrix Analysis';
 
-        $this->command->info("Creating Module 9 — Applied Matrix Analysis (Intermediate)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 9 — Applied Matrix Analysis (Intermediate) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Applied Matrix Analysis',
-            'description'           => 'Tackle multi-step matrix problems involving LU decomposition, eigenvalue computation, diagonalization, orthogonality, and the four fundamental subspaces. Multi-step reasoning and calculation required.',
-            'time_limit_seconds'    => 1800,
-            'base_xp'               => 1500,
-            'order_index'           => 9,
+            'title' => $title,
+            'description' => 'A detailed 50-item Intermediate MCQ challenge for Applied Matrix Analysis. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1800,
+            'base_xp' => 800,
+            'order_index' => 9,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 intermediate-level questions...");
-
         $qaData = [
-
-            // ── LU DECOMPOSITION ─────────────────────────────────────────
             [
-                'q' => 'In LU decomposition A = LU, what kind of matrix is L and what kind is U?',
+                'q' => 'Item 1: In Applied Matrix Analysis, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['L is upper triangular, U is lower triangular', false],
-                    ['L is lower triangular (with 1s on diagonal), U is upper triangular', true],
-                    ['Both are diagonal', false],
-                    ['L is orthogonal, U is symmetric', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Given A = [[2, 4], [1, 3]], find L and U in the LU decomposition (no row swaps).\nWhat is the multiplier l₂₁ used to eliminate the (2,1) entry?",
+                'q' => 'Item 2: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['2', false],
-                    ['1/2', true],
-                    ['1', false],
-                    ['4', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "After performing elimination on A = [[2, 4], [1, 3]] to get U, what is U?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['[[2, 4], [0, 1]]', true],
-                    ['[[2, 4], [1, 3]]', false],
-                    ['[[1, 2], [0, 1]]', false],
-                    ['[[2, 0], [1, 3]]', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the main advantage of LU decomposition when solving multiple systems Ax = b with different b vectors?',
+                'q' => 'Item 4: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['You only need to factor A once, then solve Ly = b and Ux = y for each b', true],
-                    ['You can skip computing U entirely', false],
-                    ['The inverse of A is computed automatically', false],
-                    ['It removes the need for back substitution', false],
-                ],
-            ],
-
-            // ── EIGENVALUES & EIGENVECTORS ────────────────────────────────
-            [
-                'q' => "Find the eigenvalues of A = [[4, 1], [2, 3]].\nThe characteristic polynomial is λ² − 7λ + 10 = 0. What are λ₁ and λ₂?",
-                'opts' => [
-                    ['λ = 1 and λ = 10', false],
-                    ['λ = 5 and λ = 2', true],
-                    ['λ = 7 and λ = 0', false],
-                    ['λ = 4 and λ = 3', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "For A = [[4, 1], [2, 3]] with eigenvalue λ = 5, find the eigenvector by solving (A − 5I)x = 0.\nWhich vector satisfies this?",
+                'q' => 'Item 5: Which response shows the best Intermediate practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['[1, 1]', true],
-                    ['[1, 2]', false],
-                    ['[2, 1]', false],
-                    ['[0, 1]', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The product of all eigenvalues of a square matrix A equals:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['The trace of A', false],
-                    ['The rank of A', false],
-                    ['The determinant of A', true],
-                    ['The norm of A', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The sum of all eigenvalues of a square matrix A equals:',
+                'q' => 'Item 7: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The determinant of A', false],
-                    ['The trace of A (sum of diagonal entries)', true],
-                    ['The rank of A', false],
-                    ['The largest eigenvalue', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A = [[0, 1], [−1, 0]]. The characteristic polynomial is λ² + 1 = 0.\nWhat can you say about the eigenvalues over the real numbers?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['λ = 1 and λ = −1', false],
-                    ['No real eigenvalues (the roots are complex: ±i)', true],
-                    ['λ = 0 (repeated)', false],
-                    ['λ = 1 (repeated)', false],
-                ],
-            ],
-
-            // ── DIAGONALIZATION ──────────────────────────────────────────
-            [
-                'q' => 'A matrix A is diagonalizable if and only if it has:',
-                'opts' => [
-                    ['A determinant of 1', false],
-                    ['n linearly independent eigenvectors (where A is n×n)', true],
-                    ['All positive eigenvalues', false],
-                    ['All distinct diagonal entries', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In the diagonalization A = PDP⁻¹, what do the columns of P represent?',
+                'q' => 'Item 9: When comparing two approaches in Applied Matrix Analysis, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['Rows of A', false],
-                    ['Eigenvectors of A', true],
-                    ['Singular values of A', false],
-                    ['Diagonal entries of A', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does the diagonal matrix D contain in A = PDP⁻¹?',
+                'q' => 'Item 10: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['The singular values of A', false],
-                    ['The entries of A rearranged', false],
-                    ['The eigenvalues of A on its diagonal', true],
-                    ['The norms of the eigenvectors', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "If A = PDP⁻¹, what is a simple formula for A³?",
+                'q' => 'Item 11: In Applied Matrix Analysis, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['3PDP⁻¹', false],
-                    ['PD³P⁻¹', true],
-                    ['P³D³P⁻³', false],
-                    ['3P³D', false],
-                ],
-            ],
-
-            // ── ORTHOGONALITY & GRAM-SCHMIDT ─────────────────────────────
-            [
-                'q' => 'Two vectors u and v are orthogonal when:',
-                'opts' => [
-                    ['They have the same length', false],
-                    ['Their dot product uᵀv = 0', true],
-                    ['u = −v', false],
-                    ['They lie on the same line', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Are vectors [1, 2, 3] and [1, −1, 1/3] orthogonal?\n(Hint: compute their dot product.)",
+                'q' => 'Item 12: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['No, their dot product is 6', false],
-                    ['Yes, their dot product is 0', true],
-                    ['No, their dot product is 3', false],
-                    ['No, their dot product is 2', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A matrix Q is called orthogonal (or unitary) when:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with bias check?',
                 'opts' => [
-                    ['Q = Qᵀ', false],
-                    ['QᵀQ = I (its columns are orthonormal)', true],
-                    ['Q has all positive entries', false],
-                    ['Q is diagonal', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Gram-Schmidt process takes a set of linearly independent vectors and produces:",
+                'q' => 'Item 14: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A set of eigenvectors', false],
-                    ['An orthonormal set of vectors spanning the same space', true],
-                    ['The LU decomposition', false],
-                    ['A diagonal matrix', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In Gram-Schmidt, the projection of vector b onto vector a is:\n\nproj_a(b) = ?",
+                'q' => 'Item 15: Which response shows the best Intermediate practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['(aᵀb / aᵀa) × a', true],
-                    ['(aᵀa / aᵀb) × b', false],
-                    ['aᵀb × a', false],
-                    ['a / ‖b‖', false],
-                ],
-            ],
-
-            // ── FOUR FUNDAMENTAL SUBSPACES ────────────────────────────────
-            [
-                'q' => 'The four fundamental subspaces of an m×n matrix A are:',
-                'opts' => [
-                    ['Row space, Column space, Nullspace, Left Nullspace', true],
-                    ['Eigenspace, Orthogonal complement, Kernel, Image', false],
-                    ['Domain, Range, Nullspace, Diagonal space', false],
-                    ['Row space, Inverse space, Identity space, Zero space', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The column space of A consists of:',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['All solutions x to Ax = 0', false],
-                    ['All possible outputs Ax for any input x', true],
-                    ['All rows of A', false],
-                    ['All eigenvalues of A', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "The rank-nullity theorem states: rank(A) + nullity(A) = ?",
+                'q' => 'Item 17: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The number of rows (m)', false],
-                    ['The number of columns (n)', true],
-                    ['The determinant of A', false],
-                    ['The trace of A', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For a 4×6 matrix A with rank 3, what is the nullity (dimension of the nullspace)?",
+                'q' => 'Item 18: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['3', false],
-                    ['4', false],
-                    ['1', false],
-                    ['3', true],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For a 4×6 matrix A with rank 3, what is the nullity (dimension of the nullspace)?",
+                'q' => 'Item 19: When comparing two approaches in Applied Matrix Analysis, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['1', false],
-                    ['4', false],
-                    ['3', true],
-                    ['6', false],
-                ],
-            ],
-
-            // ── SINGULAR VALUE DECOMPOSITION (INTRO) ─────────────────────
-            [
-                'q' => 'The Singular Value Decomposition (SVD) of a matrix A is written as:',
-                'opts' => [
-                    ['A = PDP⁻¹', false],
-                    ['A = LU', false],
-                    ['A = UΣVᵀ', true],
-                    ['A = QR', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the SVD A = UΣVᵀ, what does the matrix Σ contain?',
+                'q' => 'Item 20: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['Eigenvalues of A', false],
-                    ['Non-negative singular values on its diagonal', true],
-                    ['Eigenvectors of A', false],
-                    ['The LU factors of A', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The singular values of A are the square roots of the eigenvalues of:',
+                'q' => 'Item 21: In Applied Matrix Analysis, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A itself', false],
-                    ['AᵀA (or AAᵀ)', true],
-                    ['A + Aᵀ', false],
-                    ['A⁻¹', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A key advantage of SVD over eigendecomposition is:',
+                'q' => 'Item 22: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['SVD only works for square matrices', false],
-                    ['SVD works for any m×n matrix, not just square ones', true],
-                    ['SVD is always faster to compute', false],
-                    ['SVD gives integer results', false],
-                ],
-            ],
-
-            // ── POSITIVE DEFINITE MATRICES ────────────────────────────────
-            [
-                'q' => 'A symmetric matrix A is positive definite when:',
-                'opts' => [
-                    ['All entries are positive', false],
-                    ['xᵀAx > 0 for all non-zero vectors x', true],
-                    ['Its determinant is 0', false],
-                    ['It has at least one positive eigenvalue', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A symmetric matrix is positive definite if and only if all its eigenvalues are:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Zero', false],
-                    ['Greater than zero (strictly positive)', true],
-                    ['Less than zero', false],
-                    ['Equal to 1', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following symmetric matrices is positive definite?',
+                'q' => 'Item 24: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['[[2, 3], [3, 2]] (eigenvalues 5 and −1)', false],
-                    ['[[3, 1], [1, 2]] (eigenvalues ≈ 3.73 and 1.27)', true],
-                    ['[[1, 2], [2, 1]] (eigenvalues 3 and −1)', false],
-                    ['[[0, 0], [0, 0]]', false],
-                ],
-            ],
-
-            // ── DETERMINANTS (3×3) ────────────────────────────────────────
-            [
-                'q' => "Use cofactor expansion to find det([[1,2,3],[0,1,4],[5,6,0]]).\nWhat is the determinant?",
-                'opts' => [
-                    ['1', true],
-                    ['−5', false],
-                    ['12', false],
-                    ['0', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The cofactor Cᵢⱼ of matrix A is defined as:',
+                'q' => 'Item 25: Which response shows the best Intermediate practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['The (i,j) entry of A', false],
-                    ['(−1)^(i+j) × det of the submatrix obtained by removing row i and column j', true],
-                    ['The determinant of A divided by aᵢⱼ', false],
-                    ['The transpose of the minor Mᵢⱼ', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If every row of a square matrix sums to the same value k, then k is:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['An eigenvalue corresponding to eigenvector [1,1,...,1]', true],
-                    ['The determinant of A', false],
-                    ['The trace of A divided by n', false],
-                    ['The rank of A', false],
-                ],
-            ],
-
-            // ── MATRIX POWERS & POLYNOMIALS ──────────────────────────────
-            [
-                'q' => "For a diagonal matrix D = [[2,0],[0,3]], what is D⁴?",
-                'opts' => [
-                    ['[[8,0],[0,12]]', false],
-                    ['[[16,0],[0,81]]', true],
-                    ['[[4,0],[0,9]]', false],
-                    ['[[2,0],[0,3]]', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Cayley-Hamilton theorem states that every square matrix satisfies:',
+                'q' => 'Item 27: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Its own transpose equation', false],
-                    ['Its own characteristic polynomial (p(A) = 0)', true],
-                    ['Its own inverse equation', false],
-                    ['The identity A² = I', false],
-                ],
-            ],
-
-            // ── QR DECOMPOSITION ─────────────────────────────────────────
-            [
-                'q' => 'In the QR decomposition A = QR, what is Q?',
-                'opts' => [
-                    ['A lower triangular matrix', false],
-                    ['A matrix with orthonormal columns', true],
-                    ['A diagonal matrix', false],
-                    ['The inverse of A', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'QR decomposition is closely related to which process?',
+                'q' => 'Item 28: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['LU decomposition', false],
-                    ['Gaussian elimination', false],
-                    ['The Gram-Schmidt orthogonalization process', true],
-                    ['SVD', false],
-                ],
-            ],
-
-            // ── PROJECTIONS ──────────────────────────────────────────────
-            [
-                'q' => 'The projection matrix P that projects onto the column space of A is:',
-                'opts' => [
-                    ['P = A(AᵀA)⁻¹Aᵀ', true],
-                    ['P = AᵀA', false],
-                    ['P = (AᵀA)⁻¹', false],
-                    ['P = AAᵀ', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'If b is already in the column space of A, what is its projection Pb?',
+                'q' => 'Item 29: When comparing two approaches in Applied Matrix Analysis, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['0', false],
-                    ['b itself', true],
-                    ['Aᵀb', false],
-                    ['Ab', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The error vector (b − Pb) in a projection is always _____ to the column space of A.',
+                'q' => 'Item 30: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['Parallel', false],
-                    ['Equal', false],
-                    ['Orthogonal (perpendicular)', true],
-                    ['Anti-parallel', false],
-                ],
-            ],
-
-            // ── NORM & CONDITION NUMBER ───────────────────────────────────
-            [
-                'q' => 'The condition number of a matrix A is defined as:',
-                'opts' => [
-                    ['det(A) / trace(A)', false],
-                    ['σ_max / σ_min (largest singular value divided by smallest)', true],
-                    ['‖A‖ + ‖A⁻¹‖', false],
-                    ['rank(A) / n', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix with a very large condition number is called:',
+                'q' => 'Item 31: In Applied Matrix Analysis, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Orthogonal', false],
-                    ['Ill-conditioned (small errors in b can cause large errors in x)', true],
-                    ['Positive definite', false],
-                    ['Full rank', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The condition number of an orthogonal matrix Q is always:',
+                'q' => 'Item 32: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['0', false],
-                    ['∞', false],
-                    ['1', true],
-                    ['n (the size of the matrix)', false],
-                ],
-            ],
-
-            // ── MISC INTERMEDIATE ────────────────────────────────────────
-            [
-                'q' => 'The least squares solution to an overdetermined system Ax ≈ b (no exact solution) is:',
-                'opts' => [
-                    ['x = A⁻¹b', false],
-                    ['x = (AᵀA)⁻¹Aᵀb', true],
-                    ['x = Aᵀb', false],
-                    ['x = Ab / ‖b‖', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The normal equations for least squares are:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with bias check?',
                 'opts' => [
-                    ['Ax = b', false],
-                    ['Aᵀb = x', false],
-                    ['AᵀAx = Aᵀb', true],
-                    ['AAᵀx = b', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In the Gram-Schmidt process, after computing orthogonal vectors q₁ and q₂, you normalize them by:",
+                'q' => 'Item 34: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Multiplying by their determinant', false],
-                    ['Dividing each by its own Euclidean norm', true],
-                    ['Adding the identity matrix', false],
-                    ['Subtracting the mean of entries', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which statement about eigenvalues of symmetric matrices is ALWAYS true?",
+                'q' => 'Item 35: Which response shows the best Intermediate practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['All eigenvalues are complex', false],
-                    ['All eigenvalues are real', true],
-                    ['All eigenvalues are positive', false],
-                    ['All eigenvalues are integers', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Eigenvectors of a symmetric matrix corresponding to different eigenvalues are always:",
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['Parallel', false],
-                    ['Equal in length', false],
-                    ['Orthogonal', true],
-                    ['Negative of each other', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Applied Matrix Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Applied Matrix Analysis, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Applied Matrix Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Applied Matrix Analysis, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Intermediate practice when a method in Applied Matrix Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Applied Matrix Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Applied Matrix Analysis, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Applied Matrix Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 9 — Applied Matrix Analysis (Intermediate).");
+        $this->command->info('Module 9 MCQ (Intermediate) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

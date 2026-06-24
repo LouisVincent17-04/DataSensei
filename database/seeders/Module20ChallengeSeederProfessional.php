@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module20ChallengeSeederProfessional extends Seeder
 {
@@ -16,407 +14,508 @@ class Module20ChallengeSeederProfessional extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'professional')->first();
 
-        if (!$category) {
-            $this->command->error("Professional category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Professional category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Analysis of Unstructured Data')
-                 ->delete();
+        $title = 'Analysis of Unstructured Data';
 
-        $this->command->info("Creating Module 20 — Analysis of Unstructured Data (Professional)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 20 — Analysis of Unstructured Data (Professional) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Analysis of Unstructured Data',
-            'description'           => 'Professional-grade problems on production NLP/CV/audio system design, LLM deployment at scale, edge cases in unstructured data pipelines, responsible AI, and real-world architectural decisions. For working ML engineers, NLP researchers, and AI architects.',
-            'time_limit_seconds'    => 2400,
-            'base_xp'               => 2000,
-            'order_index'           => 20,
+            'title' => $title,
+            'description' => 'A detailed 50-item Professional MCQ challenge for Analysis of Unstructured Data. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 2400,
+            'base_xp' => 1250,
+            'order_index' => 20,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 professional-level Analysis of Unstructured Data questions...");
-
         $qaData = [
-
-            // ── PRODUCTION NLP PIPELINES ──────────────────────────────────
             [
-                'q' => "A production sentiment analysis service handles 10,000 requests/second. The BERT model takes 120ms per request on CPU. Which deployment strategy achieves sub-10ms p99 latency at scale?",
+                'q' => 'Item 1: In Analysis of Unstructured Data, which action best supports production judgment, reliability, governance, and communication when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Deploy more CPU servers', false],
-                    ['Use GPU with dynamic batching (accumulate requests into batches), apply INT8 quantisation, and optionally distil to a smaller model (DistilBERT/TinyBERT) — reducing inference time by 4-8x', true],
-                    ['Cache all possible inputs and their predictions', false],
-                    ['Switch to a simpler TF-IDF + logistic regression pipeline', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A company deploys a named entity recognition system. After 6 months, F1 score on live data drops from 0.91 to 0.74. No code changes were made. The most likely cause is:",
+                'q' => 'Item 2: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Professional level?',
                 'opts' => [
-                    ['A Python version update broke the model', false],
-                    ['Concept drift — the distribution of entity types, domains, or language in production has shifted from the training distribution', true],
-                    ['The model weights became corrupted over time', false],
-                    ['The evaluation metric was calculated incorrectly at launch', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You are building a real-time content moderation pipeline for a social platform with 100M posts/day. Which architectural pattern is correct?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Run a single BERT model on each post synchronously', false],
-                    ['Stream posts through Kafka → lightweight fast classifier for high-recall filtering → async heavy model review for flagged posts → human review queue for edge cases', true],
-                    ['Store all posts and batch classify once per day', false],
-                    ['Use keyword matching only for simplicity', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A document search system using dense retrieval (bi-encoder + FAISS) returns semantically related but irrelevant documents. The best fix is:",
+                'q' => 'Item 4: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Increase the vector dimension', false],
-                    ['Add a cross-encoder re-ranker on the top-k retrieved candidates — the bi-encoder trades accuracy for speed; the cross-encoder jointly encodes query and document for precise relevance scoring', true],
-                    ['Reduce the number of indexed documents', false],
-                    ['Switch to BM25 keyword search instead', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Your multilingual NLP system performs well on English (94% F1) but poorly on Swahili (51% F1) in a zero-shot setting using mBERT. The correct approach is:",
+                'q' => 'Item 5: Which response shows the best Professional practice when a method in Unstructured Data Analysis fails on one test case?',
                 'opts' => [
-                    ['mBERT cannot support Swahili — use a different model', false],
-                    ['Switch to a model trained on more multilingual data with better low-resource language coverage (e.g. XLM-R trained on 100 languages with dedicated Swahili data) and/or translate Swahili training examples', true],
-                    ['Use language detection to skip Swahili inputs', false],
-                    ['Increase the number of attention heads', false],
-                ],
-            ],
-
-            // ── LLM DEPLOYMENT & OPTIMISATION ────────────────────────────
-            [
-                'q' => "A 70B parameter LLM requires approximately how much GPU VRAM to serve in FP16 precision?",
-                'opts' => [
-                    ['35 GB (FP16 = 2 bytes/param, 70B × 2 ≈ 140 GB, not 35 GB)', false],
-                    ['~140 GB just for weights — typically requiring multiple A100/H100 GPUs with tensor parallelism', true],
-                    ['7 GB — models are compressed by default', false],
-                    ['70 GB exactly', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is speculative decoding in LLM inference and what performance gain does it provide?",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
                 'opts' => [
-                    ['Generating multiple hypotheses simultaneously (beam search)', false],
-                    ['A small draft model generates several tokens speculatively; the large target model verifies them in parallel — accepted tokens are kept, rejected ones regenerated. Achieves 2-3x speedup with identical output quality', true],
-                    ['Quantising the model during inference', false],
-                    ['Skipping attention computation for non-informative tokens', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "FlashAttention improves transformer training/inference efficiency by:",
+                'q' => 'Item 7: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Reducing the number of attention heads', false],
-                    ['Reordering attention computation to be IO-aware — tiling the Q, K, V matrices to fit in fast SRAM, avoiding slow HBM reads/writes of the full n×n attention matrix', true],
-                    ['Approximating attention with a low-rank matrix', false],
-                    ['Using 4-bit quantisation for attention weights', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A production RAG system suffers from 'lost in the middle' — the LLM ignores relevant context when it is placed in the middle of a long prompt. The evidence-based fix is:",
+                'q' => 'Item 8: Which situation is most likely an edge case in Analysis of Unstructured Data?',
                 'opts' => [
-                    ['Always retrieve fewer documents', false],
-                    ['Place the most relevant retrieved chunks at the beginning and end of the context window, not in the middle — LLMs have recency and primacy biases', true],
-                    ['Increase the context window size', false],
-                    ['Use a larger embedding model', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Quantisation-aware training (QAT) is preferred over post-training quantisation (PTQ) when:",
+                'q' => 'Item 9: When comparing two approaches in Unstructured Data Analysis, what should a Professional learner prioritize?',
                 'opts' => [
-                    ['The model has fewer than 1B parameters', false],
-                    ['The deployment target requires aggressive quantisation (INT4 or lower) — QAT simulates quantisation noise during training, allowing the model to adapt, whereas PTQ may cause significant accuracy degradation', true],
-                    ['PTQ is always insufficient', false],
-                    ['The model needs to run on CPU only', false],
-                ],
-            ],
-
-            // ── TEXT DATA — PRODUCTION EDGE CASES ────────────────────────
-            [
-                'q' => "A text classifier is evaluated with macro-F1 = 0.92 on a balanced test set, then deployed. In production, class distribution shifts from 20% each (5 classes) to one class at 95%. What happens to perceived performance?",
-                'opts' => [
-                    ['Performance stays the same', false],
-                    ['Micro-F1 (accuracy-weighted) will be high even if the model completely fails on minority classes — macro-F1 and per-class metrics must be monitored separately in production', true],
-                    ['The model automatically adapts to the new distribution', false],
-                    ['F1 becomes undefined with this distribution shift', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A production NLP system tokenises user input with a fixed vocabulary. A user submits a 50,000-character input filled with rare Unicode characters. What is the production risk?",
+                'q' => 'Item 10: What does a strong final answer in Analysis of Unstructured Data include?',
                 'opts' => [
-                    ['The tokeniser will crash on non-ASCII input', false],
-                    ['BPE/SentencePiece tokenises unknown characters into many individual tokens — a 50,000-char input could exceed the model\'s max sequence length (512/2048) and need truncation, losing critical information', true],
-                    ['Unicode input causes gradient explosion', false],
-                    ['The model cannot process inputs over 1,000 characters', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You are building a PII (Personally Identifiable Information) redaction system using NER. An evaluation shows 99% entity recall. Why might this still be unacceptable for production?",
+                'q' => 'Item 11: In Analysis of Unstructured Data, which action best supports production judgment, reliability, governance, and communication when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['99% recall is always sufficient for production', false],
-                    ['In PII redaction, a 1% miss rate on millions of daily documents means thousands of PII leaks — the system needs near-perfect recall (>99.9%) with human review for edge cases, or a conservative approach that prefers false positives', true],
-                    ['The problem requires higher precision, not recall', false],
-                    ['NER cannot detect PII — use regex only', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Your LLM-powered customer support system occasionally generates harmful outputs. Listing the correct layered defence strategy:",
+                'q' => 'Item 12: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Professional level?',
                 'opts' => [
-                    ['Block all outputs containing specific keywords', false],
-                    ['Input guardrails (classifier on user prompt) → RLHF/instruction-tuned model → output guardrails (toxicity classifier + PII detector) → confidence thresholding → human escalation path', true],
-                    ['Use a smaller model that cannot generate harmful content', false],
-                    ['Filter outputs over 100 tokens', false],
-                ],
-            ],
-
-            // ── IMAGE & VISION — PRODUCTION ───────────────────────────────
-            [
-                'q' => "A medical imaging AI achieves 96% accuracy on the held-out test set but is rejected during clinical validation. The most likely reason is:",
-                'opts' => [
-                    ['The model is too complex', false],
-                    ['Shortcuts/dataset bias — the model learned spurious correlations (e.g. image acquisition device, hospital watermarks, patient demographics) rather than clinically relevant features. Clinical validation reveals this generalisation failure', true],
-                    ['The accuracy threshold for medical AI is 99%', false],
-                    ['The model was trained on too many images', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "In a real-time video surveillance system, you need to run object detection at 30 FPS on embedded hardware. Which consideration is most important?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with bias check?',
                 'opts' => [
-                    ['Maximising mAP on COCO benchmark', false],
-                    ['Optimising the latency-accuracy Pareto front — use a lightweight detector (MobileNet-SSD, YOLO-nano), apply TensorRT/ONNX optimisation, and profile memory bandwidth vs compute balance for the target device', true],
-                    ['Using the largest model that fits in GPU memory', false],
-                    ['Processing every other frame to halve computation', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A self-supervised vision model (DINO, MAE) is preferred over supervised pre-training when:",
+                'q' => 'Item 14: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Labelled data is abundant', false],
-                    ['Large amounts of unlabelled images are available but labels are scarce or expensive — self-supervised models learn general visual representations that transfer well to downstream tasks with few labels', true],
-                    ['The task is purely classification', false],
-                    ['GPU memory is very limited', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the difference between semantic segmentation and instance segmentation?",
+                'q' => 'Item 15: Which response shows the best Professional practice when a method in Unstructured Data Analysis fails on one test case?',
                 'opts' => [
-                    ['Semantic segmentation is faster; instance segmentation is more accurate', false],
-                    ['Semantic segmentation assigns a class label to each pixel without distinguishing instances of the same class. Instance segmentation identifies each individual object instance separately (e.g. Mask R-CNN)', true],
-                    ['Instance segmentation only works on person detection', false],
-                    ['They are identical tasks with different names', false],
-                ],
-            ],
-
-            // ── AUDIO & SPEECH — PRODUCTION ───────────────────────────────
-            [
-                'q' => "An ASR system achieves 3% WER (Word Error Rate) on clean speech but 35% WER on noisy factory-floor audio. The production engineering solution is:",
-                'opts' => [
-                    ['Accept the degradation and set user expectations', false],
-                    ['Add a speech enhancement / noise suppression preprocessing stage (e.g. RNNoise, DeepFilterNet), collect and fine-tune on domain-specific noisy audio, and apply multi-condition training', true],
-                    ['Increase microphone sampling rate', false],
-                    ['Switch from Whisper to a rules-based ASR', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A real-time speaker diarisation system ('who spoke when') fails when two speakers overlap simultaneously. The correct technical approach is:",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
                 'opts' => [
-                    ['Ignore overlapping speech segments', false],
-                    ['Use a multi-speaker separation model (e.g. SepFormer) to isolate speaker signals before diarisation, and train the diarisation model on overlapping speech data', true],
-                    ['Assign overlapping segments to the most recent speaker', false],
-                    ['Increase the MFCC window size', false],
-                ],
-            ],
-
-            // ── RESPONSIBLE AI & FAIRNESS ─────────────────────────────────
-            [
-                'q' => "A hiring résumé screening NLP model shows significantly lower recall for female candidates. The audit reveals the training data consisted of historical hires which were 85% male. The correct intervention is:",
-                'opts' => [
-                    ['Remove gender words from résumés only', false],
-                    ['Conduct a full fairness audit: debias training data (resampling/reweighting), apply fairness constraints during training (equalized odds), evaluate with demographic parity and equalised recall across groups, and consider human review', true],
-                    ['Increase the decision threshold for male candidates', false],
-                    ['Train separate models per gender', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is 'data poisoning' as an adversarial attack on NLP systems?",
+                'q' => 'Item 17: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Corrupting the model weights post-deployment', false],
-                    ['Injecting malicious training examples that cause the model to learn a hidden backdoor behaviour — e.g. always predicting a specific label when a trigger phrase is present', true],
-                    ['Flooding the API with adversarial prompts', false],
-                    ['Deleting training data after model deployment', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Differential privacy in NLP model training adds noise to:",
+                'q' => 'Item 18: Which situation is most likely an edge case in Analysis of Unstructured Data?',
                 'opts' => [
-                    ['The input text during inference', false],
-                    ['The gradients during training (DP-SGD) to provide mathematical guarantees that the trained model cannot reveal information about individual training examples', true],
-                    ['The model weights after training', false],
-                    ['The tokeniser vocabulary', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Membership inference attacks on LLMs aim to determine:",
+                'q' => 'Item 19: When comparing two approaches in Unstructured Data Analysis, what should a Professional learner prioritize?',
                 'opts' => [
-                    ['Which GPU was used for training', false],
-                    ['Whether a specific text sample was part of the model\'s training data — a privacy concern as models may memorise sensitive training content', true],
-                    ['The architecture of the model', false],
-                    ['The training loss at convergence', false],
-                ],
-            ],
-
-            // ── SYSTEM DESIGN & ARCHITECTURE ─────────────────────────────
-            [
-                'q' => "You are designing a semantic search system for 50 million legal documents. Rank the correct architecture choices:",
-                'opts' => [
-                    ['TF-IDF index → full-text keyword search → keyword re-ranking', false],
-                    ['Offline: encode all documents with a bi-encoder → index in FAISS with IVF-PQ for approximate nearest-neighbour search → Online: encode query → ANN search → cross-encoder re-ranking of top-100 → return top-10', true],
-                    ['Re-encode all documents per query at runtime', false],
-                    ['Use only a cross-encoder for all 50M documents', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "FAISS IVF (Inverted File Index) with PQ (Product Quantisation) reduces memory and search time by:",
+                'q' => 'Item 20: What does a strong final answer in Analysis of Unstructured Data include?',
                 'opts' => [
-                    ['Storing only the top-k most important vectors', false],
-                    ['IVF clusters vectors into cells and searches only nearby cells; PQ compresses each vector by decomposing it into sub-vector codes — together enabling billion-scale ANN search with acceptable recall', true],
-                    ['Reducing vector dimensions via PCA first', false],
-                    ['Using 32-bit integers instead of floats', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the embedding model cold-start problem in a new product recommendation system using semantic embeddings?",
+                'q' => 'Item 21: In Analysis of Unstructured Data, which action best supports production judgment, reliability, governance, and communication when starting a new task involving problem framing?',
                 'opts' => [
-                    ['The embedding model takes too long to load', false],
-                    ['New items with no interaction history cannot be represented by collaborative-filtering embeddings. Solution: use content-based embeddings (text/image descriptions) as a warm start, then blend with interaction-based embeddings as data accumulates', true],
-                    ['New users have no browsing history', false],
-                    ['The vocabulary does not contain new product names', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A vector database (Pinecone, Weaviate, Qdrant) is preferred over storing embeddings in a traditional relational DB because:",
+                'q' => 'Item 22: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Professional level?',
                 'opts' => [
-                    ['Vector databases support SQL queries', false],
-                    ['They provide native ANN (approximate nearest-neighbour) indexing for fast similarity search at scale — relational DBs require computing exact pairwise distances across all rows which does not scale', true],
-                    ['They compress vectors more efficiently', false],
-                    ['They support real-time training of embedding models', false],
-                ],
-            ],
-
-            // ── EMERGING TECHNIQUES ───────────────────────────────────────
-            [
-                'q' => "Mixture of Experts (MoE) LLMs (e.g. Mixtral 8x7B) achieve efficiency by:",
-                'opts' => [
-                    ['Running all 8 expert sub-networks in parallel always', false],
-                    ['Routing each token to only a subset of expert feed-forward networks (e.g. top-2 of 8) via a learned gating mechanism — total parameters are large but FLOPs per token remain constant', true],
-                    ['Using 8 separate models and ensembling their outputs', false],
-                    ['Splitting the model across 8 GPUs', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Constitutional AI (CAI) from Anthropic trains LLMs to be helpful, harmless, and honest by:",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Hard-coding rules into the model weights', false],
-                    ['Using a set of principles (the constitution) to generate critiques and revisions of model outputs during RLAIF (RL from AI Feedback) — the model learns to self-critique using the principles without relying solely on human labels', true],
-                    ['Filtering all harmful outputs post-generation', false],
-                    ['Training exclusively on curated Wikipedia data', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is 'emergent behaviour' in large language models and why is it scientifically important?",
+                'q' => 'Item 24: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The model generates creative content unprompted', false],
-                    ['Abilities (like multi-step reasoning, translation, code generation) that appear sharply and unexpectedly only above certain model scale thresholds — they cannot be predicted by simply extrapolating from smaller models', true],
-                    ['The model learns new facts after deployment', false],
-                    ['The model develops preferences for certain output styles', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the primary motivation for sparse autoencoders (SAEs) in mechanistic interpretability research on LLMs?",
+                'q' => 'Item 25: Which response shows the best Professional practice when a method in Unstructured Data Analysis fails on one test case?',
                 'opts' => [
-                    ['To compress LLM weights for deployment', false],
-                    ['To decompose superimposed neuron activations into interpretable, monosemantic features — neurons in LLMs often represent multiple unrelated concepts (polysemanticity); SAEs separate them into sparse, human-interpretable directions', true],
-                    ['To improve LLM performance on benchmarks', false],
-                    ['To train LLMs without labelled data', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a production unstructured data platform, data versioning (DVC, MLflow artifacts) is critical because:",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
                 'opts' => [
-                    ['It speeds up model training', false],
-                    ['Unstructured data (text, images, audio) changes over time — versioning ensures reproducibility of experiments, the ability to audit model decisions with the exact training data used, and rollback capability if new data degrades performance', true],
-                    ['It prevents data from being accidentally deleted', false],
-                    ['Unstructured data cannot be stored in relational databases', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the key challenge in evaluating generative LLM outputs (e.g. summaries, open-ended QA) compared to classification tasks?",
+                'q' => 'Item 27: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Generative evaluation requires more compute', false],
-                    ['There is no single correct answer — evaluation requires reference-free metrics (GPT-4 as judge, G-Eval), human evaluation with rubrics, or task-specific automated metrics. Ground-truth comparison alone is insufficient', true],
-                    ['Classification metrics (F1, accuracy) can be directly applied', false],
-                    ['Generative models always outperform classification models', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A law firm deploys an LLM to summarise case documents. The system occasionally 'hallucinates' citations to non-existent court cases. The production-safe solution is:",
+                'q' => 'Item 28: Which situation is most likely an edge case in Analysis of Unstructured Data?',
                 'opts' => [
-                    ['Use a larger LLM with fewer hallucinations', false],
-                    ['Implement grounded generation with RAG (only cite documents retrieved from a verified legal database), add a citation verification step that checks every generated reference against the actual database, and set confidence thresholds for human review', true],
-                    ['Instruct the model to only cite cases it is confident about', false],
-                    ['Disable citation generation entirely', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "When chunking long documents for a RAG system, fixed-size character chunking (e.g. every 500 characters) has a critical problem. What is it, and what is the better approach?",
+                'q' => 'Item 29: When comparing two approaches in Unstructured Data Analysis, what should a Professional learner prioritize?',
                 'opts' => [
-                    ['Fixed chunks are too slow to process', false],
-                    ['Fixed-size chunks may split sentences or paragraphs mid-thought, destroying semantic coherence. Better: use recursive character splitting respecting natural boundaries (sentences, paragraphs), or semantic chunking that groups contextually related content', true],
-                    ['500 characters is always too small', false],
-                    ['Fixed chunking does not support Unicode', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a large-scale unstructured data ML platform, feature stores for NLP serve what critical production function?",
+                'q' => 'Item 30: What does a strong final answer in Analysis of Unstructured Data include?',
                 'opts' => [
-                    ['They replace the need for model training', false],
-                    ['They provide consistent, precomputed, versioned text features and embeddings that can be shared across multiple models/teams — eliminating training-serving skew where offline features differ from online feature computation', true],
-                    ['They store raw text documents only', false],
-                    ['They automatically label unlabelled text data', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the 'training-serving skew' problem in NLP production systems and how is it prevented?",
+                'q' => 'Item 31: In Analysis of Unstructured Data, which action best supports production judgment, reliability, governance, and communication when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The model trains faster than it serves', false],
-                    ['The preprocessing/feature extraction code used during training differs from the code used in production serving — causing silent accuracy degradation. Prevention: use the same pipeline code (same library versions, same tokeniser) in both training and serving, enforced via containerisation', true],
-                    ['The training data is larger than the serving data', false],
-                    ['The model weights change between training and serving', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 32: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Professional level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Professional practice when a method in Unstructured Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Analysis of Unstructured Data?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Unstructured Data Analysis, what should a Professional learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Analysis of Unstructured Data include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Analysis of Unstructured Data, which action best supports production judgment, reliability, governance, and communication when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Analysis of Unstructured Data gets a result that looks correct. What should they do next at the Professional level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Unstructured Data Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Analysis of Unstructured Data, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Professional practice when a method in Unstructured Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Analysis of Unstructured Data tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Unstructured Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Analysis of Unstructured Data?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Unstructured Data Analysis, what should a Professional learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Analysis of Unstructured Data include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 20 — Analysis of Unstructured Data (Professional).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Professional");
+        $this->command->info('Module 20 MCQ (Professional) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

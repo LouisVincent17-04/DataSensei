@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module23ChallengeSeederAdvanced extends Seeder
 {
@@ -16,371 +14,508 @@ class Module23ChallengeSeederAdvanced extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'advanced')->first();
 
-        if (!$category) {
-            $this->command->error("Advanced category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Advanced category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Data Warehousing')
-                 ->delete();
+        $title = 'Data Warehousing';
 
-        $this->command->info("Creating Module 23 — Data Warehousing (Advanced)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 23 — Data Warehousing (Advanced) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Data Warehousing',
-            'description'           => 'Deep data warehousing problems covering complex dbt model debugging, advanced Snowflake/BigQuery optimisation, Data Vault implementation, window functions in warehousing context, and complex SCD edge cases. Requires reading and correcting production code.',
-            'time_limit_seconds'    => 1800,
-            'base_xp'               => 1500,
-            'order_index'           => 23,
+            'title' => $title,
+            'description' => 'A detailed 50-item Advanced MCQ challenge for Data Warehousing. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 2100,
+            'base_xp' => 1000,
+            'order_index' => 23,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 advanced-level Data Warehousing questions...");
-
         $qaData = [
-
-            // ── DIMENSIONAL MODELLING — ADVANCED ──────────────────────────
             [
-                'q' => "A fact table contains a 'discount_percentage' column. An analyst runs:\n\nSELECT product_key, SUM(discount_percentage)\nFROM fact_sales\nGROUP BY product_key;\n\nWhat is conceptually wrong?",
+                'q' => 'Item 1: In Data Warehousing, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
                 'opts' => [
-                    ['SUM requires a numeric column', false],
-                    ['discount_percentage is a non-additive fact — summing percentages across transactions is mathematically meaningless. The correct approach is to compute revenue × discount_rate or use a weighted average', true],
-                    ['GROUP BY should include date_key', false],
-                    ['Discount should be stored in a dimension, not a fact', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "This query calculates the correct metric for a non-additive ratio fact:\n\nSELECT\n    product_key,\n    SUM(revenue * discount_rate) / NULLIF(SUM(revenue), 0) AS weighted_avg_discount\nFROM fact_sales\nGROUP BY product_key;\n\nWhy is NULLIF(SUM(revenue), 0) used?",
+                'q' => 'Item 2: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['To filter out products with zero revenue', false],
-                    ['To prevent division-by-zero errors — if SUM(revenue) is 0, NULLIF returns NULL, making the division return NULL instead of a runtime error', true],
-                    ['To convert revenue to a percentage', false],
-                    ['NULLIF is required for weighted averages in all databases', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A factless fact table is used to capture:",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Data Warehousing when dealing with assumptions?',
                 'opts' => [
-                    ['Facts with zero monetary value', false],
-                    ['Events that occur without any measurable numeric metric — e.g. student course enrollment, product promotion coverage, or attendance records', true],
-                    ['A fact table with no dimension keys', false],
-                    ['Aggregated summary facts with no raw detail', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a type 4 SCD (mini-dimension), the purpose is to:",
+                'q' => 'Item 4: For Data Warehousing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Store only two versions of each attribute', false],
-                    ['Separate frequently changing attributes into a standalone \'mini\' dimension table to avoid causing massive SCD Type 2 row explosions in the main dimension', true],
-                    ['Archive dimension rows in a separate historical table', false],
-                    ['Combine Type 1 and Type 2 behaviour in one table', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "An SCD Type 6 combines which types?",
+                'q' => 'Item 5: Which response shows the best Advanced practice when a method in Data Warehousing fails on one test case?',
                 'opts' => [
-                    ['Types 1 and 2 only', false],
-                    ['Types 1, 2, and 3 — maintaining a full history (Type 2 rows), overwriting a current attribute column (Type 1), and adding a previous value column (Type 3)', true],
-                    ['Types 2, 4, and 5', false],
-                    ['Types 3 and 4 only', false],
-                ],
-            ],
-
-            // ── ETL/ELT — ADVANCED CODE ────────────────────────────────────
-            [
-                'q' => "This Snowflake MERGE statement implements an upsert. What does it do?\n\nMERGE INTO dim_customer AS target\nUSING staging_customer AS source\n    ON target.source_id = source.source_id\n    AND target.is_current = TRUE\nWHEN MATCHED AND (\n    target.city <> source.city OR\n    target.email <> source.email\n) THEN UPDATE SET\n    target.eff_end    = CURRENT_DATE - 1,\n    target.is_current = FALSE\nWHEN NOT MATCHED BY TARGET THEN INSERT (\n    source_id, city, email, eff_start, eff_end, is_current\n) VALUES (\n    source.source_id, source.city, source.email,\n    CURRENT_DATE, NULL, TRUE\n);",
-                'opts' => [
-                    ['Performs SCD Type 1 — overwrites existing records', false],
-                    ['Expires the current matching row when city or email has changed AND inserts new source rows that do not yet exist in the target — but does NOT insert the new version of changed rows', true],
-                    ['Deletes changed rows and re-inserts them', false],
-                    ['Performs a complete SCD Type 2 cycle in one statement', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is missing from the MERGE statement above to complete a full SCD Type 2 implementation?",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
                 'opts' => [
-                    ['A DELETE clause for removed customers', false],
-                    ['A second INSERT clause (or separate INSERT statement) to add the NEW version of changed rows with the updated city/email, new eff_start = CURRENT_DATE, eff_end = NULL, is_current = TRUE', true],
-                    ['An index on source_id', false],
-                    ['Nothing — the MERGE is complete', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A dbt incremental model uses this config:\n\n{{ config(\n    materialized='incremental',\n    unique_key='order_id',\n    incremental_strategy='merge'\n) }}\n\nSELECT * FROM {{ ref('stg_orders') }}\n{% if is_incremental() %}\nWHERE updated_at > (SELECT MAX(updated_at) FROM {{ this }})\n{% endif %}\n\nWhat does `{{ this }}` refer to?",
+                'q' => 'Item 7: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The source table stg_orders', false],
-                    ['The already-existing target table for this model in the warehouse — enabling the incremental filter to check the latest timestamp already loaded', true],
-                    ['The dbt project name', false],
-                    ['A Jinja variable for the current run timestamp', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "This dbt incremental model will produce incorrect results in a specific scenario. What is it?\n\n{% if is_incremental() %}\nWHERE created_at > (SELECT MAX(created_at) FROM {{ this }})\n{% endif %}",
+                'q' => 'Item 8: Which situation is most likely an edge case in Data Warehousing?',
                 'opts' => [
-                    ['The model will fail on the first run', false],
-                    ['Using created_at instead of updated_at misses UPDATES to existing rows — only new rows are captured. Records updated after their creation date with the same created_at will never be re-processed', true],
-                    ['MAX(created_at) returns NULL on an empty table', false],
-                    ['There is no issue — created_at and updated_at are interchangeable', false],
-                ],
-            ],
-
-            // ── DATA VAULT — ADVANCED ─────────────────────────────────────
-            [
-                'q' => "In Data Vault 2.0, the record source (RSRC) metadata column in every Hub, Link, and Satellite is used for:",
-                'opts' => [
-                    ['Compressing the record for storage', false],
-                    ['Tracking which source system contributed each record — enabling auditability, conflict resolution between sources, and the ability to replay only data from a specific source', true],
-                    ['Generating the hash key deterministically', false],
-                    ['Indicating whether a record has been quality-checked', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A Hub_Customer table has:\n  hub_customer_hk (HASH of customer_bk)\n  customer_bk (source business key)\n  load_date\n  record_source\n\nTwo source systems (CRM and ERP) both provide customer IDs but use different formats. How does Data Vault handle this?",
+                'q' => 'Item 9: When comparing two approaches in Data Warehousing, what should a Advanced learner prioritize?',
                 'opts' => [
-                    ['Only one source system can load to a Hub', false],
-                    ['Each source system loads its own business key into the same Hub with its own record_source — the Same-As Link (SAL) then resolves which CRM and ERP keys refer to the same real customer', true],
-                    ['All business keys are merged into a single composite key', false],
-                    ['Source systems must agree on a format before loading', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is an 'Effectivity Satellite' in Data Vault?",
+                'q' => 'Item 10: What does a strong final answer in Data Warehousing include?',
                 'opts' => [
-                    ['A satellite that tracks the historical values of a hub attribute', false],
-                    ['A satellite attached to a Link that records the time period during which the relationship between two hubs was active — e.g. when a customer was associated with a specific account', true],
-                    ['A satellite used only for current-state queries', false],
-                    ['A satellite that stores SCD Type 1 data', false],
-                ],
-            ],
-
-            // ── COLUMNAR STORAGE & OPTIMISATION — ADVANCED ───────────────
-            [
-                'q' => "In Snowflake, micro-partitions are automatically created as data is inserted. Each micro-partition contains metadata including min/max values per column. This enables:",
-                'opts' => [
-                    ['Automatic data encryption per partition', false],
-                    ['Micro-partition pruning — queries with WHERE clauses on range conditions can skip entire micro-partitions whose min/max metadata shows they cannot contain relevant rows', true],
-                    ['Automatic deduplication within each partition', false],
-                    ['Parallel writes across multiple virtual warehouses', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Snowflake Clustering Keys should be chosen based on:",
+                'q' => 'Item 11: In Data Warehousing, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Always cluster on the primary key', false],
-                    ['The columns most frequently used in WHERE and JOIN clauses on large tables — ideally a low-cardinality column like date that gives good pruning without over-clustering (too many distinct values cause poor pruning)', true],
-                    ['The columns with the highest cardinality', false],
-                    ['The column with the most NULL values', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the 'spillage to disk' problem in Redshift and how is it fixed?",
+                'q' => 'Item 12: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['When tables grow larger than the disk capacity', false],
-                    ['When a query\'s intermediate results exceed available memory — Redshift spills to slower disk storage, dramatically increasing query runtime. Fix: increase node size, reduce query complexity, or use DISTKEY to reduce data movement in JOIN heavy queries', true],
-                    ['When VACUUM has not been run for too long', false],
-                    ['When too many concurrent queries run simultaneously', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "BigQuery partitioning by INGESTION TIME vs column partitioning — which is better for most analytical workloads and why?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Data Warehousing when dealing with bias check?',
                 'opts' => [
-                    ['Ingestion time is always better because it requires no extra columns', false],
-                    ['Column partitioning on a business date column (e.g. transaction_date) is usually better — queries filter on business dates, not ingestion timestamps, enabling pruning on the column users actually query', true],
-                    ['They are identical in performance', false],
-                    ['Ingestion time partitioning prevents data duplication', false],
-                ],
-            ],
-
-            // ── CLOUD DWH — ADVANCED CODE ─────────────────────────────────
-            [
-                'q' => "This Snowflake query uses a window function. What does it compute?\n\nSELECT\n    customer_key,\n    order_date,\n    revenue,\n    SUM(revenue) OVER (\n        PARTITION BY customer_key\n        ORDER BY order_date\n        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n    ) AS running_total\nFROM fact_orders;",
-                'opts' => [
-                    ['Total revenue per customer across all time', false],
-                    ['A cumulative (running) sum of revenue per customer ordered by date — each row shows the total revenue for that customer up to and including that order date', true],
-                    ['The most recent revenue for each customer', false],
-                    ['Revenue ranked by date for each customer', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this BigQuery query compute using a window function?\n\nSELECT\n    product_key,\n    sale_date,\n    revenue,\n    LAG(revenue, 1) OVER (\n        PARTITION BY product_key\n        ORDER BY sale_date\n    ) AS prev_day_revenue,\n    revenue - LAG(revenue, 1) OVER (\n        PARTITION BY product_key\n        ORDER BY sale_date\n    ) AS revenue_change\nFROM fact_daily_sales;",
+                'q' => 'Item 14: For Data Warehousing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The 7-day moving average of revenue per product', false],
-                    ['For each product, the previous day\'s revenue and the day-over-day change in revenue', true],
-                    ['The cumulative revenue change over all time', false],
-                    ['The maximum revenue change ever observed', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "This dbt macro has a bug. What is it?\n\n{% macro cents_to_dollars(column_name) %}\n    {{ column_name }} / 100\n{% endmacro %}\n\n-- Used as:\nSELECT {{ cents_to_dollars('revenue_cents') }} AS revenue_dollars",
+                'q' => 'Item 15: Which response shows the best Advanced practice when a method in Data Warehousing fails on one test case?',
                 'opts' => [
-                    ['Macros cannot perform arithmetic', false],
-                    ['Integer division truncates in most SQL dialects — 199 / 100 = 1, not 1.99. Should be {{ column_name }} / 100.0 to force float division', true],
-                    ['The macro argument should be in double quotes', false],
-                    ['Macros cannot reference column names dynamically', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In Snowflake, the RESULT_SCAN function is used to:",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
                 'opts' => [
-                    ['Scan all result sets from the past 24 hours', false],
-                    ['Query the results of a previously executed statement by its query ID — useful for retrieving results without re-running expensive queries', true],
-                    ['Scan micro-partition metadata for a table', false],
-                    ['Return the execution plan of a query', false],
-                ],
-            ],
-
-            // ── dbt — ADVANCED ────────────────────────────────────────────
-            [
-                'q' => "What is a dbt 'generic test' vs a 'singular test'?",
-                'opts' => [
-                    ['Generic tests run on all models; singular tests run on one model', false],
-                    ['Generic tests are parameterised tests defined in YAML applied to columns across many models (e.g. not_null, unique). Singular tests are standalone .sql files that assert a specific condition for a single model', true],
-                    ['Generic tests use Python; singular tests use SQL', false],
-                    ['They are the same thing with different names', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does `dbt compile` do (without running the models)?",
+                'q' => 'Item 17: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Validates the dbt project YAML configuration files', false],
-                    ['Resolves all Jinja templating ({{ ref() }}, {{ config() }}, macros) and generates the final SQL files in the target/ directory without executing them in the warehouse', true],
-                    ['Runs only the SQL tests, not the models', false],
-                    ['Uploads the dbt project to dbt Cloud', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In dbt, the `--select` flag with a + modifier:\n  `dbt run --select +fct_revenue`\nmeans:",
+                'q' => 'Item 18: Which situation is most likely an edge case in Data Warehousing?',
                 'opts' => [
-                    ['Run only fct_revenue and nothing else', false],
-                    ['Run fct_revenue AND all of its upstream dependencies (all models that fct_revenue depends on)', true],
-                    ['Run fct_revenue AND all downstream models that depend on it', false],
-                    ['Run all models except fct_revenue', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is a dbt 'exposure' used for?",
+                'q' => 'Item 19: When comparing two approaches in Data Warehousing, what should a Advanced learner prioritize?',
                 'opts' => [
-                    ['Documenting data breach incidents', false],
-                    ['Declaring downstream consumers of dbt models (dashboards, ML models, APIs) in the project — enabling lineage visibility from raw source to final business consumption', true],
-                    ['Marking sensitive columns for masking', false],
-                    ['Configuring model freshness SLAs', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "This dbt incremental model has a subtle performance problem. What is it?\n\n{{ config(materialized='incremental', unique_key='order_id') }}\n\nSELECT *\nFROM {{ ref('stg_orders') }}\n{% if is_incremental() %}\nWHERE updated_at > (SELECT MAX(updated_at) FROM {{ this }})\n{% endif %}",
+                'q' => 'Item 20: What does a strong final answer in Data Warehousing include?',
                 'opts' => [
-                    ['SELECT * is not allowed in dbt incremental models', false],
-                    ['The subquery SELECT MAX(updated_at) FROM {{ this }} runs a full table scan on the target table on every incremental run — on a table with billions of rows this is expensive. Fix: store the watermark in a dedicated metadata table or use dbt\'s built-in incremental predicates', true],
-                    ['The is_incremental() macro is deprecated', false],
-                    ['unique_key requires a composite key', false],
-                ],
-            ],
-
-            // ── DATA QUALITY & GOVERNANCE — ADVANCED ─────────────────────
-            [
-                'q' => "You discover that fact_sales has 0.3% of rows with order_amount < 0. Which action is correct?",
-                'opts' => [
-                    ['Delete all negative rows immediately', false],
-                    ['Investigate the root cause first — negative amounts may be legitimate (refunds, returns, adjustments) and should be modelled explicitly rather than deleted', true],
-                    ['Replace negative values with NULL', false],
-                    ['Increase the data quality threshold to accept them', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is 'schema drift' in a data warehouse context and why is it dangerous?",
+                'q' => 'Item 21: In Data Warehousing, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
                 'opts' => [
-                    ['When the warehouse runs out of disk space', false],
-                    ['When a source system changes its table structure (adds, removes, or renames columns) unexpectedly — this can silently break downstream ETL/ELT pipelines and dbt models, causing data loss or incorrect data without immediate errors', true],
-                    ['When queries take longer than expected', false],
-                    ['When two schemas have the same table names', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In dbt, the `on_schema_change` config for incremental models handles schema drift by allowing options like:",
+                'q' => 'Item 22: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['ignore, fail, append_new_columns, sync_all_columns', true],
-                    ['overwrite, merge, append, delete', false],
-                    ['strict, loose, permissive, auto', false],
-                    ['freeze, update, rebuild, skip', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Row-level security (RLS) in Snowflake is implemented using:",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Data Warehousing when dealing with assumptions?',
                 'opts' => [
-                    ['A WHERE clause added manually to every query', false],
-                    ['Row Access Policies — policy functions attached to tables that transparently filter rows based on the querying user\'s role or attributes without requiring application-level changes', true],
-                    ['Column masking policies applied to row identifiers', false],
-                    ['Virtual Private Database (VPD) equivalent to Oracle', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Dynamic Data Masking in Snowflake allows you to:",
+                'q' => 'Item 24: For Data Warehousing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Encrypt entire tables at rest', false],
-                    ['Show full sensitive data to privileged roles while automatically masking it (e.g. showing XXX-XX-1234 instead of a full SSN) for unprivileged roles — at query time, transparently', true],
-                    ['Permanently delete sensitive data from the warehouse', false],
-                    ['Hash all column values before storage', false],
-                ],
-            ],
-
-            // ── WINDOW FUNCTIONS & ANALYTICAL SQL ────────────────────────
-            [
-                'q' => "What is the difference between ROW_NUMBER(), RANK(), and DENSE_RANK() when there are ties?",
-                'opts' => [
-                    ['They are identical for all inputs', false],
-                    ['ROW_NUMBER() assigns unique sequential numbers regardless of ties. RANK() skips ranks after ties (1,1,3). DENSE_RANK() does not skip ranks after ties (1,1,2)', true],
-                    ['RANK() and DENSE_RANK() are identical; ROW_NUMBER() differs', false],
-                    ['Only ROW_NUMBER() works with ORDER BY', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "This query identifies the top-spending customer per region. What is the output structure?\n\nSELECT *\nFROM (\n    SELECT\n        c.region,\n        c.customer_name,\n        SUM(f.revenue) AS total_spend,\n        ROW_NUMBER() OVER (\n            PARTITION BY c.region\n            ORDER BY SUM(f.revenue) DESC\n        ) AS rn\n    FROM fact_sales f\n    JOIN dim_customer c ON f.customer_key = c.customer_key\n    GROUP BY c.region, c.customer_name\n) ranked\nWHERE rn = 1;",
+                'q' => 'Item 25: Which response shows the best Advanced practice when a method in Data Warehousing fails on one test case?',
                 'opts' => [
-                    ['All customers sorted by total spend descending', false],
-                    ['One row per region — the customer with the highest total spend in each region', true],
-                    ['All customers with total spend above the regional average', false],
-                    ['The top 1 customer globally across all regions', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "This Redshift query is slower than expected on 10 billion rows. What is the primary fix?\n\nSELECT\n    DATE_TRUNC('month', sale_date) AS month,\n    category,\n    SUM(revenue)\nFROM fact_sales\nJOIN dim_product USING (product_key)\nGROUP BY 1, 2;\n\n-- fact_sales DISTKEY = customer_key\n-- dim_product DISTKEY = AUTO",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
                 'opts' => [
-                    ['Add a LIMIT clause', false],
-                    ['The DISTKEY mismatch forces a full data redistribution during the JOIN — change fact_sales DISTKEY to product_key to co-locate matching rows with dim_product on the same nodes', true],
-                    ['Use ILIKE instead of USING for joins', false],
-                    ['Replace SUM with COUNT for performance', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is a 'materialised view' in the context of data warehousing, and how does it differ from a standard view?",
+                'q' => 'Item 27: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['A materialised view is identical to a regular view but stored in a different schema', false],
-                    ['A materialised view physically stores the pre-computed query results on disk and can be refreshed periodically — unlike a regular view which re-executes the underlying query on every access', true],
-                    ['A materialised view cannot contain aggregations', false],
-                    ['A materialised view is only available in Snowflake', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 28: Which situation is most likely an edge case in Data Warehousing?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 29: When comparing two approaches in Data Warehousing, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 30: What does a strong final answer in Data Warehousing include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 31: In Data Warehousing, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving reproducibility?',
+                'opts' => [
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 32: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Advanced level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Data Warehousing when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Data Warehousing, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Advanced practice when a method in Data Warehousing fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Data Warehousing?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Data Warehousing, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Data Warehousing include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Data Warehousing, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Advanced level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Data Warehousing when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Data Warehousing, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Advanced practice when a method in Data Warehousing fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Data Warehousing?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Data Warehousing, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Data Warehousing include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 23 — Data Warehousing (Advanced).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Advanced");
+        $this->command->info('Module 23 MCQ (Advanced) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

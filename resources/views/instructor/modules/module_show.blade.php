@@ -1,6 +1,6 @@
 {{-- resources/views/instructor/modules/module_show.blade.php --}}
 
-@include('instructor.shared.module_netacad_viewer', [
+@include('instructor.shared.module_lesson_viewer', [
     'module' => $module,
     'contentSections' => $contentSections,
     'mcqQuestions' => $mcqQuestions,

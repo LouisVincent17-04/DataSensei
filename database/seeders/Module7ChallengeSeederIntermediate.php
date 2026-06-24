@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module7ChallengeSeederIntermediate extends Seeder
 {
@@ -16,400 +14,508 @@ class Module7ChallengeSeederIntermediate extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'intermediate')->first();
 
-        if (!$category) {
-            $this->command->error("Intermediate category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Intermediate category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Remove existing challenges for this category (cascades to questions/options)
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Algorithms & Data Structures for Data Scientists';
 
-        $this->command->info("Creating Module 7 — Algorithms & Data Structures for Data Scientists (Intermediate)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 7 — Algorithms & Data Structures for Data Scientists (Intermediate) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Algorithms & Data Structures for Data Scientists',
-            'description'           => 'Apply your knowledge to multi-step tracing problems, code snippet analysis, and algorithm design decisions common in data science workflows — from feature lookup to graph traversal on real datasets.',
-            'time_limit_seconds'    => 1500,
-            'base_xp'               => 1500,
-            'order_index'           => 7,
+            'title' => $title,
+            'description' => 'A detailed 50-item Intermediate MCQ challenge for Algorithms & Data Structures for Data Scientists. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1800,
+            'base_xp' => 800,
+            'order_index' => 7,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 intermediate-level questions on Algorithms & Data Structures...");
-
         $qaData = [
-
-            // ── 7.1 BIG-O NOTATION & COMPLEXITY ANALYSIS ─────────────────
             [
-                'q' => "What is the time complexity of the following function?\n\ndef process(data):\n    result = []\n    for item in data:          # O(n)\n        for val in data:       # O(n)\n            result.append(item + val)\n    return sorted(result)      # O(n² log n²)",
+                'q' => 'Item 1: In Algorithms & Data Structures for Data Scientists, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['O(n²)', false],
-                    ['O(n² log n)', true],
-                    ['O(n log n)', false],
-                    ['O(n³)', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Rank these complexities from FASTEST to SLOWEST for large n:\nO(n!), O(2^n), O(n²), O(n log n), O(log n)",
+                'q' => 'Item 2: A learner working on Algorithms & Data Structures for Data Scientists gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['O(log n) < O(n log n) < O(n²) < O(2^n) < O(n!)', true],
-                    ['O(n log n) < O(log n) < O(n²) < O(2^n) < O(n!)', false],
-                    ['O(log n) < O(n²) < O(n log n) < O(2^n) < O(n!)', false],
-                    ['O(n!) < O(2^n) < O(n²) < O(n log n) < O(log n)', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A data pipeline processes each of n records, and for each record it performs a binary search over m pre-sorted reference entries. What is the overall time complexity?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Algorithms and Data Structures when dealing with assumptions?',
                 'opts' => [
-                    ['O(n + m)', false],
-                    ['O(n · log m)', true],
-                    ['O(n · m)', false],
-                    ['O(log n · log m)', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the time complexity of computing the mean of a pandas Series of length n?\n\nimport pandas as pd\nresult = series.mean()",
+                'q' => 'Item 4: For Algorithms & Data Structures for Data Scientists, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['O(1)', false],
-                    ['O(log n)', false],
-                    ['O(n) — every element must be summed', true],
-                    ['O(n²)', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "You have an algorithm that runs in O(n²) on 10,000 rows of data and takes 5 seconds. Approximately how long will it take on 100,000 rows?",
+                'q' => 'Item 5: Which response shows the best Intermediate practice when a method in Algorithms and Data Structures fails on one test case?',
                 'opts' => [
-                    ['50 seconds', false],
-                    ['500 seconds', true],
-                    ['5000 seconds', false],
-                    ['55 seconds', false],
-                ],
-            ],
-
-            // ── 7.2 ARRAYS & DYNAMIC ARRAYS ──────────────────────────────
-            [
-                'q' => "What does the following NumPy operation produce?\n\nimport numpy as np\na = np.array([1, 2, 3, 4, 5])\nprint(a[a > 2])",
-                'opts' => [
-                    ['[1, 2]', false],
-                    ['[3, 4, 5]', true],
-                    ['[False, False, True, True, True]', false],
-                    ['An error', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does the following code output?\n\na = [10, 20, 30, 40, 50]\nprint(a[::2])",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Algorithms & Data Structures for Data Scientists tasks?',
                 'opts' => [
-                    ['[20, 40]', false],
-                    ['[10, 30, 50]', true],
-                    ['[10, 20, 30]', false],
-                    ['[50, 40, 30, 20, 10]', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A data scientist stores 1 million floating-point values. Which is MORE memory-efficient?\n\nOption A: Python list of floats\nOption B: numpy.ndarray of float32",
+                'q' => 'Item 7: In a Algorithms and Data Structures assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Python list — it stores references efficiently', false],
-                    ['numpy float32 array — 4 bytes per value vs ~28 bytes per Python float object', true],
-                    ['Both use the same memory', false],
-                    ['Python list — NumPy adds overhead per element', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does `np.zeros((3, 4))` create?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Algorithms & Data Structures for Data Scientists?',
                 'opts' => [
-                    ['A 1D array of 12 zeros', false],
-                    ['A 3×4 matrix filled with zeros', true],
-                    ['A 4×3 matrix filled with zeros', false],
-                    ['An error — shape must be a single integer', false],
-                ],
-            ],
-
-            // ── 7.3 STACKS ────────────────────────────────────────────────
-            [
-                'q' => "Trace through the following code and give the final output:\n\nstack = []\nfor ch in '([{}])':\n    if ch in '([{':\n        stack.append(ch)\n    else:\n        stack.pop()\nprint(len(stack))",
-                'opts' => [
-                    ['3', false],
-                    ['0', true],
-                    ['1', false],
-                    ['Error — pop on empty stack', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A call stack in Python grows with each function call and shrinks on return. This is modelled by which structure?\n\ndef f(n):\n    if n == 0: return 0\n    return f(n - 1) + 1\n\nf(4) generates how many stack frames?",
+                'q' => 'Item 9: When comparing two approaches in Algorithms and Data Structures, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['3', false],
-                    ['4', false],
-                    ['5', true],
-                    ['2', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which of the following correctly implements a stack-based reversal of a list?\n\nOption A:\nstack = []\nfor item in lst: stack.append(item)\nresult = [stack.pop() for _ in range(len(stack))]\n\nOption B:\nresult = lst[::-1]",
+                'q' => 'Item 10: What does a strong final answer in Algorithms & Data Structures for Data Scientists include?',
                 'opts' => [
-                    ['Only Option A is correct', false],
-                    ['Only Option B is correct', false],
-                    ['Both produce a reversed list, but Option B is simpler', true],
-                    ['Neither option reverses the list', false],
-                ],
-            ],
-
-            // ── 7.4 QUEUES & PRIORITY QUEUES ─────────────────────────────
-            [
-                'q' => "What is the output of the following?\n\nfrom collections import deque\nq = deque()\nq.append('A')\nq.append('B')\nq.append('C')\nq.popleft()\nprint(q[0])",
-                'opts' => [
-                    ['"A"', false],
-                    ['"C"', false],
-                    ['"B"', true],
-                    ['An error', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a BFS implementation over a social network graph (finding shortest path between two users), why is a queue used instead of a stack?",
+                'q' => 'Item 11: In Algorithms & Data Structures for Data Scientists, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Queues use less memory than stacks', false],
-                    ['A queue ensures we explore all nodes at distance k before nodes at distance k+1, guaranteeing the shortest path in an unweighted graph', true],
-                    ['Stacks cannot store node references', false],
-                    ['Queues sort nodes by their degree automatically', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Using `heapq` to simulate a max-heap in Python requires:\n\nimport heapq\nheap = []\nheapq.heappush(heap, ???)",
+                'q' => 'Item 12: A learner working on Algorithms & Data Structures for Data Scientists gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['Reversing the list after each push', false],
-                    ['Negating values before inserting: heapq.heappush(heap, -value)', true],
-                    ['Using heapq.heappushmax(heap, value)', false],
-                    ['Sorting the heap manually after each push', false],
-                ],
-            ],
-
-            // ── 7.5 LINKED LISTS ──────────────────────────────────────────
-            [
-                'q' => "Given a singly linked list: 1 → 3 → 5 → 7 → None\nAfter inserting value 4 after node with value 3, the list becomes:",
-                'opts' => [
-                    ['1 → 3 → 4 → 5 → 7 → None', true],
-                    ['1 → 4 → 3 → 5 → 7 → None', false],
-                    ['1 → 3 → 5 → 4 → 7 → None', false],
-                    ['4 → 1 → 3 → 5 → 7 → None', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the standard algorithm to detect a cycle in a linked list?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Algorithms and Data Structures when dealing with bias check?',
                 'opts' => [
-                    ['Sort the list and look for duplicates', false],
-                    ['Floyd\'s Cycle Detection (two-pointer): use a slow pointer (1 step) and a fast pointer (2 steps) — if they meet, there is a cycle', true],
-                    ['Count the total nodes; if count exceeds n, there is a cycle', false],
-                    ['Hash every node\'s value; duplicates mean a cycle', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Reversing a singly linked list of n nodes has what time complexity?",
+                'q' => 'Item 14: For Algorithms & Data Structures for Data Scientists, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['O(1)', false],
-                    ['O(log n)', false],
-                    ['O(n)', true],
-                    ['O(n²)', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Why does pandas use a contiguous block of memory (like a NumPy array) rather than a linked list for its DataFrame columns?",
+                'q' => 'Item 15: Which response shows the best Intermediate practice when a method in Algorithms and Data Structures fails on one test case?',
                 'opts' => [
-                    ['Linked lists support faster insertion at arbitrary positions', false],
-                    ['Contiguous memory enables vectorised CPU instructions (SIMD), cache efficiency, and O(1) index access — critical for large datasets', true],
-                    ['Linked lists cannot store floating-point numbers', false],
-                    ['NumPy arrays use less code to implement', false],
-                ],
-            ],
-
-            // ── 7.6 HASH TABLES ───────────────────────────────────────────
-            [
-                'q' => "What does the following code produce?\n\ncounts = {}\nwords = ['apple', 'banana', 'apple', 'cherry', 'banana', 'apple']\nfor w in words:\n    counts[w] = counts.get(w, 0) + 1\nprint(counts['apple'])",
-                'opts' => [
-                    ['1', false],
-                    ['2', false],
-                    ['3', true],
-                    ['0', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A data scientist needs to find duplicate patient IDs in a list of 1 million records as fast as possible. Which approach is optimal?",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Algorithms & Data Structures for Data Scientists tasks?',
                 'opts' => [
-                    ['Sort the list and compare adjacent elements — O(n log n)', false],
-                    ['Use a set to track seen IDs; any ID already in the set is a duplicate — O(n) average', true],
-                    ['Nested loops checking every pair — O(n²)', false],
-                    ['Use a BST to insert each ID — O(n log n)', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What does `collections.Counter(['a','b','a','c','a','b'])` produce?",
+                'q' => 'Item 17: In a Algorithms and Data Structures assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ["{'a': 1, 'b': 1, 'c': 1}", false],
-                    ["Counter({'a': 3, 'b': 2, 'c': 1})", true],
-                    ["['a', 'a', 'a', 'b', 'b', 'c']", false],
-                    ["{'a', 'b', 'c'}", false],
-                ],
-            ],
-
-            // ── 7.7 TREES: BINARY TREES & BSTs ───────────────────────────
-            [
-                'q' => "Trace an in-order traversal of this BST:\n\n        8\n       / \\\n      3   10\n     / \\    \\\n    1   6   14\n       / \\\n      4   7\n\nWhat is the output order?",
-                'opts' => [
-                    ['8, 3, 10, 1, 6, 14, 4, 7', false],
-                    ['1, 3, 4, 6, 7, 8, 10, 14', true],
-                    ['1, 6, 3, 14, 10, 8, 4, 7', false],
-                    ['8, 10, 14, 3, 6, 7, 1, 4', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the result of a pre-order traversal (Root → Left → Right) on the BST above?",
+                'q' => 'Item 18: Which situation is most likely an edge case in Algorithms & Data Structures for Data Scientists?',
                 'opts' => [
-                    ['8, 3, 1, 6, 4, 7, 10, 14', true],
-                    ['1, 3, 4, 6, 7, 8, 10, 14', false],
-                    ['1, 4, 7, 6, 3, 14, 10, 8', false],
-                    ['14, 10, 7, 4, 6, 1, 3, 8', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Decision trees in scikit-learn are trained using recursive binary splitting. The internal nodes of a trained decision tree correspond to which operation in a BST?",
+                'q' => 'Item 19: When comparing two approaches in Algorithms and Data Structures, what should a Intermediate learner prioritize?',
                 'opts' => [
-                    ['Balancing the tree to minimise height', false],
-                    ['Comparing a feature value to a threshold to route a sample left or right — analogous to BST comparison', true],
-                    ['Sorting training labels before splitting', false],
-                    ['Hashing feature values into buckets', false],
-                ],
-            ],
-
-            // ── 7.8 HEAPS & PRIORITY QUEUES ──────────────────────────────
-            [
-                'q' => "What does the following output?\n\nimport heapq\ndata = [5, 1, 8, 3, 2]\nheapq.heapify(data)\nprint(heapq.heappop(data))",
-                'opts' => [
-                    ['5', false],
-                    ['8', false],
-                    ['1', true],
-                    ['3', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A data scientist needs the top-10 most frequent words from a corpus of 10 million words. Which approach is most efficient?",
+                'q' => 'Item 20: What does a strong final answer in Algorithms & Data Structures for Data Scientists include?',
                 'opts' => [
-                    ['Sort all unique words by frequency — O(u log u) where u = unique words', false],
-                    ['Use a min-heap of size 10: insert each word frequency; if the heap exceeds 10 items, pop the smallest — O(u log 10) = O(u)', true],
-                    ['Use BFS on a word frequency graph', false],
-                    ['Load all data into a BST sorted by frequency', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the time complexity of `heapq.heapify(data)` for a list of n elements?",
+                'q' => 'Item 21: In Algorithms & Data Structures for Data Scientists, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
                 'opts' => [
-                    ['O(n log n)', false],
-                    ['O(n)', true],
-                    ['O(log n)', false],
-                    ['O(n²)', false],
-                ],
-            ],
-
-            // ── 7.9 GRAPHS: BFS & DFS ─────────────────────────────────────
-            [
-                'q' => "Given this adjacency list:\n{'A': ['B','C'], 'B': ['D'], 'C': ['D','E'], 'D': [], 'E': []}\n\nBFS starting from 'A' visits nodes in what order?",
-                'opts' => [
-                    ['A, B, D, C, E', false],
-                    ['A, B, C, D, E', true],
-                    ['A, C, E, B, D', false],
-                    ['A, D, B, E, C', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "DFS starting from 'A' on the same graph (visiting neighbours in list order) visits nodes in what order?",
+                'q' => 'Item 22: A learner working on Algorithms & Data Structures for Data Scientists gets a result that looks correct. What should they do next at the Intermediate level?',
                 'opts' => [
-                    ['A, B, C, D, E', false],
-                    ['A, B, D, C, E', true],
-                    ['A, C, D, E, B', false],
-                    ['A, D, B, E, C', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a knowledge graph for a recommendation engine, each node is an item and edges indicate 'bought together'. Finding items within 2 hops of a given item is best done with:",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Algorithms and Data Structures when dealing with assumptions?',
                 'opts' => [
-                    ['DFS up to depth 2', false],
-                    ['BFS up to depth 2, using the queue to track distance level', true],
-                    ['Dijkstra\'s algorithm with weight = 2', false],
-                    ['Binary search on the adjacency list', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is a Directed Acyclic Graph (DAG) and where does it appear in data science?",
+                'q' => 'Item 24: For Algorithms & Data Structures for Data Scientists, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A tree with weights on edges, used in neural networks', false],
-                    ['A graph with directed edges and no cycles — used in pipeline dependency graphs and Airflow DAGs', true],
-                    ['A hash table of graph edges', false],
-                    ['A min-heap organised as a graph', false],
-                ],
-            ],
-
-            // ── 7.10 SORTING & SEARCHING ALGORITHMS ──────────────────────
-            [
-                'q' => "What does the following sort and what is its output?\n\ndata = [(3, 'c'), (1, 'a'), (2, 'b')]\ndata.sort(key=lambda x: x[0])\nprint(data)",
-                'opts' => [
-                    ["[(3, 'c'), (2, 'b'), (1, 'a')]", false],
-                    ["[(1, 'a'), (2, 'b'), (3, 'c')]", true],
-                    ["[('a', 1), ('b', 2), ('c', 3)]", false],
-                    ["[(3, 'c'), (1, 'a'), (2, 'b')]", false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Binary search is applied to a sorted array of 1,024 elements. In the worst case, how many comparisons are needed?",
+                'q' => 'Item 25: Which response shows the best Intermediate practice when a method in Algorithms and Data Structures fails on one test case?',
                 'opts' => [
-                    ['512', false],
-                    ['10', true],
-                    ['1024', false],
-                    ['32', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A data scientist receives a new batch of 100 records to add to a sorted list of 10,000 records. What is the most efficient strategy?",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Algorithms & Data Structures for Data Scientists tasks?',
                 'opts' => [
-                    ['Re-sort the entire 10,100-record list — O(n log n)', false],
-                    ['Sort the 100 new records and merge with the existing sorted list — O(m log m + n) where m=100, n=10,000', true],
-                    ['Use bubble sort on the combined list — O(n²)', false],
-                    ['Insert each record one by one using binary search for position — O(m · n)', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Merge Sort is preferred over Quick Sort for sorting linked lists because:",
+                'q' => 'Item 27: In a Algorithms and Data Structures assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Merge Sort is always faster', false],
-                    ['Quick Sort requires random access to pick the pivot efficiently, which is O(n) for linked lists; Merge Sort only needs sequential access', true],
-                    ['Merge Sort uses less memory on linked lists', false],
-                    ['Quick Sort cannot sort linked lists at all', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which sorting algorithm is most efficient for nearly-sorted data with only a few elements out of place?",
+                'q' => 'Item 28: Which situation is most likely an edge case in Algorithms & Data Structures for Data Scientists?',
                 'opts' => [
-                    ['Merge Sort', false],
-                    ['Quick Sort', false],
-                    ['Insertion Sort — O(n + k) where k is the number of inversions', true],
-                    ['Heap Sort', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
-
+            [
+                'q' => 'Item 29: When comparing two approaches in Algorithms and Data Structures, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 30: What does a strong final answer in Algorithms & Data Structures for Data Scientists include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 31: In Algorithms & Data Structures for Data Scientists, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving reproducibility?',
+                'opts' => [
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 32: A learner working on Algorithms & Data Structures for Data Scientists gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Algorithms and Data Structures when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Algorithms & Data Structures for Data Scientists, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Intermediate practice when a method in Algorithms and Data Structures fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Algorithms & Data Structures for Data Scientists tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Algorithms and Data Structures assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Algorithms & Data Structures for Data Scientists?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Algorithms and Data Structures, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Algorithms & Data Structures for Data Scientists include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Algorithms & Data Structures for Data Scientists, which action best supports debugging, interpretation, and multi-step reasoning when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Algorithms & Data Structures for Data Scientists gets a result that looks correct. What should they do next at the Intermediate level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Algorithms and Data Structures when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Algorithms & Data Structures for Data Scientists, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Intermediate practice when a method in Algorithms and Data Structures fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Algorithms & Data Structures for Data Scientists tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Algorithms and Data Structures assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Algorithms & Data Structures for Data Scientists?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Algorithms and Data Structures, what should a Intermediate learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Algorithms & Data Structures for Data Scientists include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 7 — Algorithms & Data Structures (Intermediate).");
+        $this->command->info('Module 7 MCQ (Intermediate) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

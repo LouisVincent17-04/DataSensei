@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module9ChallengeSeederUniversityStudent extends Seeder
 {
@@ -16,499 +14,508 @@ class Module9ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Applied Matrix Analysis';
 
-        $this->command->info("Creating Module 9 — Applied Matrix Analysis (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 9 — Applied Matrix Analysis (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Applied Matrix Analysis',
-            'description'           => 'Deepen your understanding of matrix operations — including matrix multiplication, determinants of 2×2 matrices, basic inverses, and the connection between linear systems and matrices. Analytical thinking required!',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 1000,
-            'order_index'           => 9,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Applied Matrix Analysis. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 9,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 university-level questions...");
-
         $qaData = [
-
-            // ── MATRIX MULTIPLICATION ─────────────────────────────────────
             [
-                'q' => 'For the product AB to be defined, what condition must the matrices A and B satisfy?',
+                'q' => 'Item 1: In Applied Matrix Analysis, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A and B must be the same size', false],
-                    ['The number of columns of A must equal the number of rows of B', true],
-                    ['Both must be square', false],
-                    ['A must be larger than B', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If A is a 2×3 matrix and B is a 3×4 matrix, what is the size of the product AB?',
+                'q' => 'Item 2: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['3×3', false],
-                    ['2×4', true],
-                    ['3×4', false],
-                    ['2×3', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Compute AB where A = [[1, 2], [3, 4]] and B = [[2, 0], [1, 3]].\nWhat is the (1,1) entry of AB?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['2', false],
-                    ['4', true],
-                    ['3', false],
-                    ['5', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For A = [[1, 2], [3, 4]] and B = [[2, 0], [1, 3]], what is the full product AB?",
+                'q' => 'Item 4: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['[[4, 6], [10, 12]]', true],
-                    ['[[2, 0], [3, 12]]', false],
-                    ['[[4, 8], [10, 4]]', false],
-                    ['[[3, 2], [7, 4]]', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Is matrix multiplication commutative in general? (Does AB = BA always?)',
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['Yes, always', false],
-                    ['No, in general AB ≠ BA', true],
-                    ['Yes, but only for square matrices', false],
-                    ['Yes, but only for diagonal matrices', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Multiply [[2, 1], [0, 3]] by [[1, 4], [2, 1]].\nWhat is the (2,2) entry of the result?",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['3', false],
-                    ['12', false],
-                    ['7', true],
-                    ['4', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the product of the identity matrix I and any matrix A (where the sizes are compatible)?",
+                'q' => 'Item 7: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The zero matrix', false],
-                    ['The transpose of A', false],
-                    ['A itself', true],
-                    ['The inverse of A', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is [[1, 0], [0, 1]] × [[5, 3], [2, 7]]?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['[[0, 0], [0, 0]]', false],
-                    ['[[5, 3], [2, 7]]', true],
-                    ['[[6, 3], [2, 8]]', false],
-                    ['[[5, 0], [0, 7]]', false],
-                ],
-            ],
-
-            // ── DETERMINANTS (2×2) ────────────────────────────────────────
-            [
-                'q' => 'For a 2×2 matrix [[a, b], [c, d]], the determinant is calculated as:',
-                'opts' => [
-                    ['a + d − b − c', false],
-                    ['ad − bc', true],
-                    ['ab − cd', false],
-                    ['ac − bd', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the determinant of [[3, 1], [2, 4]]?",
+                'q' => 'Item 9: When comparing two approaches in Applied Matrix Analysis, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['14', false],
-                    ['10', true],
-                    ['5', false],
-                    ['11', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is det([[5, 2], [3, 4]])?",
+                'q' => 'Item 10: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['26', false],
-                    ['14', true],
-                    ['11', false],
-                    ['23', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If det(A) = 0, what does that tell you about matrix A?',
+                'q' => 'Item 11: In Applied Matrix Analysis, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['A is the identity matrix', false],
-                    ['A is invertible', false],
-                    ['A is singular (not invertible)', true],
-                    ['A must be the zero matrix', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "det([[4, 2], [2, 1]]) = ?",
+                'q' => 'Item 12: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['4', false],
-                    ['0', true],
-                    ['2', false],
-                    ['6', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is det(I₂) — the determinant of the 2×2 identity matrix?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with bias check?',
                 'opts' => [
-                    ['0', false],
-                    ['2', false],
-                    ['1', true],
-                    ['4', false],
-                ],
-            ],
-
-            // ── INVERSE OF A 2×2 MATRIX ──────────────────────────────────
-            [
-                'q' => 'The inverse of a 2×2 matrix [[a, b], [c, d]] (when it exists) is (1/det) × ___.',
-                'opts' => [
-                    ['[[a, b], [c, d]]', false],
-                    ['[[d, −b], [−c, a]]', true],
-                    ['[[d, b], [c, a]]', false],
-                    ['[[−a, −b], [−c, −d]]', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the inverse of [[2, 1], [1, 1]]? (det = 1)",
+                'q' => 'Item 14: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['[[1, −1], [−1, 2]]', true],
-                    ['[[1, 1], [1, 2]]', false],
-                    ['[[2, 1], [1, 1]]', false],
-                    ['[[−1, 1], [1, −2]]', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix has an inverse if and only if its determinant is:',
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['Greater than 1', false],
-                    ['Equal to 0', false],
-                    ['Not equal to 0', true],
-                    ['A whole number', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If A is an invertible matrix, what is A × A⁻¹?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['The zero matrix', false],
-                    ['2A', false],
-                    ['The identity matrix I', true],
-                    ['A²', false],
-                ],
-            ],
-
-            // ── SYSTEMS OF LINEAR EQUATIONS & MATRICES ───────────────────
-            [
-                'q' => 'A system of linear equations Ax = b can be written in matrix form. What is x (the solution)?',
-                'opts' => [
-                    ['x = Ab', false],
-                    ['x = A⁻¹b', true],
-                    ['x = bA', false],
-                    ['x = b − A', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "The augmented matrix [A | b] for the system x + 2y = 5, 3x + 4y = 11 is:",
+                'q' => 'Item 17: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['[[1, 2, 5], [3, 4, 11]]', true],
-                    ['[[1, 3, 5], [2, 4, 11]]', false],
-                    ['[[5, 2, 1], [11, 4, 3]]', false],
-                    ['[[1, 2], [3, 4]]', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which row operation is NOT valid in Gaussian elimination?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['Swapping two rows', false],
-                    ['Multiplying a row by a non-zero scalar', false],
-                    ['Adding a multiple of one row to another', false],
-                    ['Multiplying two rows together', true],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A system Ax = b has no solution when the two equations represent:',
+                'q' => 'Item 19: When comparing two approaches in Applied Matrix Analysis, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['The same line', false],
-                    ['Two parallel lines (that never intersect)', true],
-                    ['Two perpendicular lines', false],
-                    ['A line and a circle', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A system Ax = b has infinitely many solutions when:',
+                'q' => 'Item 20: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['det(A) ≠ 0', false],
-                    ['The two equations represent the same line', true],
-                    ['The matrix has no zeros', false],
-                    ['The matrix is diagonal', false],
-                ],
-            ],
-
-            // ── RANK ─────────────────────────────────────────────────────
-            [
-                'q' => 'What is the rank of a matrix?',
-                'opts' => [
-                    ['The number of rows times the number of columns', false],
-                    ['The number of linearly independent rows (or columns)', true],
-                    ['The value of the determinant', false],
-                    ['The number of zero entries', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the rank of [[1, 2], [2, 4]]? (Notice the second row is twice the first.)",
+                'q' => 'Item 21: In Applied Matrix Analysis, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['2', false],
-                    ['0', false],
-                    ['1', true],
-                    ['4', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For a 3×3 matrix, what is the maximum possible rank?',
+                'q' => 'Item 22: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['9', false],
-                    ['6', false],
-                    ['3', true],
-                    ['1', false],
-                ],
-            ],
-
-            // ── LINEAR INDEPENDENCE ──────────────────────────────────────
-            [
-                'q' => 'Two vectors are linearly dependent when:',
-                'opts' => [
-                    ['They point in perpendicular directions', false],
-                    ['One is a scalar multiple of the other', true],
-                    ['They have the same length', false],
-                    ['Their entries sum to the same value', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Are the vectors [1, 2] and [2, 4] linearly independent?",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['Yes, they are independent', false],
-                    ['No, [2, 4] = 2 × [1, 2], so they are dependent', true],
-                    ['Yes, because they have different entries', false],
-                    ['Cannot be determined', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If the columns of a square matrix A are linearly independent, then:',
+                'q' => 'Item 24: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['det(A) = 0', false],
-                    ['A is singular', false],
-                    ['A is invertible and det(A) ≠ 0', true],
-                    ['A must be the identity', false],
-                ],
-            ],
-
-            // ── EIGENVALUES (INTRO) ──────────────────────────────────────
-            [
-                'q' => 'The eigenvalues of a matrix A are the values λ that satisfy which equation?',
-                'opts' => [
-                    ['Ax = λ + x', false],
-                    ['Ax = λx', true],
-                    ['Ax = x/λ', false],
-                    ['λA = x', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'To find eigenvalues of A, you solve the characteristic equation:',
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['det(A) = 0', false],
-                    ['det(A − λI) = 0', true],
-                    ['det(A + λI) = 1', false],
-                    ['trace(A) = λ', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For A = [[3, 0], [0, 5]], what are the eigenvalues?",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['3 and 5', true],
-                    ['0 and 15', false],
-                    ['8 and 2', false],
-                    ['1 and 1', false],
-                ],
-            ],
-
-            // ── TRACE ────────────────────────────────────────────────────
-            [
-                'q' => 'The trace of a square matrix is defined as:',
-                'opts' => [
-                    ['The product of all elements', false],
-                    ['The determinant', false],
-                    ['The sum of all diagonal entries', true],
-                    ['The largest entry', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the trace of [[2, 5], [3, 7]]?",
+                'q' => 'Item 27: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['5', false],
-                    ['9', true],
-                    ['14', false],
-                    ['7', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The trace of a matrix equals the sum of its ___.',
+                'q' => 'Item 28: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['Singular values', false],
-                    ['Eigenvalues', true],
-                    ['Columns', false],
-                    ['Row norms', false],
-                ],
-            ],
-
-            // ── TRANSPOSE PROPERTIES ─────────────────────────────────────
-            [
-                'q' => "What is (Aᵀ)ᵀ (the transpose of the transpose of A)?",
-                'opts' => [
-                    ['The inverse of A', false],
-                    ['The zero matrix', false],
-                    ['A itself', true],
-                    ['The identity matrix', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is (AB)ᵀ?",
+                'q' => 'Item 29: When comparing two approaches in Applied Matrix Analysis, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['AᵀBᵀ', false],
-                    ['BᵀAᵀ', true],
-                    ['ABᵀ', false],
-                    ['AᵀB', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix satisfying A = Aᵀ is called symmetric. Which of the following is symmetric?',
+                'q' => 'Item 30: What does a strong final answer in Applied Matrix Analysis include?',
                 'opts' => [
-                    ['[[1, 2], [3, 4]]', false],
-                    ['[[1, 3], [3, 5]]', true],
-                    ['[[0, 1], [0, 0]]', false],
-                    ['[[2, 0], [1, 2]]', false],
-                ],
-            ],
-
-            // ── NORMS (INTRO) ────────────────────────────────────────────
-            [
-                'q' => 'The Euclidean (L2) norm of vector v = [3, 4] is:',
-                'opts' => [
-                    ['7', false],
-                    ['5', true],
-                    ['12', false],
-                    ['25', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The general formula for the Euclidean norm of vector [a, b] is:",
+                'q' => 'Item 31: In Applied Matrix Analysis, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['a + b', false],
-                    ['a × b', false],
-                    ['√(a² + b²)', true],
-                    ['(a + b)²', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the norm of the zero vector [0, 0]?',
+                'q' => 'Item 32: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['1', false],
-                    ['Undefined', false],
-                    ['0', true],
-                    ['∞', false],
-                ],
-            ],
-
-            // ── MISC ANALYTICAL ──────────────────────────────────────────
-            [
-                'q' => 'What is the determinant of any triangular matrix (upper or lower)?',
-                'opts' => [
-                    ['The sum of all entries', false],
-                    ['Always 0', false],
-                    ['The product of its diagonal entries', true],
-                    ['The sum of its diagonal entries', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'For square matrices A and B of the same size, det(AB) = ?',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with bias check?',
                 'opts' => [
-                    ['det(A) + det(B)', false],
-                    ['det(A) × det(B)', true],
-                    ['det(A) − det(B)', false],
-                    ['det(A) / det(B)', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "If you swap two rows of a matrix, the determinant is:",
+                'q' => 'Item 34: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Unchanged', false],
-                    ['Multiplied by 2', false],
-                    ['Negated (multiplied by −1)', true],
-                    ['Set to zero', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A matrix is singular when:',
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Applied Matrix Analysis fails on one test case?',
                 'opts' => [
-                    ['Its trace is 0', false],
-                    ['Its determinant is 0', true],
-                    ['It has more rows than columns', false],
-                    ['All its entries are positive', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does it mean for a matrix to be 'full rank'?",
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
                 'opts' => [
-                    ['Its rank equals the larger of its row/column count', false],
-                    ['Its rank equals the smaller of its row/column count', true],
-                    ['Its rank is 0', false],
-                    ['All entries are non-zero', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "The nullspace of a matrix A consists of all vectors x such that:",
+                'q' => 'Item 37: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Ax = I', false],
-                    ['Ax = b', false],
-                    ['Ax = 0', true],
-                    ['Ax = A', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is (A⁻¹)⁻¹?",
+                'q' => 'Item 38: Which situation is most likely an edge case in Applied Matrix Analysis?',
                 'opts' => [
-                    ['The zero matrix', false],
-                    ['The identity matrix', false],
-                    ['A itself', true],
-                    ['2A', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Applied Matrix Analysis, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Applied Matrix Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Applied Matrix Analysis, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Applied Matrix Analysis gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Applied Matrix Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Applied Matrix Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Applied Matrix Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Applied Matrix Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Applied Matrix Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Applied Matrix Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Applied Matrix Analysis, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Applied Matrix Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 9 — Applied Matrix Analysis (University Student).");
+        $this->command->info('Module 9 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

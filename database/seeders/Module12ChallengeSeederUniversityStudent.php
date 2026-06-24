@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module12ChallengeSeederUniversityStudent extends Seeder
 {
@@ -16,499 +14,508 @@ class Module12ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Introductory Forecasting';
 
-        $this->command->info("Creating Module 12 — Introductory Forecasting (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 12 — Introductory Forecasting (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Introductory Forecasting',
-            'description'           => 'Test your understanding of core forecasting concepts — time series components, basic smoothing methods, and simple model interpretation. Analytical thinking and light calculations required.',
-            'time_limit_seconds'    => 1200, // 20 minutes
-            'base_xp'               => 700,
-            'order_index'           => 12,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Introductory Forecasting. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 12,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding University Student forecasting questions...");
-
         $qaData = [
-
-            // ── FORECASTING FUNDAMENTALS ──────────────────────────────────
             [
-                'q' => 'A retail store tracks weekly sales from January to December. Which type of data is this?',
+                'q' => 'Item 1: In Introductory Forecasting, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Cross-sectional data', false],
-                    ['Time series data', true],
-                    ['Panel data', false],
-                    ['Categorical data', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following best describes a forecast?',
+                'q' => 'Item 2: A learner working on Introductory Forecasting gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['An exact calculation of a future value', false],
-                    ['An estimate of a future value based on historical patterns', true],
-                    ['A record of past observations', false],
-                    ['A fixed target set by management', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If monthly electricity demand is consistently higher in summer than in winter every year, this pattern is called:',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Forecasting when dealing with assumptions?',
                 'opts' => [
-                    ['Trend', false],
-                    ['Residual', false],
-                    ['Seasonality', true],
-                    ['Cycle', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A time series has these values: 10, 12, 15, 19, 24. What component is most dominant?',
+                'q' => 'Item 4: For Introductory Forecasting, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Seasonality', false],
-                    ['Trend', true],
-                    ['Noise', false],
-                    ['Cycle', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In time series decomposition using an additive model, the relationship between components is:',
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Forecasting fails on one test case?',
                 'opts' => [
-                    ['Y = T × S × R', false],
-                    ['Y = T + S + R', true],
-                    ['Y = T − S + R', false],
-                    ['Y = T × S − R', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which decomposition model is more appropriate when seasonal fluctuations grow proportionally with the trend?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Introductory Forecasting tasks?',
                 'opts' => [
-                    ['Additive model', false],
-                    ['Multiplicative model', true],
-                    ['Linear model', false],
-                    ['Residual model', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'After removing trend and seasonality from a time series, the leftover component is called:',
+                'q' => 'Item 7: In a Forecasting assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Forecast error', false],
-                    ['White noise', false],
-                    ['Residual (irregular) component', true],
-                    ['Baseline', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'You have quarterly sales data spanning 5 years. How many full seasonal cycles are present?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Introductory Forecasting?',
                 'opts' => [
-                    ['4', false],
-                    ['5', true],
-                    ['20', false],
-                    ['10', false],
-                ],
-            ],
-
-            // ── SIMPLE MOVING AVERAGE ─────────────────────────────────────
-            [
-                'q' => 'Given the series: 4, 6, 8, 10, 12 — what is the 3-period simple moving average for period 4?',
-                'opts' => [
-                    ['8', true],
-                    ['9', false],
-                    ['10', false],
-                    ['7', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A larger window (more periods) in a moving average produces a forecast that is:',
+                'q' => 'Item 9: When comparing two approaches in Forecasting, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['More responsive to recent changes', false],
-                    ['Smoother but slower to react to changes', true],
-                    ['Always more accurate', false],
-                    ['More volatile', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Using a 2-period moving average, if the last two observations are 50 and 60, the next forecast is:',
+                'q' => 'Item 10: What does a strong final answer in Introductory Forecasting include?',
                 'opts' => [
-                    ['60', false],
-                    ['55', true],
-                    ['50', false],
-                    ['110', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'One weakness of the simple moving average for forecasting is:',
+                'q' => 'Item 11: In Introductory Forecasting, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['It requires exponential calculations', false],
-                    ['It treats all past observations in the window equally, ignoring recency', true],
-                    ['It can only be applied to seasonal data', false],
-                    ['It always over-forecasts', false],
-                ],
-            ],
-
-            // ── SIMPLE EXPONENTIAL SMOOTHING ──────────────────────────────
-            [
-                'q' => 'In Simple Exponential Smoothing (SES), what does the smoothing parameter α control?',
-                'opts' => [
-                    ['The number of periods to include', false],
-                    ['The weight given to the most recent observation vs the previous forecast', true],
-                    ['The seasonal period length', false],
-                    ['The trend growth rate', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If α = 0.3, the previous forecast F₁ = 100, and the actual value A₁ = 120, what is F₂ using SES?\n\nFormula: F₂ = α × A₁ + (1 − α) × F₁',
+                'q' => 'Item 12: A learner working on Introductory Forecasting gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['106', true],
-                    ['110', false],
-                    ['114', false],
-                    ['100', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'An α value close to 1 in SES means the forecast heavily weights:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Forecasting when dealing with bias check?',
                 'opts' => [
-                    ['Very old observations', false],
-                    ['The long-term average', false],
-                    ['The most recent observation', true],
-                    ['The seasonal component', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'SES is most appropriate for time series that have:',
+                'q' => 'Item 14: For Introductory Forecasting, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A strong upward trend', false],
-                    ['Both trend and seasonality', false],
-                    ['No trend and no seasonality', true],
-                    ['Only a seasonal component', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "If α = 0, the SES forecast for every future period will be:\n\nHint: F_{t+1} = α·A_t + (1−α)·F_t",
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Forecasting fails on one test case?',
                 'opts' => [
-                    ['The most recent actual value', false],
-                    ['Always zero', false],
-                    ['Equal to the initial forecast, unchanged forever', true],
-                    ['The average of all past values', false],
-                ],
-            ],
-
-            // ── HOLT'S METHOD ─────────────────────────────────────────────
-            [
-                'q' => "Holt's Double Exponential Smoothing extends SES by adding which component?",
-                'opts' => [
-                    ['Seasonality', false],
-                    ['Trend', true],
-                    ['Residuals', false],
-                    ['Cycle', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In Holt's method, the parameter β controls the smoothing of:",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Introductory Forecasting tasks?',
                 'opts' => [
-                    ['The level of the series', false],
-                    ['The trend estimate', true],
-                    ['The seasonal factor', false],
-                    ['The forecast error', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "In Holt's method, if the current level L₁ = 50 and trend T₁ = 5, what is the 2-step-ahead forecast?\n\nFormula: F_{t+h} = L_t + h·T_t",
+                'q' => 'Item 17: In a Forecasting assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['55', false],
-                    ['60', true],
-                    ['65', false],
-                    ['50', false],
-                ],
-            ],
-
-            // ── HOLT-WINTERS METHOD ───────────────────────────────────────
-            [
-                'q' => "The Holt-Winters method is an extension of Holt's method that additionally handles:",
-                'opts' => [
-                    ['Autocorrelation', false],
-                    ['Seasonality', true],
-                    ['Stationarity', false],
-                    ['Differencing', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Holt-Winters additive model uses how many smoothing parameters?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Introductory Forecasting?',
                 'opts' => [
-                    ['1 (α only)', false],
-                    ['2 (α and β)', false],
-                    ['3 (α, β, and γ)', true],
-                    ['4', false],
-                ],
-            ],
-
-            // ── FORECAST ACCURACY ─────────────────────────────────────────
-            [
-                'q' => 'Mean Absolute Error (MAE) is computed as:',
-                'opts' => [
-                    ['Average of squared forecast errors', false],
-                    ['Average of the absolute differences between actual and forecasted values', true],
-                    ['Sum of all forecast errors', false],
-                    ['Percentage of correct forecasts', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Given actual = [10, 20, 30] and forecast = [12, 18, 33], what is the MAE?\n\nMAE = mean(|actual − forecast|)',
+                'q' => 'Item 19: When comparing two approaches in Forecasting, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['2.33', true],
-                    ['3.00', false],
-                    ['5.67', false],
-                    ['1.00', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why is RMSE (Root Mean Squared Error) often preferred over MAE in practice?',
+                'q' => 'Item 20: What does a strong final answer in Introductory Forecasting include?',
                 'opts' => [
-                    ['It is always smaller than MAE', false],
-                    ['It penalizes larger errors more heavily due to squaring', true],
-                    ['It is scale-free', false],
-                    ['It works only for seasonal data', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'MAPE expresses forecast accuracy as:',
+                'q' => 'Item 21: In Introductory Forecasting, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['An absolute difference in units', false],
-                    ['A percentage of the actual value', true],
-                    ['A squared error value', false],
-                    ['A count of correct predictions', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If MAPE = 5%, this means the forecast is off by an average of:',
+                'q' => 'Item 22: A learner working on Introductory Forecasting gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['5 units', false],
-                    ['5% of the actual values', true],
-                    ['5 squared units', false],
-                    ['$5 in cost', false],
-                ],
-            ],
-
-            // ── STATIONARITY & DIFFERENCING ───────────────────────────────
-            [
-                'q' => 'A stationary time series is one that:',
-                'opts' => [
-                    ['Has a clearly visible upward trend', false],
-                    ['Has constant mean, variance, and autocovariance over time', true],
-                    ['Has strong seasonal peaks', false],
-                    ['Has an exponentially growing variance', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'First-order differencing (Δyₜ = yₜ − yₜ₋₁) is used to remove:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Forecasting when dealing with assumptions?',
                 'opts' => [
-                    ['Seasonality only', false],
-                    ['A linear trend', true],
-                    ['Residual noise', false],
-                    ['Outliers', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If the original series is: 2, 5, 9, 14 — what is the first difference series?',
+                'q' => 'Item 24: For Introductory Forecasting, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['3, 4, 5', true],
-                    ['2, 5, 9', false],
-                    ['1, 2, 3', false],
-                    ['5, 4, 3', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The Augmented Dickey-Fuller (ADF) test is used to check for:',
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Forecasting fails on one test case?',
                 'opts' => [
-                    ['Seasonality in a series', false],
-                    ['A unit root (non-stationarity)', true],
-                    ['Forecast accuracy', false],
-                    ['Autocorrelation at lag 1', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the ADF test, a p-value less than 0.05 leads you to:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Introductory Forecasting tasks?',
                 'opts' => [
-                    ['Conclude the series is non-stationary', false],
-                    ['Reject the null hypothesis and conclude the series is stationary', true],
-                    ['Accept that a unit root exists', false],
-                    ['Apply seasonal differencing', false],
-                ],
-            ],
-
-            // ── ACF & PACF ────────────────────────────────────────────────
-            [
-                'q' => 'The AutoCorrelation Function (ACF) measures:',
-                'opts' => [
-                    ['How a series correlates with a different series', false],
-                    ['The correlation between a time series and its own lagged values', true],
-                    ['The seasonal period of a series', false],
-                    ['The strength of the trend component', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If the ACF of a series decays slowly and remains positive for many lags, this suggests the series is:',
+                'q' => 'Item 27: In a Forecasting assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Stationary', false],
-                    ['Non-stationary (has a trend)', true],
-                    ['Purely seasonal', false],
-                    ['White noise', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Partial AutoCorrelation Function (PACF) shows the correlation between yₜ and yₜ₋ₖ after:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Introductory Forecasting?',
                 'opts' => [
-                    ['Squaring the residuals', false],
-                    ['Removing the effects of intermediate lags', true],
-                    ['Differencing the series once', false],
-                    ['Applying a moving average filter', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In ACF/PACF plots, the dashed lines represent:',
+                'q' => 'Item 29: When comparing two approaches in Forecasting, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['The mean of the series', false],
-                    ['Confidence intervals for significance testing', true],
-                    ['The trend line', false],
-                    ['Seasonal period markers', false],
-                ],
-            ],
-
-            // ── ARIMA BASICS ──────────────────────────────────────────────
-            [
-                'q' => 'In ARIMA(p, d, q), what does the parameter d represent?',
-                'opts' => [
-                    ['The number of autoregressive terms', false],
-                    ['The number of times the series is differenced', true],
-                    ['The number of moving average terms', false],
-                    ['The seasonal period', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An ARIMA(1, 0, 0) model is equivalent to which simpler model?',
+                'q' => 'Item 30: What does a strong final answer in Introductory Forecasting include?',
                 'opts' => [
-                    ['A moving average model', false],
-                    ['An autoregressive model of order 1 (AR(1))', true],
-                    ['A random walk', false],
-                    ['An exponential smoothing model', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'SARIMA extends ARIMA by adding which additional capability?',
+                'q' => 'Item 31: In Introductory Forecasting, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Handling non-linear trends', false],
-                    ['Modeling seasonal patterns explicitly', true],
-                    ['Removing outliers automatically', false],
-                    ['Producing probability forecasts', false],
-                ],
-            ],
-
-            // ── CROSS-VALIDATION & PROPHET ────────────────────────────────
-            [
-                'q' => 'In time series cross-validation, why must the test set always come AFTER the training set in time?',
-                'opts' => [
-                    ['To ensure equal sample sizes', false],
-                    ['To prevent using future information to predict the past (data leakage)', true],
-                    ['Because older data is less accurate', false],
-                    ['To maximize the training set size', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The "walk-forward" validation strategy in time series forecasting means:',
+                'q' => 'Item 32: A learner working on Introductory Forecasting gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['Using a sliding window that always has the same fixed size', false],
-                    ['Progressively expanding the training window and re-evaluating at each step', true],
-                    ['Randomly sampling train and test sets', false],
-                    ['Splitting data 70/30 once', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Facebook's Prophet model is primarily designed to handle which time series challenges automatically?",
+                'q' => 'Item 33: Which mistake most commonly weakens work in Forecasting when dealing with bias check?',
                 'opts' => [
-                    ['High-frequency sensor data', false],
-                    ['Trend changepoints, multiple seasonalities, and holiday effects', true],
-                    ['Only financial time series', false],
-                    ['Only stationary series', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Prophet, a "changepoint" refers to:',
+                'q' => 'Item 34: For Introductory Forecasting, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A missing value in the series', false],
-                    ['A point in time where the trend rate abruptly changes', true],
-                    ['The beginning of a seasonal cycle', false],
-                    ['An outlier detected by the model', false],
-                ],
-            ],
-
-            // ── APPLIED INTERPRETATION ────────────────────────────────────
-            [
-                'q' => "A manager sees that their SES forecast always lags behind when demand spikes upward. The best fix is to:",
-                'opts' => [
-                    ['Decrease α to give more weight to older data', false],
-                    ['Increase α to give more weight to recent observations', true],
-                    ['Switch to a 12-period moving average', false],
-                    ['Remove trend differencing', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "You are forecasting ice cream sales and notice the series has both an upward trend and strong summer peaks. Which method is most suitable?",
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Forecasting fails on one test case?',
                 'opts' => [
-                    ['Simple Moving Average', false],
-                    ['Simple Exponential Smoothing (SES)', false],
-                    ['Holt-Winters (Triple Exponential Smoothing)', true],
-                    ['AR(1) model', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which accuracy metric is most useful when comparing forecasts across datasets with different scales?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Introductory Forecasting tasks?',
                 'opts' => [
-                    ['MAE', false],
-                    ['RMSE', false],
-                    ['MAPE', true],
-                    ['Sum of squared errors', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A time series shows values: 100, 102, 101, 103, 102. This series most likely is:',
+                'q' => 'Item 37: In a Forecasting assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Trending strongly upward', false],
-                    ['Roughly stationary around a mean of ~102', true],
-                    ['Highly seasonal', false],
-                    ['A random walk with drift', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "When your ARIMA model's residuals look like white noise (random, no pattern), this means:",
+                'q' => 'Item 38: Which situation is most likely an edge case in Introductory Forecasting?',
                 'opts' => [
-                    ['The model is underfitting the data', false],
-                    ['The model has successfully captured all systematic patterns', true],
-                    ['The model needs more differencing', false],
-                    ['The forecast will have zero error', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Forecasting, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Introductory Forecasting include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Introductory Forecasting, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Introductory Forecasting gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Forecasting when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Introductory Forecasting, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Forecasting fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Introductory Forecasting tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Forecasting assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Introductory Forecasting?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Forecasting, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Introductory Forecasting include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! Questions seeded for Module 12 — Introductory Forecasting (University Student).");
+        $this->command->info('Module 12 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

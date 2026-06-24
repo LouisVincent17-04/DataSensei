@@ -14,339 +14,508 @@ class Module17ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Deep Learning';
 
-        $this->command->info("Creating Module 17 — Introduction to Deep Learning (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 17 — Deep Learning (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Introduction to Deep Learning',
-            'description'           => 'Test your knowledge of the very basics of deep learning — what neural networks are, how they learn, and the key vocabulary used across the field. No math or coding experience required!',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 17,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Deep Learning. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 17,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 30 newbie-friendly questions...");
-
         $qaData = [
-
-            // ── WHAT IS DEEP LEARNING ─────────────────────────────────────
             [
-                'q' => 'What is deep learning?',
+                'q' => 'Item 1: In Deep Learning, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A way to teach computers using many layers of artificial neurons', true],
-                    ['A method of memorizing large amounts of data manually', false],
-                    ['A technique for searching the internet faster', false],
-                    ['A type of database management system', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Deep learning is a subset of which broader field?',
+                'q' => 'Item 2: A learner working on Deep Learning gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Database management', false],
-                    ['Machine learning', true],
-                    ['Operating systems', false],
-                    ['Web development', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "deep" refer to in deep learning?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Deep Learning when dealing with assumptions?',
                 'opts' => [
-                    ['The depth of the dataset used', false],
-                    ['The many layers in a neural network', true],
-                    ['How difficult the problem is to solve', false],
-                    ['The speed of the computer running the model', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a common real-world use of deep learning?',
+                'q' => 'Item 4: For Deep Learning, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Sorting files alphabetically', false],
-                    ['Recognizing faces in photos', true],
-                    ['Calculating simple averages', false],
-                    ['Creating spreadsheets', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A neural network is loosely inspired by which biological structure?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Deep Learning fails on one test case?',
                 'opts' => [
-                    ['The human heart', false],
-                    ['Plant cells', false],
-                    ['The human brain', true],
-                    ['The digestive system', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of these is NOT a common application of deep learning?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Deep Learning tasks?',
                 'opts' => [
-                    ['Speech recognition', false],
-                    ['Image classification', false],
-                    ['Sorting a list of names alphabetically', true],
-                    ['Machine translation', false],
-                ],
-            ],
-
-            // ── THE NEURON & FEEDFORWARD NETWORKS ─────────────────────────
-            [
-                'q' => 'What is the basic building block of a neural network?',
-                'opts' => [
-                    ['A pixel', false],
-                    ['A neuron (also called a node)', true],
-                    ['A database table', false],
-                    ['A decision tree', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a neural network, what does a neuron do?',
+                'q' => 'Item 7: In a Deep Learning assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['It stores files on a hard drive', false],
-                    ['It receives inputs, processes them, and passes an output forward', true],
-                    ['It deletes incorrect data automatically', false],
-                    ['It connects to the internet to find answers', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "layer" in a neural network?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Deep Learning?',
                 'opts' => [
-                    ['A single training example', false],
-                    ['A group of neurons at the same level that process information together', true],
-                    ['A type of activation function', false],
-                    ['The output of the entire model', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which layer receives the raw data (like an image or text) in a neural network?',
+                'q' => 'Item 9: When comparing two approaches in Deep Learning, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Output layer', false],
-                    ['Hidden layer', false],
-                    ['Input layer', true],
-                    ['Loss layer', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which layer produces the final prediction of a neural network?',
+                'q' => 'Item 10: What does a strong final answer in Deep Learning include?',
                 'opts' => [
-                    ['Input layer', false],
-                    ['Output layer', true],
-                    ['Hidden layer', false],
-                    ['Dropout layer', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A "feedforward" network means that information flows in which direction?',
+                'q' => 'Item 11: In Deep Learning, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Backwards from output to input', false],
-                    ['In circles between layers', false],
-                    ['Forward from input to output, one direction only', true],
-                    ['Randomly across all layers at once', false],
-                ],
-            ],
-
-            // ── BACKPROPAGATION & GRADIENT DESCENT ────────────────────────
-            [
-                'q' => 'What is the purpose of training a neural network?',
-                'opts' => [
-                    ['To make the network as large as possible', false],
-                    ['To adjust the network\'s weights so it makes better predictions', true],
-                    ['To delete unnecessary neurons', false],
-                    ['To speed up the computer it runs on', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does a "loss" (or "error") measure in deep learning?',
+                'q' => 'Item 12: A learner working on Deep Learning gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['How many neurons are in the network', false],
-                    ['How wrong the model\'s prediction is compared to the correct answer', true],
-                    ['How fast the model runs', false],
-                    ['The number of layers in the network', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is "backpropagation" in simple terms?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Deep Learning when dealing with bias check?',
                 'opts' => [
-                    ['Feeding data into the network from back to front', false],
-                    ['The process of calculating how much each weight contributed to the error', true],
-                    ['Removing neurons from the last layer', false],
-                    ['Running the model on test data', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "gradient descent" help a neural network do?',
+                'q' => 'Item 14: For Deep Learning, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Download data faster', false],
-                    ['Gradually reduce the loss by adjusting the weights', true],
-                    ['Add more layers to the network', false],
-                    ['Visualize the training data', false],
-                ],
-            ],
-
-            // ── WEIGHTS & ACTIVATIONS ─────────────────────────────────────
-            [
-                'q' => 'What are "weights" in a neural network?',
-                'opts' => [
-                    ['The physical size of the server running the model', false],
-                    ['Numbers that determine how strongly inputs influence the output of a neuron', true],
-                    ['The labels attached to training data', false],
-                    ['The total number of neurons in the network', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is an "activation function" used for in a neuron?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Deep Learning fails on one test case?',
                 'opts' => [
-                    ['To start the training process', false],
-                    ['To decide whether and how strongly a neuron should "fire" (pass output forward)', true],
-                    ['To delete unused neurons', false],
-                    ['To connect the network to the internet', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is one of the most commonly used activation functions in deep learning?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Deep Learning tasks?',
                 'opts' => [
-                    ['SORT', false],
-                    ['ReLU (Rectified Linear Unit)', true],
-                    ['AVERAGE', false],
-                    ['CONCAT', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does ReLU output when given a negative number?',
+                'q' => 'Item 17: In a Deep Learning assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The number itself (negative)', false],
-                    ['1', false],
-                    ['0', true],
-                    ['-1', false],
-                ],
-            ],
-
-            // ── REGULARIZATION & OVERFITTING ──────────────────────────────
-            [
-                'q' => 'What does "overfitting" mean in deep learning?',
-                'opts' => [
-                    ['The model trains too slowly', false],
-                    ['The model learns the training data too well and performs poorly on new data', true],
-                    ['The model has too few neurons', false],
-                    ['The model runs out of memory', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is "regularization" used for in deep learning?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Deep Learning?',
                 'opts' => [
-                    ['To make the training data larger', false],
-                    ['To help prevent the model from overfitting', true],
-                    ['To speed up training', false],
-                    ['To add more layers to the network', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Dropout" is a regularization technique that works by:',
+                'q' => 'Item 19: When comparing two approaches in Deep Learning, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Removing entire layers from the network permanently', false],
-                    ['Randomly turning off some neurons during training so the network doesn\'t rely on any single neuron', true],
-                    ['Deleting incorrectly labelled data', false],
-                    ['Lowering the learning rate automatically', false],
-                ],
-            ],
-
-            // ── CNNs, RNNs, TRANSFORMERS (BASIC) ─────────────────────────
-            [
-                'q' => 'What type of data are Convolutional Neural Networks (CNNs) best known for processing?',
-                'opts' => [
-                    ['Audio recordings only', false],
-                    ['Images and visual data', true],
-                    ['Spreadsheets of numbers', false],
-                    ['Plain text documents only', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Recurrent Neural Networks (RNNs) are especially useful for:',
+                'q' => 'Item 20: What does a strong final answer in Deep Learning include?',
                 'opts' => [
-                    ['Processing images', false],
-                    ['Sequential data like text and time series, because they have memory of previous inputs', true],
-                    ['Sorting databases', false],
-                    ['Compressing files', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is a "Transformer" in deep learning most famous for?',
+                'q' => 'Item 21: In Deep Learning, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Transforming images into videos', false],
-                    ['Powering modern language models like ChatGPT using a mechanism called attention', true],
-                    ['Converting file formats between different types', false],
-                    ['Speeding up training on CPUs', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "transfer learning" mean?',
+                'q' => 'Item 22: A learner working on Deep Learning gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Moving a model from one computer to another', false],
-                    ['Using a model already trained on one task as a starting point for a different task', true],
-                    ['Transferring data between two datasets', false],
-                    ['Training two models at the same time', false],
-                ],
-            ],
-
-            // ── GENERATIVE MODELS & GENERAL ───────────────────────────────
-            [
-                'q' => 'What does a Generative Adversarial Network (GAN) do?',
-                'opts' => [
-                    ['Finds errors in existing images', false],
-                    ['Generates new, realistic-looking data (like images) by having two networks compete', true],
-                    ['Classifies images into categories', false],
-                    ['Speeds up training of other models', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a GAN, the "generator" and "discriminator" have which relationship?',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Deep Learning when dealing with assumptions?',
                 'opts' => [
-                    ['They work together on the same task with shared weights', false],
-                    ['The generator creates fake data; the discriminator tries to tell fake from real', true],
-                    ['The discriminator generates data; the generator checks quality', false],
-                    ['They are identical networks running in parallel', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which hardware is most commonly used to speed up deep learning training?',
+                'q' => 'Item 24: For Deep Learning, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['CPU (Central Processing Unit)', false],
-                    ['GPU (Graphics Processing Unit)', true],
-                    ['Hard disk drive (HDD)', false],
-                    ['RAM (Random Access Memory)', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is a "learning rate" in deep learning?',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Deep Learning fails on one test case?',
                 'opts' => [
-                    ['How many images the model sees per second', false],
-                    ['A number that controls how big a step the model takes when updating weights', true],
-                    ['The speed of the GPU during training', false],
-                    ['The number of neurons added per training round', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Deep Learning tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 27: In a Deep Learning assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 28: Which situation is most likely an edge case in Deep Learning?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 29: When comparing two approaches in Deep Learning, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 30: What does a strong final answer in Deep Learning include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 31: In Deep Learning, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
+                'opts' => [
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 32: A learner working on Deep Learning gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Deep Learning when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Deep Learning, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Deep Learning fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Deep Learning tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Deep Learning assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Deep Learning?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Deep Learning, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Deep Learning include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Deep Learning, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Deep Learning gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Deep Learning when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Deep Learning, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Deep Learning fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Deep Learning tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Deep Learning assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Deep Learning?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Deep Learning, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Deep Learning include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 30 questions seeded for Module 17 — Introduction to Deep Learning (Newbie).");
+        $this->command->info('Module 17 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

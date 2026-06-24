@@ -1,16 +1,12 @@
 {{-- ── SUPERADMIN SIDEBAR PARTIAL ── --}}
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="wordmark">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2.5">
-        <path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z"/>
-        <path d="M8 12h8M8 16h5"/>
-      </svg>
-      Data<span>Sensei</span>
-    </div>
-    <div class="tagline">
-      <span class="superadmin-badge">Super Admin</span>
-    </div>
+    @include('partials.brand-logo', [
+      'variant' => 'sidebar',
+      'size' => 'normal',
+      'subtext' => 'Super Admin',
+      'href' => route('superadmin.dashboard'),
+    ])
   </div>
 
   <nav class="nav-group">
@@ -59,22 +55,25 @@
   <nav class="nav-group">
     <div class="nav-label">Platform</div>
 
-    {{-- Placeholder links – wire up when those controllers are ready --}}
-    <a href="#" class="nav-item">
+    {{-- Platform-level governance links. Analytics is now fully wired. --}}
+    <a href="{{ route('modules.module-library.index') }}"
+       class="nav-item {{ request()->routeIs('modules.module-library.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
       </svg>
       Modules
     </a>
 
-    <a href="#" class="nav-item">
+    <a href="{{ route('superadmin.analytics.index') }}"
+       class="nav-item {{ request()->routeIs('superadmin.analytics.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
-      Analytics
+      Platform Analytics
     </a>
 
-    <a href="#" class="nav-item">
+    <a href="{{ route('profile') }}"
+       class="nav-item {{ request()->routeIs('profile') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
@@ -114,11 +113,6 @@
   /* Reuse all student sidebar base styles + overrides */
   .sidebar { width: 260px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; }
   .sidebar-logo { padding: 24px; border-bottom: 1px solid var(--border); }
-  .sidebar-logo .wordmark { font-weight: 700; font-size: 1.25rem; letter-spacing: -0.025em; color: var(--text); display: flex; align-items: center; gap: 8px; }
-  .sidebar-logo .wordmark span { color: var(--accent); }
-  .sidebar-logo .tagline { margin-top: 6px; }
-  .superadmin-badge { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); border: 1px solid rgba(139,92,246,0.35); color: #a78bfa; padding: 3px 10px; border-radius: 20px; }
-
   .nav-group { padding: 24px 16px 0; }
   .nav-label { font-size: 0.75rem; font-weight: 600; color: var(--dim); letter-spacing: 0.05em; text-transform: uppercase; padding: 0 12px; margin-bottom: 8px; }
   .nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.875rem; font-weight: 500; color: var(--muted); transition: all 0.15s ease; text-decoration: none; margin-bottom: 2px; }

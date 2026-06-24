@@ -14,298 +14,508 @@ class Module11ChallengeSeederAdvanced extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'advanced')->first();
 
-        if (!$category) {
-            $this->command->error("Advanced category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Advanced category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Introduction to Bayesian Data Analysis';
 
-        $this->command->info("Creating Module 11 — Introduction to Bayesian Data Analysis (Advanced)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 11 — Introduction to Bayesian Data Analysis (Advanced) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Introduction to Bayesian Data Analysis',
-            'description'           => 'Tackle advanced Bayesian problems — debug probabilistic code, reason about MCMC pathologies, work through hierarchical models, and optimize posterior inference pipelines. Deep understanding and debugging skills required.',
-            'time_limit_seconds'    => 1800,
-            'base_xp'               => 1500,
-            'order_index'           => 11,
+            'title' => $title,
+            'description' => 'A detailed 50-item Advanced MCQ challenge for Introduction to Bayesian Data Analysis. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 2100,
+            'base_xp' => 1000,
+            'order_index' => 11,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 30 advanced questions...");
-
         $qaData = [
-
-            // ── CODE DEBUGGING: MCMC ──────────────────────────────────────
             [
-                'q' => "The following Python snippet implements a Metropolis-Hastings sampler. Identify the bug:\n\n```python\nimport numpy as np\n\ndef log_posterior(theta):\n    return -0.5 * theta**2  # Standard normal prior, no data\n\ntheta = 0.0\nsamples = []\nfor _ in range(1000):\n    proposal = theta + np.random.normal(0, 1)\n    log_ratio = log_posterior(proposal) - log_posterior(theta)\n    if np.log(np.random.uniform()) < log_ratio:\n        theta = proposal\n    # BUG IS HERE\n    samples.append(theta)\n```\n\nWhat is wrong with this code?",
+                'q' => 'Item 1: In Introduction to Bayesian Data Analysis, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
                 'opts' => [
-                    ['The proposal distribution should use uniform noise, not normal noise', false],
-                    ['There is no bug — the code is correct', false],
-                    ['samples.append(theta) is inside the loop but should be outside it', false],
-                    ['Nothing is wrong — but burn-in samples are not discarded before using `samples`', true],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The following code computes a posterior using conjugate updates but gives wrong results:\n\n```python\nalpha, beta = 1, 1  # Beta(1,1) prior\ndata = [1, 0, 1, 1, 0, 1]  # 1=success, 0=failure\n\nfor obs in data:\n    if obs == 1:\n        alpha += 1\n    if obs == 0:\n        alpha += 1  # BUG\n\nprint(f'Posterior: Beta({alpha}, {beta})')\n```\n\nWhat is the bug?",
+                'q' => 'Item 2: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['The loop should use `while` not `for`', false],
-                    ['The failure case increments alpha instead of beta', true],
-                    ['The prior Beta(1,1) is incorrect for this data', false],
-                    ['The data list should contain floats, not integers', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Review this PyMC model and identify the issue:\n\n```python\nimport pymc as pm\n\nwith pm.Model() as model:\n    mu = pm.Normal('mu', mu=0, sigma=10)\n    sigma = pm.Normal('sigma', mu=0, sigma=1)  # BUG\n    y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=data)\n    trace = pm.sample(1000)\n```",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['mu should use a Beta prior, not Normal', false],
-                    ['sigma is given a Normal prior, which allows negative values — it should use HalfNormal or Exponential', true],
-                    ['y_obs should use a Beta distribution', false],
-                    ['pm.sample should have 2000 draws minimum', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A PyMC model is sampling extremely slowly and R-hat values are all > 1.1. Which of the following is the MOST likely cause?\n\n```python\nwith pm.Model():\n    mu = pm.Uniform('mu', lower=-1000, upper=1000)\n    sigma = pm.Uniform('sigma', lower=0, upper=1000)\n    obs = pm.Normal('obs', mu=mu, sigma=sigma, observed=data)\n    trace = pm.sample(2000, tune=500)\n```",
+                'q' => 'Item 4: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The data variable is not defined', false],
-                    ['Overly wide uniform priors create a large, difficult-to-explore parameter space', true],
-                    ['tune=500 is too many tuning steps', false],
-                    ['Normal observation model is incorrect for this type of data', false],
-                ],
-            ],
-
-            // ── HIERARCHICAL MODELS ───────────────────────────────────────
-            [
-                'q' => "In a hierarchical model for 8 schools:\n\n```\nμ_global ~ Normal(0, 10)     # hyperprior\nτ ~ HalfNormal(5)            # hyperprior\nθ_j ~ Normal(μ_global, τ)   # school-level effects\ny_j ~ Normal(θ_j, σ_j)      # observations\n```\n\nWhat does a small estimated τ (close to 0) imply?",
-                'opts' => [
-                    ['The schools have very different treatment effects', false],
-                    ['The schools are very similar — partial pooling toward the global mean is strong', true],
-                    ['The model has failed to converge', false],
-                    ['The hyperprior on μ_global is too wide', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "The 'eight schools' problem is a classic example of hierarchical Bayesian modeling. In the non-centered parameterization:\nθ_j = μ + τ × η_j, where η_j ~ Normal(0, 1)\n\nWhy is this reparameterization preferred over the centered form θ_j ~ Normal(μ, τ)?",
+                'q' => 'Item 5: Which response shows the best Advanced practice when a method in Bayesian Data Analysis fails on one test case?',
                 'opts' => [
-                    ['It produces different posterior means', false],
-                    ['It eliminates the correlation between τ and θ_j, improving MCMC geometry', true],
-                    ['It removes the need for a hyperprior on τ', false],
-                    ['It makes the model non-hierarchical', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a hierarchical model, 'complete pooling' means treating all groups identically (one shared θ), and 'no pooling' means treating each group completely independently. Hierarchical ('partial pooling') models:",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
                 'opts' => [
-                    ['Are equivalent to complete pooling when τ → 0', false],
-                    ['Adaptively borrow strength across groups — shrinking estimates toward the group mean', true],
-                    ['Always produce wider credible intervals than no-pooling', false],
-                    ['Cannot be estimated using MCMC', false],
-                ],
-            ],
-
-            // ── VARIATIONAL INFERENCE ─────────────────────────────────────
-            [
-                'q' => "Variational Inference (VI) approximates the posterior by:",
-                'opts' => [
-                    ['Drawing exact samples from the posterior using MCMC', false],
-                    ['Optimizing a simpler distribution q(θ) to be as close to P(θ|data) as possible', true],
-                    ['Computing the posterior analytically using conjugate priors', false],
-                    ['Bootstrapping the data to estimate posterior uncertainty', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Evidence Lower Bound (ELBO) in variational inference is maximized. The ELBO is:\nELBO = E_q[log P(data,θ)] − E_q[log q(θ)]\n\nMaximizing the ELBO is equivalent to minimizing:",
+                'q' => 'Item 7: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The log likelihood', false],
-                    ['The KL divergence KL(q(θ) || P(θ|data))', true],
-                    ['The posterior variance', false],
-                    ['The number of model parameters', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A key limitation of mean-field variational inference compared to full MCMC is:",
+                'q' => 'Item 8: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
                 'opts' => [
-                    ['It is slower to compute', false],
-                    ['It assumes posterior parameters are independent, potentially underestimating uncertainty', true],
-                    ['It cannot handle continuous parameters', false],
-                    ['It requires more data than MCMC', false],
-                ],
-            ],
-
-            // ── POSTERIOR PREDICTIVE CHECKS ───────────────────────────────
-            [
-                'q' => "A posterior predictive check (PPC) works by:\n\n1. Sample θ from the posterior P(θ|data)\n2. Simulate new data ỹ from P(ỹ|θ)\n3. Compare ỹ to observed data\n\nThe purpose of this procedure is to:",
-                'opts' => [
-                    ['Compute the Bayes Factor between two models', false],
-                    ['Assess whether the model generates data consistent with observations — model checking', true],
-                    ['Update the prior using simulated data', false],
-                    ['Replace MCMC with a faster simulation method', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A PPC reveals that simulated datasets have much lower variance than the observed data. This indicates:",
+                'q' => 'Item 9: When comparing two approaches in Bayesian Data Analysis, what should a Advanced learner prioritize?',
                 'opts' => [
-                    ['The MCMC chain has not converged', false],
-                    ['The model is underdispersed — it underestimates variability in the data', true],
-                    ['The prior is too informative', false],
-                    ['The posterior is too wide', false],
-                ],
-            ],
-
-            // ── BAYESIAN REGRESSION ADVANCED ──────────────────────────────
-            [
-                'q' => "In Bayesian logistic regression with a Normal(0, 1) prior on coefficients:\n\n```python\nwith pm.Model():\n    beta = pm.Normal('beta', mu=0, sigma=1, shape=X.shape[1])\n    p = pm.math.sigmoid(pm.math.dot(X, beta))\n    y_obs = pm.Bernoulli('y_obs', p=p, observed=y)\n```\n\nThe Normal(0, 1) prior on beta acts as which regularization?",
-                'opts' => [
-                    ['L1 (Lasso) regularization', false],
-                    ['L2 (Ridge) regularization', true],
-                    ['Elastic Net regularization', false],
-                    ['No regularization', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In the same logistic regression model, if you replace Normal(0, 1) with Laplace(0, 1) prior on beta, this is equivalent to:",
+                'q' => 'Item 10: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
                 'opts' => [
-                    ['Ridge regression (L2)', false],
-                    ['Lasso regression (L1) — promoting sparse solutions', true],
-                    ['No regularization', false],
-                    ['Elastic Net', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A Bayesian logistic regression gives a posterior predictive probability of 0.72 for a new observation, with a 95% credible interval of [0.55, 0.89]. What is the most accurate interpretation?",
+                'q' => 'Item 11: In Introduction to Bayesian Data Analysis, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The prediction is definitely 72% accurate', false],
-                    ['The point estimate is 0.72 but there is meaningful uncertainty between 55%-89%', true],
-                    ['The model rejected the null hypothesis at p=0.05', false],
-                    ['The prior was set to 0.72', false],
-                ],
-            ],
-
-            // ── MODEL COMPARISON & SELECTION ──────────────────────────────
-            [
-                'q' => "The Leave-One-Out Cross-Validation (LOO-CV) estimate in Bayesian analysis is preferred over WAIC because:",
-                'opts' => [
-                    ['LOO-CV always gives lower values', false],
-                    ['LOO-CV is more robust when posterior distributions have heavy tails (high Pareto-k values)', true],
-                    ['LOO-CV uses the prior, not the posterior', false],
-                    ['LOO-CV penalizes model complexity less harshly', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "When using ArviZ's `az.compare()`, models are ranked by their 'elpd_loo' score. A higher elpd_loo indicates:",
+                'q' => 'Item 12: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['Worse out-of-sample predictive performance', false],
-                    ['Better expected log predictive density — better out-of-sample fit', true],
-                    ['More model parameters', false],
-                    ['Greater posterior uncertainty', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "A Bayes Factor of BF₁₂ = 150 comparing Model 1 to Model 2 indicates (using Jeffreys scale):",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with bias check?',
                 'opts' => [
-                    ['Moderate evidence for Model 1', false],
-                    ['Decisive evidence for Model 1 over Model 2', true],
-                    ['Evidence for Model 2', false],
-                    ['Inconclusive evidence', false],
-                ],
-            ],
-
-            // ── OPTIMIZATION & DEBUGGING ──────────────────────────────────
-            [
-                'q' => "Your MCMC trace shows the sampler is 'stuck' — the chain barely moves and accepts very few proposals. The most likely fix is:",
-                'opts' => [
-                    ['Increase the number of samples', false],
-                    ['Reduce the proposal step size (or re-parameterize the model)', true],
-                    ['Switch from NUTS to Metropolis-Hastings', false],
-                    ['Remove the prior from the model', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The No-U-Turn Sampler (NUTS) is preferred over standard Metropolis-Hastings for high-dimensional posteriors because:",
+                'q' => 'Item 14: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['NUTS is easier to implement', false],
-                    ['NUTS uses gradient information to make large, efficient moves without manual step-size tuning', true],
-                    ['NUTS does not require a proposal distribution', false],
-                    ['NUTS always accepts proposals', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Divergences in NUTS sampling (flagged by PyMC) indicate:\n\nA) The sampler explored regions of very high curvature where numerical integration breaks down\nB) The model is perfectly identified\n\nWhat should you do when you see many divergences?",
+                'q' => 'Item 15: Which response shows the best Advanced practice when a method in Bayesian Data Analysis fails on one test case?',
                 'opts' => [
-                    ['Ignore them — divergences are normal', false],
-                    ['Reparameterize the model (e.g., use non-centered parameterization) to improve geometry', true],
-                    ['Increase the target_accept parameter to 1.0', false],
-                    ['Decrease the number of tuning steps', false],
-                ],
-            ],
-
-            // ── EDGE CASES & IDENTIFIABILITY ──────────────────────────────
-            [
-                'q' => "A model is 'non-identifiable' when:\n\nMultiple different parameter values produce the exact same likelihood for all possible datasets.\n\nIn practice this means:",
-                'opts' => [
-                    ['The model is too simple and needs more parameters', false],
-                    ['The posterior will be very flat or multimodal — MCMC will explore many parameter combinations equally', true],
-                    ['The prior dominates the posterior completely', false],
-                    ['The data has missing values', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "In a mixture model with K components, swapping the labels of components (e.g., component 1 ↔ component 2) produces the same likelihood. This is called:",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
                 'opts' => [
-                    ['Non-convergence', false],
-                    ['Label switching — a form of non-identifiability that creates multimodal posteriors', true],
-                    ['Overfitting', false],
-                    ['A prior specification error', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "To handle label switching in Bayesian mixture models, a common approach is to impose an ordering constraint, such as μ₁ < μ₂ < ... < μ_K. This is achieved by:",
+                'q' => 'Item 17: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Using a uniform prior on all parameters', false],
-                    ['Applying an ordered transformation or using pm.math.sort in the model definition', true],
-                    ['Running multiple chains and averaging', false],
-                    ['Setting the number of components K = 1', false],
-                ],
-            ],
-
-            // ── ADVANCED POSTERIOR SUMMARIES ──────────────────────────────
-            [
-                'q' => "The Highest Density Interval (HDI) differs from a symmetric quantile-based credible interval in that:",
-                'opts' => [
-                    ['The HDI always has the same width as the quantile interval', false],
-                    ['The HDI is the shortest interval containing the specified probability mass', true],
-                    ['The HDI is centered at the posterior mean', false],
-                    ['The HDI requires the posterior to be normally distributed', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For a skewed posterior, the 95% HDI compared to the equal-tail 95% credible interval will be:",
+                'q' => 'Item 18: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
                 'opts' => [
-                    ['Wider on both sides', false],
-                    ['Shifted toward the region of highest posterior density — not necessarily symmetric around the mean', true],
-                    ['Identical to the equal-tail interval', false],
-                    ['Always narrower on the left side', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 19: When comparing two approaches in Bayesian Data Analysis, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 20: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 21: In Introduction to Bayesian Data Analysis, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 22: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Advanced level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 23: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 24: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 25: Which response shows the best Advanced practice when a method in Bayesian Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 27: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 28: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 29: When comparing two approaches in Bayesian Data Analysis, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 30: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 31: In Introduction to Bayesian Data Analysis, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving reproducibility?',
+                'opts' => [
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 32: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Advanced level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 33: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with bias check?',
+                'opts' => [
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 34: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 35: Which response shows the best Advanced practice when a method in Bayesian Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Bayesian Data Analysis, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Introduction to Bayesian Data Analysis, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Introduction to Bayesian Data Analysis gets a result that looks correct. What should they do next at the Advanced level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Bayesian Data Analysis when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Introduction to Bayesian Data Analysis, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Advanced practice when a method in Bayesian Data Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Introduction to Bayesian Data Analysis tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Bayesian Data Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Introduction to Bayesian Data Analysis?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Bayesian Data Analysis, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Introduction to Bayesian Data Analysis include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 30 questions seeded for Module 11 — Introduction to Bayesian Data Analysis (Advanced).");
+        $this->command->info('Module 11 MCQ (Advanced) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

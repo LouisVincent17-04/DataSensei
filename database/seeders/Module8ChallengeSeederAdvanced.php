@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module8ChallengeSeederAdvanced extends Seeder
 {
@@ -16,599 +14,508 @@ class Module8ChallengeSeederAdvanced extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'advanced')->first();
 
-        if (!$category) {
-            $this->command->error("Advanced category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Advanced category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
+        $title = 'Statistical Methods & Experimental Design';
+
         Challenge::where('challenge_category_id', $category->id)
-            ->where('title', 'Statistical Methods & Experimental Design')
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
             ->delete();
 
-        $this->command->info("Creating Module 8 — Statistical Methods & Experimental Design (Advanced)...");
+        $this->command->info('Creating Module 8 — Statistical Methods & Experimental Design (Advanced) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Statistical Methods & Experimental Design',
-            'description'           => 'Tackle advanced statistical challenges involving Python/R-like code snippets, debugging flawed analyses, multi-step derivations, and sophisticated experimental design decisions.',
-            'time_limit_seconds'    => 1800,
-            'base_xp'               => 2000,
-            'order_index'           => 8,
+            'title' => $title,
+            'description' => 'A detailed 50-item Advanced MCQ challenge for Statistical Methods & Experimental Design. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 2100,
+            'base_xp' => 1000,
+            'order_index' => 8,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 advanced statistics questions...");
-
         $qaData = [
-
-            // ── CODE TRACING — DESCRIPTIVE STATS ──────────────────────────
             [
-                'q' => 'Trace the output of this Python code:
-
-import statistics
-data = [4, 8, 6, 5, 3, 2, 8, 9, 2, 5]
-print(round(statistics.variance(data), 2))
-
-Note: statistics.variance() uses sample variance (n-1).',
+                'q' => 'Item 1: In Statistical Methods & Experimental Design, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
                 'opts' => [
-                    ['4.80', false],
-                    ['5.21', false],
-                    ['5.78', true],
-                    ['6.00', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does this code compute?
-
-import numpy as np
-data = np.array([10, 20, 30, 40, 50])
-result = np.std(data)
-print(round(result, 2))
-
-Note: np.std() uses population standard deviation by default.',
+                'q' => 'Item 2: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['14.14', true],
-                    ['15.81', false],
-                    ['10.00', false],
-                    ['12.25', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Identify the BUG in this z-score computation:
-
-def z_score(x, mean, std):
-    return (x + mean) / std
-
-z = z_score(85, 75, 10)',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with assumptions?',
                 'opts' => [
-                    ['std should be variance', false],
-                    ['The formula uses + instead of −', true],
-                    ['mean and x are in wrong order', false],
-                    ['There is no bug', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the output?
-
-data = [2, 4, 4, 4, 5, 5, 7, 9]
-mean = sum(data) / len(data)
-variance = sum((x - mean)**2 for x in data) / len(data)
-print(variance)',
+                'q' => 'Item 4: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['4.0', true],
-                    ['4.57', false],
-                    ['2.0', false],
-                    ['16.0', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'This code attempts to detect outliers using IQR. What is wrong?
-
-import numpy as np
-data = [1, 2, 2, 3, 4, 100]
-Q1 = np.percentile(data, 25)
-Q3 = np.percentile(data, 75)
-IQR = Q1 - Q3  # BUG HERE
-lower = Q1 - 1.5 * IQR
-upper = Q3 + 1.5 * IQR
-outliers = [x for x in data if x < lower or x > upper]',
+                'q' => 'Item 5: Which response shows the best Advanced practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['percentile values are wrong', false],
-                    ['IQR should be Q3 − Q1, not Q1 − Q3', true],
-                    ['The list comprehension is incorrect', false],
-                    ['1.5 should be 2.0', false],
-                ],
-            ],
-
-            // ── CODE TRACING — PROBABILITY & DISTRIBUTIONS ────────────────
-            [
-                'q' => 'Trace this code and determine what probability is being computed:
-
-from scipy.stats import binom
-p = binom.pmf(k=3, n=10, p=0.5)
-print(round(p, 4))',
-                'opts' => [
-                    ['P(X = 3) for Binomial(n=10, p=0.5) ≈ 0.1172', true],
-                    ['P(X ≤ 3) for Binomial(n=10, p=0.5) ≈ 0.1719', false],
-                    ['P(X ≥ 3) for Binomial(n=10, p=0.5) ≈ 0.9453', false],
-                    ['The mean of the distribution', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does this compute and what is the approximate result?
-
-from scipy.stats import norm
-result = norm.cdf(1.96)
-print(round(result, 4))',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['P(Z ≤ 1.96) ≈ 0.9750', true],
-                    ['P(Z ≤ 1.96) ≈ 0.0250', false],
-                    ['P(Z = 1.96) ≈ 0.0584', false],
-                    ['P(Z ≥ 1.96) ≈ 0.9750', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Identify the bug in this code that computes P(A and B) assuming independence:
-
-P_A = 0.4
-P_B = 0.3
-P_A_and_B = P_A + P_B  # Bug: should this be * or + ?',
+                'q' => 'Item 7: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['No bug — addition is correct', false],
-                    ['Should use multiplication: P_A * P_B', true],
-                    ['Should use P_A − P_B', false],
-                    ['Should use P_A / P_B', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What statistical concept is this code simulating?
-
-import numpy as np
-np.random.seed(42)
-sample_means = [np.mean(np.random.normal(0, 1, 30)) for _ in range(10000)]
-print(np.std(sample_means))',
+                'q' => 'Item 8: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
                 'opts' => [
-                    ['Population variance', false],
-                    ['The Standard Error of the Mean (CLT in action)', true],
-                    ['The skewness of the normal distribution', false],
-                    ['The population standard deviation', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is wrong with this confidence interval calculation?
-
-import numpy as np
-from scipy import stats
-
-data = [10, 12, 14, 16, 18]
-n = len(data)
-mean = np.mean(data)
-sem = np.std(data) / np.sqrt(n)  # Uses population std
-ci = stats.norm.interval(0.95, loc=mean, scale=sem)',
+                'q' => 'Item 9: When comparing two approaches in Statistical Methods and Experimental Design, what should a Advanced learner prioritize?',
                 'opts' => [
-                    ['norm.interval should be t.interval for small samples', false],
-                    ['np.std(data) uses population std; for a sample, use np.std(data, ddof=1). Also, t-distribution is more appropriate for small n.', true],
-                    ['The confidence level should be 0.975, not 0.95', false],
-                    ['There is no bug', false],
-                ],
-            ],
-
-            // ── HYPOTHESIS TESTING — CODE & DEBUGGING ────────────────────
-            [
-                'q' => 'This code runs a one-sample t-test. What conclusion is drawn given the output?
-
-from scipy import stats
-data = [102, 98, 105, 110, 97, 103, 99, 108]
-t_stat, p_value = stats.ttest_1samp(data, popmean=100)
-print(f"t={t_stat:.3f}, p={p_value:.4f}")
-# Output: t=1.789, p=0.1159',
-                'opts' => [
-                    ['Reject H₀ at α=0.05; the mean is significantly different from 100', false],
-                    ['Fail to reject H₀ at α=0.05; insufficient evidence the mean differs from 100', true],
-                    ['The test is invalid because sample size is too small', false],
-                    ['p-value of 0.1159 means 11.59% of data is outliers', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Identify the error in this two-sample t-test setup:
-
-from scipy import stats
-group_A = [23, 25, 28, 22, 27]
-group_B = [30, 35, 33, 31, 29]
-
-# Researcher says groups are paired (same subjects before/after)
-t, p = stats.ttest_ind(group_A, group_B)  # Bug?',
+                'q' => 'Item 10: What does a strong final answer in Statistical Methods & Experimental Design include?',
                 'opts' => [
-                    ['No bug — ttest_ind is always correct', false],
-                    ['ttest_ind tests independent samples; for paired data, use ttest_rel', true],
-                    ['The arrays have different values', false],
-                    ['The significance level is missing', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does this code compute?
-
-from scipy import stats
-obs = [20, 30, 50]
-exp = [33.3, 33.3, 33.4]
-chi2, p = stats.chisquare(f_obs=obs, f_exp=exp)
-print(p)',
+                'q' => 'Item 11: In Statistical Methods & Experimental Design, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['p-value for independence test', false],
-                    ['p-value for a goodness-of-fit test against uniform expected frequencies', true],
-                    ['The F-statistic for ANOVA', false],
-                    ['Pearson correlation coefficient', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Trace the ANOVA code and determine what df_between should be:
-
-from scipy import stats
-group1 = [5, 6, 7]
-group2 = [8, 9, 10]
-group3 = [3, 4, 5]
-group4 = [11, 12, 13]
-
-f, p = stats.f_oneway(group1, group2, group3, group4)
-# df_between = number of groups - 1
-df_between = ???',
+                'q' => 'Item 12: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['3', true],
-                    ['4', false],
-                    ['8', false],
-                    ['11', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the critical flaw in this hypothesis test?
-
-# Testing if coin is fair
-flips = 55  # heads in 100 flips
-p_value = 2 * (1 - 0.9332)  # Using z-table manually, z ≈ 1.00
-alpha = 0.05
-if p_value < alpha:
-    print("Reject H0")
-else:
-    print("Fail to reject H0")
-# z = (55 - 50) / sqrt(100 * 0.5 * 0.5) = 1.00 → p ≈ 0.1336',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with bias check?',
                 'opts' => [
-                    ['The formula for z is wrong', false],
-                    ['The two-sided p-value should be 2 × P(Z > 1.00) ≈ 0.3174, not 0.1336. The z-table value used is P(Z < 1.00), not P(Z > 1.00)', true],
-                    ['α should be 0.01', false],
-                    ['There is no flaw', false],
-                ],
-            ],
-
-            // ── REGRESSION — CODE & ANALYSIS ──────────────────────────────
-            [
-                'q' => 'What does this code compute and what does the output tell you?
-
-import numpy as np
-x = np.array([1, 2, 3, 4, 5])
-y = np.array([2, 4, 5, 4, 5])
-correlation = np.corrcoef(x, y)[0, 1]
-r_squared = correlation ** 2
-print(round(r_squared, 4))',
-                'opts' => [
-                    ['The slope of the regression line', false],
-                    ['R² — the proportion of variance in y explained by x', true],
-                    ['The p-value of the regression', false],
-                    ['The standard error of the residuals', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Identify the issue in this multiple regression interpretation:
-
-# Model: y = 5 + 3*x1 + 2*x2
-# Researcher says: "x1 has a stronger effect because its raw coefficient (3) > x2 (2)"',
+                'q' => 'Item 14: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The interpretation is correct', false],
-                    ['Raw coefficients cannot be compared directly if x1 and x2 are on different scales; use standardized coefficients', true],
-                    ['The intercept should be 0', false],
-                    ['ANOVA F-test is needed first', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'This code fits a regression and prints residuals. What does a residual plot with a FUNNEL shape indicate?
-
-import numpy as np
-from sklearn.linear_model import LinearRegression
-import matplotlib.pyplot as plt
-
-X = np.array([[1],[2],[3],[4],[5]])
-y = np.array([1, 4, 9, 16, 25])
-model = LinearRegression().fit(X, y)
-residuals = y - model.predict(X)
-# plt.scatter(model.predict(X), residuals)',
+                'q' => 'Item 15: Which response shows the best Advanced practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['The model is overfitted', false],
-                    ['Heteroscedasticity — residual variance is not constant', true],
-                    ['Autocorrelation in the residuals', false],
-                    ['The model is underfitted', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the problem with this regression model evaluation?
-
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
-import numpy as np
-
-# Degree-15 polynomial fit on 20 data points
-# Training R² = 0.9998
-# Test R² = 0.12',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['The model underfits the training data', false],
-                    ['The model is overfitted — high training R² but very low test R²', true],
-                    ['r2_score is the wrong metric', false],
-                    ['Linear regression cannot handle polynomials', false],
-                ],
-            ],
-
-            // ── EXPERIMENTAL DESIGN — ADVANCED ───────────────────────────
-            [
-                'q' => 'A researcher runs 20 hypothesis tests simultaneously (α = 0.05 each). What is the approximate probability of getting AT LEAST ONE false positive by chance?
-
-P(at least one Type I error) = 1 − (1 − α)^k',
-                'opts' => [
-                    ['5%', false],
-                    ['~64%', true],
-                    ['~10%', false],
-                    ['~100%', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The BONFERRONI correction addresses multiple comparisons by:',
+                'q' => 'Item 17: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Multiplying the sample size by the number of tests', false],
-                    ['Dividing α by the number of comparisons (αᵢ = α / k)', true],
-                    ['Using a chi-square test instead of t-tests', false],
-                    ['Increasing effect size', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a CROSSOVER experimental design, each subject receives:',
+                'q' => 'Item 18: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
                 'opts' => [
-                    ['Only one treatment', false],
-                    ['All treatments in sequence, acting as their own control', true],
-                    ['A placebo only', false],
-                    ['Treatments assigned by block', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the PURPOSE of a LATIN SQUARE design?',
+                'q' => 'Item 19: When comparing two approaches in Statistical Methods and Experimental Design, what should a Advanced learner prioritize?',
                 'opts' => [
-                    ['To test three or more independent variables simultaneously', false],
-                    ['To control for two blocking factors while testing one treatment factor', true],
-                    ['To randomize subjects into three groups', false],
-                    ['To reduce effect size', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Hawthorne Effect in a study refers to:',
+                'q' => 'Item 20: What does a strong final answer in Statistical Methods & Experimental Design include?',
                 'opts' => [
-                    ['The placebo effect', false],
-                    ['Participants changing their behavior because they know they are being observed', true],
-                    ['Confounding by a third variable', false],
-                    ['Regression to the mean', false],
-                ],
-            ],
-
-            // ── ADVANCED INFERENCE ────────────────────────────────────────
-            [
-                'q' => 'The LIKELIHOOD RATIO TEST compares two nested models by:',
-                'opts' => [
-                    ['Comparing their R² values', false],
-                    ['Computing −2 × ln(L₀ / L₁) and comparing to a chi-square distribution', true],
-                    ['Using a t-test on their coefficients', false],
-                    ['Subtracting RMSE values', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'AIC (Akaike Information Criterion) is used for:',
+                'q' => 'Item 21: In Statistical Methods & Experimental Design, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Hypothesis testing between two groups', false],
-                    ['Model selection — lower AIC indicates a better balance of fit and complexity', true],
-                    ['Computing confidence intervals', false],
-                    ['Detecting multicollinearity', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Bayesian inference, the POSTERIOR distribution is proportional to:',
+                'q' => 'Item 22: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['Prior × Evidence', false],
-                    ['Likelihood × Prior', true],
-                    ['Prior / Likelihood', false],
-                    ['Evidence / Prior', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Bootstrap resampling is used to:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with assumptions?',
                 'opts' => [
-                    ['Increase the original sample size by duplicating data', false],
-                    ['Estimate the sampling distribution of a statistic by resampling with replacement', true],
-                    ['Remove outliers from the data', false],
-                    ['Standardize all variables to z-scores', false],
-                ],
-            ],
-
-            // ── ADVANCED ANOVA & REGRESSION ───────────────────────────────
-            [
-                'q' => 'In a TWO-WAY ANOVA with factors A and B, the interaction term A×B is significant. What does this mean for interpreting main effects?',
-                'opts' => [
-                    ['Main effects should be the primary interpretation', false],
-                    ['Main effects alone are misleading; the interaction must be examined first', true],
-                    ['The study should be repeated', false],
-                    ['Factor A causes Factor B', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A researcher uses ANCOVA. What does ANCOVA do that standard ANOVA does not?',
+                'q' => 'Item 24: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Tests more than one dependent variable', false],
-                    ['Controls for a continuous covariate to reduce error variance and adjust group means', true],
-                    ['Uses non-parametric ranks', false],
-                    ['Tests for interaction effects only', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In MANOVA, compared to running separate ANOVAs, the advantage is:',
+                'q' => 'Item 25: Which response shows the best Advanced practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['MANOVA is simpler to compute', false],
-                    ['MANOVA controls for Type I error inflation across multiple dependent variables', true],
-                    ['MANOVA requires smaller samples', false],
-                    ['MANOVA eliminates the need for post-hoc tests', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Ridge regression differs from OLS regression in that it:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['Removes outliers automatically', false],
-                    ['Adds an L2 penalty term to shrink coefficients, addressing multicollinearity', true],
-                    ['Uses ranks instead of raw values', false],
-                    ['Maximizes R²', false],
-                ],
-            ],
-
-            // ── ADVANCED NON-PARAMETRIC & DIAGNOSTICS ────────────────────
-            [
-                'q' => 'The Shapiro-Wilk test is used to assess:',
-                'opts' => [
-                    ['Homogeneity of variances', false],
-                    ['Whether a sample comes from a normally distributed population', true],
-                    ['Independence of observations', false],
-                    ['The significance of a correlation', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Levene\'s test is used to check:',
+                'q' => 'Item 27: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Normality of residuals', false],
-                    ['Equality of variances across groups (homoscedasticity)', true],
-                    ['Whether the sample mean equals the population mean', false],
-                    ['The strength of correlation', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does a Q-Q plot that shows points deviating from the diagonal line at the tails indicate?',
+                'q' => 'Item 28: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
                 'opts' => [
-                    ['The data is perfectly normal', false],
-                    ['The data has heavier or lighter tails than a normal distribution', true],
-                    ['The model has high R²', false],
-                    ['The sample is biased', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Friedman\'s test is the non-parametric equivalent of:',
+                'q' => 'Item 29: When comparing two approaches in Statistical Methods and Experimental Design, what should a Advanced learner prioritize?',
                 'opts' => [
-                    ['Independent samples ANOVA', false],
-                    ['Repeated-measures ANOVA', true],
-                    ['Two-sample t-test', false],
-                    ['Chi-square test', false],
-                ],
-            ],
-
-            // ── POWER & SAMPLE SIZE — ADVANCED ───────────────────────────
-            [
-                'q' => 'A researcher wants to detect a medium effect (d = 0.5) with power = 0.80 and α = 0.05 (two-tailed). Using standard power tables, the required sample size per group for an independent t-test is approximately:',
-                'opts' => [
-                    ['26', false],
-                    ['64', true],
-                    ['128', false],
-                    ['30', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If you run a study with only n=10 and the true effect is small (d=0.2), what issue is most likely?',
+                'q' => 'Item 30: What does a strong final answer in Statistical Methods & Experimental Design include?',
                 'opts' => [
-                    ['Very high power', false],
-                    ['Extremely low power — high probability of Type II error', true],
-                    ['Inflated Type I error rate', false],
-                    ['Overfitting', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A priori power analysis is conducted:',
+                'q' => 'Item 31: In Statistical Methods & Experimental Design, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['After data collection to check if power was adequate', false],
-                    ['Before data collection to determine the required sample size', true],
-                    ['During data analysis to adjust p-values', false],
-                    ['Only when sample size is very large', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Sensitivity power analysis is used to determine:',
+                'q' => 'Item 32: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Advanced level?',
                 'opts' => [
-                    ['The minimum sample size required', false],
-                    ['The minimum detectable effect size given n, α, and power', true],
-                    ['Whether to use parametric or non-parametric tests', false],
-                    ['The correct significance level', false],
-                ],
-            ],
-
-            // ── ADVANCED DEBUGGING & EDGE CASES ──────────────────────────
-            [
-                'q' => 'A researcher concludes "since p = 0.049 < 0.05, the effect is practically important." What is wrong with this reasoning?',
-                'opts' => [
-                    ['Nothing — p < 0.05 always means practical importance', false],
-                    ['Statistical significance (p-value) does not imply practical significance; effect size must also be reported', true],
-                    ['The threshold should be 0.01 not 0.05', false],
-                    ['p-values cannot be 0.049', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'p-HACKING refers to:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with bias check?',
                 'opts' => [
-                    ['A method of increasing statistical power', false],
-                    ['Manipulating analyses or data collection until p < 0.05 is achieved, inflating Type I error', true],
-                    ['Using too large a sample size', false],
-                    ['Applying Bonferroni correction', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is REGRESSION TO THE MEAN and when is it a concern?',
+                'q' => 'Item 34: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A type of model overfitting in regression', false],
-                    ['Extreme values on first measurement tend to be closer to the mean on second measurement — a concern when pre-selecting extreme scorers', true],
-                    ['The tendency for R² to increase with more predictors', false],
-                    ['A bias introduced by stratified sampling', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The ECOLOGICAL FALLACY occurs when:',
+                'q' => 'Item 35: Which response shows the best Advanced practice when a method in Statistical Methods and Experimental Design fails on one test case?',
                 'opts' => [
-                    ['Animal data is applied to humans', false],
-                    ['Inferences about individuals are made from group-level statistical data', true],
-                    ['An experiment is conducted outdoors', false],
-                    ['The control group is removed from analysis', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'SIMPSON\'S PARADOX describes a situation where:',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
                 'opts' => [
-                    ['A trend appears in grouped data but disappears or reverses when data is combined', true],
-                    ['A trend disappears due to a low sample size', false],
-                    ['Two variables have equal correlation to a third', false],
-                    ['A dataset has two modes', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 37: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 38: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Statistical Methods and Experimental Design, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Statistical Methods & Experimental Design include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Statistical Methods & Experimental Design, which action best supports edge cases, assumptions, evaluation, and trade-offs when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Statistical Methods & Experimental Design gets a result that looks correct. What should they do next at the Advanced level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Statistical Methods and Experimental Design when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Statistical Methods & Experimental Design, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Advanced practice when a method in Statistical Methods and Experimental Design fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Statistical Methods & Experimental Design tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Statistical Methods and Experimental Design assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Statistical Methods & Experimental Design?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Statistical Methods and Experimental Design, what should a Advanced learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Statistical Methods & Experimental Design include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 8 — Statistical Methods & Experimental Design (Advanced).");
+        $this->command->info('Module 8 MCQ (Advanced) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

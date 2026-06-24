@@ -8,18 +8,17 @@ use App\Models\CodingQuestion;
 use App\Models\CodingQuestionAttempt;
 use App\Models\CodingSubmission;
 use App\Models\TestCase;
+use App\Services\ChallengePathUnlockService;
+use App\Services\GamificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Process;
+use App\Services\PythonSandboxService;
 
 class CodingQuizController extends Controller
 {
-    private bool $isWindows;
-
-    public function __construct()
+    public function __construct(private readonly PythonSandboxService $pythonSandbox)
     {
-        $this->isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -44,6 +43,25 @@ class CodingQuizController extends Controller
         return max(0, $question->time_limit_seconds - $this->elapsedSeconds($attempt));
     }
 
+
+    private function ensureCodingPathIsUnlocked(string $slug): void
+    {
+        $service = app(ChallengePathUnlockService::class);
+        $lockInfo = $service->lockInfo(Auth::user(), $slug, 'coding');
+
+        if (!($lockInfo['unlocked'] ?? false)) {
+            abort(403, $lockInfo['reason'] ?? 'This coding difficulty path is locked.');
+        }
+    }
+
+    private function ensureCodingChallengeBelongsToSlug(Challenge $challenge, string $slug): void
+    {
+        $challenge->loadMissing('category');
+
+        abort_unless($challenge->category && $challenge->category->slug === $slug, 404);
+        abort_unless((bool) $challenge->is_coding_challenge === true, 404);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // SHOW QUIZ
     // GET /challenges/coding/{slug}/challenge/{challenge}
@@ -53,6 +71,9 @@ class CodingQuizController extends Controller
         if (is_int($challenge)) {
             $challenge = Challenge::findOrFail($challenge);
         }
+
+        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
 
         $challenge->load(['codingQuestions.visibleTestCases']);
 
@@ -190,6 +211,9 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function start(string $slug, Challenge $challenge, CodingQuestion $question)
     {
+        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+
         $userId = Auth::id();
 
         // Already passed — no timer needed
@@ -237,6 +261,9 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function ping(string $slug, Challenge $challenge, CodingQuestion $question)
     {
+        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+
         $attempt = CodingQuestionAttempt::where('user_id', Auth::id())
             ->where('coding_question_id', $question->id)
             ->first();
@@ -264,6 +291,9 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function run(Request $request, string $slug, Challenge $challenge, CodingQuestion $question)
     {
+        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+
         $request->validate([
             'code'  => 'required|string|max:20000',
             'input' => 'nullable|string|max:5000',
@@ -287,8 +317,11 @@ class CodingQuizController extends Controller
     // SUBMIT — enforces server-side timer, runs test cases, awards XP
     // POST /challenges/coding/{slug}/challenge/{challenge}/submit/{question}
     // ─────────────────────────────────────────────────────────────────────────
-    public function submit(Request $request, string $slug, Challenge $challenge, CodingQuestion $question)
+    public function submit(Request $request, string $slug, Challenge $challenge, CodingQuestion $question, GamificationService $gamification)
     {
+        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+
         $request->validate([
             'code' => 'required|string|max:20000',
         ]);
@@ -450,12 +483,25 @@ class CodingQuizController extends Controller
 
         $challengeComplete = $passedCount >= $questionIds->count();
 
+        if ($challengeComplete) {
+            app(ChallengePathUnlockService::class)->notifyExceptionalUnlocks(Auth::user(), 'coding');
+        }
+
+        $achievementMessages = $gamification->awardForCodingSubmission(
+            Auth::user(),
+            $challenge,
+            $question,
+            $submission,
+            $challengeComplete
+        );
+
         return response()->json([
             'submission_id'      => $submission->id,
             'status'             => $status,
             'tests_passed'       => $passed,
             'tests_total'        => $total,
             'xp_earned'          => $xp,
+            'achievements'       => $achievementMessages,
             'results'            => $results,
             'expired'            => false,
             'remaining_seconds'  => max(0, $question->time_limit_seconds - $elapsedSeconds),
@@ -606,6 +652,9 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function retake(string $slug, Challenge $challenge)
     {
+        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+
         $userId      = Auth::id();
         $questionIds = $challenge->codingQuestions()->pluck('id');
 
@@ -676,77 +725,19 @@ class CodingQuizController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Execute Python — Matplotlib-safe, Windows-compatible
+    // Execute Python through the centralized sandbox service
     // ─────────────────────────────────────────────────────────────────────────
     private function execute(string $code, ?string $stdin = ''): array
     {
-        $stdin   = $stdin ?? '';
-        $tmpDir  = sys_get_temp_dir();
-        $pyFile  = tempnam($tmpDir, 'ds_') . '.py';
-        $inFile  = tempnam($tmpDir, 'ds_in_');
-        $imgFile = $tmpDir . DIRECTORY_SEPARATOR . 'ds_plot_' . uniqid() . '.png';
+        $result = $this->pythonSandbox->runInline($code, $stdin ?? '');
 
-        $imgEscaped = addslashes($imgFile);
-        $preamble   = <<<PREAMBLE
-import os as _os, sys as _sys
-_os.environ['MPLBACKEND'] = 'Agg'
-try:
-    import matplotlib as _mpl
-    _mpl.use('Agg')
-    import matplotlib.pyplot as _plt
-    def _patched_show(*a, **kw):
-        _plt.savefig(r'{$imgEscaped}', bbox_inches='tight', dpi=100)
-        _plt.close('all')
-    _plt.show = _patched_show
-except ImportError:
-    pass
-
-PREAMBLE;
-
-        file_put_contents($pyFile, $preamble . $code);
-        file_put_contents($inFile, $stdin);
-
-        $python = $this->isWindows ? 'python' : 'python3';
-
-        try {
-            if ($this->isWindows) {
-                $pyEsc   = '"' . str_replace('/', '\\', $pyFile) . '"';
-                $inEsc   = '"' . str_replace('/', '\\', $inFile) . '"';
-                $cmd     = "cmd /c {$python} {$pyEsc} < {$inEsc} 2>&1";
-                $lines   = [];
-                $retCode = 0;
-                exec($cmd, $lines, $retCode);
-                $raw = implode("\n", $lines);
-
-                $isError = $retCode !== 0
-                    || str_contains($raw, 'Traceback (most recent call last)')
-                    || preg_match('/\w+Error:/i', $raw);
-
-                $stdout = $isError ? '' : $raw;
-                $stderr = $isError ? $raw : null;
-                $failed = (bool) $isError;
-            } else {
-                $proc   = Process::timeout(15)
-                    ->input(file_get_contents($inFile))
-                    ->run([$python, $pyFile]);
-                $stdout = $proc->output();
-                $stderr = $proc->errorOutput() ?: null;
-                $failed = $proc->failed();
-            }
-
-            $image = null;
-            if (file_exists($imgFile) && filesize($imgFile) > 0) {
-                $image = 'data:image/png;base64,' . base64_encode(file_get_contents($imgFile));
-            }
-
-            return compact('stdout', 'stderr', 'image', 'failed');
-
-        } catch (\Throwable $e) {
-            return ['stdout' => '', 'stderr' => $e->getMessage(), 'image' => null, 'failed' => true];
-        } finally {
-            @unlink($pyFile);
-            @unlink($inFile);
-            @unlink($imgFile);
-        }
+        return [
+            'stdout' => $result['stdout'] ?? '',
+            'stderr' => ($result['stderr'] ?? '') !== '' ? $result['stderr'] : null,
+            'image' => null,
+            'plots' => $result['plots'] ?? [],
+            'failed' => (bool) ($result['failed'] ?? true),
+        ];
     }
+
 }

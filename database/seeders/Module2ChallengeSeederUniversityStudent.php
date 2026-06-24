@@ -14,521 +14,508 @@ class Module2ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        $this->command->info("Creating Module 2 — Basics of Statistics (University Student)...CatID".$category->id);
+        $title = 'Basics of Statistics';
+
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 2 — Basics of Statistics (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Basics of Statistics',
-            'description'           => 'Apply your understanding of statistics through analytical and calculation-based questions. Covers measures of central tendency, variability, probability, and introductory distributions.',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 700,
-            'order_index'           => 2,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Basics of Statistics. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 2,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 university-level statistics questions...");
-
         $qaData = [
-
-            // ── MEAN / WEIGHTED MEAN ──────────────────────────────────────
             [
-                'q' => 'A student scores 60, 75, and 90 on three exams worth equal weight. What is the mean score?',
+                'q' => 'Item 1: In Basics of Statistics, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['70', false],
-                    ['75', true],
-                    ['80', false],
-                    ['65', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Given the dataset [12, 15, 18, 21, 24], what is the mean?',
+                'q' => 'Item 2: A learner working on Basics of Statistics gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['16', false],
-                    ['17', false],
-                    ['18', true],
-                    ['19', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A weighted mean calculation:\nSubject A: score = 80, weight = 3\nSubject B: score = 60, weight = 1\nWhat is the weighted mean?",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Statistics Foundations when dealing with assumptions?',
                 'opts' => [
-                    ['70', false],
-                    ['72', false],
-                    ['75', true],
-                    ['76', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The mean of [x, 8, 12, 16] is 11. What is the value of x?',
+                'q' => 'Item 4: For Basics of Statistics, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['6', false],
-                    ['7', false],
-                    ['8', true],
-                    ['9', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Adding an outlier of 200 to the dataset [10, 11, 12, 13, 14] will have the greatest impact on which measure?',
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Statistics Foundations fails on one test case?',
                 'opts' => [
-                    ['Median', false],
-                    ['Mode', false],
-                    ['Mean', true],
-                    ['Range is not impacted', false],
-                ],
-            ],
-
-            // ── MEDIAN ───────────────────────────────────────────────────
-            [
-                'q' => 'What is the median of [7, 3, 9, 1, 5]?',
-                'opts' => [
-                    ['3', false],
-                    ['5', true],
-                    ['7', false],
-                    ['9', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the median of [4, 8, 15, 16, 23, 42]?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Basics of Statistics tasks?',
                 'opts' => [
-                    ['15', false],
-                    ['15.5', true],
-                    ['16', false],
-                    ['17', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a right-skewed distribution, which relationship is generally true?',
+                'q' => 'Item 7: In a Statistics Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Mean < Median < Mode', false],
-                    ['Mean = Median = Mode', false],
-                    ['Mode < Median < Mean', true],
-                    ['Median > Mean > Mode', false],
-                ],
-            ],
-
-            // ── MODE & DISTRIBUTION SHAPE ─────────────────────────────────
-            [
-                'q' => 'Dataset: [2, 3, 3, 4, 5, 5, 5, 6, 7]. What is the mode?',
-                'opts' => [
-                    ['3', false],
-                    ['4', false],
-                    ['5', true],
-                    ['6', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A distribution has two peaks at different values. What is it called?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Basics of Statistics?',
                 'opts' => [
-                    ['Unimodal', false],
-                    ['Symmetric', false],
-                    ['Bimodal', true],
-                    ['Uniform', false],
-                ],
-            ],
-
-            // ── RANGE, VARIANCE, STANDARD DEVIATION ──────────────────────
-            [
-                'q' => 'What is the range of [4, 7, 13, 2, 1, 9]?',
-                'opts' => [
-                    ['10', false],
-                    ['11', false],
-                    ['12', true],
-                    ['13', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the variance of [2, 4, 4, 4, 5, 5, 7, 9]?\n(Hint: Mean = 5. Variance = average of squared deviations from the mean.)",
+                'q' => 'Item 9: When comparing two approaches in Statistics Foundations, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['2', false],
-                    ['3', false],
-                    ['4', true],
-                    ['5', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If the variance of a dataset is 25, what is the standard deviation?',
+                'q' => 'Item 10: What does a strong final answer in Basics of Statistics include?',
                 'opts' => [
-                    ['25', false],
-                    ['625', false],
-                    ['5', true],
-                    ['12.5', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Dataset A has SD = 2. Dataset B has SD = 10. Which dataset has values that are MORE spread out?',
+                'q' => 'Item 11: In Basics of Statistics, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Dataset A', false],
-                    ['Dataset B', true],
-                    ['They are equally spread', false],
-                    ['Cannot be determined from SD alone', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which formula correctly describes population variance?\n(μ = mean, N = total count, xᵢ = each value)',
+                'q' => 'Item 12: A learner working on Basics of Statistics gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['σ² = Σ(xᵢ - μ) / N', false],
-                    ['σ² = Σ(xᵢ - μ)² / N', true],
-                    ['σ² = Σ(xᵢ)² / N', false],
-                    ['σ² = Σ(xᵢ - μ)² / (N - 1)', false],
-                ],
-            ],
-
-            // ── IQR & QUARTILES ───────────────────────────────────────────
-            [
-                'q' => 'What does IQR stand for?',
-                'opts' => [
-                    ['Integer Quartile Result', false],
-                    ['Interquartile Range', true],
-                    ['Internal Quality Rating', false],
-                    ['Integrated Quartile Ratio', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'How is the IQR calculated?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Statistics Foundations when dealing with bias check?',
                 'opts' => [
-                    ['Maximum - Minimum', false],
-                    ['Q3 - Q1', true],
-                    ['Q2 - Q1', false],
-                    ['Q3 - Q2', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a sorted dataset of 9 values, Q1 is the __ value.',
+                'q' => 'Item 14: For Basics of Statistics, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['1st', false],
-                    ['2nd', false],
-                    ['3rd', true],
-                    ['4th', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the IQR of [1, 3, 5, 7, 9, 11, 13]?\n(Q1 = 3, Q3 = 11)',
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Statistics Foundations fails on one test case?',
                 'opts' => [
-                    ['6', false],
-                    ['7', false],
-                    ['8', true],
-                    ['10', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A value is considered an outlier using the IQR method if it is below Q1 - (1.5 × IQR) or above Q3 + (1.5 × IQR).\nIf Q1 = 10, Q3 = 20, IQR = 10, which value is an outlier?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Basics of Statistics tasks?',
                 'opts' => [
-                    ['5', false],
-                    ['25', false],
-                    ['35', false],
-                    ['-5', true],
-                ],
-            ],
-
-            // ── PROBABILITY ───────────────────────────────────────────────
-            [
-                'q' => 'What is the probability of drawing a red card from a standard 52-card deck?',
-                'opts' => [
-                    ['1/4', false],
-                    ['1/2', true],
-                    ['1/13', false],
-                    ['1/52', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Two events A and B are mutually exclusive. P(A) = 0.3, P(B) = 0.4. What is P(A or B)?',
+                'q' => 'Item 17: In a Statistics Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['0.12', false],
-                    ['0.1', false],
-                    ['0.7', true],
-                    ['1.0', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the complement of an event A?\n(P(A) = 0.65)',
+                'q' => 'Item 18: Which situation is most likely an edge case in Basics of Statistics?',
                 'opts' => [
-                    ['0.65', false],
-                    ['1.65', false],
-                    ['0.35', true],
-                    ['0', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Two independent events: P(A) = 0.4, P(B) = 0.5. What is P(A and B)?',
+                'q' => 'Item 19: When comparing two approaches in Statistics Foundations, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['0.9', false],
-                    ['0.45', false],
-                    ['0.2', true],
-                    ['0.04', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A bag has 3 red and 7 blue balls. You pick one at random. What is P(blue)?',
+                'q' => 'Item 20: What does a strong final answer in Basics of Statistics include?',
                 'opts' => [
-                    ['0.3', false],
-                    ['0.7', true],
-                    ['0.5', false],
-                    ['7/3', false],
-                ],
-            ],
-
-            // ── CONDITIONAL PROBABILITY ───────────────────────────────────
-            [
-                'q' => 'What does conditional probability P(A|B) mean?',
-                'opts' => [
-                    ['The probability of A and B happening at the same time', false],
-                    ['The probability of A happening given that B has already happened', true],
-                    ['The probability of A or B happening', false],
-                    ['The probability of neither A nor B', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Given P(A and B) = 0.12 and P(B) = 0.4, what is P(A|B)?',
+                'q' => 'Item 21: In Basics of Statistics, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['0.048', false],
-                    ['0.3', true],
-                    ['0.52', false],
-                    ['3.33', false],
-                ],
-            ],
-
-            // ── NORMAL DISTRIBUTION ───────────────────────────────────────
-            [
-                'q' => 'In a normal distribution, approximately what percentage of data falls within 1 standard deviation of the mean?',
-                'opts' => [
-                    ['50%', false],
-                    ['68%', true],
-                    ['95%', false],
-                    ['99.7%', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a normal distribution, approximately what percentage of data falls within 2 standard deviations of the mean?',
+                'q' => 'Item 22: A learner working on Basics of Statistics gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['68%', false],
-                    ['90%', false],
-                    ['95%', true],
-                    ['99.7%', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the shape of a perfect normal distribution when graphed?',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Statistics Foundations when dealing with assumptions?',
                 'opts' => [
-                    ['U-shaped curve', false],
-                    ['Flat line', false],
-                    ['Bell-shaped curve', true],
-                    ['J-shaped curve', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a normal distribution with mean = 50 and SD = 5, what range covers approximately 95% of the data?',
+                'q' => 'Item 24: For Basics of Statistics, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['45 to 55', false],
-                    ['40 to 60', true],
-                    ['35 to 65', false],
-                    ['30 to 70', false],
-                ],
-            ],
-
-            // ── Z-SCORE ───────────────────────────────────────────────────
-            [
-                'q' => 'What does a z-score tell you?',
-                'opts' => [
-                    ['The raw value of a data point', false],
-                    ['How many standard deviations a data point is from the mean', true],
-                    ['The probability of an event', false],
-                    ['The median of the dataset', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The formula for a z-score is z = (x - μ) / σ.\nIf x = 80, μ = 70, σ = 5, what is z?',
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Statistics Foundations fails on one test case?',
                 'opts' => [
-                    ['1', false],
-                    ['1.5', false],
-                    ['2', true],
-                    ['2.5', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A z-score of 0 means the data point is:',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Basics of Statistics tasks?',
                 'opts' => [
-                    ['At the minimum value', false],
-                    ['One SD above the mean', false],
-                    ['Equal to the mean', true],
-                    ['An extreme outlier', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A negative z-score indicates the data point is:',
+                'q' => 'Item 27: In a Statistics Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Above the mean', false],
-                    ['Below the mean', true],
-                    ['Equal to the mean', false],
-                    ['An error', false],
-                ],
-            ],
-
-            // ── SAMPLING ─────────────────────────────────────────────────
-            [
-                'q' => 'In simple random sampling, every member of the population has:',
-                'opts' => [
-                    ['No chance of being selected', false],
-                    ['An equal chance of being selected', true],
-                    ['A chance based on their rank', false],
-                    ['A guaranteed spot in the sample', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A researcher divides the population into age groups and randomly samples from each group. This is called:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Basics of Statistics?',
                 'opts' => [
-                    ['Simple random sampling', false],
-                    ['Cluster sampling', false],
-                    ['Stratified sampling', true],
-                    ['Convenience sampling', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is "sampling bias"?',
+                'q' => 'Item 29: When comparing two approaches in Statistics Foundations, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['When the sample is too large', false],
-                    ['When the sample does not accurately represent the population', true],
-                    ['When data is collected too slowly', false],
-                    ['When the mean is greater than the median', false],
-                ],
-            ],
-
-            // ── CORRELATION ───────────────────────────────────────────────
-            [
-                'q' => 'What does correlation measure?',
-                'opts' => [
-                    ['How one variable causes another to change', false],
-                    ['The strength and direction of the linear relationship between two variables', true],
-                    ['The average of two variables', false],
-                    ['The difference between two variables', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A correlation coefficient (r) of -0.9 indicates:',
+                'q' => 'Item 30: What does a strong final answer in Basics of Statistics include?',
                 'opts' => [
-                    ['A weak positive relationship', false],
-                    ['No relationship', false],
-                    ['A strong negative relationship', true],
-                    ['A perfect positive relationship', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the range of the Pearson correlation coefficient?',
+                'q' => 'Item 31: In Basics of Statistics, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['0 to 1', false],
-                    ['-1 to 0', false],
-                    ['-1 to 1', true],
-                    ['0 to 100', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => '"Correlation does not imply causation." What does this mean?',
+                'q' => 'Item 32: A learner working on Basics of Statistics gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['Correlated variables always have a causal link', false],
-                    ['Two variables can be correlated without one causing the other', true],
-                    ['Causation always implies correlation', false],
-                    ['Only negative correlations are meaningful', false],
-                ],
-            ],
-
-            // ── HYPOTHESIS TESTING INTRO ──────────────────────────────────
-            [
-                'q' => 'What is a null hypothesis (H₀)?',
-                'opts' => [
-                    ['The hypothesis you are trying to prove', false],
-                    ['A statement that assumes no effect or no difference exists', true],
-                    ['The conclusion of a study', false],
-                    ['A hypothesis based on personal opinion', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the alternative hypothesis (H₁ or Hₐ)?',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Statistics Foundations when dealing with bias check?',
                 'opts' => [
-                    ['A statement assuming no effect', false],
-                    ['The hypothesis that challenges the null — it asserts a difference or effect exists', true],
-                    ['The final conclusion of the test', false],
-                    ['A hypothesis that is always rejected', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In hypothesis testing, the p-value represents:',
+                'q' => 'Item 34: For Basics of Statistics, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The probability that the null hypothesis is true', false],
-                    ['The probability of observing your results (or more extreme) if the null hypothesis is true', true],
-                    ['The effect size of your experiment', false],
-                    ['The confidence level of your test', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A p-value of 0.03 with a significance level α = 0.05 leads you to:',
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Statistics Foundations fails on one test case?',
                 'opts' => [
-                    ['Fail to reject the null hypothesis', false],
-                    ['Reject the null hypothesis', true],
-                    ['Accept the alternative hypothesis as proven', false],
-                    ['Increase the sample size', false],
-                ],
-            ],
-
-            // ── REGRESSION INTRO ──────────────────────────────────────────
-            [
-                'q' => 'What is the purpose of simple linear regression?',
-                'opts' => [
-                    ['To find the mode of a dataset', false],
-                    ['To model the relationship between one independent and one dependent variable using a line', true],
-                    ['To calculate the IQR', false],
-                    ['To count frequencies of categories', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the regression equation ŷ = mx + b, what does "b" represent?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Basics of Statistics tasks?',
                 'opts' => [
-                    ['The slope of the line', false],
-                    ['The dependent variable', false],
-                    ['The y-intercept (the value of ŷ when x = 0)', true],
-                    ['The correlation coefficient', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In regression, what does R² (R-squared) tell you?',
+                'q' => 'Item 37: In a Statistics Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The slope of the regression line', false],
-                    ['The proportion of variance in the dependent variable explained by the independent variable', true],
-                    ['The number of data points', false],
-                    ['Whether the data is normally distributed', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An R² value of 0.85 means that the model:',
+                'q' => 'Item 38: Which situation is most likely an edge case in Basics of Statistics?',
                 'opts' => [
-                    ['Is 85% accurate on new data', false],
-                    ['Has a correlation of 0.85', false],
-                    ['Explains 85% of the variability in the dependent variable', true],
-                    ['Has 85 data points', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 39: When comparing two approaches in Statistics Foundations, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Basics of Statistics include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Basics of Statistics, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Basics of Statistics gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Statistics Foundations when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Basics of Statistics, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Statistics Foundations fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Basics of Statistics tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Statistics Foundations assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Basics of Statistics?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Statistics Foundations, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Basics of Statistics include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'  => $challenge->id,
-                'question_text' => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 2 — Basics of Statistics (University Student).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: University Student");
+        $this->command->info('Module 2 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

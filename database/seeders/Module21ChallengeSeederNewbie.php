@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module21ChallengeSeederNewbie extends Seeder
 {
@@ -16,517 +14,508 @@ class Module21ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Remove existing challenges for this category (cascades to questions/options)
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Machine Learning 2: Unsupervised Learning';
 
-        $this->command->info("Creating Module 21 — Machine Learning 2: Unsupervised Learning (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 21 — Machine Learning 2: Unsupervised Learning (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Machine Learning 2: Unsupervised Learning',
-            'description'           => 'Test your basic understanding of unsupervised learning — what it is, why we use it, and the key algorithms behind clustering and dimensionality reduction. No machine learning experience required!',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 21,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Machine Learning 2: Unsupervised Learning. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 21,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-friendly questions on Unsupervised Learning...");
-
         $qaData = [
-
-            // ── 21.1 WHAT IS UNSUPERVISED LEARNING? ──────────────────────
             [
-                'q' => 'What is unsupervised learning?',
+                'q' => 'Item 1: In Machine Learning 2: Unsupervised Learning, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A type of machine learning where the model is given correct answers to learn from', false],
-                    ['A type of machine learning where the model finds patterns in data WITHOUT labelled examples', true],
-                    ['A method of teaching humans how to program machines', false],
-                    ['A technique that only works on images', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is the KEY difference between supervised and unsupervised learning?',
+                'q' => 'Item 2: A learner working on Machine Learning 2: Unsupervised Learning gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Supervised learning uses computers; unsupervised learning uses humans', false],
-                    ['Supervised learning has labelled training data; unsupervised learning does not', true],
-                    ['Unsupervised learning is always more accurate than supervised learning', false],
-                    ['Supervised learning can only classify images', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of an unsupervised learning task?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Unsupervised Learning when dealing with assumptions?',
                 'opts' => [
-                    ['Predicting whether an email is spam or not spam', false],
-                    ['Identifying the price of a house given its features', false],
-                    ['Grouping customers into segments based on purchasing behaviour', true],
-                    ['Classifying photos as cats or dogs', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In unsupervised learning, what does "unlabelled data" mean?',
+                'q' => 'Item 4: For Machine Learning 2: Unsupervised Learning, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Data that has been corrupted and cannot be used', false],
-                    ['Data without any pre-assigned categories or correct answers', true],
-                    ['Data stored without a file name', false],
-                    ['Data collected from unlicensed sources', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which of the following is the most common goal of unsupervised learning?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Unsupervised Learning fails on one test case?',
                 'opts' => [
-                    ['To memorise the training dataset exactly', false],
-                    ['To discover hidden structure or patterns in data', true],
-                    ['To label data for future supervised learning only', false],
-                    ['To reduce the speed of a machine learning model', false],
-                ],
-            ],
-
-            // ── 21.2 K-MEANS CLUSTERING ───────────────────────────────────
-            [
-                'q' => 'What does K-Means clustering do?',
-                'opts' => [
-                    ['It predicts a numerical value for each data point', false],
-                    ['It groups data points into K clusters based on similarity', true],
-                    ['It sorts data in alphabetical order', false],
-                    ['It removes outliers from the dataset', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In K-Means clustering, what is a "centroid"?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Machine Learning 2: Unsupervised Learning tasks?',
                 'opts' => [
-                    ['The most extreme point in a cluster', false],
-                    ['The centre point of a cluster, calculated as the average of all points in that cluster', true],
-                    ['The first data point assigned to a cluster', false],
-                    ['A point that does not belong to any cluster', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does the "K" in K-Means represent?',
+                'q' => 'Item 7: In a Unsupervised Learning assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The number of features in the dataset', false],
-                    ['The number of clusters you want to create', true],
-                    ['The number of data points', false],
-                    ['The number of iterations the algorithm runs', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the first step of the K-Means algorithm?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Machine Learning 2: Unsupervised Learning?',
                 'opts' => [
-                    ['Calculate the distance between every pair of data points', false],
-                    ['Sort the data from smallest to largest', false],
-                    ['Randomly place K centroids in the data space', true],
-                    ['Remove all duplicate data points', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'After assigning each data point to its nearest centroid in K-Means, what is the next step?',
+                'q' => 'Item 9: When comparing two approaches in Unsupervised Learning, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Stop the algorithm — one assignment is enough', false],
-                    ['Recalculate each centroid as the average of all points assigned to it', true],
-                    ['Delete the data points that are farthest from their centroid', false],
-                    ['Increase K by 1 and start over', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'K-Means clustering requires you to specify K BEFORE running the algorithm. What is the challenge with this?',
+                'q' => 'Item 10: What does a strong final answer in Machine Learning 2: Unsupervised Learning include?',
                 'opts' => [
-                    ['K must always equal the number of features', false],
-                    ['You often do not know the true number of clusters in advance', true],
-                    ['K-Means fails if K is greater than 2', false],
-                    ['Setting K is always straightforward because data has obvious groups', false],
-                ],
-            ],
-
-            // ── 21.3 DBSCAN ───────────────────────────────────────────────
-            [
-                'q' => 'What does DBSCAN stand for?',
-                'opts' => [
-                    ['Data-Based Scanning and Clustering Algorithm Network', false],
-                    ['Density-Based Spatial Clustering of Applications with Noise', true],
-                    ['Distance-Bound Segment Clustering and Normalisation', false],
-                    ['Dynamic Binary Search Cluster Analysis Nodes', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'DBSCAN groups data points into clusters based on:',
+                'q' => 'Item 11: In Machine Learning 2: Unsupervised Learning, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['The alphabetical order of data labels', false],
-                    ['The density of nearby points — regions with many close points form clusters', true],
-                    ['The colour of data points on a chart', false],
-                    ['The average value of all features', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does DBSCAN call a data point that does not belong to any cluster?',
+                'q' => 'Item 12: A learner working on Machine Learning 2: Unsupervised Learning gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A centroid', false],
-                    ['A leaf node', false],
-                    ['A noise point (outlier)', true],
-                    ['A core point', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is a major advantage DBSCAN has over K-Means?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Unsupervised Learning when dealing with bias check?',
                 'opts' => [
-                    ['DBSCAN is always faster than K-Means', false],
-                    ['DBSCAN does not require you to specify the number of clusters in advance', true],
-                    ['DBSCAN works only on image data', false],
-                    ['DBSCAN always finds perfectly round clusters', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which type of cluster shape can DBSCAN find that K-Means typically cannot?',
+                'q' => 'Item 14: For Machine Learning 2: Unsupervised Learning, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Only perfectly circular clusters', false],
-                    ['Only square-shaped clusters', false],
-                    ['Arbitrarily shaped clusters (e.g., crescent or ring shapes)', true],
-                    ['Only clusters with exactly 10 points', false],
-                ],
-            ],
-
-            // ── 21.4 HIERARCHICAL CLUSTERING & DENDROGRAMS ────────────────
-            [
-                'q' => 'What is hierarchical clustering?',
-                'opts' => [
-                    ['A method that sorts data in ascending order', false],
-                    ['A clustering method that builds a tree of nested clusters by progressively merging or splitting groups', true],
-                    ['A technique that requires exactly 5 clusters', false],
-                    ['A type of neural network for image classification', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a dendrogram?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Unsupervised Learning fails on one test case?',
                 'opts' => [
-                    ['A type of decision tree used in classification', false],
-                    ['A tree diagram that shows how clusters are merged step by step in hierarchical clustering', true],
-                    ['A plot of model accuracy over time', false],
-                    ['A histogram of feature distributions', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In agglomerative (bottom-up) hierarchical clustering, how does the algorithm start?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Machine Learning 2: Unsupervised Learning tasks?',
                 'opts' => [
-                    ['With all data points in a single large cluster', false],
-                    ['With each data point as its own individual cluster', true],
-                    ['With K randomly selected centroids', false],
-                    ['By sorting all data points by their distance from the origin', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is one advantage of hierarchical clustering over K-Means?',
+                'q' => 'Item 17: In a Unsupervised Learning assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['It is always faster', false],
-                    ['You do not need to specify the number of clusters before running it', true],
-                    ['It can only be used for text data', false],
-                    ['It requires less memory than K-Means', false],
-                ],
-            ],
-
-            // ── 21.5 PRINCIPAL COMPONENT ANALYSIS (PCA) ──────────────────
-            [
-                'q' => 'What is the main purpose of Principal Component Analysis (PCA)?',
-                'opts' => [
-                    ['To classify data points into categories', false],
-                    ['To reduce the number of features (dimensions) in a dataset while keeping as much information as possible', true],
-                    ['To increase the number of data points by generating synthetic samples', false],
-                    ['To find the best split point in a decision tree', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "principal component" in PCA?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Machine Learning 2: Unsupervised Learning?',
                 'opts' => [
-                    ['The most important feature in the original dataset', false],
-                    ['A new axis (direction) that captures the most variance in the data', true],
-                    ['The average value of all features', false],
-                    ['A cluster centroid', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'PCA is described as a "dimensionality reduction" technique. What does "reducing dimensions" mean?',
+                'q' => 'Item 19: When comparing two approaches in Unsupervised Learning, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Making the computer screen smaller', false],
-                    ['Decreasing the number of features used to represent the data', true],
-                    ['Reducing the number of rows in a dataset', false],
-                    ['Converting 3D data into 4D data', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a common use of PCA in data science?',
+                'q' => 'Item 20: What does a strong final answer in Machine Learning 2: Unsupervised Learning include?',
                 'opts' => [
-                    ['Adding new features to improve model accuracy', false],
-                    ['Visualising high-dimensional data in 2D or 3D', true],
-                    ['Labelling unlabelled data automatically', false],
-                    ['Increasing the size of the training dataset', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'PCA finds new axes called principal components. The FIRST principal component captures:',
+                'q' => 'Item 21: In Machine Learning 2: Unsupervised Learning, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['The least amount of variance in the data', false],
-                    ['The greatest amount of variance in the data', true],
-                    ['The average of all features', false],
-                    ['The feature with the highest correlation to the target variable', false],
-                ],
-            ],
-
-            // ── 21.6 t-SNE & UMAP ─────────────────────────────────────────
-            [
-                'q' => 'What is t-SNE primarily used for?',
-                'opts' => [
-                    ['Training deep learning models faster', false],
-                    ['Visualising high-dimensional data in 2D or 3D', true],
-                    ['Predicting numerical values in regression tasks', false],
-                    ['Sorting datasets by date', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does t-SNE stand for?',
+                'q' => 'Item 22: A learner working on Machine Learning 2: Unsupervised Learning gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Total Statistical Norm Estimation', false],
-                    ['t-distributed Stochastic Neighbour Embedding', true],
-                    ['Temporal Standard Neural Encoding', false],
-                    ['Tree-Structured Numerical Expansion', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is UMAP?',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Unsupervised Learning when dealing with assumptions?',
                 'opts' => [
-                    ['A type of clustering algorithm that requires K clusters', false],
-                    ['Uniform Manifold Approximation and Projection — a dimensionality reduction method faster than t-SNE', true],
-                    ['A supervised classification algorithm for text', false],
-                    ['A graph database format for storing embeddings', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Compared to PCA, t-SNE and UMAP are better at:',
+                'q' => 'Item 24: For Machine Learning 2: Unsupervised Learning, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Preserving the global linear structure of data', false],
-                    ['Capturing non-linear relationships and revealing local cluster structure in visualisations', true],
-                    ['Running faster on very large datasets', false],
-                    ['Producing results that can be used for new (unseen) data directly', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A data scientist plots MNIST handwritten digit embeddings using t-SNE and sees 10 distinct blobs. What does each blob likely represent?',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Unsupervised Learning fails on one test case?',
                 'opts' => [
-                    ['One iteration of the training process', false],
-                    ['One of the 10 digit classes (0–9), showing that similar digits cluster together', true],
-                    ['One feature in the dataset', false],
-                    ['One outlier in the dataset', false],
-                ],
-            ],
-
-            // ── 21.7 ANOMALY DETECTION: ISOLATION FOREST ─────────────────
-            [
-                'q' => 'What is anomaly detection in machine learning?',
-                'opts' => [
-                    ['A method to improve model accuracy by removing features', false],
-                    ['The task of identifying data points that are unusual or significantly different from the rest', true],
-                    ['A technique for labelling data automatically', false],
-                    ['A way to increase the training dataset size', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is an Isolation Forest?',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Machine Learning 2: Unsupervised Learning tasks?',
                 'opts' => [
-                    ['A forest of decision trees used for classifying plants', false],
-                    ['An ensemble of random trees that isolates anomalies by partitioning data — anomalies are isolated faster (in fewer splits)', true],
-                    ['A type of hierarchical clustering for geographic data', false],
-                    ['A regularisation method for neural networks', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why are anomalies (outliers) easier to isolate in an Isolation Forest?',
+                'q' => 'Item 27: In a Unsupervised Learning assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Because they have the highest feature values', false],
-                    ['Because anomalies are rare and different — they require fewer random partitions to be separated from all other points', true],
-                    ['Because the algorithm sorts data first to find the extremes', false],
-                    ['Because anomalies always appear at the edges of the dataset', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a real-world application of anomaly detection?',
+                'q' => 'Item 28: Which situation is most likely an edge case in Machine Learning 2: Unsupervised Learning?',
                 'opts' => [
-                    ['Sorting products alphabetically in an online store', false],
-                    ['Detecting fraudulent credit card transactions', true],
-                    ['Predicting tomorrow\'s weather', false],
-                    ['Translating text between languages', false],
-                ],
-            ],
-
-            // ── 21.8 AUTOENCODERS FOR UNSUPERVISED LEARNING ──────────────
-            [
-                'q' => 'What is an autoencoder?',
-                'opts' => [
-                    ['A machine that automatically writes computer code', false],
-                    ['A neural network that learns to compress data into a smaller representation and then reconstruct it', true],
-                    ['A type of decision tree that selects features automatically', false],
-                    ['A supervised learning algorithm for text classification', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What are the two main parts of an autoencoder?',
+                'q' => 'Item 29: When comparing two approaches in Unsupervised Learning, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Input layer and output layer only', false],
-                    ['Encoder (compresses data) and decoder (reconstructs data)', true],
-                    ['Training set and test set', false],
-                    ['Features and labels', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the "bottleneck" layer in an autoencoder?',
+                'q' => 'Item 30: What does a strong final answer in Machine Learning 2: Unsupervised Learning include?',
                 'opts' => [
-                    ['The layer with the most neurons', false],
-                    ['The compressed middle layer that holds the compact representation of the input', true],
-                    ['The final output layer', false],
-                    ['The layer that introduces noise for regularisation', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'An autoencoder is trained to minimise what kind of error?',
+                'q' => 'Item 31: In Machine Learning 2: Unsupervised Learning, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Classification error — how often it misclassifies data', false],
-                    ['Reconstruction error — how different the output is from the original input', true],
-                    ['Prediction error — how far off its future predictions are', false],
-                    ['Centroid error — how far data points are from their cluster centres', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is one common use of autoencoders in data science?',
+                'q' => 'Item 32: A learner working on Machine Learning 2: Unsupervised Learning gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Sorting datasets in ascending order', false],
-                    ['Removing noise from images (denoising)', true],
-                    ['Increasing dataset size by copying rows', false],
-                    ['Converting regression problems into classification', false],
-                ],
-            ],
-
-            // ── 21.9 GAUSSIAN MIXTURE MODELS & SOFT CLUSTERING ───────────
-            [
-                'q' => 'What is a Gaussian Mixture Model (GMM)?',
-                'opts' => [
-                    ['A clustering algorithm that assigns each point to exactly one cluster, like K-Means', false],
-                    ['A probabilistic model that assumes data comes from a mixture of several Gaussian (normal) distributions', true],
-                    ['A type of neural network that uses Gaussian activation functions', false],
-                    ['A method for sampling from a uniform distribution', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is "soft clustering" in the context of GMMs?',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Unsupervised Learning when dealing with bias check?',
                 'opts' => [
-                    ['Clustering data that has been smoothed or filtered first', false],
-                    ['Assigning each data point a probability of belonging to each cluster, rather than a hard single assignment', true],
-                    ['A clustering method designed for soft (non-rigid) objects like clothing', false],
-                    ['Clustering that uses very small values of K', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In K-Means, each point belongs to exactly ONE cluster. How is GMM different?',
+                'q' => 'Item 34: For Machine Learning 2: Unsupervised Learning, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['GMM assigns each point to no cluster at all', false],
-                    ['GMM gives each point a probability of belonging to EACH cluster — a point can partially belong to multiple clusters', true],
-                    ['GMM requires more clusters than K-Means', false],
-                    ['GMM only works on 2D data', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What shape of cluster can a Gaussian Mixture Model capture that K-Means cannot?',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Unsupervised Learning fails on one test case?',
                 'opts' => [
-                    ['Only perfectly circular clusters', false],
-                    ['Elliptical (elongated/oval) shaped clusters', true],
-                    ['Only square-shaped clusters', false],
-                    ['No special shapes — GMM and K-Means are equivalent', false],
-                ],
-            ],
-
-            // ── 21.10 END-TO-END UNSUPERVISED ML PIPELINE ────────────────
-            [
-                'q' => 'What is the typical FIRST step in an unsupervised machine learning pipeline?',
-                'opts' => [
-                    ['Train the clustering algorithm immediately on raw data', false],
-                    ['Collect and preprocess data — handle missing values, scale features, etc.', true],
-                    ['Select the number of clusters K', false],
-                    ['Visualise the final clusters', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why is feature scaling (e.g., standardisation) important before running K-Means?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Machine Learning 2: Unsupervised Learning tasks?',
                 'opts' => [
-                    ['K-Means only works on text data, so scaling converts numbers to text', false],
-                    ['K-Means uses distance calculations — features on larger scales would unfairly dominate the clustering', true],
-                    ['Scaling increases the number of data points', false],
-                    ['K-Means automatically ignores unscaled features', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the "Elbow Method" used for in an unsupervised ML pipeline?',
+                'q' => 'Item 37: In a Unsupervised Learning assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Choosing the best machine learning library to use', false],
-                    ['Choosing the optimal number of clusters K in K-Means by looking for where adding more clusters gives diminishing returns', true],
-                    ['Detecting outliers in the dataset', false],
-                    ['Measuring the accuracy of a supervised model', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'After clustering customer data, a business analyst wants to understand what makes each cluster unique. What should the data scientist do?',
+                'q' => 'Item 38: Which situation is most likely an edge case in Machine Learning 2: Unsupervised Learning?',
                 'opts' => [
-                    ['Delete all clusters and start over with a different algorithm', false],
-                    ['Analyse the mean feature values of each cluster to describe its characteristics', true],
-                    ['Train a neural network on the cluster labels', false],
-                    ['Add more features until the clusters disappear', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which metric is commonly used to evaluate the quality of clusters when no ground-truth labels are available?',
+                'q' => 'Item 39: When comparing two approaches in Unsupervised Learning, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Accuracy', false],
-                    ['F1-Score', false],
-                    ['Silhouette Score', true],
-                    ['Mean Squared Error', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does a Silhouette Score close to +1 indicate?',
+                'q' => 'Item 40: What does a strong final answer in Machine Learning 2: Unsupervised Learning include?',
                 'opts' => [
-                    ['The clusters are random and meaningless', false],
-                    ['Each point is well inside its own cluster and far from neighbouring clusters — a good clustering', true],
-                    ['The model has overfit the training data', false],
-                    ['All data points are assigned to the same cluster', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In a complete unsupervised ML pipeline, which step comes LAST?',
+                'q' => 'Item 41: In Machine Learning 2: Unsupervised Learning, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Scaling the features', false],
-                    ['Choosing the algorithm', false],
-                    ['Interpreting and communicating the discovered patterns to stakeholders', true],
-                    ['Splitting data into training and test sets', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 42: A learner working on Machine Learning 2: Unsupervised Learning gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Unsupervised Learning when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Machine Learning 2: Unsupervised Learning, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Unsupervised Learning fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Machine Learning 2: Unsupervised Learning tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Unsupervised Learning assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Machine Learning 2: Unsupervised Learning?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Unsupervised Learning, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Machine Learning 2: Unsupervised Learning include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 21 — Unsupervised Learning (Newbie).");
+        $this->command->info('Module 21 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

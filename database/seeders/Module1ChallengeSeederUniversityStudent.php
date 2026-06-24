@@ -7,549 +7,515 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module1ChallengeSeederUniversityStudent extends Seeder
 {
     public function run(): void
     {
-        // Schema::disableForeignKeyConstraints();
-        // DB::table('challenge_options')->truncate();
-        // DB::table('challenge_questions')->truncate();
-        // Schema::enableForeignKeyConstraints();
-
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Basics of Python Programming';
 
-        $this->command->info("Creating Module 1 — Basics of Python Programming (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 1 — Basics of Python Programming (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Basics of Python Programming',
-            'description'           => 'Python fundamentals tested through short code snippets and concept questions. Covers syntax, variables, strings, collections, logic, loops, and functions — expect a few traps.',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 800,
-            'order_index'           => 1,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Basics of Python Programming. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 1,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 university-level questions across 10 topics...");
-
         $qaData = [
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.1 FOUNDATIONS: SYNTAX, OUTPUT, COMMENTS
-            // ══════════════════════════════════════════════════════════════
             [
-                'q' => "What is the output?\n\nprint(\"Hello\", \"World\", sep=\"-\")",
+                'q' => 'Item 1: In Basics of Python Programming, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ["Hello World", false],
-                    ["Hello-World", true],
-                    ["Hello - World", false],
-                    ["HelloWorld", false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nfor i in range(3):\n    print(i, end=\" \")",
+                'q' => 'Item 2: A learner working on Basics of Python Programming gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ["0 1 2 ", true],
-                    ["1 2 3 ", false],
-                    ["0\n1\n2", false],
-                    ["0 1 2", false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nprint(\"Score:\", 95, sep=\"\")",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Python Fundamentals when dealing with assumptions?',
                 'opts' => [
-                    ["Score: 95", false],
-                    ["Score:95", true],
-                    ["Score 95", false],
-                    ["Score,95", false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nx = 10\n# x = 20\nprint(x)",
+                'q' => 'Item 4: For Basics of Python Programming, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ["20", false],
-                    ["10", true],
-                    ["None", false],
-                    ["SyntaxError", false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nprint(\"A\")\nprint(\"B\", end=\"\")\nprint(\"C\")",
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Python Fundamentals fails on one test case?',
                 'opts' => [
-                    ["A\nB\nC", false],
-                    ["A\nBC", true],
-                    ["ABC", false],
-                    ["A\nB C", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.2 MEMORY: VARIABLES, TYPES, CASTING
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\nx = \"10\"\ny = int(x) + 5\nprint(y)",
-                'opts' => [
-                    ["105", false],
-                    ["15", true],
-                    ["10 5", false],
-                    ["TypeError", false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\na = 5\nb = a\na = 10\nprint(b)",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Basics of Python Programming tasks?',
                 'opts' => [
-                    ["10", false],
-                    ["5", true],
-                    ["None", false],
-                    ["15", false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nprint(type(3.0).__name__)",
+                'q' => 'Item 7: In a Python Fundamentals assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ["int", false],
-                    ["double", false],
-                    ["float", true],
-                    ["number", false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nx = int(9.9)\nprint(x)",
+                'q' => 'Item 8: Which situation is most likely an edge case in Basics of Python Programming?',
                 'opts' => [
-                    ["10", false],
-                    ["9.9", false],
-                    ["9", true],
-                    ["Error", false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nprint(bool(0), bool(1), bool(-1))",
+                'q' => 'Item 9: When comparing two approaches in Python Fundamentals, what should a University Student learner prioritize?',
                 'opts' => [
-                    ["False True True", true],
-                    ["False True False", false],
-                    ["True False True", false],
-                    ["False False True", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.3 TEXT PROCESSING: STRINGS & FORMATTING
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\ns = \"Hello, World!\"\nprint(s[7:12])",
-                'opts' => [
-                    ["World", true],
-                    ["World!", false],
-                    ["ello,", false],
-                    ["Hello", false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nname = \"alice\"\nprint(name.capitalize())",
+                'q' => 'Item 10: What does a strong final answer in Basics of Python Programming include?',
                 'opts' => [
-                    ["ALICE", false],
-                    ["alice", false],
-                    ["Alice", true],
-                    ["aLICE", false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nage = 21\nprint(f\"I am {age} years old\")",
+                'q' => 'Item 11: In Basics of Python Programming, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ["I am age years old", false],
-                    ["I am {age} years old", false],
-                    ["I am 21 years old", true],
-                    ["I am '21' years old", false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nprint(\"python\".upper().replace(\"O\", \"0\"))",
+                'q' => 'Item 12: A learner working on Basics of Python Programming gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ["PYTH0N", true],
-                    ["python", false],
-                    ["PYTHON", false],
-                    ["pyth0n", false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nprint(len(\"  hello  \".strip()))",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Python Fundamentals when dealing with bias check?',
                 'opts' => [
-                    ["9", false],
-                    ["7", false],
-                    ["5", true],
-                    ["3", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.4 LOGIC: BOOLEANS & OPERATORS
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\nx = 15\nprint(x > 10 and x < 20)",
-                'opts' => [
-                    ["1", false],
-                    ["True", true],
-                    ["False", false],
-                    ["None", false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nprint(5 != 5, 5 == 5.0)",
+                'q' => 'Item 14: For Basics of Python Programming, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ["True True", false],
-                    ["False True", true],
-                    ["False False", false],
-                    ["True False", false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nx = 7\nprint(x % 2 == 0 or x > 5)",
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Python Fundamentals fails on one test case?',
                 'opts' => [
-                    ["False", false],
-                    ["True", true],
-                    ["1", false],
-                    ["7", false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nprint(not True or False)",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Basics of Python Programming tasks?',
                 'opts' => [
-                    ["True", false],
-                    ["False", true],
-                    ["None", false],
-                    ["Error", false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nx = 10\nprint(x > 5 and x < 8)",
+                'q' => 'Item 17: In a Python Fundamentals assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ["True", false],
-                    ["False", true],
-                    ["None", false],
-                    ["Error", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.5 COLLECTIONS I: LISTS & ARRAYS
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\nnums = [10, 20, 30, 40]\nnums.append(50)\nprint(nums[2])",
-                'opts' => [
-                    ["20", false],
-                    ["30", true],
-                    ["40", false],
-                    ["50", false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\na = [1, 2, 3]\na.insert(1, 99)\nprint(a)",
+                'q' => 'Item 18: Which situation is most likely an edge case in Basics of Python Programming?',
                 'opts' => [
-                    ["[1, 2, 3, 99]", false],
-                    ["[99, 1, 2, 3]", false],
-                    ["[1, 99, 2, 3]", true],
-                    ["[1, 2, 99, 3]", false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nx = [5, 3, 1, 4, 2]\nx.sort()\nprint(x[0], x[-1])",
+                'q' => 'Item 19: When comparing two approaches in Python Fundamentals, what should a University Student learner prioritize?',
                 'opts' => [
-                    ["5 2", false],
-                    ["1 5", true],
-                    ["3 4", false],
-                    ["1 4", false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nletters = ['a', 'b', 'c', 'd']\nprint(letters[-2:])",
+                'q' => 'Item 20: What does a strong final answer in Basics of Python Programming include?',
                 'opts' => [
-                    ["['a', 'b']", false],
-                    ["['c', 'd']", true],
-                    ["['b', 'c']", false],
-                    ["['d']", false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nnums = [1, 2, 3]\nprint(nums * 2)",
+                'q' => 'Item 21: In Basics of Python Programming, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ["[2, 4, 6]", false],
-                    ["[1, 2, 3, 1, 2, 3]", true],
-                    ["[1, 1, 2, 2, 3, 3]", false],
-                    ["6", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.6 COLLECTIONS II: TUPLES & SETS
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\nt = (10, 20, 30)\nprint(t[1])",
-                'opts' => [
-                    ["10", false],
-                    ["20", true],
-                    ["30", false],
-                    ["(20,)", false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\na, b, c = (1, 2, 3)\nprint(b)",
+                'q' => 'Item 22: A learner working on Basics of Python Programming gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ["1", false],
-                    ["3", false],
-                    ["2", true],
-                    ["(1, 2, 3)", false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\ns = {1, 2, 3, 2, 1}\nprint(len(s))",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Python Fundamentals when dealing with assumptions?',
                 'opts' => [
-                    ["5", false],
-                    ["3", true],
-                    ["2", false],
-                    ["4", false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nA = {1, 2, 3}\nB = {2, 3, 4}\nprint(A | B)",
+                'q' => 'Item 24: For Basics of Python Programming, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ["{2, 3}", false],
-                    ["{1, 2, 3, 4}", true],
-                    ["{1, 4}", false],
-                    ["{1, 2, 3, 2, 3, 4}", false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nt = (5,)\nprint(type(t).__name__, len(t))",
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Python Fundamentals fails on one test case?',
                 'opts' => [
-                    ["int 1", false],
-                    ["tuple 1", true],
-                    ["list 1", false],
-                    ["tuple 5", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.7 COLLECTIONS III: DICTIONARIES
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\nd = {\"a\": 1, \"b\": 2}\nd[\"c\"] = 3\nprint(len(d))",
-                'opts' => [
-                    ["2", false],
-                    ["3", true],
-                    ["4", false],
-                    ["Error", false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\ninfo = {\"name\": \"Bob\", \"age\": 22}\nprint(info.get(\"grade\", \"N/A\"))",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Basics of Python Programming tasks?',
                 'opts' => [
-                    ["None", false],
-                    ["KeyError", false],
-                    ["N/A", true],
-                    ["grade", false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nd = {\"x\": 10, \"y\": 20, \"z\": 30}\nprint(list(d.keys()))",
+                'q' => 'Item 27: In a Python Fundamentals assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ["['x', 'y', 'z']", true],
-                    ["['10', '20', '30']", false],
-                    ["[10, 20, 30]", false],
-                    ["dict_keys(['x', 'y', 'z'])", false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nd = {\"a\": 1, \"b\": 2, \"c\": 3}\nprint(sum(d.values()))",
+                'q' => 'Item 28: Which situation is most likely an edge case in Basics of Python Programming?',
                 'opts' => [
-                    ["abc", false],
-                    ["6", true],
-                    ["3", false],
-                    ["Error", false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nd = {\"a\": 1}\nd.update({\"b\": 2, \"a\": 99})\nprint(d)",
+                'q' => 'Item 29: When comparing two approaches in Python Fundamentals, what should a University Student learner prioritize?',
                 'opts' => [
-                    ["{'a': 1, 'b': 2}", false],
-                    ["{'a': 99, 'b': 2}", true],
-                    ["{'a': 1, 'a': 99, 'b': 2}", false],
-                    ["{'b': 2}", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.8 ADVANCED FLOW: MATCH & TRY/EXCEPT
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\ntry:\n    x = int(\"abc\")\nexcept ValueError:\n    print(\"Bad input\")",
-                'opts' => [
-                    ["0", false],
-                    ["Bad input", true],
-                    ["abc", false],
-                    ["None", false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\ntry:\n    print(10 / 2)\nexcept ZeroDivisionError:\n    print(\"Error\")",
+                'q' => 'Item 30: What does a strong final answer in Basics of Python Programming include?',
                 'opts' => [
-                    ["Error", false],
-                    ["5", false],
-                    ["5.0", true],
-                    ["None", false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output (Python 3.10+)?\n\nstatus = 404\nmatch status:\n    case 200:\n        print(\"OK\")\n    case 404:\n        print(\"Not Found\")\n    case _:\n        print(\"Other\")",
+                'q' => 'Item 31: In Basics of Python Programming, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ["OK", false],
-                    ["Not Found", true],
-                    ["Other", false],
-                    ["404", false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\ntry:\n    x = 1 / 0\nexcept:\n    print(\"caught\")\nfinally:\n    print(\"done\")",
+                'q' => 'Item 32: A learner working on Basics of Python Programming gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ["caught", false],
-                    ["done", false],
-                    ["caught\ndone", true],
-                    ["done\ncaught", false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\ntry:\n    pass\nexcept Exception:\n    print(\"error\")\nelse:\n    print(\"no error\")",
+                'q' => 'Item 33: Which mistake most commonly weakens work in Python Fundamentals when dealing with bias check?',
                 'opts' => [
-                    ["error", false],
-                    ["no error", true],
-                    ["None", false],
-                    ["pass", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.9 LOOPS: FOR, WHILE, RANGE & ITERATORS
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\nfor i in range(2, 10, 3):\n    print(i, end=\" \")",
-                'opts' => [
-                    ["2 5 8 ", true],
-                    ["2 4 6 8 ", false],
-                    ["3 6 9 ", false],
-                    ["2 5 8 11 ", false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nnums = [10, 20, 30]\nfor i, v in enumerate(nums):\n    print(i, v)",
+                'q' => 'Item 34: For Basics of Python Programming, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ["0 10\n1 20\n2 30", true],
-                    ["1 10\n2 20\n3 30", false],
-                    ["10 0\n20 1\n30 2", false],
-                    ["0 1 2\n10 20 30", false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nx = 10\nwhile x > 0:\n    x -= 3\nprint(x)",
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Python Fundamentals fails on one test case?',
                 'opts' => [
-                    ["0", false],
-                    ["-1", false],
-                    ["-2", true],
-                    ["1", false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\nfor i in range(5):\n    if i == 3:\n        continue\n    print(i, end=\" \")",
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Basics of Python Programming tasks?',
                 'opts' => [
-                    ["0 1 2 3 4 ", false],
-                    ["0 1 2 4 ", true],
-                    ["0 1 2 ", false],
-                    ["3 ", false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\ntotal = 0\nfor n in range(1, 6):\n    total += n\nprint(total)",
+                'q' => 'Item 37: In a Python Fundamentals assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ["10", false],
-                    ["14", false],
-                    ["15", true],
-                    ["20", false],
-                ],
-            ],
-
-            // ══════════════════════════════════════════════════════════════
-            // 1.10 FUNCTIONS: DEF, ARGS, KWARGS & LAMBDAS
-            // ══════════════════════════════════════════════════════════════
-            [
-                'q' => "What is the output?\n\ndef greet(name=\"World\"):\n    return f\"Hello, {name}!\"\n\nprint(greet())\nprint(greet(\"Alice\"))",
-                'opts' => [
-                    ["Hello, World!\nHello, Alice!", true],
-                    ["Hello, name!\nHello, Alice!", false],
-                    ["None\nHello, Alice!", false],
-                    ["Hello!\nHello, Alice!", false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\ndef add(*nums):\n    return sum(nums)\n\nprint(add(1, 2, 3, 4))",
+                'q' => 'Item 38: Which situation is most likely an edge case in Basics of Python Programming?',
                 'opts' => [
-                    ["[1, 2, 3, 4]", false],
-                    ["10", true],
-                    ["(1, 2, 3, 4)", false],
-                    ["Error", false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the output?\n\nsquare = lambda x: x ** 2\nprint(square(5))",
+                'q' => 'Item 39: When comparing two approaches in Python Fundamentals, what should a University Student learner prioritize?',
                 'opts' => [
-                    ["10", false],
-                    ["52", false],
-                    ["25", true],
-                    ["x ** 2", false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does this print?\n\ndef show(**info):\n    for k, v in info.items():\n        print(k, v)\n\nshow(name=\"Ana\", age=20)",
+                'q' => 'Item 40: What does a strong final answer in Basics of Python Programming include?',
                 'opts' => [
-                    ["name Ana\nage 20", true],
-                    ["Ana 20", false],
-                    ["{'name': 'Ana', 'age': 20}", false],
-                    ["Error", false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the output?\n\ndef calc(a, b, op=\"add\"):\n    if op == \"add\":\n        return a + b\n    return a - b\n\nprint(calc(10, 3))\nprint(calc(10, 3, \"sub\"))",
+                'q' => 'Item 41: In Basics of Python Programming, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ["13\n7", true],
-                    ["7\n13", false],
-                    ["13\n13", false],
-                    ["None\n7", false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Basics of Python Programming gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Python Fundamentals when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Basics of Python Programming, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Python Fundamentals fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Basics of Python Programming tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Python Fundamentals assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Basics of Python Programming?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Python Fundamentals, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Basics of Python Programming include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
-            foreach ($data['opts'] as $opt) {
+
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 1 — Basics of Python Programming (University Student).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: University Student");
+        $this->command->info('Module 1 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

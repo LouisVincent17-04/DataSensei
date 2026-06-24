@@ -60,7 +60,7 @@ class ModuleLibraryController extends Controller
     }
 
     /**
-     * Display the NetAcad-style learning page for one module version.
+     * Display the DataSensei lesson page for one module version.
      */
     public function show(ModuleLibraryItem $module)
     {

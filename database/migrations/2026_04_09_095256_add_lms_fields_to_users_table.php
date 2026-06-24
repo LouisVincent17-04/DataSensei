@@ -1,32 +1,19 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
+    public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Gamification stats
-            $table->integer('xp')->default(0);
-            $table->integer('streak')->default(0);
-            $table->date('last_activity')->nullable(); // Used to calculate if they keep their streak
-            
-            // Profile details
-            $table->text('bio')->nullable();
-        });
+        // No-op.
+        // The current create_users_table migration already contains xp, streak,
+        // last_activity, and bio. Keeping this file prevents duplicate column
+        // errors on fresh migration while preserving migration order/history.
     }
 
-    public function down()
+    public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['xp', 'streak', 'last_activity', 'bio']);
-        });
+        // No-op. Do not drop profile/gamification columns that belong to users.
     }
-
 };

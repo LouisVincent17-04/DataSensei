@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module3ChallengeSeederNewbie extends Seeder
 {
@@ -16,563 +14,508 @@ class Module3ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        /*
-         * MODULE ORDERING FIX:
-         * The map page orders challenges by `id ASC`. If other challenges were
-         * seeded before this one, they'd get lower IDs and push Module 3 out of position.
-         *
-         * Solution: use the `order_index` column to control display order.
-         * For now we also delete any existing challenges for this category
-         * and re-insert so IDs are clean.
-         */
+        $title = 'Introduction to Data Science';
 
-        // Remove existing challenges for this category (cascades to questions/options)
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
 
-        $this->command->info("Creating Module 3 — Introduction to Data Science (Newbie)...");
+        $this->command->info('Creating Module 3 — Introduction to Data Science (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Introduction to Data Science',
-            'description'           => 'Test your very basic understanding of what Data Science is — no prior experience required! This challenge covers what data science is, why it matters, common tools, and beginner vocabulary every aspiring data scientist should know.',
-            'time_limit_seconds'    => 900, // 15 minutes for 50 questions
-            'base_xp'               => 500,
-            'order_index'           => 3, // Ensure this appears third on the map
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Introduction to Data Science. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 3,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-friendly questions...");
-
         $qaData = [
-
-            // ── WHAT IS DATA SCIENCE ──────────────────────────────────────
             [
-                'q' => 'What is Data Science?',
+                'q' => 'Item 1: In Introduction to Data Science, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A subject about drawing and designing things', false],
-                    ['A field that uses data, statistics, and programming to gain insights and make decisions', true],
-                    ['A branch of chemistry that studies materials', false],
-                    ['A type of social media platform', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of data?',
+                'q' => 'Item 2: A learner working on Introduction to Data Science gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A painting on a wall', false],
-                    ['A temperature reading of 30°C recorded every hour', true],
-                    ['A physical book on a shelf', false],
-                    ['A song played on the radio', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does a data scientist mainly do?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Data Science Foundations when dealing with assumptions?',
                 'opts' => [
-                    ['Design buildings and bridges', false],
-                    ['Collect, analyze, and interpret large amounts of data to help solve problems', true],
-                    ['Write news articles and blog posts', false],
-                    ['Manage social media accounts', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is NOT a step in the basic data science process?',
+                'q' => 'Item 4: For Introduction to Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Collecting data', false],
-                    ['Cleaning data', false],
-                    ['Painting the data', true],
-                    ['Analyzing data', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Why is data important in today\'s world?',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Data Science Foundations fails on one test case?',
                 'opts' => [
-                    ['Data is only important for scientists in laboratories', false],
-                    ['Data helps individuals and organizations make better decisions based on facts', true],
-                    ['Data is just a collection of random numbers with no meaning', false],
-                    ['Data is mainly used to decorate presentations', false],
-                ],
-            ],
-
-            // ── TYPES OF DATA ─────────────────────────────────────────────
-            [
-                'q' => 'Which of the following is an example of numerical data?',
-                'opts' => [
-                    ['Your favorite color', false],
-                    ['Your name', false],
-                    ['Your age (e.g., 20)', true],
-                    ['The name of your school', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of categorical data?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Introduction to Data Science tasks?',
                 'opts' => [
-                    ['Weight in kilograms', false],
-                    ['Number of siblings', false],
-                    ['Eye color (brown, blue, green)', true],
-                    ['Body temperature in Celsius', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is "structured data"?',
+                'q' => 'Item 7: In a Data Science Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Data stored in a random order with no pattern', false],
-                    ['Data organized into rows and columns, like a spreadsheet', true],
-                    ['Data that is always about science topics', false],
-                    ['Data that can only be images', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is an example of unstructured data?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Introduction to Data Science?',
                 'opts' => [
-                    ['A table of student grades', false],
-                    ['A spreadsheet of sales figures', false],
-                    ['A collection of social media posts and photos', true],
-                    ['A database of employee salaries', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does "raw data" mean?',
+                'q' => 'Item 9: When comparing two approaches in Data Science Foundations, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Data that has been analyzed and is ready to present', false],
-                    ['Data that has not been processed or cleaned yet', true],
-                    ['Data collected only from the internet', false],
-                    ['Data stored in a cloud server', false],
-                ],
-            ],
-
-            // ── BASIC TOOLS ───────────────────────────────────────────────
-            [
-                'q' => 'Which programming language is most commonly used in data science?',
-                'opts' => [
-                    ['HTML', false],
-                    ['CSS', false],
-                    ['Python', true],
-                    ['PHP', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is Microsoft Excel mainly used for in data science (at a beginner level)?',
+                'q' => 'Item 10: What does a strong final answer in Introduction to Data Science include?',
                 'opts' => [
-                    ['Creating websites', false],
-                    ['Storing, organizing, and performing basic analysis on tabular data', true],
-                    ['Running machine learning models', false],
-                    ['Designing graphics and logos', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a CSV file?',
+                'q' => 'Item 11: In Introduction to Data Science, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['A type of image file', false],
-                    ['A video format used to store recordings', false],
-                    ['A plain text file where values are separated by commas, used to store tabular data', true],
-                    ['A programming file used to run applications', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "Jupyter Notebook" allow data scientists to do?',
+                'q' => 'Item 12: A learner working on Introduction to Data Science gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Design mobile applications', false],
-                    ['Write and run code in a browser, with the ability to see results immediately', true],
-                    ['Edit video files frame by frame', false],
-                    ['Send emails automatically', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which Python library is primarily used for data manipulation and analysis?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Data Science Foundations when dealing with bias check?',
                 'opts' => [
-                    ['NumPy', false],
-                    ['Matplotlib', false],
-                    ['Pandas', true],
-                    ['Seaborn', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which Python library is used to create charts and graphs?',
+                'q' => 'Item 14: For Introduction to Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Pandas', false],
-                    ['Matplotlib', true],
-                    ['Scikit-learn', false],
-                    ['Flask', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does NumPy primarily help with in data science?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Data Science Foundations fails on one test case?',
                 'opts' => [
-                    ['Building websites', false],
-                    ['Performing fast numerical computations with arrays and matrices', true],
-                    ['Connecting to databases', false],
-                    ['Sending HTTP requests', false],
-                ],
-            ],
-
-            // ── BASIC STATISTICS ──────────────────────────────────────────
-            [
-                'q' => 'What is the mean (average) of the numbers: 10, 20, 30?',
-                'opts' => [
-                    ['30', false],
-                    ['20', true],
-                    ['10', false],
-                    ['60', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the median of the dataset: [5, 1, 3, 9, 7]?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Introduction to Data Science tasks?',
                 'opts' => [
-                    ['1', false],
-                    ['5', true],
-                    ['9', false],
-                    ['3', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the mode of the dataset: [4, 4, 2, 7, 4, 9]?',
+                'q' => 'Item 17: In a Data Science Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['2', false],
-                    ['7', false],
-                    ['9', false],
-                    ['4', true],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does "frequency" mean in data analysis?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Introduction to Data Science?',
                 'opts' => [
-                    ['How fast a computer processes data', false],
-                    ['The number of times a particular value appears in a dataset', true],
-                    ['The highest value in a dataset', false],
-                    ['The difference between the largest and smallest values', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'If a dataset has values [2, 4, 6, 8, 10], what is the range?',
+                'q' => 'Item 19: When comparing two approaches in Data Science Foundations, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['5', false],
-                    ['8', true],
-                    ['6', false],
-                    ['30', false],
-                ],
-            ],
-
-            // ── DATA SCIENCE VOCABULARY ────────────────────────────────────
-            [
-                'q' => 'What is a "dataset"?',
-                'opts' => [
-                    ['A single data point or number', false],
-                    ['A collection of related data organized for analysis', true],
-                    ['A type of computer hardware', false],
-                    ['A Python programming command', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does EDA stand for in data science?',
+                'q' => 'Item 20: What does a strong final answer in Introduction to Data Science include?',
                 'opts' => [
-                    ['Extreme Data Algorithm', false],
-                    ['Electronic Data Application', false],
-                    ['Exploratory Data Analysis', true],
-                    ['Extracted Data Architecture', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does "missing value" mean in a dataset?',
+                'q' => 'Item 21: In Introduction to Data Science, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A value that is too large to display', false],
-                    ['A blank or empty cell where data should be recorded but isn\'t', true],
-                    ['A number that was calculated incorrectly', false],
-                    ['A duplicate entry in the dataset', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is an "outlier" in data science?',
+                'q' => 'Item 22: A learner working on Introduction to Data Science gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A very common value that appears frequently', false],
-                    ['A data point that is significantly different from most other values', true],
-                    ['A column name in a spreadsheet', false],
-                    ['A type of chart used to display data', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a table (DataFrame), what is a "row"?',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Data Science Foundations when dealing with assumptions?',
                 'opts' => [
-                    ['A category label for a column', false],
-                    ['A single observation or record in the dataset', true],
-                    ['A calculation applied to the data', false],
-                    ['A type of chart used in data visualization', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a table (DataFrame), what is a "column"?',
+                'q' => 'Item 24: For Introduction to Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A single record or data entry', false],
-                    ['A chart type for visualizing data', false],
-                    ['A variable or feature that stores a particular type of information', true],
-                    ['A Python function for cleaning data', false],
-                ],
-            ],
-
-            // ── DATA COLLECTION ───────────────────────────────────────────
-            [
-                'q' => 'Which of the following is a valid way to collect data?',
-                'opts' => [
-                    ['Guessing numbers randomly', false],
-                    ['Surveying people with a questionnaire', true],
-                    ['Skipping the data collection step entirely', false],
-                    ['Copying answers from a friend', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is web scraping used for?',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Data Science Foundations fails on one test case?',
                 'opts' => [
-                    ['Cleaning data inside a database', false],
-                    ['Automatically collecting data from websites', true],
-                    ['Designing web pages with HTML', false],
-                    ['Visualizing data in charts', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does an API allow a data scientist to do?',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Introduction to Data Science tasks?',
                 'opts' => [
-                    ['Create graphics and logos for presentations', false],
-                    ['Retrieve data from an external service or application programmatically', true],
-                    ['Delete unwanted files from a computer', false],
-                    ['Speed up the training of machine learning models', false],
-                ],
-            ],
-
-            // ── BASIC VISUALIZATION ────────────────────────────────────────
-            [
-                'q' => 'What type of chart is best for showing how values change over time?',
-                'opts' => [
-                    ['Pie chart', false],
-                    ['Bar chart', false],
-                    ['Line chart', true],
-                    ['Scatter plot', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What type of chart is best for comparing quantities across different categories?',
+                'q' => 'Item 27: In a Data Science Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Line chart', false],
-                    ['Bar chart', true],
-                    ['Histogram', false],
-                    ['Box plot', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does a pie chart show?',
+                'q' => 'Item 28: Which situation is most likely an edge case in Introduction to Data Science?',
                 'opts' => [
-                    ['How two variables relate to each other', false],
-                    ['How data changes over time', false],
-                    ['The proportion of each category as a slice of a whole circle', true],
-                    ['The distribution of values in a numeric column', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A scatter plot is used to:',
+                'q' => 'Item 29: When comparing two approaches in Data Science Foundations, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Show parts of a whole', false],
-                    ['Compare categories side by side', false],
-                    ['Show the relationship between two numeric variables', true],
-                    ['Display a single category\'s change over time', false],
-                ],
-            ],
-
-            // ── MACHINE LEARNING BASICS (CONCEPTUAL) ──────────────────────
-            [
-                'q' => 'What is Machine Learning in simple terms?',
-                'opts' => [
-                    ['Teaching computers to write poetry', false],
-                    ['Training a computer program to learn patterns from data and make predictions', true],
-                    ['Physically upgrading a computer\'s hardware components', false],
-                    ['Building robots that can walk and talk', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is "supervised learning"?',
+                'q' => 'Item 30: What does a strong final answer in Introduction to Data Science include?',
                 'opts' => [
-                    ['A teacher physically watching a student program', false],
-                    ['Training a model using data that already has known correct answers (labels)', true],
-                    ['Training a model on data with no labels at all', false],
-                    ['A method to supervise other data scientists on a team', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a classification task?',
+                'q' => 'Item 31: In Introduction to Data Science, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Predicting tomorrow\'s temperature in degrees', false],
-                    ['Estimating the price of a used car', false],
-                    ['Deciding if an email is spam (yes) or not spam (no)', true],
-                    ['Forecasting next month\'s total sales amount', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "label" in a supervised learning dataset?',
+                'q' => 'Item 32: A learner working on Introduction to Data Science gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The column names of a DataFrame', false],
-                    ['The known correct answer or output the model is trained to predict', true],
-                    ['A tag added to Python variables', false],
-                    ['A type of chart used in EDA', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the purpose of splitting data into training and testing sets?',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Data Science Foundations when dealing with bias check?',
                 'opts' => [
-                    ['To make the dataset smaller so it loads faster', false],
-                    ['To train the model on one portion and evaluate how well it works on unseen data', true],
-                    ['To duplicate the data for backup purposes', false],
-                    ['To separate numerical and categorical columns', false],
-                ],
-            ],
-
-            // ── REAL-WORLD APPLICATIONS ───────────────────────────────────
-            [
-                'q' => 'Which of the following is a real-world application of data science?',
-                'opts' => [
-                    ['Recommending movies on Netflix based on what you\'ve watched before', true],
-                    ['Printing documents from a printer', false],
-                    ['Sending an email to a friend', false],
-                    ['Installing a mobile app on a smartphone', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'How does a bank use data science?',
+                'q' => 'Item 34: For Introduction to Data Science, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['To design the interior of bank branches', false],
-                    ['To detect fraudulent transactions by identifying unusual patterns', true],
-                    ['To print customer receipts faster', false],
-                    ['To organize physical files in storage rooms', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which industry does NOT commonly use data science?',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Data Science Foundations fails on one test case?',
                 'opts' => [
-                    ['Healthcare', false],
-                    ['Retail and e-commerce', false],
-                    ['Finance and banking', false],
-                    ['None — all industries use data science in some way', true],
-                ],
-            ],
-
-            // ── DATA CLEANING BASICS ───────────────────────────────────────
-            [
-                'q' => 'Why is data cleaning important in data science?',
-                'opts' => [
-                    ['It makes the data look more colorful in charts', false],
-                    ['Errors, duplicates, and missing values in data can lead to inaccurate results', true],
-                    ['It increases the size of the dataset automatically', false],
-                    ['It is not important — data is always collected perfectly', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a "duplicate row" in a dataset?',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Introduction to Data Science tasks?',
                 'opts' => [
-                    ['A row with all missing values', false],
-                    ['A row that appears more than once with the same data', true],
-                    ['A row that has been deleted from the dataset', false],
-                    ['A row containing only numbers', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is one common way to handle a missing value in a numeric column?',
+                'q' => 'Item 37: In a Data Science Foundations assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Delete the entire dataset', false],
-                    ['Replace it with the mean or median of that column', true],
-                    ['Replace it with a random letter', false],
-                    ['Leave it blank and continue', false],
-                ],
-            ],
-
-            // ── DATA ETHICS & GENERAL ─────────────────────────────────────
-            [
-                'q' => 'What does "data privacy" mean?',
-                'opts' => [
-                    ['Keeping data in a private folder on your desktop', false],
-                    ['The protection of personal information and the rights of individuals regarding their data', true],
-                    ['Making data available to everyone on the internet', false],
-                    ['Encrypting all data using Python code', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is "bias" in data science?',
+                'q' => 'Item 38: Which situation is most likely an edge case in Introduction to Data Science?',
                 'opts' => [
-                    ['A statistical formula used to compute averages', false],
-                    ['A systematic error in data or a model that produces unfair or skewed results', true],
-                    ['A type of chart that shows bimodal distributions', false],
-                    ['A Python library for machine learning', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following BEST describes what "Big Data" refers to?',
+                'q' => 'Item 39: When comparing two approaches in Data Science Foundations, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Data stored on a very large hard drive', false],
-                    ['Datasets so large and complex that traditional tools cannot process them easily', true],
-                    ['Data collected only from government sources', false],
-                    ['A Python library for working with large files', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does it mean when a model makes a "prediction"?',
+                'q' => 'Item 40: What does a strong final answer in Introduction to Data Science include?',
                 'opts' => [
-                    ['It deletes unnecessary rows from a dataset', false],
-                    ['It uses patterns learned from data to estimate an output for new, unseen inputs', true],
-                    ['It creates a visualization of the dataset', false],
-                    ['It resets all variables in a Python script', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is the correct order of the basic data science workflow?',
+                'q' => 'Item 41: In Introduction to Data Science, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Analyze → Collect → Clean → Visualize → Conclude', false],
-                    ['Collect → Clean → Analyze → Visualize → Conclude', true],
-                    ['Visualize → Collect → Clean → Analyze → Conclude', false],
-                    ['Clean → Analyze → Collect → Conclude → Visualize', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 42: A learner working on Introduction to Data Science gets a result that looks correct. What should they do next at the Newbie level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Data Science Foundations when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Introduction to Data Science, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Data Science Foundations fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Introduction to Data Science tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Data Science Foundations assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Introduction to Data Science?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Data Science Foundations, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Introduction to Data Science include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        // $this->command->info("✅ Done! 50 questions seeded for Module 3 — Introduction to Data Science.");
-        // $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Newbie");
-        // $this->command->newLine();
-        // $this->command->comment("NOTE: If Module 3 doesn't appear in the correct position on the map, add an `order_index`");
-        // $this->command->comment("column to the `challenges` table and update the map controller query:");
-        // $this->command->comment("  ->orderBy('order_index', 'asc')");
-        // $this->command->comment("Then set order_index = 3 for this challenge.");
+        $this->command->info('Module 3 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }
-
-/*
- * ─── OPTIONAL MIGRATION (if ordering is still wrong after a fresh seed) ──────
- *
- * If you already have challenges with lower IDs (from the old ChallengeSeeder),
- * add an order_index column so you can control the display order independently:
- *
- *   Schema::table('challenges', function (Blueprint $table) {
- *       $table->integer('order_index')->default(0)->after('base_xp');
- *   });
- *
- * Then in ChallengesController::map(), change:
- *   ->orderBy('id', 'asc')
- * to:
- *   ->orderBy('order_index', 'asc')->orderBy('id', 'asc')
- *
- * And set order_index = 3 on this challenge after seeding:
- *   Challenge::where('title', 'Introduction to Data Science')->update(['order_index' => 3]);
- */

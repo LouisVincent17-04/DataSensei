@@ -9,6 +9,8 @@ use App\Models\AssignmentSubmission;
 use App\Models\AssignmentSubmissionAnswer;
 use App\Models\ClassAssignment;
 use App\Services\AntiCheatPolicyService;
+use App\Services\GamificationService;
+use App\Services\IloMasteryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +76,79 @@ class StudentAssignmentController extends Controller
         $assignments = $query->paginate(10)->withQueryString();
 
         return view('student.assignments.index', compact('assignments', 'studentAssignmentStats'));
+    }
+
+    /**
+     * Display the authenticated student's assignment-attempt history.
+     *
+     * This is intentionally separate from the assignments page. The assignments
+     * page lists work that the student can start or continue, while this page
+     * lists every saved attempt and its result/status.
+     */
+    public function submissions(Request $request)
+    {
+        $studentId = (int) Auth::id();
+        $completedStatuses = ['submitted', 'late', 'graded'];
+
+        $baseQuery = AssignmentSubmission::query()
+            ->where('student_id', $studentId);
+
+        $completedQuery = (clone $baseQuery)
+            ->whereIn('status', $completedStatuses);
+
+        $earnedPoints = (int) (clone $completedQuery)->sum('score');
+        $possiblePoints = (int) (clone $completedQuery)->sum('total_points');
+
+        $submissionStats = [
+            'all_attempts' => (clone $baseQuery)->count(),
+            'completed' => (clone $completedQuery)->count(),
+            'in_progress' => (clone $baseQuery)->where('status', 'in_progress')->count(),
+            'graded' => (clone $baseQuery)->where('status', 'graded')->count(),
+            'late' => (clone $baseQuery)->where('status', 'late')->count(),
+            'average_percentage' => $possiblePoints > 0
+                ? (int) round(($earnedPoints / $possiblePoints) * 100)
+                : 0,
+        ];
+
+        $query = AssignmentSubmission::with([
+                'classAssignment.classRoom',
+                'classAssignment.libraryItem',
+            ])
+            ->where('student_id', $studentId);
+
+        $status = (string) $request->input('status', '');
+
+        if ($status === 'completed') {
+            $query->whereIn('status', $completedStatuses);
+        } elseif (in_array($status, ['in_progress', 'submitted', 'late', 'graded'], true)) {
+            $query->where('status', $status);
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+
+            $query->whereHas('classAssignment', function ($assignmentQuery) use ($search) {
+                $assignmentQuery
+                    ->where('title', 'like', '%' . $search . '%')
+                    ->orWhereHas('classRoom', function ($classQuery) use ($search) {
+                        $classQuery->where('name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('libraryItem', function ($libraryQuery) use ($search) {
+                        $libraryQuery
+                            ->where('title', 'like', '%' . $search . '%')
+                            ->orWhere('topic_title', 'like', '%' . $search . '%')
+                            ->orWhere('assignment_code', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        $submissions = $query
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('created_at')
+            ->paginate(12)
+            ->withQueryString();
+
+        return view('student.submissions.index', compact('submissions', 'submissionStats'));
     }
 
     public function show(ClassAssignment $assignment)
@@ -156,7 +231,7 @@ class StudentAssignmentController extends Controller
         return view('student.assignments.take', compact('assignment', 'submission', 'antiCheatSettings'));
     }
 
-    public function submit(Request $request, ClassAssignment $assignment, AssignmentSubmission $submission)
+    public function submit(Request $request, ClassAssignment $assignment, AssignmentSubmission $submission, GamificationService $gamification)
     {
         $this->authorizeStudentSubmission($assignment, $submission);
 
@@ -215,9 +290,23 @@ class StudentAssignmentController extends Controller
             ]);
         });
 
+        $submission = $submission->fresh();
+
+        app(IloMasteryService::class)->refreshForAssignmentSubmission($submission);
+
+        $achievements = $gamification->awardForAssignmentSubmission(Auth::user(), $submission);
+        $message = 'Assignment submitted successfully.';
+
+        if (!empty($achievements)) {
+            $badgeText = collect($achievements)
+                ->map(fn ($badge) => $badge['name'] ?? 'Achievement')
+                ->implode(', ');
+            $message .= ' Achievements unlocked: ' . $badgeText . '.';
+        }
+
         return redirect()
             ->route('student.assignments.result', [$assignment, $submission])
-            ->with('success', 'Assignment submitted successfully.');
+            ->with('success', $message);
     }
 
     public function result(ClassAssignment $assignment, AssignmentSubmission $submission)
@@ -232,7 +321,46 @@ class StudentAssignmentController extends Controller
 
         $assignment->load(['classRoom', 'libraryItem.questions.options']);
 
-        return view('student.assignments.result', compact('assignment', 'submission'));
+        $resultBackRoute = route('student.assignments.index');
+        $resultBackLabel = 'Back to Assignments';
+
+        return view('student.assignments.result', compact(
+            'assignment',
+            'submission',
+            'resultBackRoute',
+            'resultBackLabel'
+        ));
+    }
+
+    /**
+     * Show a saved submission while preserving the Submissions navigation state.
+     */
+    public function submissionResult(AssignmentSubmission $submission)
+    {
+        abort_unless((int) $submission->student_id === (int) Auth::id(), 403);
+
+        $submission->load([
+            'classAssignment.classRoom',
+            'classAssignment.libraryItem.questions.options',
+            'answers.question.options',
+            'answers.question.blankAnswers',
+            'answers.selectedOption',
+        ]);
+
+        $assignment = $submission->classAssignment;
+        abort_unless($assignment, 404);
+
+        $this->authorizeStudentSubmission($assignment, $submission, allowSubmitted: true);
+
+        $resultBackRoute = route('student.submissions.index');
+        $resultBackLabel = 'Back to Submissions';
+
+        return view('student.assignments.result', compact(
+            'assignment',
+            'submission',
+            'resultBackRoute',
+            'resultBackLabel'
+        ));
     }
 
     private function authorizeStudentAssignment(ClassAssignment $assignment): void

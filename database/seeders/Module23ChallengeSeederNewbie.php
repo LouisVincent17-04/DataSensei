@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module23ChallengeSeederNewbie extends Seeder
 {
@@ -16,528 +14,508 @@ class Module23ChallengeSeederNewbie extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'newbie')->first();
 
-        if (!$category) {
-            $this->command->error("Newbie category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('Newbie category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Data Warehousing')
-                 ->delete();
+        $title = 'Data Warehousing';
 
-        $this->command->info("Creating Module 23 — Data Warehousing (Newbie)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 23 — Data Warehousing (Newbie) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Data Warehousing',
-            'description'           => 'Test your understanding of the very basics of data warehousing — what a data warehouse is, why organisations use them, key concepts like dimensions and facts, and common tools. No prior experience required.',
-            'time_limit_seconds'    => 900,
-            'base_xp'               => 500,
-            'order_index'           => 23,
+            'title' => $title,
+            'description' => 'A detailed 50-item Newbie MCQ challenge for Data Warehousing. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1200,
+            'base_xp' => 500,
+            'order_index' => 23,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 newbie-level Data Warehousing questions...");
-
         $qaData = [
-
-            // ── 23.1 WHAT IS A DATA WAREHOUSE ─────────────────────────────
             [
-                'q' => 'What is a data warehouse?',
+                'q' => 'Item 1: In Data Warehousing, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A physical storage room for company servers', false],
-                    ['A central repository that stores large amounts of structured data from multiple sources for reporting and analysis', true],
-                    ['A type of spreadsheet used by accountants', false],
-                    ['A cloud service for hosting websites', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Who coined the term "data warehouse" and is considered its founding father?',
+                'q' => 'Item 2: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Edgar Codd', false],
-                    ['Bill Inmon', true],
-                    ['Ralph Kimball', false],
-                    ['James Martin', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the PRIMARY purpose of a data warehouse?',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Data Warehousing when dealing with assumptions?',
                 'opts' => [
-                    ['To process day-to-day business transactions as fast as possible', false],
-                    ['To support business intelligence, analytics, and decision-making by storing historical data', true],
-                    ['To replace a company\'s email system', false],
-                    ['To store raw log files from web servers', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A data warehouse is described as "subject-oriented". This means:',
+                'q' => 'Item 4: For Data Warehousing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['It only stores data about one topic', false],
-                    ['It is organised around key business subjects like sales, customers, and products rather than around application functions', true],
-                    ['The data is sorted alphabetically by subject', false],
-                    ['It requires a subject-matter expert to operate', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A data warehouse is described as "non-volatile". This means:',
+                'q' => 'Item 5: Which response shows the best Newbie practice when a method in Data Warehousing fails on one test case?',
                 'opts' => [
-                    ['It cannot be deleted accidentally', false],
-                    ['Once data is loaded into the warehouse, it is not deleted or changed — it is read-only for analysis', true],
-                    ['It runs without electricity', false],
-                    ['It is stored in a fire-proof location', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does OLAP stand for?',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
                 'opts' => [
-                    ['Online Linear Analysis Processing', false],
-                    ['Online Analytical Processing', true],
-                    ['Operational Large-scale Analytics Platform', false],
-                    ['Object-Linked Application Protocol', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does OLTP stand for?',
+                'q' => 'Item 7: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Online Transaction Processing', true],
-                    ['Object-Level Transfer Protocol', false],
-                    ['Operational Logic and Transformation Pipeline', false],
-                    ['Online Total Log Processing', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is the key difference between OLTP and OLAP systems?',
+                'q' => 'Item 8: Which situation is most likely an edge case in Data Warehousing?',
                 'opts' => [
-                    ['OLTP is used for reading only; OLAP is used for writing only', false],
-                    ['OLTP handles day-to-day transactions (many small reads/writes); OLAP handles complex analytical queries on large historical datasets', true],
-                    ['OLTP is cloud-based; OLAP is on-premise only', false],
-                    ['There is no difference — they are the same thing', false],
-                ],
-            ],
-
-            // ── 23.2 DIMENSIONAL MODELLING ────────────────────────────────
-            [
-                'q' => 'In dimensional modelling, what is a "fact table"?',
-                'opts' => [
-                    ['A table that stores reference information like customer names', false],
-                    ['The central table in a star schema that stores measurable business events and metrics (e.g. sales amount, quantity)', true],
-                    ['A table that stores error logs', false],
-                    ['A lookup table for country codes', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In dimensional modelling, what is a "dimension table"?',
+                'q' => 'Item 9: When comparing two approaches in Data Warehousing, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['A table that stores numerical measurements', false],
-                    ['A table that provides descriptive context for the facts — e.g. who, what, where, when', true],
-                    ['A table that connects two databases', false],
-                    ['A table that stores aggregated totals', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a typical example of a FACT?',
+                'q' => 'Item 10: What does a strong final answer in Data Warehousing include?',
                 'opts' => [
-                    ['Customer name', false],
-                    ['Product category', false],
-                    ['Total sales amount for an order', true],
-                    ['Country of a store', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following is a typical example of a DIMENSION?',
+                'q' => 'Item 11: In Data Warehousing, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Revenue', false],
-                    ['Number of units sold', false],
-                    ['Date of purchase', true],
-                    ['Profit margin', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a Star Schema, the fact table is surrounded by:',
+                'q' => 'Item 12: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['Other fact tables', false],
-                    ['Dimension tables directly connected to it', true],
-                    ['Staging tables', false],
-                    ['Raw CSV files', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'How does a Snowflake Schema differ from a Star Schema?',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Data Warehousing when dealing with bias check?',
                 'opts' => [
-                    ['A Snowflake Schema has no fact table', false],
-                    ['In a Snowflake Schema, dimension tables are further normalised into sub-dimension tables, making the schema look like a snowflake', true],
-                    ['A Snowflake Schema is used only for small datasets', false],
-                    ['They are identical — different names for the same thing', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A surrogate key in a data warehouse is:',
+                'q' => 'Item 14: For Data Warehousing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The original primary key from the source system', false],
-                    ['A system-generated integer key used in the warehouse that is independent of the source system\'s key', true],
-                    ['A key used to encrypt sensitive data', false],
-                    ['A composite key made of two columns', false],
-                ],
-            ],
-
-            // ── 23.3 ETL vs ELT ───────────────────────────────────────────
-            [
-                'q' => 'What does ETL stand for?',
-                'opts' => [
-                    ['Extract, Transfer, Load', false],
-                    ['Extract, Transform, Load', true],
-                    ['Evaluate, Test, Launch', false],
-                    ['Export, Translate, Link', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In an ETL pipeline, in what ORDER do the steps happen?',
+                'q' => 'Item 15: Which response shows the best Newbie practice when a method in Data Warehousing fails on one test case?',
                 'opts' => [
-                    ['Load → Transform → Extract', false],
-                    ['Transform → Extract → Load', false],
-                    ['Extract → Transform → Load', true],
-                    ['Extract → Load → Transform', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What does the "Extract" step in ETL do?',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
                 'opts' => [
-                    ['Cleans and formats data', false],
-                    ['Pulls raw data from source systems such as databases, APIs, and flat files', true],
-                    ['Loads data into the final destination', false],
-                    ['Compresses data for storage', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does the "Transform" step in ETL do?',
+                'q' => 'Item 17: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Copies data from one database to another', false],
-                    ['Cleans, filters, enriches, and restructures data to match the target schema', true],
-                    ['Archives old data', false],
-                    ['Connects to source systems', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In ELT, what is the key difference from ETL?',
+                'q' => 'Item 18: Which situation is most likely an edge case in Data Warehousing?',
                 'opts' => [
-                    ['ELT does not require extraction', false],
-                    ['In ELT, data is loaded into the target system FIRST, then transformed there — leveraging the warehouse\'s own compute power', true],
-                    ['ELT only works with cloud systems', false],
-                    ['ELT skips the loading step', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which modern tool is most associated with the ELT approach?',
+                'q' => 'Item 19: When comparing two approaches in Data Warehousing, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Microsoft Excel', false],
-                    ['dbt (data build tool)', true],
-                    ['Apache Kafka', false],
-                    ['MySQL Workbench', false],
-                ],
-            ],
-
-            // ── 23.4 SLOWLY CHANGING DIMENSIONS ──────────────────────────
-            [
-                'q' => 'What is a Slowly Changing Dimension (SCD)?',
-                'opts' => [
-                    ['A dimension that is loaded very slowly due to large data volumes', false],
-                    ['A dimension whose attribute values change slowly and infrequently over time — e.g. a customer\'s address or marital status', true],
-                    ['A dimension table with very few rows', false],
-                    ['A dimension that is recalculated every day', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In SCD Type 1, when a dimension value changes, you:',
+                'q' => 'Item 20: What does a strong final answer in Data Warehousing include?',
                 'opts' => [
-                    ['Add a new row to preserve history', false],
-                    ['Overwrite the existing value — no history is kept', true],
-                    ['Create a new version column', false],
-                    ['Archive the old value in a separate table', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In SCD Type 2, when a dimension value changes, you:',
+                'q' => 'Item 21: In Data Warehousing, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Overwrite the old value directly', false],
-                    ['Insert a new row with the updated value, preserving the full history of changes', true],
-                    ['Delete the old row', false],
-                    ['Store only the latest value', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'SCD Type 2 rows are typically managed using which columns?',
+                'q' => 'Item 22: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['created_at and deleted_at', false],
-                    ['effective_start_date, effective_end_date, and an is_current flag', true],
-                    ['version_number and checksum', false],
-                    ['row_id and batch_id', false],
-                ],
-            ],
-
-            // ── 23.5 DATA VAULT MODELLING ─────────────────────────────────
-            [
-                'q' => 'Data Vault modelling was designed primarily for:',
-                'opts' => [
-                    ['Small databases with fewer than 100 tables', false],
-                    ['Enterprise data warehouses that need scalability, auditability, and the ability to handle change over time', true],
-                    ['Replacing relational databases entirely', false],
-                    ['Real-time streaming data only', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The three core components of a Data Vault model are:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Data Warehousing when dealing with assumptions?',
                 'opts' => [
-                    ['Facts, Dimensions, and Aggregates', false],
-                    ['Hubs, Links, and Satellites', true],
-                    ['Tables, Views, and Indexes', false],
-                    ['Sources, Targets, and Mappings', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Data Vault, a HUB stores:',
+                'q' => 'Item 24: For Data Warehousing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['The historical changes of descriptive attributes', false],
-                    ['Unique business keys for a core business concept (e.g. unique customer IDs)', true],
-                    ['The relationships between business concepts', false],
-                    ['Raw source data before transformation', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In Data Vault, a SATELLITE stores:',
+                'q' => 'Item 25: Which response shows the best Newbie practice when a method in Data Warehousing fails on one test case?',
                 'opts' => [
-                    ['Business keys', false],
-                    ['Relationships between hubs', false],
-                    ['Descriptive context and historical changes for hubs or links', true],
-                    ['Aggregated metrics', false],
-                ],
-            ],
-
-            // ── 23.6 COLUMNAR STORAGE ─────────────────────────────────────
-            [
-                'q' => 'In a columnar (column-oriented) database, data is stored:',
-                'opts' => [
-                    ['Row by row — all fields of one record together', false],
-                    ['Column by column — all values of one attribute together', true],
-                    ['In JSON format only', false],
-                    ['In alphabetical order by column name', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why is columnar storage faster for analytical queries that read only a few columns from a large table?',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
                 'opts' => [
-                    ['It stores less data overall', false],
-                    ['Only the relevant columns are read from disk — irrelevant columns are never accessed, dramatically reducing I/O', true],
-                    ['It automatically indexes every column', false],
-                    ['It compresses all data to zero bytes', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which of the following databases uses columnar storage?',
+                'q' => 'Item 27: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['MySQL', false],
-                    ['PostgreSQL (default row store)', false],
-                    ['Amazon Redshift', true],
-                    ['SQLite', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Columnar storage achieves high compression ratios because:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Data Warehousing?',
                 'opts' => [
-                    ['Columns are stored on separate servers', false],
-                    ['Values in the same column tend to be of the same type and similar values, making them highly compressible', true],
-                    ['It uses ZIP compression on the entire database', false],
-                    ['Duplicate rows are automatically deleted', false],
-                ],
-            ],
-
-            // ── 23.7 CLOUD DATA WAREHOUSES ────────────────────────────────
-            [
-                'q' => 'Which of the following is a cloud-based data warehouse service?',
-                'opts' => [
-                    ['MySQL', false],
-                    ['Microsoft Excel', false],
-                    ['Snowflake', true],
-                    ['Apache Spark', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Google BigQuery is a cloud data warehouse that uses which pricing model for queries?',
+                'q' => 'Item 29: When comparing two approaches in Data Warehousing, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['A flat monthly subscription regardless of usage', false],
-                    ['Pay-per-query based on the amount of data scanned', true],
-                    ['A per-row insert fee', false],
-                    ['Free for all users always', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Amazon Redshift is based on which open-source database?',
+                'q' => 'Item 30: What does a strong final answer in Data Warehousing include?',
                 'opts' => [
-                    ['MySQL', false],
-                    ['SQLite', false],
-                    ['PostgreSQL', true],
-                    ['MongoDB', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Snowflake\'s key architectural innovation is separating:',
+                'q' => 'Item 31: In Data Warehousing, which action best supports foundational recognition and guided examples when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['Tables from indexes', false],
-                    ['Compute (query processing) from storage (data), allowing each to scale independently', true],
-                    ['SQL from NoSQL queries', false],
-                    ['Cloud from on-premise operations', false],
-                ],
-            ],
-
-            // ── 23.8 DATA MARTS & KIMBALL ─────────────────────────────────
-            [
-                'q' => 'What is a data mart?',
-                'opts' => [
-                    ['A small convenience store for data scientists', false],
-                    ['A subset of a data warehouse focused on a specific business area or department, like Sales or Finance', true],
-                    ['A staging area for raw data', false],
-                    ['A type of NoSQL database', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Ralph Kimball\'s bottom-up approach to data warehousing builds:',
+                'q' => 'Item 32: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['A single enterprise-wide warehouse first, then data marts', false],
-                    ['Individual departmental data marts first, which are later integrated into an enterprise warehouse', true],
-                    ['Only OLTP systems, not OLAP', false],
-                    ['Data lakes without any dimensional modelling', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The Kimball Bus Architecture uses "conformed dimensions" which are:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Data Warehousing when dealing with bias check?',
                 'opts' => [
-                    ['Dimensions that are only used once', false],
-                    ['Shared dimension tables that mean exactly the same thing across different data marts, enabling consistent cross-mart analysis', true],
-                    ['Dimensions that automatically update themselves', false],
-                    ['Encrypted dimension tables for security', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Kimball\'s approach, a "conformed fact" means:',
+                'q' => 'Item 34: For Data Warehousing, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['A fact that has been validated by an auditor', false],
-                    ['Facts (metrics) that are defined consistently and can be compared across different data marts', true],
-                    ['A fact table with no dimension tables', false],
-                    ['A pre-aggregated fact table', false],
-                ],
-            ],
-
-            // ── 23.9 dbt ─────────────────────────────────────────────────
-            [
-                'q' => 'What does dbt stand for?',
-                'opts' => [
-                    ['Data Build Tool', true],
-                    ['Database Batch Transfer', false],
-                    ['Distributed Batch Transformer', false],
-                    ['Data Business Template', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'dbt is primarily used for which step in the data pipeline?',
+                'q' => 'Item 35: Which response shows the best Newbie practice when a method in Data Warehousing fails on one test case?',
                 'opts' => [
-                    ['Extracting data from source systems', false],
-                    ['The Transform step — writing SQL-based transformations inside the data warehouse', true],
-                    ['Loading raw files from S3', false],
-                    ['Visualising dashboards', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In dbt, models are written as:',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
                 'opts' => [
-                    ['Python scripts only', false],
-                    ['SELECT SQL queries stored in .sql files', true],
-                    ['JSON configuration files', false],
-                    ['Excel macros', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What does `dbt run` do?',
+                'q' => 'Item 37: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Extracts data from source systems', false],
-                    ['Executes all dbt models — running the SQL transformations and creating/updating tables or views in the warehouse', true],
-                    ['Deletes all tables in the warehouse', false],
-                    ['Deploys the dbt project to production servers', false],
-                ],
-            ],
-
-            // ── 23.10 DATA QUALITY & GOVERNANCE ──────────────────────────
-            [
-                'q' => 'What is data quality in the context of a data warehouse?',
-                'opts' => [
-                    ['How visually appealing the dashboard is', false],
-                    ['The degree to which data is accurate, complete, consistent, timely, and fit for its intended use', true],
-                    ['The speed at which data is loaded', false],
-                    ['The number of tables in the warehouse', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Data governance in a data warehouse refers to:',
+                'q' => 'Item 38: Which situation is most likely an edge case in Data Warehousing?',
                 'opts' => [
-                    ['The IT team controlling who can write code', false],
-                    ['The policies, processes, and standards that manage data availability, usability, integrity, and security', true],
-                    ['The hardware that stores the data', false],
-                    ['Government regulations for data storage', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A data catalog is used to:',
+                'q' => 'Item 39: When comparing two approaches in Data Warehousing, what should a Newbie learner prioritize?',
                 'opts' => [
-                    ['Delete duplicate data automatically', false],
-                    ['Provide a searchable inventory of an organisation\'s data assets with metadata, ownership, and lineage information', true],
-                    ['Store backup copies of all warehouse tables', false],
-                    ['Generate automated reports for management', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Data lineage in a data warehouse describes:',
+                'q' => 'Item 40: What does a strong final answer in Data Warehousing include?',
                 'opts' => [
-                    ['The legal ownership of a dataset', false],
-                    ['The origin of data and how it has moved and transformed through the pipeline from source to destination', true],
-                    ['The age of the oldest record in the warehouse', false],
-                    ['The number of rows added per day', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'What is a "data lake" and how does it differ from a data warehouse?',
+                'q' => 'Item 41: In Data Warehousing, which action best supports foundational recognition and guided examples when starting a new task involving problem framing?',
                 'opts' => [
-                    ['A data lake stores only structured data; a data warehouse stores unstructured data', false],
-                    ['A data lake stores raw data in its native format (structured, semi-structured, unstructured); a data warehouse stores cleaned, structured data optimised for querying', true],
-                    ['They are the same thing with different names', false],
-                    ['A data lake is a physical storage room; a data warehouse is virtual', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'What is a staging area in a data warehouse pipeline?',
+                'q' => 'Item 42: A learner working on Data Warehousing gets a result that looks correct. What should they do next at the Newbie level?',
                 'opts' => [
-                    ['The production database where end users query data', false],
-                    ['A temporary holding zone where raw extracted data lands before being transformed and loaded into the warehouse', true],
-                    ['The server room where the warehouse is hosted', false],
-                    ['The dashboard layer visible to business users', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
-
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Data Warehousing when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Data Warehousing, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best Newbie practice when a method in Data Warehousing fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Data Warehousing tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Data Warehousing assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Data Warehousing?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Data Warehousing, what should a Newbie learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Data Warehousing include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 23 — Data Warehousing (Newbie).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: Newbie");
+        $this->command->info('Module 23 MCQ (Newbie) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

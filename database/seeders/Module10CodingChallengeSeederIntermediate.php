@@ -3,1934 +3,1392 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use App\Models\ChallengeCategory;
 use App\Models\Challenge;
+use App\Models\CodingQuestion;
+use App\Models\TestCase;
 
-/**
- * Module 10 — Relational Databases & SQL (Intermediate) — CODING variant
- *
- * Seeds in one pass:
- *   1. challenges          — one coding challenge for the Intermediate tier
- *   2. coding_questions    — 50 questions covering advanced SQL/DB topics
- *   3. test_cases          — 4 cases per question (2 visible + 2 hidden)
- *
- * Topics covered:
- *   10.1  Advanced Schema Constraints & Keys
- *   10.2  Advanced SELECT: COALESCE, CASE, Date/String Functions
- *   10.3  Conditional Aggregation & Group Filtering
- *   10.4  Complex JOINs: Multi-table, Self-Joins, Inequality Joins
- *   10.5  Correlated Subqueries & Recursive CTEs
- *   10.6  Advanced Window Functions: DENSE_RANK, NTILE, Moving Averages
- *   10.7  Entity-Attribute-Value (EAV) & Dimensional Modeling
- *   10.8  Query Optimization & SARGable Predicates
- *   10.10 Handling JSON within Relational DBs (SQLite JSON1)
- */
 class Module10CodingChallengeSeederIntermediate extends Seeder
 {
     public function run(): void
     {
-        // ─────────────────────────────────────────────────────────────────
-        // 1. CHALLENGE
-        // ─────────────────────────────────────────────────────────────────
-
         $category = ChallengeCategory::where('slug', 'intermediate')->first();
 
         if (! $category) {
-            $this->command->error('Intermediate category not found! Run ChallengeCategorySeeder first.');
+            $this->command->error('Intermediate category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        $this->command->info('Creating Module 10 — Relational Databases & SQL (Intermediate) [Coding]...');
+        $title = 'Database Management for Data Science';
 
-        $challenge = Challenge::firstOrCreate(
-            [
-                'challenge_category_id' => $category->id,
-                'title'                 => 'Relational Databases & SQL',
-                'is_coding_challenge'   => 1,
-            ],
-            [
-                'description'        => 'Elevate your database logic to the intermediate tier. In these Python/SQLite tasks, you will navigate composite keys, pivot data using conditional aggregation, write complex self-joins, leverage correlated subqueries, apply advanced window functions (DENSE_RANK, moving averages), optimize query predicates for indexes, and extract nested JSON data.',
-                'time_limit_seconds' => 1500, // Increased for intermediate
-                'base_xp'            => 1000, // Higher XP reward
-                'order_index'        => 10,
-            ]
-        );
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 1)
+            ->delete();
 
-        // ─────────────────────────────────────────────────────────────────
-        // 2. CODING QUESTIONS (50 total)
-        // ─────────────────────────────────────────────────────────────────
+        $this->command->info('Creating Module 10 — Database Management for Data Science (Intermediate) [Coding]...');
 
-        $this->command->info('Seeding 50 intermediate coding questions...');
+        $challenge = Challenge::create([
+            'challenge_category_id' => $category->id,
+            'title' => $title,
+            'description' => 'A detailed 50-item coding challenge for Database Management for Data Science at the Intermediate level. Each item includes visible and hidden tests, standard input parsing, and exact output requirements.',
+            'time_limit_seconds' => 3600,
+            'base_xp' => 1100,
+            'order_index' => 10,
+            'is_coding_challenge' => 1,
+        ]);
 
         $questionDefs = [
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 1: Advanced Schema Constraints & Keys (Q1–Q5)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q1
             [
-                'order_index'         => 1,
-                'problem_description' => <<<'MD'
-A **composite primary key** uses two or more columns to uniquely identify a row. 
+                'order_index' => 1,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 1: Greedy coin count
 
-The `enrollments` table tracks students and the courses they take.
-| student_id | course_id | semester |
-|------------|-----------|----------|
-| 1          | 101       | Fall     |
-| 1          | 102       | Fall     |
-| 2          | 101       | Spring   |
-| 3          | 105       | Fall     |
+Read an amount in pesos. Using denominations 20, 10, 5, 1, print the minimum coin/bill count.
 
-Write a SQL query that returns the `student_id` of students enrolled in **more than one course**, ordered ascending.
+Consider boundary cases and keep the solution readable.
 
-Expected output:
-1
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Greedy count for 20,10,5,1
+import sys
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE enrollments (student_id INTEGER, course_id INTEGER, semester TEXT, PRIMARY KEY(student_id, course_id))')
-conn.executemany('INSERT INTO enrollments VALUES (?,?,?)', [
-    (1,101,'Fall'), (1,102,'Fall'), (2,101,'Spring'), (3,105,'Fall')
-])
-conn.commit()
-
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '37', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => '40', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '4', 'expected_output' => '4', 'is_hidden' => true],
+                    ['input' => '0', 'expected_output' => '0', 'is_hidden' => true],
+                ],
             ],
-
-            // Q2
             [
-                'order_index'         => 2,
-                'problem_description' => <<<'MD'
-A `UNIQUE` constraint ensures all values in a column or group of columns are distinct. 
-The `users` table tracks user emails, but we want to identify any existing duplicates before applying a unique constraint.
+                'order_index' => 2,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 2: Jaccard similarity
 
-Write a SQL query that returns the `email` addresses that appear **more than once**, ordered alphabetically.
+Read set A on the first line and set B on the second line. Print Jaccard similarity rounded to 2 decimals.
 
-Expected output:
-admin@test.com
+Consider boundary cases and keep the solution readable.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE users (id INTEGER, email TEXT)')
-conn.executemany('INSERT INTO users VALUES (?,?)', [
-    (1,'admin@test.com'), (2,'bob@test.com'), (3,'admin@test.com'), (4,'carol@test.com')
-])
-conn.commit()
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute Jaccard similarity
+import sys
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a b c
+b c d', 'expected_output' => '0.50', 'is_hidden' => false],
+                    ['input' => 'x y
+x y', 'expected_output' => '1.00', 'is_hidden' => false],
+                    ['input' => 'a
+b', 'expected_output' => '0.00', 'is_hidden' => true],
+                    ['input' => '1 2 3
+3 4', 'expected_output' => '0.25', 'is_hidden' => true],
+                ],
             ],
-
-            // Q3
             [
-                'order_index'         => 3,
-                'problem_description' => <<<'MD'
-Constraints like `CHECK` enforce domain integrity. 
+                'order_index' => 3,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 3: CSV column sum
 
-The `products` table has `price` and `stock`. Identify any rows that violate the logic: `price >= 0` AND `stock >= 0`.
-Return the `id` of the violating rows, ordered ascending.
+Read comma-separated rows. Each row has name,value. Print the sum of the numeric values.
 
-Expected output:
-2
-4
+Consider boundary cases and keep the solution readable.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE products (id INTEGER, price INTEGER, stock INTEGER)')
-conn.executemany('INSERT INTO products VALUES (?,?,?)', [
-    (1, 100, 5), (2, -10, 10), (3, 50, 0), (4, 20, -5)
-])
-conn.commit()
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Sum numeric column from name,value rows
+import sys
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a,2
+b,3', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => 'x,10', 'expected_output' => '10', 'is_hidden' => false],
+                    ['input' => 'p,-1
+q,5', 'expected_output' => '4', 'is_hidden' => true],
+                    ['input' => 'one,1
+two,2
+three,3', 'expected_output' => '6', 'is_hidden' => true],
+                ],
             ],
-
-            // Q4
             [
-                'order_index'         => 4,
-                'problem_description' => <<<'MD'
-Foreign keys often have cascading deletes (`ON DELETE CASCADE`). If a parent is removed, orphans are deleted.
-We need to simulate finding orphans across a 3-tier hierarchy: `Universities -> Departments -> Courses`.
+                'order_index' => 4,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 4: Transform values
 
-Find the `course_name` of any course whose `dept_id` does NOT exist in the `departments` table.
+Read integers and print each value doubled, separated by spaces.
 
-Expected output:
-Intro to Magic
+Consider boundary cases and keep the solution readable.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE departments (id INTEGER, name TEXT)')
-conn.executemany('INSERT INTO departments VALUES (?,?)', [(1,'Math'),(2,'Science')])
-conn.execute('CREATE TABLE courses (id INTEGER, dept_id INTEGER, course_name TEXT)')
-conn.executemany('INSERT INTO courses VALUES (?,?,?)', [
-    (101, 1, 'Calculus'), (102, 2, 'Physics'), (103, 99, 'Intro to Magic')
-])
-conn.commit()
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Double each value
+import sys
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '2 4 6', 'is_hidden' => false],
+                    ['input' => '0 -2', 'expected_output' => '0 -4', 'is_hidden' => false],
+                    ['input' => '5', 'expected_output' => '10', 'is_hidden' => true],
+                    ['input' => '10 20', 'expected_output' => '20 40', 'is_hidden' => true],
+                ],
             ],
-
-            // Q5
             [
-                'order_index'         => 5,
-                'problem_description' => <<<'MD'
-Data integrity often requires updating rows to resolve anomalies. Using Python and SQLite, find all employees in the `employees` table with a `salary` mapped as `NULL` and `UPDATE` them to a default of `40000`. 
-Then print the sum of all salaries.
+                'order_index' => 5,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 5: Sum a list of numbers
 
-Expected output:
-150000
+Read space-separated integers and print their sum.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (id INTEGER, salary INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [
-    (1, 50000), (2, None), (3, 60000), (4, None)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-# Execute an UPDATE query
-conn.execute("...")
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Read integers from input and print the sum
+import sys
 
-# Print the sum
-for row in conn.execute("SELECT SUM(salary) FROM employees"):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '6', 'is_hidden' => false],
+                    ['input' => '10 -5 4', 'expected_output' => '9', 'is_hidden' => false],
+                    ['input' => '0', 'expected_output' => '0', 'is_hidden' => true],
+                    ['input' => '100 200 300', 'expected_output' => '600', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 2: Advanced SELECT — COALESCE, CASE, Dates (Q6–Q11)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q6
             [
-                'order_index'         => 6,
-                'problem_description' => <<<'MD'
-`COALESCE()` returns the first non-NULL value in a list. 
-The `contacts` table has `mobile_phone`, `home_phone`, and `work_phone`. 
+                'order_index' => 6,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 6: Compute a mean
 
-Write a query that returns the user's `name` and their **primary phone** (preferring mobile, then home, then work), ordered by name.
+Read space-separated numbers and print the arithmetic mean rounded to 2 decimal places.
 
-Expected output:
-Alice 555-1111
-Bob 555-2222
-Carol 555-3333
+Consider boundary cases and keep the solution readable.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE contacts (name TEXT, mobile_phone TEXT, home_phone TEXT, work_phone TEXT)')
-conn.executemany('INSERT INTO contacts VALUES (?,?,?,?)', [
-    ('Alice', '555-1111', None, '555-9999'),
-    ('Bob', None, '555-2222', '555-8888'),
-    ('Carol', None, None, '555-3333')
-])
-conn.commit()
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute the mean rounded to 2 decimals
+import sys
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '2.00', 'is_hidden' => false],
+                    ['input' => '10 20', 'expected_output' => '15.00', 'is_hidden' => false],
+                    ['input' => '5', 'expected_output' => '5.00', 'is_hidden' => true],
+                    ['input' => '2 2 5', 'expected_output' => '3.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q7
             [
-                'order_index'         => 7,
-                'problem_description' => <<<'MD'
-`CASE WHEN` allows if/else logic directly in your queries.
-Given an `orders` table, categorize orders by amount: `>= 1000` is 'High', `>= 500` is 'Medium', else 'Low'.
+                'order_index' => 7,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 7: Count values above threshold
 
-Return `id` and the new `category` column, ordered by `id`.
+First line is a threshold. Second line contains integers. Print how many values are greater than the threshold.
 
-Expected output:
-1 High
-2 Low
-3 Medium
+Consider boundary cases and keep the solution readable.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE orders (id INTEGER, amount INTEGER)')
-conn.executemany('INSERT INTO orders VALUES (?,?)', [(1,1200), (2,300), (3,500)])
-conn.commit()
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count values greater than the threshold
+import sys
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '5
+1 6 7 5', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '10
+10 11 9 12', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '0
+-1 0 1', 'expected_output' => '1', 'is_hidden' => true],
+                    ['input' => '3
+4 5 6', 'expected_output' => '3', 'is_hidden' => true],
+                ],
             ],
-
-            // Q8
             [
-                'order_index'         => 8,
-                'problem_description' => <<<'MD'
-String manipulation via `LIKE` and wildcards.
-Find all users in the `users` table whose `username` starts with `'A'` and ends with `'n'`, and is exactly 5 characters long.
+                'order_index' => 8,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 8: Compute range
 
-Expected output:
-Aaron
+Read integers and print the difference between the maximum and minimum value.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE users (username TEXT)')
-conn.executemany('INSERT INTO users VALUES (?)', [('Admin',), ('Aaron',), ('Alan',), ('Adrian',)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-# In SQLite, '_' matches a single character, '%' matches any sequence.
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Print max minus min
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 5 9', 'expected_output' => '8', 'is_hidden' => false],
+                    ['input' => '10 10', 'expected_output' => '0', 'is_hidden' => false],
+                    ['input' => '-3 7 2', 'expected_output' => '10', 'is_hidden' => true],
+                    ['input' => '100', 'expected_output' => '0', 'is_hidden' => true],
+                ],
             ],
-
-            // Q9
             [
-                'order_index'         => 9,
-                'problem_description' => <<<'MD'
-Working with dates. In SQLite, you can format strings or extract parts using `strftime()`.
-Find the total `amount` of sales made specifically in the year `2023`.
+                'order_index' => 9,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 9: Min-max normalize values
 
-Expected output:
-1500
+Read integers. Print min-max normalized values rounded to 2 decimals separated by spaces. If all values are equal, print zeros.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE sales (amount INTEGER, sale_date TEXT)')
-conn.executemany('INSERT INTO sales VALUES (?,?)', [
-    (1000, '2023-05-10'), (500, '2023-11-20'), (800, '2022-12-01')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Normalize values to 0..1
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '0 5 10', 'expected_output' => '0.00 0.50 1.00', 'is_hidden' => false],
+                    ['input' => '2 2 2', 'expected_output' => '0.00 0.00 0.00', 'is_hidden' => false],
+                    ['input' => '1 3', 'expected_output' => '0.00 1.00', 'is_hidden' => true],
+                    ['input' => '-1 0 1', 'expected_output' => '0.00 0.50 1.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q10
             [
-                'order_index'         => 10,
-                'problem_description' => <<<'MD'
-Advanced sorting: `ORDER BY` allows sorting on calculated columns or `CASE` statements.
-Sort the `products` table so that products with `stock = 0` appear at the *very bottom*, and all others are sorted by `price` ascending.
+                'order_index' => 10,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 10: Count words
 
-Expected output:
-Desk 100
-Chair 150
-Laptop 1200
-Phone 800
+Read one line of text and print the number of words.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE products (name TEXT, price INTEGER, stock INTEGER)')
-conn.executemany('INSERT INTO products VALUES (?,?,?)', [
-    ('Laptop', 1200, 5), ('Phone', 800, 0), ('Chair', 150, 10), ('Desk', 100, 2)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row[:2])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count words in a line
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'data science is fun', 'expected_output' => '4', 'is_hidden' => false],
+                    ['input' => 'hello', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => 'one two  three', 'expected_output' => '3', 'is_hidden' => true],
+                    ['input' => 'Python coding challenge', 'expected_output' => '3', 'is_hidden' => true],
+                ],
             ],
-
-            // Q11
             [
-                'order_index'         => 11,
-                'problem_description' => <<<'MD'
-Pagination logic is often implemented via `LIMIT` and `OFFSET`. 
-Write a query to retrieve the 2nd page of results from the `users` table, assuming a page size of 3, ordered by `id` ascending.
+                'order_index' => 11,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 11: Reverse word order
 
-Expected output:
-4 Dave
-5 Eve
-6 Frank
+Read one line and print the words in reverse order separated by spaces.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE users (id INTEGER, name TEXT)')
-conn.executemany('INSERT INTO users VALUES (?,?)', [
-    (1,'Alice'),(2,'Bob'),(3,'Carol'),(4,'Dave'),(5,'Eve'),(6,'Frank'),(7,'Grace')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Reverse the words
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'data science is fun', 'expected_output' => 'fun is science data', 'is_hidden' => false],
+                    ['input' => 'hello world', 'expected_output' => 'world hello', 'is_hidden' => false],
+                    ['input' => 'a b c', 'expected_output' => 'c b a', 'is_hidden' => true],
+                    ['input' => 'single', 'expected_output' => 'single', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 3: Conditional Aggregation & Group Filtering (Q12–Q17)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q12
             [
-                'order_index'         => 12,
-                'problem_description' => <<<'MD'
-**Conditional Aggregation** pivots rows into columns. 
-Use `SUM(CASE WHEN ... THEN amount ELSE 0 END)` to return a single row with three columns: Total `IT` salary, Total `HR` salary, Total `Sales` salary.
+                'order_index' => 12,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 12: Count unique values
 
-Expected output:
-160000 95000 65000
+Read space-separated values and print the number of unique values.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (dept TEXT, salary INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [
-    ('IT', 70000), ('IT', 90000), ('HR', 45000), ('HR', 50000), ('Sales', 65000)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count unique values
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a b a c', 'expected_output' => '3', 'is_hidden' => false],
+                    ['input' => '1 1 1', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => 'x y z', 'expected_output' => '3', 'is_hidden' => true],
+                    ['input' => 'red blue red', 'expected_output' => '2', 'is_hidden' => true],
+                ],
             ],
-
-            // Q13
             [
-                'order_index'         => 13,
-                'problem_description' => <<<'MD'
-Complex `HAVING` clauses filter grouped sets. 
-Find the `customer_id` of customers who have made **more than 2 orders** AND whose **average order amount** is strictly greater than 500.
+                'order_index' => 13,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 13: Find most frequent value
 
-Expected output:
-101
+Read space-separated values and print the value that appears most often. If tied, print the value that appears first.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE orders (id INTEGER, customer_id INTEGER, amount INTEGER)')
-conn.executemany('INSERT INTO orders VALUES (?,?,?)', [
-    (1,101,600), (2,101,700), (3,101,550),
-    (4,102,800), (5,102,900),
-    (6,103,400), (7,103,400), (8,103,400)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Find the mode with first-tie rule
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a b a c', 'expected_output' => 'a', 'is_hidden' => false],
+                    ['input' => '1 2 2 1', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => 'x y y z', 'expected_output' => 'y', 'is_hidden' => true],
+                    ['input' => 'red blue red blue red', 'expected_output' => 'red', 'is_hidden' => true],
+                ],
             ],
-
-            // Q14
             [
-                'order_index'         => 14,
-                'problem_description' => <<<'MD'
-Filtering within groupings via `COUNT(CASE...)`.
-Return the `department` name and the count of employees earning `> 60000` in that department. Order by department name.
+                'order_index' => 14,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 14: Filter even numbers
 
-Expected output:
-HR 0
-IT 2
-Sales 1
+Read integers and print only the even values separated by spaces. Print NONE if there are no even values.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (dept TEXT, salary INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [
-    ('IT', 70000), ('IT', 90000), ('HR', 45000), ('HR', 50000), ('Sales', 65000)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Print even values or NONE
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3 4', 'expected_output' => '2 4', 'is_hidden' => false],
+                    ['input' => '1 3 5', 'expected_output' => 'NONE', 'is_hidden' => false],
+                    ['input' => '0 2 8', 'expected_output' => '0 2 8', 'is_hidden' => true],
+                    ['input' => '-2 -1 6', 'expected_output' => '-2 6', 'is_hidden' => true],
+                ],
             ],
-
-            // Q15
             [
-                'order_index'         => 15,
-                'problem_description' => <<<'MD'
-Grouping by multiple columns. 
-Return the `year`, `month`, and `total_amount` of sales grouped by both year and month. Extract year and month using SQLite's string functions (`substr` or `strftime`). Order sequentially.
+                'order_index' => 15,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 15: Two-point moving average
 
-Expected output:
-2023 01 1500
-2023 02 800
+Read numbers and print the average of every adjacent pair rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE sales (amount INTEGER, sale_date TEXT)')
-conn.executemany('INSERT INTO sales VALUES (?,?)', [
-    (1000, '2023-01-15'), (500, '2023-01-20'), (800, '2023-02-10')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Adjacent-pair averages
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '2 4 6', 'expected_output' => '3.00 5.00', 'is_hidden' => false],
+                    ['input' => '1 2', 'expected_output' => '1.50', 'is_hidden' => false],
+                    ['input' => '10 20 40 80', 'expected_output' => '15.00 30.00 60.00', 'is_hidden' => true],
+                    ['input' => '5 5 5', 'expected_output' => '5.00 5.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q16
             [
-                'order_index'         => 16,
-                'problem_description' => <<<'MD'
-Multi-level aggregations. Find the highest average department salary. 
-*(Hint: Group by department to get the average, then order by that average descending and limit 1).*
+                'order_index' => 16,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 16: Compute accuracy
 
-Expected output:
-80000.0
+First line has true labels. Second line has predicted labels. Print accuracy as a percentage rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (dept TEXT, salary INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [
-    ('IT', 70000), ('IT', 90000), ('HR', 40000), ('Sales', 60000)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute classification accuracy
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'A B A
+A B B', 'expected_output' => '66.67', 'is_hidden' => false],
+                    ['input' => '1 0 1 1
+1 0 1 1', 'expected_output' => '100.00', 'is_hidden' => false],
+                    ['input' => 'cat dog
+dog dog', 'expected_output' => '50.00', 'is_hidden' => true],
+                    ['input' => 'yes no yes
+no no yes', 'expected_output' => '66.67', 'is_hidden' => true],
+                ],
             ],
-
-            // Q17
             [
-                'order_index'         => 17,
-                'problem_description' => <<<'MD'
-Aggregating distinct values dynamically. 
-Find the number of **unique products** purchased per customer. Order alphabetically by customer ID.
+                'order_index' => 17,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 17: Dot product
 
-Expected output:
+Read vector A on the first line and vector B on the second line. Print their dot product.
+
+Consider boundary cases and keep the solution readable.
+
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute dot product
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3
+4 5 6', 'expected_output' => '32', 'is_hidden' => false],
+                    ['input' => '2 0
+3 4', 'expected_output' => '6', 'is_hidden' => false],
+                    ['input' => '-1 2
+3 -4', 'expected_output' => '-11', 'is_hidden' => true],
+                    ['input' => '5
+6', 'expected_output' => '30', 'is_hidden' => true],
+                ],
+            ],
+            [
+                'order_index' => 18,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 18: Matrix trace
+
+First line contains n. Next n lines contain an n x n matrix. Print the sum of the main diagonal.
+
+Consider boundary cases and keep the solution readable.
+
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute matrix trace
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '2
 1 2
-2 1
-
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE orders (customer_id INTEGER, product_id INTEGER)')
-conn.executemany('INSERT INTO orders VALUES (?,?)', [
-    (1, 101), (1, 101), (1, 102), (2, 105), (2, 105)
-])
-conn.commit()
-
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+3 4', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => '3
+1 0 0
+0 2 0
+0 0 3', 'expected_output' => '6', 'is_hidden' => false],
+                    ['input' => '1
+9', 'expected_output' => '9', 'is_hidden' => true],
+                    ['input' => '2
+-1 5
+7 -2', 'expected_output' => '-3', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 4: Complex JOINs (Q18–Q24)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q18
             [
-                'order_index'         => 18,
-                'problem_description' => <<<'MD'
-Multi-table JOINs with aggregations. 
-Join `Customers`, `Orders`, and `OrderItems` to find the **total amount spent by 'Alice'**. (amount = price * qty).
+                'order_index' => 19,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 19: Weighted score
 
-Expected output:
-2400
+First line contains scores. Second line contains matching weights. Print weighted average rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE customers (id INTEGER, name TEXT)')
-conn.executemany('INSERT INTO customers VALUES (?,?)', [(1,'Alice'),(2,'Bob')])
-conn.execute('CREATE TABLE orders (id INTEGER, customer_id INTEGER)')
-conn.executemany('INSERT INTO orders VALUES (?,?)', [(10,1), (11,2)])
-conn.execute('CREATE TABLE order_items (order_id INTEGER, price INTEGER, qty INTEGER)')
-conn.executemany('INSERT INTO order_items VALUES (?,?,?)', [
-    (10, 1000, 2), (10, 400, 1), (11, 500, 1)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Weighted average
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '80 90
+0.5 0.5', 'expected_output' => '85.00', 'is_hidden' => false],
+                    ['input' => '1 2 3
+1 1 1', 'expected_output' => '2.00', 'is_hidden' => false],
+                    ['input' => '10 20
+2 1', 'expected_output' => '13.33', 'is_hidden' => true],
+                    ['input' => '100 50
+0.25 0.75', 'expected_output' => '62.50', 'is_hidden' => true],
+                ],
             ],
-
-            // Q19
             [
-                'order_index'         => 19,
-                'problem_description' => <<<'MD'
-Finding missing data using `LEFT JOIN` and `IS NULL`. 
-Return the names of employees who have **not** been assigned to any project in the `project_assignments` table. Order alphabetically.
+                'order_index' => 20,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 20: Simple linear forecast
 
-Expected output:
-Eve
+Read numbers representing a sequence with a constant step. Print the next value.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (id INTEGER, name TEXT)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [(1,'Dave'),(2,'Eve'),(3,'Frank')])
-conn.execute('CREATE TABLE project_assignments (emp_id INTEGER, project_name TEXT)')
-conn.executemany('INSERT INTO project_assignments VALUES (?,?)', [(1,'GovX Migration'), (3,'DataSensei UI')])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Forecast next value in an arithmetic sequence
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '2 4 6 8', 'expected_output' => '10', 'is_hidden' => false],
+                    ['input' => '10 7 4', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => '5 5 5', 'expected_output' => '5', 'is_hidden' => true],
+                    ['input' => '1 3', 'expected_output' => '5', 'is_hidden' => true],
+                ],
             ],
-
-            // Q20
             [
-                'order_index'         => 20,
-                'problem_description' => <<<'MD'
-**Self-Joins** for hierarchies. 
-The `employees` table has a `manager_id` linking to another employee's `id`. 
-Return each employee's name and their manager's name (format: `EmpName ManagerName`). Filter out employees who have no manager. Order by employee name.
+                'order_index' => 21,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 21: Greedy coin count
 
-Expected output:
-Bob Alice
-Carol Alice
+Read an amount in pesos. Using denominations 20, 10, 5, 1, print the minimum coin/bill count.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (id INTEGER, name TEXT, manager_id INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?,?)', [
-    (1,'Alice',None), (2,'Bob',1), (3,'Carol',1)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Greedy count for 20,10,5,1
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '37', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => '40', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '4', 'expected_output' => '4', 'is_hidden' => true],
+                    ['input' => '0', 'expected_output' => '0', 'is_hidden' => true],
+                ],
             ],
-
-            // Q21
             [
-                'order_index'         => 21,
-                'problem_description' => <<<'MD'
-A **CROSS JOIN** generates a Cartesian product. 
-Using `products` and `stores`, CROSS JOIN them to return every possible combination of `store_name` and `product_name`, ordered by store then product.
+                'order_index' => 22,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 22: Jaccard similarity
 
-Expected output:
-StoreA Apples
-StoreA Bananas
-StoreB Apples
-StoreB Bananas
+Read set A on the first line and set B on the second line. Print Jaccard similarity rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE stores (store_name TEXT)')
-conn.executemany('INSERT INTO stores VALUES (?)', [('StoreA',), ('StoreB',)])
-conn.execute('CREATE TABLE products (product_name TEXT)')
-conn.executemany('INSERT INTO products VALUES (?)', [('Apples',), ('Bananas',)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute Jaccard similarity
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a b c
+b c d', 'expected_output' => '0.50', 'is_hidden' => false],
+                    ['input' => 'x y
+x y', 'expected_output' => '1.00', 'is_hidden' => false],
+                    ['input' => 'a
+b', 'expected_output' => '0.00', 'is_hidden' => true],
+                    ['input' => '1 2 3
+3 4', 'expected_output' => '0.25', 'is_hidden' => true],
+                ],
             ],
-
-            // Q22
             [
-                'order_index'         => 22,
-                'problem_description' => <<<'MD'
-Non-equi Joins (Inequality Joins). 
-Join `events` and `promotions` to find which promotion was active during which event, where `event.date BETWEEN promo.start_date AND promo.end_date`.
-Return `event_name` and `promo_name`, ordered by event.
+                'order_index' => 23,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 23: CSV column sum
 
-Expected output:
-Launch Weekend Sale
+Read comma-separated rows. Each row has name,value. Print the sum of the numeric values.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE events (event_name TEXT, date TEXT)')
-conn.executemany('INSERT INTO events VALUES (?,?)', [('Launch', '2023-05-15')])
-conn.execute('CREATE TABLE promotions (promo_name TEXT, start_date TEXT, end_date TEXT)')
-conn.executemany('INSERT INTO promotions VALUES (?,?,?)', [
-    ('Weekend Sale', '2023-05-14', '2023-05-16'),
-    ('Holiday Sale', '2023-12-01', '2023-12-31')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Sum numeric column from name,value rows
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a,2
+b,3', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => 'x,10', 'expected_output' => '10', 'is_hidden' => false],
+                    ['input' => 'p,-1
+q,5', 'expected_output' => '4', 'is_hidden' => true],
+                    ['input' => 'one,1
+two,2
+three,3', 'expected_output' => '6', 'is_hidden' => true],
+                ],
             ],
-
-            // Q23
             [
-                'order_index'         => 23,
-                'problem_description' => <<<'MD'
-Join on Multiple Conditions. 
-Join `students` to `grades` where BOTH `student_id` matches AND the `semester` is 'Fall'. Return the student name and grade, ordered alphabetically.
+                'order_index' => 24,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 24: Transform values
 
-Expected output:
-Alice A
+Read integers and print each value doubled, separated by spaces.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE students (id INTEGER, name TEXT)')
-conn.executemany('INSERT INTO students VALUES (?,?)', [(1,'Alice'),(2,'Bob')])
-conn.execute('CREATE TABLE grades (student_id INTEGER, semester TEXT, grade TEXT)')
-conn.executemany('INSERT INTO grades VALUES (?,?,?)', [
-    (1,'Fall','A'), (1,'Spring','B'), (2,'Spring','A')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Double each value
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '2 4 6', 'is_hidden' => false],
+                    ['input' => '0 -2', 'expected_output' => '0 -4', 'is_hidden' => false],
+                    ['input' => '5', 'expected_output' => '10', 'is_hidden' => true],
+                    ['input' => '10 20', 'expected_output' => '20 40', 'is_hidden' => true],
+                ],
             ],
-
-            // Q24
             [
-                'order_index'         => 24,
-                'problem_description' => <<<'MD'
-Intersection using INNER JOIN. Find users who are BOTH in the `newsletter_subscribers` table AND the `premium_members` table, utilizing a strict INNER JOIN on `email`. Order by email.
+                'order_index' => 25,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 25: Sum a list of numbers
 
-Expected output:
-alice@mail.com
+Read space-separated integers and print their sum.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE newsletter (email TEXT)')
-conn.executemany('INSERT INTO newsletter VALUES (?)', [('alice@mail.com',),('bob@mail.com',)])
-conn.execute('CREATE TABLE premium (email TEXT)')
-conn.executemany('INSERT INTO premium VALUES (?)', [('alice@mail.com',),('charlie@mail.com',)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Read integers from input and print the sum
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '6', 'is_hidden' => false],
+                    ['input' => '10 -5 4', 'expected_output' => '9', 'is_hidden' => false],
+                    ['input' => '0', 'expected_output' => '0', 'is_hidden' => true],
+                    ['input' => '100 200 300', 'expected_output' => '600', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 5: Correlated Subqueries & CTEs (Q25–Q30)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q25
             [
-                'order_index'         => 25,
-                'problem_description' => <<<'MD'
-A **Correlated Subquery** evaluates the inner query relative to the current row of the outer query. 
-Find the names of employees whose salary is *greater than the average salary of their specific department*. Order alphabetically.
+                'order_index' => 26,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 26: Compute a mean
 
-Expected output:
-Frank
+Read space-separated numbers and print the arithmetic mean rounded to 2 decimal places.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (name TEXT, salary INTEGER, dept TEXT)')
-conn.executemany('INSERT INTO employees VALUES (?,?,?)', [
-    ('Alice', 50000, 'IT'), ('Bob', 50000, 'IT'), ('Frank', 80000, 'IT'),
-    ('Carol', 40000, 'HR'), ('Dave', 40000, 'HR')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 300,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute the mean rounded to 2 decimals
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '2.00', 'is_hidden' => false],
+                    ['input' => '10 20', 'expected_output' => '15.00', 'is_hidden' => false],
+                    ['input' => '5', 'expected_output' => '5.00', 'is_hidden' => true],
+                    ['input' => '2 2 5', 'expected_output' => '3.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q26
             [
-                'order_index'         => 26,
-                'problem_description' => <<<'MD'
-`EXISTS` is often faster than `IN` for checking subquery intersections. 
-Write a query using `WHERE EXISTS` to find all departments in the `departments` table that have at least one employee in the `employees` table. Order alphabetically.
+                'order_index' => 27,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 27: Count values above threshold
 
-Expected output:
-HR
-IT
+First line is a threshold. Second line contains integers. Print how many values are greater than the threshold.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE departments (id INTEGER, name TEXT)')
-conn.executemany('INSERT INTO departments VALUES (?,?)', [(1,'IT'),(2,'HR'),(3,'Marketing')])
-conn.execute('CREATE TABLE employees (id INTEGER, dept_id INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [(10,1), (11,2)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 300,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count values greater than the threshold
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '5
+1 6 7 5', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '10
+10 11 9 12', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '0
+-1 0 1', 'expected_output' => '1', 'is_hidden' => true],
+                    ['input' => '3
+4 5 6', 'expected_output' => '3', 'is_hidden' => true],
+                ],
             ],
-
-            // Q27
             [
-                'order_index'         => 27,
-                'problem_description' => <<<'MD'
-Using Multiple CTEs. Define two CTEs: `top_dept` (departments with total salary > 100k) and `high_earners` (employees > 60k). 
-Join them to output the high-earning employee names in top departments. Order by name.
+                'order_index' => 28,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 28: Compute range
 
-Expected output:
-Alice
+Read integers and print the difference between the maximum and minimum value.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (name TEXT, salary INTEGER, dept TEXT)')
-conn.executemany('INSERT INTO employees VALUES (?,?,?)', [
-    ('Alice', 80000, 'IT'), ('Bob', 30000, 'IT'), 
-    ('Carol', 70000, 'HR')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "WITH top_dept AS (...), high_earners AS (...) SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 300,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Print max minus min
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 5 9', 'expected_output' => '8', 'is_hidden' => false],
+                    ['input' => '10 10', 'expected_output' => '0', 'is_hidden' => false],
+                    ['input' => '-3 7 2', 'expected_output' => '10', 'is_hidden' => true],
+                    ['input' => '100', 'expected_output' => '0', 'is_hidden' => true],
+                ],
             ],
-
-            // Q28
             [
-                'order_index'         => 28,
-                'problem_description' => <<<'MD'
-**Recursive CTEs** let you build hierarchical or sequential data. 
-Write a recursive CTE to generate the numbers 1 through 5, and select them.
+                'order_index' => 29,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 29: Min-max normalize values
 
-Expected output:
-1
-2
-3
-4
-5
+Read integers. Print min-max normalized values rounded to 2 decimals separated by spaces. If all values are equal, print zeros.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
+Consider boundary cases and keep the solution readable.
 
-# Use WITH RECURSIVE
-query = "WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x<5) SELECT x FROM cnt;"
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 300,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Normalize values to 0..1
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '0 5 10', 'expected_output' => '0.00 0.50 1.00', 'is_hidden' => false],
+                    ['input' => '2 2 2', 'expected_output' => '0.00 0.00 0.00', 'is_hidden' => false],
+                    ['input' => '1 3', 'expected_output' => '0.00 1.00', 'is_hidden' => true],
+                    ['input' => '-1 0 1', 'expected_output' => '0.00 0.50 1.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q29
             [
-                'order_index'         => 29,
-                'problem_description' => <<<'MD'
-Scalar Subqueries in the SELECT clause. 
-For every employee, return their name, their salary, and the **company-wide maximum salary** as a third column. Order by name.
+                'order_index' => 30,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 30: Count words
 
-Expected output:
-Alice 50000 80000
-Bob 80000 80000
+Read one line of text and print the number of words.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (name TEXT, salary INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [('Alice', 50000), ('Bob', 80000)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 300,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count words in a line
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'data science is fun', 'expected_output' => '4', 'is_hidden' => false],
+                    ['input' => 'hello', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => 'one two  three', 'expected_output' => '3', 'is_hidden' => true],
+                    ['input' => 'Python coding challenge', 'expected_output' => '3', 'is_hidden' => true],
+                ],
             ],
-
-            // Q30
             [
-                'order_index'         => 30,
-                'problem_description' => <<<'MD'
-Updates with Subqueries. Update the `customers` table, setting `is_active = 1` for any customer who exists in the `recent_orders` table.
-Print the active customers alphabetically.
+                'order_index' => 31,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 31: Reverse word order
 
-Expected output:
-Alice
+Read one line and print the words in reverse order separated by spaces.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE customers (id INTEGER, name TEXT, is_active INTEGER DEFAULT 0)')
-conn.executemany('INSERT INTO customers VALUES (?,?,?)', [(1,'Alice',0), (2,'Bob',0)])
-conn.execute('CREATE TABLE recent_orders (customer_id INTEGER)')
-conn.executemany('INSERT INTO recent_orders VALUES (?)', [(1,)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-conn.execute("UPDATE ...")
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Reverse the words
+import sys
 
-for row in conn.execute("SELECT name FROM customers WHERE is_active = 1 ORDER BY name"):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 300,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'data science is fun', 'expected_output' => 'fun is science data', 'is_hidden' => false],
+                    ['input' => 'hello world', 'expected_output' => 'world hello', 'is_hidden' => false],
+                    ['input' => 'a b c', 'expected_output' => 'c b a', 'is_hidden' => true],
+                    ['input' => 'single', 'expected_output' => 'single', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 6: Advanced Window Functions (Q31–Q36)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q31
             [
-                'order_index'         => 31,
-                'problem_description' => <<<'MD'
-`DENSE_RANK()` vs `RANK()`. `DENSE_RANK` doesn't skip numbers after a tie. 
-Return the employee name, salary, and their dense rank grouped/partitioned by `dept`, ordered by `salary` DESC. 
-Order final output by `dept` and `drank`.
+                'order_index' => 32,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 32: Count unique values
 
-Expected output:
-IT Frank 90000 1
-IT Alice 80000 2
-IT Bob 80000 2
-IT Carol 70000 3
+Read space-separated values and print the number of unique values.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (name TEXT, salary INTEGER, dept TEXT)')
-conn.executemany('INSERT INTO employees VALUES (?,?,?)', [
-    ('Alice', 80000, 'IT'), ('Bob', 80000, 'IT'), ('Carol', 70000, 'IT'), ('Frank', 90000, 'IT')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT dept, name, salary, DENSE_RANK() OVER (...) AS drank FROM employees ORDER BY dept, drank"
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count unique values
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a b a c', 'expected_output' => '3', 'is_hidden' => false],
+                    ['input' => '1 1 1', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => 'x y z', 'expected_output' => '3', 'is_hidden' => true],
+                    ['input' => 'red blue red', 'expected_output' => '2', 'is_hidden' => true],
+                ],
             ],
-
-            // Q32
             [
-                'order_index'         => 32,
-                'problem_description' => <<<'MD'
-`NTILE(n)` divides rows into `n` roughly equal buckets.
-Divide the 4 products into 2 quartiles/buckets based on `price` DESC. 
-Return name and bucket number, ordered by price DESC.
+                'order_index' => 33,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 33: Find most frequent value
 
-Expected output:
-Laptop 1
-Phone 1
-Tablet 2
-Desk 2
+Read space-separated values and print the value that appears most often. If tied, print the value that appears first.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE products (name TEXT, price INTEGER)')
-conn.executemany('INSERT INTO products VALUES (?,?)', [
-    ('Laptop', 1200), ('Phone', 800), ('Tablet', 600), ('Desk', 200)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Find the mode with first-tie rule
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a b a c', 'expected_output' => 'a', 'is_hidden' => false],
+                    ['input' => '1 2 2 1', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => 'x y y z', 'expected_output' => 'y', 'is_hidden' => true],
+                    ['input' => 'red blue red blue red', 'expected_output' => 'red', 'is_hidden' => true],
+                ],
             ],
-
-            // Q33
             [
-                'order_index'         => 33,
-                'problem_description' => <<<'MD'
-**Moving Averages** use window frames.
-Compute a moving sum of `amount` using `ROWS BETWEEN 1 PRECEDING AND CURRENT ROW` ordered by `day`.
-Output day, amount, and moving sum.
+                'order_index' => 34,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 34: Filter even numbers
 
-Expected output:
-1 10 10
-2 20 30
-3 30 50
-4 40 70
+Read integers and print only the even values separated by spaces. Print NONE if there are no even values.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE sales (day INTEGER, amount INTEGER)')
-conn.executemany('INSERT INTO sales VALUES (?,?)', [(1,10), (2,20), (3,30), (4,40)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Print even values or NONE
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3 4', 'expected_output' => '2 4', 'is_hidden' => false],
+                    ['input' => '1 3 5', 'expected_output' => 'NONE', 'is_hidden' => false],
+                    ['input' => '0 2 8', 'expected_output' => '0 2 8', 'is_hidden' => true],
+                    ['input' => '-2 -1 6', 'expected_output' => '-2 6', 'is_hidden' => true],
+                ],
             ],
-
-            // Q34
             [
-                'order_index'         => 34,
-                'problem_description' => <<<'MD'
-`FIRST_VALUE()` retrieves the first value in an ordered window.
-For each row, show the `name`, `salary`, and the `salary` of the lowest-paid employee in the whole table (ordered ascending).
+                'order_index' => 35,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 35: Two-point moving average
 
-Expected output:
-Alice 50000 40000
-Bob 80000 40000
-Carol 40000 40000
+Read numbers and print the average of every adjacent pair rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (name TEXT, salary INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?)', [
-    ('Alice', 50000), ('Bob', 80000), ('Carol', 40000)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT name, salary, FIRST_VALUE(salary) OVER(ORDER BY salary ASC) FROM employees ORDER BY name"
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Adjacent-pair averages
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '2 4 6', 'expected_output' => '3.00 5.00', 'is_hidden' => false],
+                    ['input' => '1 2', 'expected_output' => '1.50', 'is_hidden' => false],
+                    ['input' => '10 20 40 80', 'expected_output' => '15.00 30.00 60.00', 'is_hidden' => true],
+                    ['input' => '5 5 5', 'expected_output' => '5.00 5.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q35
             [
-                'order_index'         => 35,
-                'problem_description' => <<<'MD'
-Calculate year-over-year growth. Use `LAG()` to get the previous year's revenue, subtract it from the current year, and output `year` and `growth`. If previous year is null, output `0` using `COALESCE`. Order by year.
+                'order_index' => 36,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 36: Compute accuracy
 
-Expected output:
-2021 0
-2022 50
-2023 -20
+First line has true labels. Second line has predicted labels. Print accuracy as a percentage rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE revenue (year INTEGER, amt INTEGER)')
-conn.executemany('INSERT INTO revenue VALUES (?,?)', [(2021, 100), (2022, 150), (2023, 130)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute classification accuracy
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'A B A
+A B B', 'expected_output' => '66.67', 'is_hidden' => false],
+                    ['input' => '1 0 1 1
+1 0 1 1', 'expected_output' => '100.00', 'is_hidden' => false],
+                    ['input' => 'cat dog
+dog dog', 'expected_output' => '50.00', 'is_hidden' => true],
+                    ['input' => 'yes no yes
+no no yes', 'expected_output' => '66.67', 'is_hidden' => true],
+                ],
             ],
-
-            // Q36
             [
-                'order_index'         => 36,
-                'problem_description' => <<<'MD'
-Percent of Total within Partition.
-Calculate each employee's salary as a percentage of their department's total salary: `(salary * 100.0) / SUM(salary) OVER(...)`.
-Output `name`, `dept`, and `pct` (rounded to 1 decimal), ordered alphabetically by name.
+                'order_index' => 37,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 37: Dot product
 
-Expected output:
-Alice IT 60.0
-Bob IT 40.0
-Carol HR 100.0
+Read vector A on the first line and vector B on the second line. Print their dot product.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE employees (name TEXT, dept TEXT, salary INTEGER)')
-conn.executemany('INSERT INTO employees VALUES (?,?,?)', [
-    ('Alice', 'IT', 60000), ('Bob', 'IT', 40000), ('Carol', 'HR', 50000)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute dot product
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3
+4 5 6', 'expected_output' => '32', 'is_hidden' => false],
+                    ['input' => '2 0
+3 4', 'expected_output' => '6', 'is_hidden' => false],
+                    ['input' => '-1 2
+3 -4', 'expected_output' => '-11', 'is_hidden' => true],
+                    ['input' => '5
+6', 'expected_output' => '30', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 7: EAV & Dimensional Modeling (Q37–Q41)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q37
             [
-                'order_index'         => 37,
-                'problem_description' => <<<'MD'
-Entity-Attribute-Value (EAV) mapping. 
-An `eav` table stores `entity_id`, `attribute`, and `value`. 
-Find the `entity_id` of the item that has BOTH `color = blue` AND `size = L`.
+                'order_index' => 38,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 38: Matrix trace
 
-Expected output:
-2
+First line contains n. Next n lines contain an n x n matrix. Print the sum of the main diagonal.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE eav (entity_id INTEGER, attribute TEXT, value TEXT)')
-conn.executemany('INSERT INTO eav VALUES (?,?,?)', [
-    (1, 'color', 'red'), (1, 'size', 'L'),
-    (2, 'color', 'blue'), (2, 'size', 'L'),
-    (3, 'color', 'blue'), (3, 'size', 'S')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-# Use self-joins or conditional aggregation (HAVING COUNT)
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute matrix trace
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '2
+1 2
+3 4', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => '3
+1 0 0
+0 2 0
+0 0 3', 'expected_output' => '6', 'is_hidden' => false],
+                    ['input' => '1
+9', 'expected_output' => '9', 'is_hidden' => true],
+                    ['input' => '2
+-1 5
+7 -2', 'expected_output' => '-3', 'is_hidden' => true],
+                ],
             ],
-
-            // Q38
             [
-                'order_index'         => 38,
-                'problem_description' => <<<'MD'
-Pivoting EAV tables. 
-Write a query using `MAX(CASE...)` to pivot the EAV data for `entity_id = 2` into columns: `entity_id, color, size`.
+                'order_index' => 39,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 39: Weighted score
 
-Expected output:
-2 blue L
+First line contains scores. Second line contains matching weights. Print weighted average rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE eav (entity_id INTEGER, attribute TEXT, value TEXT)')
-conn.executemany('INSERT INTO eav VALUES (?,?,?)', [
-    (2, 'color', 'blue'), (2, 'size', 'L')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Weighted average
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '80 90
+0.5 0.5', 'expected_output' => '85.00', 'is_hidden' => false],
+                    ['input' => '1 2 3
+1 1 1', 'expected_output' => '2.00', 'is_hidden' => false],
+                    ['input' => '10 20
+2 1', 'expected_output' => '13.33', 'is_hidden' => true],
+                    ['input' => '100 50
+0.25 0.75', 'expected_output' => '62.50', 'is_hidden' => true],
+                ],
             ],
-
-            // Q39
             [
-                'order_index'         => 39,
-                'problem_description' => <<<'MD'
-Flattening a Star Schema. 
-Join a `fact_sales` table to `dim_store` and `dim_date` to output the `store_name`, `date_string`, and `amount`. Order by `amount` DESC.
+                'order_index' => 40,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 40: Simple linear forecast
 
-Expected output:
-NY Store 2023-01-01 500
+Read numbers representing a sequence with a constant step. Print the next value.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE dim_store (store_id INTEGER, store_name TEXT)')
-conn.executemany('INSERT INTO dim_store VALUES (?,?)', [(1, 'NY Store')])
-conn.execute('CREATE TABLE dim_date (date_id INTEGER, date_string TEXT)')
-conn.executemany('INSERT INTO dim_date VALUES (?,?)', [(100, '2023-01-01')])
-conn.execute('CREATE TABLE fact_sales (store_id INTEGER, date_id INTEGER, amount INTEGER)')
-conn.executemany('INSERT INTO fact_sales VALUES (?,?,?)', [(1, 100, 500)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Forecast next value in an arithmetic sequence
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '2 4 6 8', 'expected_output' => '10', 'is_hidden' => false],
+                    ['input' => '10 7 4', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => '5 5 5', 'expected_output' => '5', 'is_hidden' => true],
+                    ['input' => '1 3', 'expected_output' => '5', 'is_hidden' => true],
+                ],
             ],
-
-            // Q40
             [
-                'order_index'         => 40,
-                'problem_description' => <<<'MD'
-Resolving Many-to-Many ties. 
-Given `students`, `courses`, and `enrollments`, output a single list of `student_name` and a concatenated string of their courses (using SQLite's `GROUP_CONCAT(course_name, ', ')`). Order by student name.
+                'order_index' => 41,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 41: Greedy coin count
 
-Expected output:
-Alice Math, Science
+Read an amount in pesos. Using denominations 20, 10, 5, 1, print the minimum coin/bill count.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE students (id INTEGER, name TEXT)')
-conn.executemany('INSERT INTO students VALUES (?,?)', [(1, 'Alice')])
-conn.execute('CREATE TABLE courses (id INTEGER, course_name TEXT)')
-conn.executemany('INSERT INTO courses VALUES (?,?)', [(10, 'Math'), (11, 'Science')])
-conn.execute('CREATE TABLE enrollments (student_id INTEGER, course_id INTEGER)')
-conn.executemany('INSERT INTO enrollments VALUES (?,?)', [(1, 10), (1, 11)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(*row)
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Greedy count for 20,10,5,1
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '37', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => '40', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '4', 'expected_output' => '4', 'is_hidden' => true],
+                    ['input' => '0', 'expected_output' => '0', 'is_hidden' => true],
+                ],
             ],
-
-            // Q41
             [
-                'order_index'         => 41,
-                'problem_description' => <<<'MD'
-Identifying Functional Dependency anomalies (3NF violation).
-The `orders` table stores `customer_id`, `customer_name`, and `customer_city`. 
-Write a query to find `customer_id`s that have conflicting (more than 1 distinct) `customer_city` entries across their orders.
+                'order_index' => 42,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 42: Jaccard similarity
 
-Expected output:
-1
+Read set A on the first line and set B on the second line. Print Jaccard similarity rounded to 2 decimals.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE orders (order_id INTEGER, customer_id INTEGER, customer_city TEXT)')
-conn.executemany('INSERT INTO orders VALUES (?,?,?)', [
-    (101, 1, 'NY'), (102, 1, 'LA'), (103, 2, 'Boston'), (104, 2, 'Boston')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 250,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute Jaccard similarity
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a b c
+b c d', 'expected_output' => '0.50', 'is_hidden' => false],
+                    ['input' => 'x y
+x y', 'expected_output' => '1.00', 'is_hidden' => false],
+                    ['input' => 'a
+b', 'expected_output' => '0.00', 'is_hidden' => true],
+                    ['input' => '1 2 3
+3 4', 'expected_output' => '0.25', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 8: Query Optimization & SARGable Predicates (Q42–Q46)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q42
             [
-                'order_index'         => 42,
-                'problem_description' => <<<'MD'
-SARGable (Search ARGument ABLE) predicates can use indexes. 
-`WHERE SUBSTR(date, 1, 4) = '2023'` is NOT SARGable. 
-Rewrite it using string bounds or `LIKE '2023%'` to count sales in 2023.
+                'order_index' => 43,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 43: CSV column sum
 
-Expected output:
-2
+Read comma-separated rows. Each row has name,value. Print the sum of the numeric values.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE sales (amount INTEGER, date TEXT)')
-conn.executemany('INSERT INTO sales VALUES (?,?)', [
-    (100, '2023-01-05'), (200, '2023-11-20'), (300, '2022-12-31')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-# Use LIKE for SARGable prefix matching
-query = "SELECT COUNT(*) FROM sales WHERE ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Sum numeric column from name,value rows
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'a,2
+b,3', 'expected_output' => '5', 'is_hidden' => false],
+                    ['input' => 'x,10', 'expected_output' => '10', 'is_hidden' => false],
+                    ['input' => 'p,-1
+q,5', 'expected_output' => '4', 'is_hidden' => true],
+                    ['input' => 'one,1
+two,2
+three,3', 'expected_output' => '6', 'is_hidden' => true],
+                ],
             ],
-
-            // Q43
             [
-                'order_index'         => 43,
-                'problem_description' => <<<'MD'
-Avoid math on indexed columns. `WHERE price * 0.9 < 100` ignores indexes on `price`. 
-Rewrite the condition mathematically to isolate `price` (`price < 100 / 0.9`). 
-Select the names of those products.
+                'order_index' => 44,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 44: Transform values
 
-Expected output:
-Pen
+Read integers and print each value doubled, separated by spaces.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE products (name TEXT, price INTEGER)')
-conn.executemany('INSERT INTO products VALUES (?,?)', [('Desk', 150), ('Pen', 10)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT name FROM products WHERE price < (100 / 0.9)"
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Double each value
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '2 4 6', 'is_hidden' => false],
+                    ['input' => '0 -2', 'expected_output' => '0 -4', 'is_hidden' => false],
+                    ['input' => '5', 'expected_output' => '10', 'is_hidden' => true],
+                    ['input' => '10 20', 'expected_output' => '20 40', 'is_hidden' => true],
+                ],
             ],
-
-            // Q44
             [
-                'order_index'         => 44,
-                'problem_description' => <<<'MD'
-Using a Covering Index. If an index is `(category, status)`, a query filtering on BOTH can use it perfectly.
-Select `count(*)` of products where `category = 'Electronics'` AND `status = 'Active'`.
+                'order_index' => 45,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 45: Sum a list of numbers
 
-Expected output:
-1
+Read space-separated integers and print their sum.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE products (id INTEGER, category TEXT, status TEXT)')
-conn.executemany('INSERT INTO products VALUES (?,?,?)', [
-    (1, 'Electronics', 'Active'), (2, 'Electronics', 'Inactive'), (3, 'Home', 'Active')
-])
-conn.execute('CREATE INDEX idx_cat_stat ON products(category, status)')
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Read integers from input and print the sum
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '6', 'is_hidden' => false],
+                    ['input' => '10 -5 4', 'expected_output' => '9', 'is_hidden' => false],
+                    ['input' => '0', 'expected_output' => '0', 'is_hidden' => true],
+                    ['input' => '100 200 300', 'expected_output' => '600', 'is_hidden' => true],
+                ],
             ],
-
-            // Q45
             [
-                'order_index'         => 45,
-                'problem_description' => <<<'MD'
-Avoiding `SELECT *` in production code. 
-Only retrieve the `email` column for active users (`is_active = 1`).
+                'order_index' => 46,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 46: Compute a mean
 
-Expected output:
-test@mail.com
+Read space-separated numbers and print the arithmetic mean rounded to 2 decimal places.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE users (id INTEGER, email TEXT, is_active INTEGER)')
-conn.executemany('INSERT INTO users VALUES (?,?,?)', [(1, 'test@mail.com', 1), (2, 'old@mail.com', 0)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT ..."
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Compute the mean rounded to 2 decimals
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 2 3', 'expected_output' => '2.00', 'is_hidden' => false],
+                    ['input' => '10 20', 'expected_output' => '15.00', 'is_hidden' => false],
+                    ['input' => '5', 'expected_output' => '5.00', 'is_hidden' => true],
+                    ['input' => '2 2 5', 'expected_output' => '3.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q46
             [
-                'order_index'         => 46,
-                'problem_description' => <<<'MD'
-Boolean vs integer filtering optimization. SQLite stores booleans as `0` and `1`. 
-Find the sum of `amount` where `is_paid = 1`.
+                'order_index' => 47,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 47: Count values above threshold
 
-Expected output:
-300
+First line is a threshold. Second line contains integers. Print how many values are greater than the threshold.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE invoices (amount INTEGER, is_paid INTEGER)')
-conn.executemany('INSERT INTO invoices VALUES (?,?)', [(300, 1), (200, 0)])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT SUM(amount) FROM invoices WHERE is_paid = 1"
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 200,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count values greater than the threshold
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '5
+1 6 7 5', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '10
+10 11 9 12', 'expected_output' => '2', 'is_hidden' => false],
+                    ['input' => '0
+-1 0 1', 'expected_output' => '1', 'is_hidden' => true],
+                    ['input' => '3
+4 5 6', 'expected_output' => '3', 'is_hidden' => true],
+                ],
             ],
-
-            // ═══════════════════════════════════════════════════════════════
-            // TOPIC 10: JSON in Relational Databases (SQLite JSON1) (Q47–Q50)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Q47
             [
-                'order_index'         => 47,
-                'problem_description' => <<<'MD'
-SQLite's `json_extract(column, '$.path')` (or `column ->> '$.path'`) extracts JSON data.
-The `users` table has a `profile` JSON column. 
-Extract the `$.age` property and return names of users strictly older than 25, ordered alphabetically.
+                'order_index' => 48,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 48: Compute range
 
-Expected output:
-Alice
+Read integers and print the difference between the maximum and minimum value.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE users (name TEXT, profile TEXT)')
-conn.executemany('INSERT INTO users VALUES (?,?)', [
-    ('Alice', '{"age": 30}'), ('Bob', '{"age": 20}')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT name FROM users WHERE json_extract(profile, '$.age') > 25"
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Print max minus min
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '1 5 9', 'expected_output' => '8', 'is_hidden' => false],
+                    ['input' => '10 10', 'expected_output' => '0', 'is_hidden' => false],
+                    ['input' => '-3 7 2', 'expected_output' => '10', 'is_hidden' => true],
+                    ['input' => '100', 'expected_output' => '0', 'is_hidden' => true],
+                ],
             ],
-
-            // Q48
             [
-                'order_index'         => 48,
-                'problem_description' => <<<'MD'
-Aggregating over extracted JSON.
-Sum the extracted `$.price` from the `items` JSON column across all rows.
+                'order_index' => 49,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 49: Min-max normalize values
 
-Expected output:
-150
+Read integers. Print min-max normalized values rounded to 2 decimals separated by spaces. If all values are equal, print zeros.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE orders (items TEXT)')
-conn.executemany('INSERT INTO orders VALUES (?)', [
-    ('{"price": 100}',), ('{"price": 50}',)
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT SUM(json_extract(items, '$.price')) FROM orders"
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Normalize values to 0..1
+import sys
+
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => '0 5 10', 'expected_output' => '0.00 0.50 1.00', 'is_hidden' => false],
+                    ['input' => '2 2 2', 'expected_output' => '0.00 0.00 0.00', 'is_hidden' => false],
+                    ['input' => '1 3', 'expected_output' => '0.00 1.00', 'is_hidden' => true],
+                    ['input' => '-1 0 1', 'expected_output' => '0.00 0.50 1.00', 'is_hidden' => true],
+                ],
             ],
-
-            // Q49
             [
-                'order_index'         => 49,
-                'problem_description' => <<<'MD'
-JSON Array Length. Extract the length of a JSON array using `json_array_length()`.
-Find the `id` of rows where the `$.tags` array has more than 1 item.
+                'order_index' => 50,
+                'problem_description' => '### Module 10: Database Management for Data Science
+### Difficulty: Intermediate
+### Task 50: Count words
 
-Expected output:
-1
+Read one line of text and print the number of words.
 
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE posts (id INTEGER, metadata TEXT)')
-conn.executemany('INSERT INTO posts VALUES (?,?)', [
-    (1, '{"tags": ["sql", "db"]}'), (2, '{"tags": ["sql"]}')
-])
-conn.commit()
+Consider boundary cases and keep the solution readable.
 
-query = "SELECT id FROM posts WHERE json_array_length(metadata, '$.tags') > 1"
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
-            ],
+Input must be read from standard input. Output must match exactly. Avoid hardcoding the sample values because hidden tests use different data.',
+                'starter_code' => '# Count words in a line
+import sys
 
-            // Q50
-            [
-                'order_index'         => 50,
-                'problem_description' => <<<'MD'
-Filtering nested JSON objects. Extract `$.address.city` and return the `id` of rows where the city is `'Cebu'`.
-
-Expected output:
-2
-
-MD,
-                'starter_code'        => <<<'PY'
-import sqlite3
-conn = sqlite3.connect(':memory:')
-conn.execute('CREATE TABLE locations (id INTEGER, data TEXT)')
-conn.executemany('INSERT INTO locations VALUES (?,?)', [
-    (1, '{"address": {"city": "Manila"}}'), 
-    (2, '{"address": {"city": "Cebu"}}')
-])
-conn.commit()
-
-query = "SELECT id FROM locations WHERE json_extract(data, '$.address.city') = 'Cebu'"
-for row in conn.execute(query):
-    print(row[0])
-PY,
-                'time_limit_seconds'  => 600,
-                'base_xp'             => 350,
+# Your code starts here
+',
+                'time_limit_seconds' => 1200,
+                'base_xp' => 160,
+                'test_cases' => [
+                    ['input' => 'data science is fun', 'expected_output' => '4', 'is_hidden' => false],
+                    ['input' => 'hello', 'expected_output' => '1', 'is_hidden' => false],
+                    ['input' => 'one two  three', 'expected_output' => '3', 'is_hidden' => true],
+                    ['input' => 'Python coding challenge', 'expected_output' => '3', 'is_hidden' => true],
+                ],
             ],
         ];
 
-        // Insert questions; collect IDs
-        $questionIds = [];
-
-        foreach ($questionDefs as $def) {
-            $row = DB::table('coding_questions')->where([
+        foreach ($questionDefs as $questionDef) {
+            $codingQuestion = CodingQuestion::create([
                 'challenge_id' => $challenge->id,
-                'order_index'  => $def['order_index'],
-            ])->first();
+                'problem_description' => $questionDef['problem_description'],
+                'language' => 'python',
+                'starter_code' => $questionDef['starter_code'],
+                'order_index' => $questionDef['order_index'],
+                'time_limit_seconds' => $questionDef['time_limit_seconds'],
+                'base_xp' => $questionDef['base_xp'],
+            ]);
 
-            if (! $row) {
-                $id = DB::table('coding_questions')->insertGetId(array_merge(
-                    ['challenge_id' => $challenge->id, 'language' => 'python'],
-                    $def,
-                    ['created_at' => now(), 'updated_at' => now()]
-                ));
-            } else {
-                $id = $row->id;
+            foreach ($questionDef['test_cases'] as $caseIndex => $testCase) {
+                TestCase::create([
+                    'coding_question_id' => $codingQuestion->id,
+                    'input' => $testCase['input'],
+                    'expected_output' => $testCase['expected_output'],
+                    'is_hidden' => $testCase['is_hidden'],
+                    'order_index' => $caseIndex + 1,
+                ]);
             }
-
-            $questionIds[$def['order_index']] = $id;
         }
 
-        // ─────────────────────────────────────────────────────────────────
-        // 3. TEST CASES (4 per question: 2 visible, 2 hidden)
-        // ─────────────────────────────────────────────────────────────────
-
-        $this->command->info('Seeding test cases...');
-
-        $now = now()->toDateTimeString();
-
-        $seed = function (int $ord, array $cases) use ($questionIds, $now): void {
-            $qid = $questionIds[$ord] ?? null;
-            if (! $qid) return;
-
-            if (DB::table('test_cases')->where('coding_question_id', $qid)->exists()) {
-                $this->command->warn("  test_cases for Q{$ord} already exist — skipping.");
-                return;
-            }
-
-            $rows = array_map(fn ($c) => array_merge(
-                ['coding_question_id' => $qid, 'created_at' => $now, 'updated_at' => $now],
-                $c
-            ), $cases);
-
-            DB::table('test_cases')->insert($rows);
-        };
-
-        // Note: For deterministic intermediate queries that don't rely on dynamic input logic,
-        // we replicate the static expected output across the cases just like the base seeder template.
-
-        $seed(1, [
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(2, [
-            ['input' => null, 'expected_output' => "admin@test.com", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "admin@test.com", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "admin@test.com", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "admin@test.com", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(3, [
-            ['input' => null, 'expected_output' => "2\n4", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2\n4", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2\n4", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2\n4", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(4, [
-            ['input' => null, 'expected_output' => "Intro to Magic", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Intro to Magic", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Intro to Magic", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Intro to Magic", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(5, [
-            ['input' => null, 'expected_output' => "150000", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "150000", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "150000", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "150000", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(6, [
-            ['input' => null, 'expected_output' => "Alice 555-1111\nBob 555-2222\nCarol 555-3333", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice 555-1111\nBob 555-2222\nCarol 555-3333", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice 555-1111\nBob 555-2222\nCarol 555-3333", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice 555-1111\nBob 555-2222\nCarol 555-3333", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(7, [
-            ['input' => null, 'expected_output' => "1 High\n2 Low\n3 Medium", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1 High\n2 Low\n3 Medium", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1 High\n2 Low\n3 Medium", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1 High\n2 Low\n3 Medium", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(8, [
-            ['input' => null, 'expected_output' => "Aaron", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Aaron", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Aaron", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Aaron", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(9, [
-            ['input' => null, 'expected_output' => "1500", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1500", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1500", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1500", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(10, [
-            ['input' => null, 'expected_output' => "Desk 100\nChair 150\nLaptop 1200\nPhone 800", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Desk 100\nChair 150\nLaptop 1200\nPhone 800", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Desk 100\nChair 150\nLaptop 1200\nPhone 800", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Desk 100\nChair 150\nLaptop 1200\nPhone 800", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(11, [
-            ['input' => null, 'expected_output' => "4 Dave\n5 Eve\n6 Frank", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "4 Dave\n5 Eve\n6 Frank", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "4 Dave\n5 Eve\n6 Frank", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "4 Dave\n5 Eve\n6 Frank", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(12, [
-            ['input' => null, 'expected_output' => "160000 95000 65000", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "160000 95000 65000", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "160000 95000 65000", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "160000 95000 65000", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(13, [
-            ['input' => null, 'expected_output' => "101", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "101", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "101", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "101", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(14, [
-            ['input' => null, 'expected_output' => "HR 0\nIT 2\nSales 1", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "HR 0\nIT 2\nSales 1", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "HR 0\nIT 2\nSales 1", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "HR 0\nIT 2\nSales 1", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(15, [
-            ['input' => null, 'expected_output' => "2023 01 1500\n2023 02 800", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2023 01 1500\n2023 02 800", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2023 01 1500\n2023 02 800", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2023 01 1500\n2023 02 800", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(16, [
-            ['input' => null, 'expected_output' => "80000.0", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "80000.0", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "80000.0", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "80000.0", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(17, [
-            ['input' => null, 'expected_output' => "1 2\n2 1", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1 2\n2 1", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1 2\n2 1", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1 2\n2 1", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(18, [
-            ['input' => null, 'expected_output' => "2400", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2400", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2400", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2400", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(19, [
-            ['input' => null, 'expected_output' => "Eve", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Eve", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Eve", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Eve", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(20, [
-            ['input' => null, 'expected_output' => "Bob Alice\nCarol Alice", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Bob Alice\nCarol Alice", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Bob Alice\nCarol Alice", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Bob Alice\nCarol Alice", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(21, [
-            ['input' => null, 'expected_output' => "StoreA Apples\nStoreA Bananas\nStoreB Apples\nStoreB Bananas", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "StoreA Apples\nStoreA Bananas\nStoreB Apples\nStoreB Bananas", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "StoreA Apples\nStoreA Bananas\nStoreB Apples\nStoreB Bananas", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "StoreA Apples\nStoreA Bananas\nStoreB Apples\nStoreB Bananas", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(22, [
-            ['input' => null, 'expected_output' => "Launch Weekend Sale", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Launch Weekend Sale", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Launch Weekend Sale", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Launch Weekend Sale", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(23, [
-            ['input' => null, 'expected_output' => "Alice A", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice A", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice A", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice A", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(24, [
-            ['input' => null, 'expected_output' => "alice@mail.com", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "alice@mail.com", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "alice@mail.com", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "alice@mail.com", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(25, [
-            ['input' => null, 'expected_output' => "Frank", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Frank", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Frank", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Frank", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(26, [
-            ['input' => null, 'expected_output' => "HR\nIT", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "HR\nIT", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "HR\nIT", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "HR\nIT", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(27, [
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(28, [
-            ['input' => null, 'expected_output' => "1\n2\n3\n4\n5", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1\n2\n3\n4\n5", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1\n2\n3\n4\n5", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1\n2\n3\n4\n5", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(29, [
-            ['input' => null, 'expected_output' => "Alice 50000 80000\nBob 80000 80000", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice 50000 80000\nBob 80000 80000", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice 50000 80000\nBob 80000 80000", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice 50000 80000\nBob 80000 80000", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(30, [
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(31, [
-            ['input' => null, 'expected_output' => "IT Frank 90000 1\nIT Alice 80000 2\nIT Bob 80000 2\nIT Carol 70000 3", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "IT Frank 90000 1\nIT Alice 80000 2\nIT Bob 80000 2\nIT Carol 70000 3", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "IT Frank 90000 1\nIT Alice 80000 2\nIT Bob 80000 2\nIT Carol 70000 3", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "IT Frank 90000 1\nIT Alice 80000 2\nIT Bob 80000 2\nIT Carol 70000 3", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(32, [
-            ['input' => null, 'expected_output' => "Laptop 1\nPhone 1\nTablet 2\nDesk 2", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Laptop 1\nPhone 1\nTablet 2\nDesk 2", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Laptop 1\nPhone 1\nTablet 2\nDesk 2", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Laptop 1\nPhone 1\nTablet 2\nDesk 2", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(33, [
-            ['input' => null, 'expected_output' => "1 10 10\n2 20 30\n3 30 50\n4 40 70", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1 10 10\n2 20 30\n3 30 50\n4 40 70", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1 10 10\n2 20 30\n3 30 50\n4 40 70", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1 10 10\n2 20 30\n3 30 50\n4 40 70", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(34, [
-            ['input' => null, 'expected_output' => "Alice 50000 40000\nBob 80000 40000\nCarol 40000 40000", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice 50000 40000\nBob 80000 40000\nCarol 40000 40000", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice 50000 40000\nBob 80000 40000\nCarol 40000 40000", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice 50000 40000\nBob 80000 40000\nCarol 40000 40000", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(35, [
-            ['input' => null, 'expected_output' => "2021 0\n2022 50\n2023 -20", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2021 0\n2022 50\n2023 -20", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2021 0\n2022 50\n2023 -20", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2021 0\n2022 50\n2023 -20", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(36, [
-            ['input' => null, 'expected_output' => "Alice IT 60.0\nBob IT 40.0\nCarol HR 100.0", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice IT 60.0\nBob IT 40.0\nCarol HR 100.0", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice IT 60.0\nBob IT 40.0\nCarol HR 100.0", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice IT 60.0\nBob IT 40.0\nCarol HR 100.0", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(37, [
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(38, [
-            ['input' => null, 'expected_output' => "2 blue L", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2 blue L", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2 blue L", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2 blue L", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(39, [
-            ['input' => null, 'expected_output' => "NY Store 2023-01-01 500", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "NY Store 2023-01-01 500", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "NY Store 2023-01-01 500", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "NY Store 2023-01-01 500", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(40, [
-            ['input' => null, 'expected_output' => "Alice Math, Science", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice Math, Science", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice Math, Science", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice Math, Science", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(41, [
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(42, [
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(43, [
-            ['input' => null, 'expected_output' => "Pen", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Pen", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Pen", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Pen", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(44, [
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(45, [
-            ['input' => null, 'expected_output' => "test@mail.com", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "test@mail.com", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "test@mail.com", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "test@mail.com", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(46, [
-            ['input' => null, 'expected_output' => "300", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "300", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "300", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "300", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(47, [
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "Alice", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(48, [
-            ['input' => null, 'expected_output' => "150", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "150", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "150", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "150", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(49, [
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "1", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-        $seed(50, [
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => false, 'order_index' => 1],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => false, 'order_index' => 2],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => true,  'order_index' => 3],
-            ['input' => null, 'expected_output' => "2", 'is_hidden' => true,  'order_index' => 4],
-        ]);
-
-        $this->command->info('✅ Module 10 Coding (Intermediate) seeded — 1 challenge, 50 questions, 200 test cases.');
+        $this->command->info('Module 10 Coding (Intermediate) seeded — 1 challenge, 50 questions, 200 test cases.');
     }
 }

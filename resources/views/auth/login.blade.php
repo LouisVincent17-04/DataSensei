@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DataSensei</title>
+@include('partials.brand-head')
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -645,16 +646,11 @@
 <div class="shell">
   <div class="left">
     <div class="left-logo">
-      <div class="logo-mark">
-        <svg viewBox="0 0 20 20" fill="none">
-          <rect x="2" y="10" width="3" height="8" rx="1" fill="#04111f"/>
-          <rect x="7" y="6" width="3" height="12" rx="1" fill="#04111f"/>
-          <rect x="12" y="2" width="3" height="16" rx="1" fill="#04111f"/>
-          <circle cx="16.5" cy="5.5" r="2" fill="#04111f" opacity="0.6"/>
-          <path d="M3.5 10 L8.5 7 L13.5 3" stroke="#04111f" stroke-width="1.2" stroke-dasharray="2 1.5" opacity="0.5"/>
-        </svg>
-      </div>
-      <span class="logo-name">DataSensei</span>
+      @include('partials.brand-logo', [
+        'variant' => 'auth',
+        'size' => 'large',
+        'subtext' => 'Data Science Learning Platform',
+      ])
     </div>
 
     <div class="left-hero">

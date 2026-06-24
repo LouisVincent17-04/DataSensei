@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module4ChallengeSeederUniversityStudent extends Seeder
 {
@@ -16,513 +14,508 @@ class Module4ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        Challenge::where('challenge_category_id', $category->id)
-                 ->where('title', 'Mathematical Analysis I')
-                 ->delete();
+        $title = 'Mathematical Analysis I';
 
-        $this->command->info("Creating Module 4 — Mathematical Analysis I (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 4 — Mathematical Analysis I (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Mathematical Analysis I',
-            'description'           => 'Test your analytical understanding of limits, continuity, derivatives, and basic integration. Questions require tracing calculations, applying rules, and reasoning through multi-step problems.',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 750,
-            'order_index'           => 4,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Mathematical Analysis I. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 4,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding 50 university-level Mathematical Analysis I questions...");
-
         $qaData = [
-
-            // ── LIMITS: ALGEBRAIC EVALUATION ─────────────────────────────
             [
-                'q' => "Evaluate: lim(x→3) (x² − 9) / (x − 3)",
+                'q' => 'Item 1: In Mathematical Analysis I, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['0', false],
-                    ['3', false],
-                    ['6', true],
-                    ['Undefined', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What technique is used to evaluate lim(x→2) (x² − 4) / (x − 2) when direct substitution gives 0/0?",
+                'q' => 'Item 2: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['L\'Hôpital\'s Rule', false],
-                    ['Factoring and cancelling the common factor', true],
-                    ['Taking the square root of the numerator', false],
-                    ['Multiplying by the conjugate', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Evaluate: lim(x→∞) (3x² + 2x) / (x² − 5)",
+                'q' => 'Item 3: Which mistake most commonly weakens work in Mathematical Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['0', false],
-                    ['2', false],
-                    ['3', true],
-                    ['∞', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "lim(x→0) sin(x) / x = ?",
+                'q' => 'Item 4: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['0', false],
-                    ['∞', false],
-                    ['Undefined', false],
-                    ['1', true],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is lim(x→0⁺) ln(x)?",
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['0', false],
-                    ['1', false],
-                    ['−∞', true],
-                    ['+∞', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Using the Squeeze Theorem, if g(x) ≤ f(x) ≤ h(x) and lim g(x) = lim h(x) = L, then:",
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
                 'opts' => [
-                    ['lim f(x) = 0', false],
-                    ['lim f(x) = L', true],
-                    ['lim f(x) is undefined', false],
-                    ['lim f(x) = g(x) + h(x)', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Evaluate: lim(x→1) (x³ − 1) / (x − 1)",
+                'q' => 'Item 7: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['1', false],
-                    ['2', false],
-                    ['3', true],
-                    ['0', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is lim(x→∞) (5x³ + 2) / (2x³ − x)?",
+                'q' => 'Item 8: Which situation is most likely an edge case in Mathematical Analysis I?',
                 'opts' => [
-                    ['0', false],
-                    ['5', false],
-                    ['5/2', true],
-                    ['∞', false],
-                ],
-            ],
-
-            // ── CONTINUITY ────────────────────────────────────────────────
-            [
-                'q' => "Which THREE conditions must hold for f to be continuous at x = a?",
-                'opts' => [
-                    ['f is defined at a, the limit exists at a, and the limit equals f(a)', true],
-                    ['f is differentiable at a, increasing at a, and f(a) > 0', false],
-                    ['The limit exists at a, f(a) = 0, and f is linear', false],
-                    ['f is defined at a, f\'(a) exists, and f is bounded', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "f(x) = (x² − 4)/(x − 2). What type of discontinuity does this have at x = 2?",
+                'q' => 'Item 9: When comparing two approaches in Mathematical Analysis, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['Jump discontinuity', false],
-                    ['Infinite discontinuity', false],
-                    ['Removable discontinuity', true],
-                    ['Oscillatory discontinuity', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Intermediate Value Theorem guarantees that if f is continuous on [a, b] and N is between f(a) and f(b), then:",
+                'q' => 'Item 10: What does a strong final answer in Mathematical Analysis I include?',
                 'opts' => [
-                    ['f(a) = f(b)', false],
-                    ['There exists c in (a, b) such that f(c) = N', true],
-                    ['f is differentiable on [a, b]', false],
-                    ['The function has a minimum at c', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which function is continuous everywhere on ℝ?",
+                'q' => 'Item 11: In Mathematical Analysis I, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['f(x) = 1/x', false],
-                    ['f(x) = √x', false],
-                    ['f(x) = tan(x)', false],
-                    ['f(x) = e^x', true],
-                ],
-            ],
-
-            // ── DERIVATIVES: RULES ────────────────────────────────────────
-            [
-                'q' => "Using the product rule, what is the derivative of f(x) = x² · sin(x)?",
-                'opts' => [
-                    ['2x · cos(x)', false],
-                    ['2x · sin(x) + x² · cos(x)', true],
-                    ['x² · cos(x)', false],
-                    ['2x · sin(x) − x² · cos(x)', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Using the quotient rule, what is d/dx [sin(x)/x]?",
+                'q' => 'Item 12: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['cos(x)/x', false],
-                    ['[x·cos(x) − sin(x)] / x²', true],
-                    ['[sin(x) − x·cos(x)] / x²', false],
-                    ['cos(x)/x − sin(x)/x²', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "Using the chain rule, what is the derivative of f(x) = (3x + 1)⁵?",
+                'q' => 'Item 13: Which mistake most commonly weakens work in Mathematical Analysis when dealing with bias check?',
                 'opts' => [
-                    ['5(3x + 1)⁴', false],
-                    ['15(3x + 1)⁴', true],
-                    ['5(3x + 1)⁴ · 3x', false],
-                    ['(3x + 1)⁵ · 3', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the derivative of f(x) = ln(x)?",
+                'q' => 'Item 14: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['ln(x) / x', false],
-                    ['x · ln(x)', false],
-                    ['1 / x', true],
-                    ['e^x', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the derivative of f(x) = e^(3x)?",
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['e^(3x)', false],
-                    ['3e^x', false],
-                    ['3e^(3x)', true],
-                    ['e^(3x) / 3', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the second derivative of f(x) = x⁴?",
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
                 'opts' => [
-                    ['4x³', false],
-                    ['12x²', true],
-                    ['24x', false],
-                    ['4x', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the derivative of f(x) = sin(x²)?",
+                'q' => 'Item 17: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['cos(x²)', false],
-                    ['2x · cos(x²)', true],
-                    ['2x · sin(x²)', false],
-                    ['cos(2x)', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "If f(x) = x³ − 6x² + 9x, what are the critical points?",
+                'q' => 'Item 18: Which situation is most likely an edge case in Mathematical Analysis I?',
                 'opts' => [
-                    ['x = 0 and x = 3', false],
-                    ['x = 1 and x = 3', true],
-                    ['x = 2 and x = 4', false],
-                    ['x = −1 and x = 3', false],
-                ],
-            ],
-
-            // ── APPLICATIONS OF DERIVATIVES ───────────────────────────────
-            [
-                'q' => "The Mean Value Theorem states that for f continuous on [a, b] and differentiable on (a, b), there exists c such that:",
-                'opts' => [
-                    ["f'(c) = f(b) − f(a)", false],
-                    ["f'(c) = [f(b) − f(a)] / (b − a)", true],
-                    ["f'(c) = 0", false],
-                    ["f(c) = [a + b] / 2", false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "A function is concave up on an interval when:",
+                'q' => 'Item 19: When comparing two approaches in Mathematical Analysis, what should a University Student learner prioritize?',
                 'opts' => [
-                    ["f'(x) < 0", false],
-                    ["f'(x) > 0", false],
-                    ["f''(x) > 0", true],
-                    ["f''(x) < 0", false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "At an inflection point of f(x):",
+                'q' => 'Item 20: What does a strong final answer in Mathematical Analysis I include?',
                 'opts' => [
-                    ["f'(x) = 0", false],
-                    ["f(x) = 0", false],
-                    ["f''(x) changes sign", true],
-                    ["f(x) reaches its maximum", false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "To find the absolute maximum of f(x) = −x² + 4x on [0, 4], you should:",
+                'q' => 'Item 21: In Mathematical Analysis I, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['Evaluate f only at the endpoints', false],
-                    ['Find critical points then compare f values at critical points and endpoints', true],
-                    ['Set f(x) = 0 and solve', false],
-                    ['Compute the second derivative only', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What does the second derivative test conclude when f'(c) = 0 and f''(c) > 0?",
+                'q' => 'Item 22: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['f has a local maximum at x = c', false],
-                    ['f has an inflection point at x = c', false],
-                    ['The test is inconclusive', false],
-                    ['f has a local minimum at x = c', true],
-                ],
-            ],
-
-            // ── BASIC INTEGRATION ─────────────────────────────────────────
-            [
-                'q' => "What is ∫ x³ dx?",
-                'opts' => [
-                    ['3x² + C', false],
-                    ['x⁴ + C', false],
-                    ['x⁴/4 + C', true],
-                    ['4x⁴ + C', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is ∫ (2x + 5) dx?",
+                'q' => 'Item 23: Which mistake most commonly weakens work in Mathematical Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['2 + C', false],
-                    ['x² + 5x + C', true],
-                    ['2x² + 5x + C', false],
-                    ['x² + C', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Evaluate the definite integral: ∫₀² x dx",
+                'q' => 'Item 24: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['1', false],
-                    ['4', false],
-                    ['2', true],
-                    ['0', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is ∫ e^x dx?",
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['x · e^x + C', false],
-                    ['e^x / x + C', false],
-                    ['e^(x+1) + C', false],
-                    ['e^x + C', true],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is ∫ (1/x) dx?",
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
                 'opts' => [
-                    ['x² / 2 + C', false],
-                    ['ln|x| + C', true],
-                    ['1/x² + C', false],
-                    ['e^x + C', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The Fundamental Theorem of Calculus Part 1 states that if F(x) = ∫ₐˣ f(t) dt, then:",
+                'q' => 'Item 27: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ["F(x) = f(x) + C", false],
-                    ["F'(x) = f(x)", true],
-                    ["F'(x) = F(a) − F(x)", false],
-                    ["F(x) = f(a) − f(x)", false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Evaluate: ∫₁³ (3x²) dx",
+                'q' => 'Item 28: Which situation is most likely an edge case in Mathematical Analysis I?',
                 'opts' => [
-                    ['9', false],
-                    ['18', false],
-                    ['26', true],
-                    ['27', false],
-                ],
-            ],
-
-            // ── SEQUENCES & SERIES ────────────────────────────────────────
-            [
-                'q' => "Does the sequence aₙ = 1/n converge or diverge as n → ∞?",
-                'opts' => [
-                    ['Diverges to ∞', false],
-                    ['Diverges to −∞', false],
-                    ['Converges to 1', false],
-                    ['Converges to 0', true],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the sum of the geometric series: 1 + 1/2 + 1/4 + 1/8 + … ?",
+                'q' => 'Item 29: When comparing two approaches in Mathematical Analysis, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['1', false],
-                    ['∞', false],
-                    ['3/2', false],
-                    ['2', true],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "The harmonic series 1 + 1/2 + 1/3 + 1/4 + … is known to:",
+                'q' => 'Item 30: What does a strong final answer in Mathematical Analysis I include?',
                 'opts' => [
-                    ['Converge to π', false],
-                    ['Converge to 2', false],
-                    ['Converge to ln(2)', false],
-                    ['Diverge', true],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the common ratio of the geometric sequence 5, 15, 45, 135, …?",
+                'q' => 'Item 31: In Mathematical Analysis I, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['5', false],
-                    ['10', false],
-                    ['3', true],
-                    ['1/3', false],
-                ],
-            ],
-
-            // ── MULTI-STEP TRACING ────────────────────────────────────────
-            [
-                'q' => "Given f(x) = x³ − 3x, find the interval(s) where f is increasing.",
-                'opts' => [
-                    ['(−1, 1)', false],
-                    ['(−∞, −1) and (1, ∞)', true],
-                    ['(0, ∞)', false],
-                    ['(−3, 3)', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For f(x) = x² − 4x + 3, what is the vertex (minimum point)?",
+                'q' => 'Item 32: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['(2, −1)', true],
-                    ['(4, 3)', false],
-                    ['(0, 3)', false],
-                    ['(1, 0)', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the linearization (tangent line approximation) of f(x) = √x at x = 9?",
+                'q' => 'Item 33: Which mistake most commonly weakens work in Mathematical Analysis when dealing with bias check?',
                 'opts' => [
-                    ['L(x) = 3 + (1/6)(x − 9)', true],
-                    ['L(x) = 9 + 3(x − 9)', false],
-                    ['L(x) = 3 + 3(x − 9)', false],
-                    ['L(x) = √9 + x', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the Taylor series expansion of e^x about x = 0 (first three terms)?",
+                'q' => 'Item 34: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['1 + x + x² + …', false],
-                    ['x + x²/2 + x³/6 + …', false],
-                    ['1 + x + x²/2! + …', true],
-                    ['1 − x + x²/2! − …', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Implicit differentiation: if x² + y² = 25, what is dy/dx?",
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Mathematical Analysis fails on one test case?',
                 'opts' => [
-                    ['x/y', false],
-                    ['−x/y', true],
-                    ['y/x', false],
-                    ['2x + 2y', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Using L'Hôpital's Rule, evaluate lim(x→0) sin(x)/x when direct substitution gives 0/0.",
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
                 'opts' => [
-                    ['0', false],
-                    ['∞', false],
-                    ['sin(1)', false],
-                    ['1', true],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => "What is the area between f(x) = x² and g(x) = x on the interval [0, 1]?",
+                'q' => 'Item 37: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['1/3', false],
-                    ['1/6', true],
-                    ['1/2', false],
-                    ['1', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => "For f(x) = e^x − x, at what x does the minimum occur?",
+                'q' => 'Item 38: Which situation is most likely an edge case in Mathematical Analysis I?',
                 'opts' => [
-                    ['x = 0', true],
-                    ['x = 1', false],
-                    ['x = e', false],
-                    ['x = −1', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the derivative of f(x) = arctan(x)?",
+                'q' => 'Item 39: When comparing two approaches in Mathematical Analysis, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['−1/(1 + x²)', false],
-                    ['1/√(1 − x²)', false],
-                    ['1/(1 + x²)', true],
-                    ['tan(x)', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which test determines if an alternating series ∑(−1)ⁿ bₙ converges?",
+                'q' => 'Item 40: What does a strong final answer in Mathematical Analysis I include?',
                 'opts' => [
-                    ['Ratio Test', false],
-                    ['Root Test', false],
-                    ['Alternating Series Test (Leibniz)', true],
-                    ['Integral Test', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => "For f(x) = x⁴ − 8x², how many inflection points does f have?",
+                'q' => 'Item 41: In Mathematical Analysis I, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['0', false],
-                    ['1', false],
-                    ['2', true],
-                    ['4', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Which substitution simplifies ∫ 2x(x² + 1)⁵ dx?",
+                'q' => 'Item 42: A learner working on Mathematical Analysis I gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['u = x² + 1, du = 2x dx', true],
-                    ['u = x + 1, du = dx', false],
-                    ['u = 2x, du = 2 dx', false],
-                    ['u = (x² + 1)⁵, du = 5u⁴ dx', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => "Evaluate ∫₀¹ 2x(x² + 1)⁵ dx after the substitution u = x² + 1.",
+                'q' => 'Item 43: Which mistake most commonly weakens work in Mathematical Analysis when dealing with assumptions?',
                 'opts' => [
-                    ['2⁶/6 − 1/6', false],
-                    ['(2⁶ − 1)/6', true],
-                    ['2⁵/5', false],
-                    ['2⁶ − 1', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => "What is the radius of convergence of the power series ∑ xⁿ/n! ?",
+                'q' => 'Item 44: For Mathematical Analysis I, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['0', false],
-                    ['1', false],
-                    ['e', false],
-                    ['∞', true],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
-
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Mathematical Analysis fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Mathematical Analysis I tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Mathematical Analysis assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Mathematical Analysis I?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Mathematical Analysis, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Mathematical Analysis I include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                ],
+            ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! 50 questions seeded for Module 4 — Mathematical Analysis I (University Student).");
-        $this->command->info("   Challenge ID: {$challenge->id}  |  Category: University Student");
+        $this->command->info('Module 4 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

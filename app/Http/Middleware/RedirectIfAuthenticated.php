@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class RedirectIfAuthenticated
 {
@@ -17,11 +18,12 @@ class RedirectIfAuthenticated
 
             $role = Auth::user()->role;
 
-            return match($role) {
-                1 => redirect('/student/dashboard'),
-                2 => redirect('/instructor/dashboard'),
-                3 => redirect('/admin/dashboard'),
-                4 => redirect('/superadmin/dashboard'),
+            return match((int) $role) {
+                User::ROLE_USER => redirect('/student/dashboard'),
+                User::ROLE_ADMIN => redirect('/admin/dashboard'),
+                User::ROLE_SUPERADMIN => redirect('/superadmin/dashboard'),
+                User::ROLE_INSTRUCTOR => redirect('/instructor/dashboard'),
+                User::ROLE_INSTITUTION_ADMIN => redirect('/institution_admin/dashboard'),
                 default => abort(403),
             };
         }

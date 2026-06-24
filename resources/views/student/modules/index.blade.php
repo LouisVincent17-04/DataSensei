@@ -6,7 +6,7 @@
     <title>Student Modules</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
+<style>
         :root {
             --bg: #0d1320;
             --surface: #111c2d;
@@ -124,13 +124,14 @@
             font-weight: 700;
         }
     </style>
+  @include('partials.ui-polish')
 </head>
 <body>
     <main class="student-mod-page">
         <div class="student-mod-header">
             <div class="student-mod-kicker">Student Learning</div>
             <h1>Learning Modules</h1>
-            <p>Open a module to study the same NetAcad-style content structure.</p>
+            <p>Open a module to study the same DataSensei guided lesson structure.</p>
         </div>
 
         <div class="student-mod-grid">

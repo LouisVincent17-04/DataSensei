@@ -64,32 +64,57 @@
     .topbar-search {
       display: flex;
       align-items: center;
+      gap: 10px;
+      width: 320px;
+      height: 40px;
+      min-height: 40px;
+      max-height: 40px;
+      padding: 0 12px;
+      overflow: hidden;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      gap: 10px;
-      width: 280px;
-      transition: border-color 0.15s;
+      transition: border-color 0.15s, background 0.15s;
+      flex: 0 0 auto;
+      align-self: center;
     }
 
-    .topbar-search:focus-within { border-color: var(--accent); }
+    .topbar-search:focus-within {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .topbar-search svg {
+      flex: 0 0 auto;
+      color: var(--muted);
+    }
 
     .topbar-search input {
-      background: none;
+      flex: 1;
+      width: 100%;
+      height: 38px;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      background: transparent;
       border: none;
       outline: none;
       color: var(--text);
       font-size: 0.875rem;
+      line-height: 1.2;
       font-family: inherit;
-      width: 100%;
+      appearance: none;
     }
 
     .topbar-search input::placeholder { color: var(--dim); }
 
     .topbar-btn {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
+      max-height: 40px;
+      padding: 0;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -100,6 +125,9 @@
       color: var(--muted);
       transition: all 0.15s;
       position: relative;
+      flex: 0 0 40px;
+      align-self: center;
+      text-decoration: none;
     }
 
     .topbar-btn:hover { color: var(--text); border-color: var(--border-hover); }
@@ -510,6 +538,10 @@
 
     @media (max-width: 1000px) {
       .grid-2, .grid-main { grid-template-columns: 1fr; }
+      .topbar-search { width: 240px; }
+    }
+
+    @media (max-width: 820px) {
       .topbar-search { display: none; }
     }
 

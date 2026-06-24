@@ -7,8 +7,6 @@ use App\Models\ChallengeCategory;
 use App\Models\Challenge;
 use App\Models\ChallengeQuestion;
 use App\Models\ChallengeOption;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class Module13ChallengeSeederUniversityStudent extends Seeder
 {
@@ -16,488 +14,508 @@ class Module13ChallengeSeederUniversityStudent extends Seeder
     {
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
-        if (!$category) {
-            $this->command->error("University Student category not found! Run ChallengeCategorySeeder first.");
+        if (! $category) {
+            $this->command->error('University Student category not found. Run ChallengeCategorySeeder first.');
             return;
         }
 
-        // Challenge::where('challenge_category_id', $category->id)->delete();
+        $title = 'Introduction to Optimization Techniques';
 
-        $this->command->info("Creating Module 13 — Introduction to Optimization Techniques (University Student)...");
+        Challenge::where('challenge_category_id', $category->id)
+            ->where('title', $title)
+            ->where('is_coding_challenge', 0)
+            ->delete();
+
+        $this->command->info('Creating Module 13 — Introduction to Optimization Techniques (University Student) [MCQ]...');
 
         $challenge = Challenge::create([
             'challenge_category_id' => $category->id,
-            'title'                 => 'Introduction to Optimization Techniques',
-            'description'           => 'Test your analytical understanding of optimization — derivatives, gradient descent mechanics, convexity, and basic constrained problems. Light calculations and tracing required.',
-            'time_limit_seconds'    => 1200,
-            'base_xp'               => 700,
-            'order_index'           => 13,
+            'title' => $title,
+            'description' => 'A detailed 50-item University Student MCQ challenge for Introduction to Optimization Techniques. Items include concepts, scenarios, debugging, interpretation, and decision-making.',
+            'time_limit_seconds' => 1500,
+            'base_xp' => 650,
+            'order_index' => 13,
+            'is_coding_challenge' => 0,
         ]);
 
-        $this->command->info("Seeding University Student optimization questions...");
-
         $qaData = [
-
-            // ── CALCULUS REVIEW ───────────────────────────────────────────
             [
-                'q' => 'Find the derivative of f(x) = 4x³ − 2x² + 7x − 5.',
+                'q' => 'Item 1: In Introduction to Optimization Techniques, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['12x² − 4x + 7', true],
-                    ['4x² − 2x + 7', false],
-                    ['12x² − 4x', false],
-                    ['12x³ − 4x² + 7', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For f(x) = x² − 6x + 9, find the critical point by setting f\'(x) = 0.',
+                'q' => 'Item 2: A learner working on Introduction to Optimization Techniques gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['x = 9', false],
-                    ['x = 6', false],
-                    ['x = 3', true],
-                    ['x = 0', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For f(x) = x² − 6x + 9, is the critical point x = 3 a minimum or maximum?\n\nHint: check the second derivative f\'\'(x).',
+                'q' => 'Item 3: Which mistake most commonly weakens work in Optimization Techniques when dealing with assumptions?',
                 'opts' => [
-                    ['Maximum, because f\'\'(3) = 2 > 0', false],
-                    ['Minimum, because f\'\'(3) = 2 > 0', true],
-                    ['Saddle point, because f\'\'(3) = 0', false],
-                    ['Maximum, because f\'\'(3) < 0', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Find the gradient of f(x, y) = x² + 3y².\n\n∇f = (∂f/∂x, ∂f/∂y)',
+                'q' => 'Item 4: For Introduction to Optimization Techniques, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['(2x, 3y)', false],
-                    ['(x², 3y²)', false],
-                    ['(2x, 6y)', true],
-                    ['(2, 6)', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'At the point (1, 2), the gradient of f(x, y) = x² + 3y² equals:',
+                'q' => 'Item 5: Which response shows the best University Student practice when a method in Optimization Techniques fails on one test case?',
                 'opts' => [
-                    ['(1, 6)', false],
-                    ['(2, 12)', true],
-                    ['(2, 6)', false],
-                    ['(1, 2)', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The gradient ∇f always points in the direction of:',
+                'q' => 'Item 6: What is the best reason to keep notes or comments while solving Introduction to Optimization Techniques tasks?',
                 'opts' => [
-                    ['Steepest descent (downhill)', false],
-                    ['Steepest ascent (uphill)', true],
-                    ['The nearest local minimum', false],
-                    ['Zero', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The second derivative test: if f\'\'(x) > 0 at a critical point, the point is a:',
+                'q' => 'Item 7: In a Optimization Techniques assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Local maximum', false],
-                    ['Saddle point', false],
-                    ['Local minimum', true],
-                    ['Global maximum', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For f(x) = −x² + 4x − 3, the critical point is at x = 2. Since f\'\'(x) = −2 < 0, this point is a:',
+                'q' => 'Item 8: Which situation is most likely an edge case in Introduction to Optimization Techniques?',
                 'opts' => [
-                    ['Local minimum', false],
-                    ['Saddle point', false],
-                    ['Local maximum', true],
-                    ['Inflection point only', false],
-                ],
-            ],
-
-            // ── GRADIENT DESCENT MECHANICS ────────────────────────────────
-            [
-                'q' => 'The gradient descent update rule is:\n\n  θ_new = θ_old − α · ∇f(θ_old)\n\nWhat does α represent?',
-                'opts' => [
-                    ['The gradient direction', false],
-                    ['The learning rate (step size)', true],
-                    ['The current function value', false],
-                    ['The number of iterations', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Starting at x = 4, with f\'(x) = 2x and learning rate α = 0.1:\n\nx_new = x − α · f\'(x)\n\nWhat is x_new?',
+                'q' => 'Item 9: When comparing two approaches in Optimization Techniques, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['3.2', true],
-                    ['4.8', false],
-                    ['3.6', false],
-                    ['3.0', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'After one more step from x = 3.2 (using f\'(x) = 2x, α = 0.1):\n\nx_new = 3.2 − 0.1 × 2(3.2)',
+                'q' => 'Item 10: What does a strong final answer in Introduction to Optimization Techniques include?',
                 'opts' => [
-                    ['2.56', true],
-                    ['3.0', false],
-                    ['2.88', false],
-                    ['2.4', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For f(x) = (x − 3)², gradient descent will converge toward:',
+                'q' => 'Item 11: In Introduction to Optimization Techniques, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['x = 0', false],
-                    ['x = 3 (the global minimum)', true],
-                    ['x = 6', false],
-                    ['x = 9', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Learning rate α = 2.0 is used on f(x) = x². Starting at x = 1:\n\nx_new = 1 − 2.0 × 2(1) = 1 − 4 = −3\n\nWhat is likely happening?',
+                'q' => 'Item 12: A learner working on Introduction to Optimization Techniques gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['The algorithm is converging quickly', false],
-                    ['The algorithm is diverging — overshooting the minimum', true],
-                    ['The algorithm found the minimum at x = −3', false],
-                    ['The algorithm is moving toward the maximum', false],
-                ],
-            ],
-
-            // ── SGD, MINI-BATCH, MOMENTUM, ADAM ───────────────────────────
-            [
-                'q' => 'Compared to Batch Gradient Descent, Stochastic Gradient Descent (SGD) is:',
-                'opts' => [
-                    ['Smoother in its update path', false],
-                    ['Noisier but can escape local minima more easily', true],
-                    ['Always slower', false],
-                    ['Uses second-order information', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Mini-Batch Gradient Descent with batch size = 1 is equivalent to:',
+                'q' => 'Item 13: Which mistake most commonly weakens work in Optimization Techniques when dealing with bias check?',
                 'opts' => [
-                    ['Batch Gradient Descent', false],
-                    ['Stochastic Gradient Descent (SGD)', true],
-                    ['Newton\'s Method', false],
-                    ['Adam optimizer', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Momentum adds a fraction of the previous update to the current one. The update rule is:\n\n  v_new = β·v_old + α·∇f\n  θ_new = θ_old − v_new\n\nWhat does a high β (close to 1) mean?',
+                'q' => 'Item 14: For Introduction to Optimization Techniques, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Previous gradients have very little influence', false],
-                    ['Previous gradients contribute strongly — the optimizer has high momentum', true],
-                    ['The learning rate is effectively increased to 1', false],
-                    ['The gradient is ignored', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'The Adam optimizer combines which two ideas?',
+                'q' => 'Item 15: Which response shows the best University Student practice when a method in Optimization Techniques fails on one test case?',
                 'opts' => [
-                    ['Momentum and RMSProp (adaptive learning rates)', true],
-                    ['Simulated Annealing and Gradient Descent', false],
-                    ['Newton\'s Method and Grid Search', false],
-                    ['Batch Gradient Descent and Bayesian Optimization', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In Adam, the parameter β₁ ≈ 0.9 controls the decay of the:\n\n  m_t = β₁·m_{t-1} + (1−β₁)·g_t',
+                'q' => 'Item 16: What is the best reason to keep notes or comments while solving Introduction to Optimization Techniques tasks?',
                 'opts' => [
-                    ['Second moment (variance of gradients)', false],
-                    ['Learning rate schedule', false],
-                    ['First moment (mean of gradients)', true],
-                    ['Weight decay regularization', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Which optimizer is known for working well "out of the box" with minimal learning rate tuning?',
+                'q' => 'Item 17: In a Optimization Techniques assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['Batch Gradient Descent', false],
-                    ['Adam', true],
-                    ['The Simplex Method', false],
-                    ['Simulated Annealing', false],
-                ],
-            ],
-
-            // ── CONVEXITY ─────────────────────────────────────────────────
-            [
-                'q' => 'Which of the following functions is convex?',
-                'opts' => [
-                    ['f(x) = −x²', false],
-                    ['f(x) = x²', true],
-                    ['f(x) = sin(x)', false],
-                    ['f(x) = x³', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A function f is convex if for any two points x₁ and x₂:\n\n  f(λx₁ + (1−λ)x₂) ≤ λf(x₁) + (1−λ)f(x₂)  for λ ∈ [0,1]\n\nThis means the function lies _____ the chord connecting any two points.',
+                'q' => 'Item 18: Which situation is most likely an edge case in Introduction to Optimization Techniques?',
                 'opts' => [
-                    ['Above', false],
-                    ['Below or on', true],
-                    ['Exactly on', false],
-                    ['To the left of', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'A loss landscape in deep learning is generally:',
+                'q' => 'Item 19: When comparing two approaches in Optimization Techniques, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['Perfectly convex with one global minimum', false],
-                    ['Non-convex with many local minima and saddle points', true],
-                    ['Always flat (no minima)', false],
-                    ['A straight line', false],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'For a convex function, every local minimum is also:',
+                'q' => 'Item 20: What does a strong final answer in Introduction to Optimization Techniques include?',
                 'opts' => [
-                    ['A saddle point', false],
-                    ['A local maximum', false],
-                    ['The global minimum', true],
-                    ['A critical point but not a minimum', false],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A saddle point in 2D has the property that it is:\n\n  - A minimum in one direction\n  - A maximum in another direction\n\nWhich function has a saddle point at the origin?',
+                'q' => 'Item 21: In Introduction to Optimization Techniques, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
                 'opts' => [
-                    ['f(x, y) = x² + y²', false],
-                    ['f(x, y) = x² − y²', true],
-                    ['f(x, y) = x² + 2y²', false],
-                    ['f(x, y) = −x² − y²', false],
-                ],
-            ],
-
-            // ── CONSTRAINED OPTIMIZATION / LAGRANGE ───────────────────────
-            [
-                'q' => 'The method of Lagrange multipliers converts a constrained problem:\n\n  Minimize f(x, y) subject to g(x, y) = 0\n\ninto which condition?',
-                'opts' => [
-                    ['f(x, y) = 0', false],
-                    ['∇f = λ·∇g', true],
-                    ['f(x, y) = g(x, y)', false],
-                    ['∇f = 0 and ∇g = 0 separately', false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'You want to minimize f(x, y) = x² + y² subject to x + y = 4.\n\nSetting up Lagrange conditions:\n  2x = λ,  2y = λ,  x + y = 4\n\nWhat are x and y?',
+                'q' => 'Item 22: A learner working on Introduction to Optimization Techniques gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['x = 1, y = 3', false],
-                    ['x = 2, y = 2', true],
-                    ['x = 0, y = 4', false],
-                    ['x = 4, y = 0', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'KKT (Karush-Kuhn-Tucker) conditions extend Lagrange multipliers to handle:',
+                'q' => 'Item 23: Which mistake most commonly weakens work in Optimization Techniques when dealing with assumptions?',
                 'opts' => [
-                    ['Only equality constraints', false],
-                    ['Both equality and inequality constraints', true],
-                    ['Only minimization problems', false],
-                    ['Problems with no constraints', false],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a KKT solution, the complementary slackness condition states:\n\n  μᵢ · gᵢ(x) = 0\n\nThis means for each inequality constraint, either:',
+                'q' => 'Item 24: For Introduction to Optimization Techniques, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['Both μᵢ > 0 and gᵢ(x) > 0 must hold', false],
-                    ['The multiplier μᵢ = 0 OR the constraint is active (gᵢ(x) = 0)', true],
-                    ['All constraints must be active simultaneously', false],
-                    ['The multiplier equals the gradient', false],
-                ],
-            ],
-
-            // ── LINEAR PROGRAMMING ────────────────────────────────────────
-            [
-                'q' => 'A bakery maximizes profit:\n  Maximize: 3x + 5y\n  Subject to: x + 2y ≤ 12, x ≥ 0, y ≥ 0\n\nThe feasible region corner points are (0,0), (12,0), (0,6).\nWhich point gives maximum profit?',
-                'opts' => [
-                    ['(0, 0): profit = 0', false],
-                    ['(12, 0): profit = 36', false],
-                    ['(0, 6): profit = 30', false],
-                    ['(0, 6): profit = 30 — wait, check (12, 0): 3(12)+5(0) = 36', true],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'Linear programming assumes the objective function and all constraints are:',
+                'q' => 'Item 25: Which response shows the best University Student practice when a method in Optimization Techniques fails on one test case?',
                 'opts' => [
-                    ['Quadratic', false],
-                    ['Linear (no squared or product terms)', true],
-                    ['Exponential', false],
-                    ['Probabilistic', false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In the Simplex Method, the algorithm moves from one _____ of the feasible region to another.',
+                'q' => 'Item 26: What is the best reason to keep notes or comments while solving Introduction to Optimization Techniques tasks?',
                 'opts' => [
-                    ['Interior point', false],
-                    ['Random point', false],
-                    ['Vertex (corner point)', true],
-                    ['Center point', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'scipy.optimize.linprog minimizes by default. To maximize 3x + 5y using linprog, you minimize:',
+                'q' => 'Item 27: In a Optimization Techniques assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['3x + 5y', false],
-                    ['−3x − 5y', true],
-                    ['1/(3x + 5y)', false],
-                    ['5x + 3y', false],
-                ],
-            ],
-
-            // ── METAHEURISTICS ────────────────────────────────────────────
-            [
-                'q' => 'In a Genetic Algorithm, "crossover" refers to:',
-                'opts' => [
-                    ['Randomly flipping bits in a solution', false],
-                    ['Combining parts of two parent solutions to create offspring', true],
-                    ['Evaluating how good a solution is', false],
-                    ['Eliminating the worst solutions', false],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'In a Genetic Algorithm, "mutation" refers to:',
+                'q' => 'Item 28: Which situation is most likely an edge case in Introduction to Optimization Techniques?',
                 'opts' => [
-                    ['Combining two parent solutions', false],
-                    ['A small random change to a solution, maintaining diversity', true],
-                    ['Selecting the best solutions for reproduction', false],
-                    ['Evaluating the fitness function', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'In Simulated Annealing, the "temperature" parameter controls:',
+                'q' => 'Item 29: When comparing two approaches in Optimization Techniques, what should a University Student learner prioritize?',
                 'opts' => [
-                    ['The learning rate of gradient descent', false],
-                    ['The probability of accepting a worse solution (exploration vs exploitation)', true],
-                    ['The number of solutions in the population', false],
-                    ['The speed of the CPU', false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'As temperature decreases in Simulated Annealing, the algorithm:',
+                'q' => 'Item 30: What does a strong final answer in Introduction to Optimization Techniques include?',
                 'opts' => [
-                    ['Becomes more willing to accept worse solutions', false],
-                    ['Becomes less likely to accept worse solutions (more greedy)', true],
-                    ['Restarts with a new random solution', false],
-                    ['Converges to a random point', false],
-                ],
-            ],
-
-            // ── HYPERPARAMETER OPTIMIZATION ───────────────────────────────
-            [
-                'q' => 'Grid Search over 4 learning rate values and 3 regularization values requires:\n\n  How many total model evaluations?',
-                'opts' => [
-                    ['4', false],
-                    ['3', false],
-                    ['7', false],
-                    ['12', true],
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Random Search over the same grid explores 12 combinations but samples them:',
+                'q' => 'Item 31: In Introduction to Optimization Techniques, which action best supports academic application and small scenario analysis when starting a new task involving reproducibility?',
                 'opts' => [
-                    ['In a fixed order from best to worst', false],
-                    ['Randomly, potentially finding good solutions faster than exhaustive search', true],
-                    ['Based on gradient information', false],
-                    ['Only from the best-performing region', false],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Bayesian Optimization builds a _____ of the objective function to guide the search.',
+                'q' => 'Item 32: A learner working on Introduction to Optimization Techniques gets a result that looks correct. What should they do next at the University Student level?',
                 'opts' => [
-                    ['Decision tree', false],
-                    ['Probabilistic surrogate model (e.g., Gaussian Process)', true],
-                    ['Linear regression model', false],
-                    ['Confusion matrix', false],
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'The "acquisition function" in Bayesian Optimization decides:',
+                'q' => 'Item 33: Which mistake most commonly weakens work in Optimization Techniques when dealing with bias check?',
                 'opts' => [
-                    ['How to tune the learning rate', false],
-                    ['Which hyperparameter configuration to evaluate next', true],
-                    ['How many epochs to train', false],
-                    ['Which features to remove', false],
-                ],
-            ],
-
-            // ── SECOND-ORDER METHODS ──────────────────────────────────────
-            [
-                'q' => 'Newton\'s update rule for optimization is:\n\n  x_new = x_old − [f\'\'(x)]⁻¹ · f\'(x)\n\nFor f(x) = x², starting at x = 4:\n  f\'(4) = 8,  f\'\'(4) = 2\n\nWhat is x_new?',
-                'opts' => [
-                    ['4', false],
-                    ['0', true],
-                    ['2', false],
-                    ['−4', false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Why is Newton\'s Method computationally expensive for large neural networks?',
+                'q' => 'Item 34: For Introduction to Optimization Techniques, why is interpretation important after computation or analysis?',
                 'opts' => [
-                    ['It requires computing and inverting the Hessian matrix, which is O(n³)', true],
-                    ['It only works for one-dimensional functions', false],
-                    ['It needs too many random restarts', false],
-                    ['It does not use gradient information', false],
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'BFGS is a "quasi-Newton" method because it:',
+                'q' => 'Item 35: Which response shows the best University Student practice when a method in Optimization Techniques fails on one test case?',
                 'opts' => [
-                    ['Uses the exact Hessian matrix', false],
-                    ['Approximates the Hessian using gradient information, avoiding its direct computation', true],
-                    ['Only works for linear problems', false],
-                    ['Applies Newton\'s method to only one variable at a time', false],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'L-BFGS is preferred over BFGS for large-scale problems because it:',
+                'q' => 'Item 36: What is the best reason to keep notes or comments while solving Introduction to Optimization Techniques tasks?',
                 'opts' => [
-                    ['Uses the full Hessian approximation', false],
-                    ['Stores only a limited number of past gradient vectors instead of the full Hessian approximation', true],
-                    ['Ignores second-order information completely', false],
-                    ['Uses random restarts to avoid local minima', false],
-                ],
-            ],
-
-            // ── APPLIED INTERPRETATION ────────────────────────────────────
-            [
-                'q' => 'A neural network\'s training loss decreases very slowly over 100 epochs. The most likely cause is:',
-                'opts' => [
-                    ['The learning rate is too high', false],
-                    ['The learning rate is too low', true],
-                    ['The model has too many layers', false],
-                    ['The batch size is too large', false],
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
                 ],
             ],
             [
-                'q' => 'A loss curve oscillates wildly up and down during training without decreasing overall. This suggests:',
+                'q' => 'Item 37: In a Optimization Techniques assessment, which evidence best shows mastery beyond memorization?',
                 'opts' => [
-                    ['The learning rate is too small', false],
-                    ['The learning rate is too large', true],
-                    ['The model is underfitting', false],
-                    ['The batch size is too small only', false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Avoiding examples', 'correct' => false],
                 ],
             ],
             [
-                'q' => 'Which scenario benefits MOST from using a constrained optimization approach rather than unconstrained?',
+                'q' => 'Item 38: Which situation is most likely an edge case in Introduction to Optimization Techniques?',
                 'opts' => [
-                    ['Fitting a regression line to data with no restrictions', false],
-                    ['Maximizing profit when raw material supply and budget are limited', true],
-                    ['Finding the derivative of a polynomial', false],
-                    ['Choosing a learning rate for gradient descent', false],
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 39: When comparing two approaches in Optimization Techniques, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 40: What does a strong final answer in Introduction to Optimization Techniques include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 41: In Introduction to Optimization Techniques, which action best supports academic application and small scenario analysis when starting a new task involving problem framing?',
+                'opts' => [
+                    ['text' => 'Define the goal, inputs, assumptions, and expected output before choosing a method', 'correct' => true],
+                    ['text' => 'Choose the most complex tool immediately', 'correct' => false],
+                    ['text' => 'Ignore the data context and focus only on the final number', 'correct' => false],
+                    ['text' => 'Skip checking because the topic name already explains the answer', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 42: A learner working on Introduction to Optimization Techniques gets a result that looks correct. What should they do next at the University Student level?',
+                'opts' => [
+                    ['text' => 'Submit immediately without checking', 'correct' => false],
+                    ['text' => 'Validate the result with examples, assumptions, and possible edge cases', 'correct' => true],
+                    ['text' => 'Change the result until it looks impressive', 'correct' => false],
+                    ['text' => 'Remove notes to make the work shorter', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 43: Which mistake most commonly weakens work in Optimization Techniques when dealing with assumptions?',
+                'opts' => [
+                    ['text' => 'Writing down the problem statement', 'correct' => false],
+                    ['text' => 'Comparing output with expected behavior', 'correct' => false],
+                    ['text' => 'Making assumptions invisible and failing to test them', 'correct' => true],
+                    ['text' => 'Explaining limitations clearly', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 44: For Introduction to Optimization Techniques, why is interpretation important after computation or analysis?',
+                'opts' => [
+                    ['text' => 'It replaces the need for correct computation', 'correct' => false],
+                    ['text' => 'It guarantees the method has no limitations', 'correct' => false],
+                    ['text' => 'It makes all datasets equivalent', 'correct' => false],
+                    ['text' => 'It connects the result to the original question and supports a decision', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 45: Which response shows the best University Student practice when a method in Optimization Techniques fails on one test case?',
+                'opts' => [
+                    ['text' => 'Inspect the failing input, trace the logic, and update the method without breaking passing cases', 'correct' => true],
+                    ['text' => 'Delete the failing case', 'correct' => false],
+                    ['text' => 'Change the expected answer to match the wrong output', 'correct' => false],
+                    ['text' => 'Assume the software is always wrong', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 46: What is the best reason to keep notes or comments while solving Introduction to Optimization Techniques tasks?',
+                'opts' => [
+                    ['text' => 'They slow down every program intentionally', 'correct' => false],
+                    ['text' => 'They make assumptions, decisions, and limitations easier to review later', 'correct' => true],
+                    ['text' => 'They replace testing', 'correct' => false],
+                    ['text' => 'They hide incorrect reasoning', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 47: In a Optimization Techniques assessment, which evidence best shows mastery beyond memorization?',
+                'opts' => [
+                    ['text' => 'Repeating a definition without context', 'correct' => false],
+                    ['text' => 'Choosing the longest answer every time', 'correct' => false],
+                    ['text' => 'Correctly applying the concept to a new scenario and explaining why it works', 'correct' => true],
+                    ['text' => 'Avoiding examples', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 48: Which situation is most likely an edge case in Introduction to Optimization Techniques?',
+                'opts' => [
+                    ['text' => 'A normal example copied from the instruction only', 'correct' => false],
+                    ['text' => 'A chart title', 'correct' => false],
+                    ['text' => 'A file name that is easy to read', 'correct' => false],
+                    ['text' => 'A boundary, missing, zero, repeated, extreme, or unexpected input that can change behavior', 'correct' => true],
+                ],
+            ],
+            [
+                'q' => 'Item 49: When comparing two approaches in Optimization Techniques, what should a University Student learner prioritize?',
+                'opts' => [
+                    ['text' => 'Accuracy, assumptions, interpretability, cost, and fitness to the problem', 'correct' => true],
+                    ['text' => 'Whichever approach has the fanciest name', 'correct' => false],
+                    ['text' => 'Only the approach used first in class', 'correct' => false],
+                    ['text' => 'The one that avoids all documentation', 'correct' => false],
+                ],
+            ],
+            [
+                'q' => 'Item 50: What does a strong final answer in Introduction to Optimization Techniques include?',
+                'opts' => [
+                    ['text' => 'Only a screenshot', 'correct' => false],
+                    ['text' => 'A clear result, method summary, evidence, limitations, and next step', 'correct' => true],
+                    ['text' => 'Only raw code without context', 'correct' => false],
+                    ['text' => 'Only a claim that it works', 'correct' => false],
                 ],
             ],
         ];
 
-        foreach ($qaData as $data) {
+        foreach ($qaData as $item) {
             $question = ChallengeQuestion::create([
-                'challenge_id'          => $challenge->id,
-                'question_text'         => $data['q'],
+                'challenge_id' => $challenge->id,
                 'challenge_category_id' => $category->id,
+                'question_text' => $item['q'],
             ]);
 
-            foreach ($data['opts'] as $opt) {
+            $correctCount = 0;
+            foreach ($item['opts'] as $option) {
+                if ($option['correct']) {
+                    $correctCount++;
+                }
+
                 ChallengeOption::create([
                     'challenge_question_id' => $question->id,
-                    'option_text'           => $opt[0],
-                    'is_correct'            => $opt[1],
+                    'option_text' => $option['text'],
+                    'is_correct' => $option['correct'],
                 ]);
+            }
+
+            if ($correctCount !== 1) {
+                throw new \RuntimeException('Each MCQ item must have exactly one correct answer. Failed question: ' . $item['q']);
             }
         }
 
-        $this->command->info("✅ Done! Questions seeded for Module 13 — Introduction to Optimization Techniques (University Student).");
+        $this->command->info('Module 13 MCQ (University Student) seeded — 1 challenge, 50 questions, 200 options.');
     }
 }

@@ -9,7 +9,7 @@
   <script>
     window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
   </script>
-  <style>
+<style>
     :root {
       --bg:           #0d1320;
       --surface:      #111c2d;
@@ -118,6 +118,7 @@
       .page-learning-btn-complete { width: 100%; justify-content: center; }
     }
   </style>
+  @include('partials.ui-polish')
 </head>
 <body>
 

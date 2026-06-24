@@ -2,17 +2,18 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 use Symfony\Component\HttpFoundation\Response;
 
 class SuperAdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || Auth::User()->role !== User::ROLE_SUPERADMIN) {
+        $user = $request->user();
+
+        if (! $user || (int) $user->role !== User::ROLE_SUPERADMIN) {
             abort(403, 'Unauthorized.');
         }
 
