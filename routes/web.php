@@ -32,6 +32,7 @@ use App\Http\Controllers\LessonController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ModuleLibraryController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PasswordResetOtpController;
 use App\Http\Controllers\SqlSandboxController;
 use App\Http\Controllers\StudentAnalyticsController;
 use App\Http\Controllers\StudentAssignmentController;
@@ -51,9 +52,21 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register'])->name('register');
 
-    Route::get('/forgot-password', function () {
-        return redirect()->route('login')->with('info', 'Please contact your administrator to reset your password.');
-    })->name('password.request');
+    Route::get('/forgot-password', [PasswordResetOtpController::class, 'showRequestForm'])
+        ->name('password.request');
+    Route::post('/forgot-password', [PasswordResetOtpController::class, 'sendOtp'])
+        ->middleware('throttle:password-otp-request')
+        ->name('password.otp.send');
+    Route::get('/forgot-password/verify', [PasswordResetOtpController::class, 'showVerifyForm'])
+        ->name('password.otp.verify.form');
+    Route::post('/forgot-password/verify', [PasswordResetOtpController::class, 'verifyOtp'])
+        ->middleware('throttle:password-otp-verify')
+        ->name('password.otp.verify');
+    Route::get('/reset-password', [PasswordResetOtpController::class, 'showResetForm'])
+        ->name('password.reset.form');
+    Route::post('/reset-password', [PasswordResetOtpController::class, 'resetPassword'])
+        ->middleware('throttle:password-otp-reset')
+        ->name('password.otp.reset');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
@@ -147,14 +160,24 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
     Route::patch('/users/{user}/status', [AdminUserController::class, 'toggleStatus'])->name('users.status');
 
-    Route::get('/content', [AdminContentController::class, 'index'])->name('content.index');
-    Route::put('/content/modules/{module}', [AdminContentController::class, 'updateModule'])->name('content.modules.update');
-    Route::put('/content/categories/{category}', [AdminContentController::class, 'updateCategory'])->name('content.categories.update');
-    Route::put('/content/challenges/{challenge}', [AdminContentController::class, 'updateChallenge'])->name('content.challenges.update');
+    // Module Library
+    Route::get('/module-library', [AdminContentController::class, 'moduleLibrary'])
+        ->name('module-library.index');
 
-    Route::get('/gamification', [AdminGamificationController::class, 'index'])->name('gamification.index');
-    Route::put('/gamification/achievements/{achievement}', [AdminGamificationController::class, 'updateAchievement'])->name('gamification.achievements.update');
-    Route::put('/gamification/missions/{mission}', [AdminGamificationController::class, 'updateMission'])->name('gamification.missions.update');
+    Route::get('/content', [AdminContentController::class, 'index'])->name('content.index');
+    Route::put('/content/modules/{module}', [AdminContentController::class, 'updateModule'])
+        ->name('content.modules.update');
+    Route::put('/content/categories/{category}', [AdminContentController::class, 'updateCategory'])
+        ->name('content.categories.update');
+    Route::put('/content/challenges/{challenge}', [AdminContentController::class, 'updateChallenge'])
+        ->name('content.challenges.update');
+
+    Route::get('/gamification', [AdminGamificationController::class, 'index'])
+        ->name('gamification.index');
+    Route::put('/gamification/achievements/{achievement}', [AdminGamificationController::class, 'updateAchievement'])
+        ->name('gamification.achievements.update');
+    Route::put('/gamification/missions/{mission}', [AdminGamificationController::class, 'updateMission'])
+        ->name('gamification.missions.update');
 
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
 });

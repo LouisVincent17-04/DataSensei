@@ -6,9 +6,12 @@ use App\Models\Institution;
 use App\Models\InstructorApplication;
 use App\Models\Rank;
 use App\Models\User;
+use App\Services\PasswordResetOtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Throwable;
 
 class ProfileController extends Controller
@@ -140,13 +143,22 @@ class ProfileController extends Controller
             ->with('success', 'Profile information updated successfully.');
     }
 
-    public function updatePassword(Request $request)
+    public function updatePassword(Request $request, PasswordResetOtpService $otpService)
     {
         $user = Auth::user();
 
+        $passwordRule = Password::min((int) config('password_otp.password_min_length', 8))
+            ->mixedCase()
+            ->numbers()
+            ->symbols();
+
+        if (config('password_otp.check_compromised_passwords', false)) {
+            $passwordRule->uncompromised();
+        }
+
         $validated = $request->validate([
             'current_password' => ['required', 'string'],
-            'password'         => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'confirmed', $passwordRule],
         ]);
 
         if (! Hash::check($validated['current_password'], $user->password)) {
@@ -157,9 +169,12 @@ class ProfileController extends Controller
                 ]);
         }
 
-        $user->update([
+        $user->forceFill([
             'password' => Hash::make($validated['password']),
-        ]);
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        $otpService->invalidateForUser($user);
 
         return redirect()
             ->route('profile', ['tab' => 'security'])

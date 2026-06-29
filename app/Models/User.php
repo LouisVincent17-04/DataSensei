@@ -151,6 +151,11 @@ class User extends Authenticatable
         return $this->hasMany(InstructorApplication::class);
     }
 
+    public function passwordResetOtps(): HasMany
+    {
+        return $this->hasMany(PasswordResetOtp::class);
+    }
+
     public function classesAsStudent(): BelongsToMany
     {
         return $this->belongsToMany(ClassRoom::class, 'class_student', 'student_id', 'class_id')

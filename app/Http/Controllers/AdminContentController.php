@@ -14,23 +14,12 @@ class AdminContentController extends Controller
 {
     public function index(Request $request): View
     {
-        $moduleSearch = trim((string) $request->input('module_search', ''));
         $challengeSearch = trim((string) $request->input('challenge_search', ''));
 
-        $modules = ModuleLibraryItem::query()
-            ->when($moduleSearch !== '', function ($query) use ($moduleSearch): void {
-                $query->where(function ($q) use ($moduleSearch): void {
-                    $q->where('title', 'like', '%' . $moduleSearch . '%')
-                        ->orWhere('module_code', 'like', '%' . $moduleSearch . '%')
-                        ->orWhere('version_code', 'like', '%' . $moduleSearch . '%');
-                });
-            })
-            ->orderBy('module_no')
-            ->orderBy('version_no')
-            ->paginate(10, ['*'], 'modules_page')
-            ->withQueryString();
-
-        $categories = ChallengeCategory::query()->orderBy('order_index')->orderBy('name')->get();
+        $categories = ChallengeCategory::query()
+            ->orderBy('order_index')
+            ->orderBy('name')
+            ->get();
 
         $challenges = Challenge::query()
             ->with('category')
@@ -45,7 +34,28 @@ class AdminContentController extends Controller
             ->paginate(10, ['*'], 'challenges_page')
             ->withQueryString();
 
-        return view('admin.content.index', compact('modules', 'categories', 'challenges'));
+        return view('admin.content.index', compact('categories', 'challenges'));
+    }
+
+    public function moduleLibrary(Request $request): View
+    {
+        $moduleSearch = trim((string) $request->input('module_search', ''));
+
+        $modules = ModuleLibraryItem::query()
+            ->when($moduleSearch !== '', function ($query) use ($moduleSearch): void {
+                $query->where(function ($q) use ($moduleSearch): void {
+                    $q->where('title', 'like', '%' . $moduleSearch . '%')
+                        ->orWhere('module_code', 'like', '%' . $moduleSearch . '%')
+                        ->orWhere('version_code', 'like', '%' . $moduleSearch . '%')
+                        ->orWhere('module_no', 'like', '%' . $moduleSearch . '%');
+                });
+            })
+            ->orderBy('module_no')
+            ->orderBy('version_no')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.module-library.index', compact('modules'));
     }
 
     public function updateModule(Request $request, ModuleLibraryItem $module): RedirectResponse
@@ -70,7 +80,7 @@ class AdminContentController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]);
 
-        return redirect()->route('admin.content.index')->with('success', 'Module library item updated.');
+        return redirect()->route('admin.module-library.index')->with('success', 'Module library item updated.');
     }
 
     public function updateCategory(Request $request, ChallengeCategory $category): RedirectResponse

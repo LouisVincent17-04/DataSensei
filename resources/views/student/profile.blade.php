@@ -643,6 +643,10 @@
                     @error('password')
                       <div class="page-profile-field-error">{{ $message }}</div>
                     @enderror
+
+                    <div style="margin-top:8px;color:#7f93b0;font-size:.78rem;line-height:1.5;">
+                      Use at least {{ config('password_otp.password_min_length', 8) }} characters with uppercase and lowercase letters, a number, and a symbol.
+                    </div>
                   </div>
 
                   <div class="page-profile-form-group">

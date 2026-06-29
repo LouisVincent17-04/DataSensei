@@ -1,45 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Change Password — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;--text:#fafafa;--muted:#7f93b0;--accent:#3b82f6;--good:#10b981;--bad:#ef4444;--radius:14px;--radius-sm:8px}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}.card{width:min(540px,100%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.25)}h1{margin:0 0 8px;font-size:1.55rem}.muted{color:var(--muted);line-height:1.6}.alert{padding:12px 14px;border-radius:var(--radius-sm);margin:16px 0;border:1px solid rgba(16,185,129,.25);background:rgba(16,185,129,.08);color:var(--good)}.alert.error{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08);color:var(--bad)}.field{margin-top:14px}label{display:block;color:var(--muted);font-size:.85rem;margin-bottom:7px}input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:var(--radius-sm)}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.btn{border:0;border-radius:var(--radius-sm);padding:10px 14px;font-weight:800;cursor:pointer;text-decoration:none}.btn.primary{background:var(--accent);color:white}.btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-  </style>
-  @include('partials.ui-polish')
-</head>
-<body>
-<div class="wrap">
-  <div class="card">
-    <h1>Change Password</h1>
-    <p class="muted">Update your account password securely.</p>
+@extends('admin.layout')
 
-    @if(session('success'))<div class="alert">{{ session('success') }}</div>@endif
-    @if($errors->any())<div class="alert error">{{ $errors->first() }}</div>@endif
+@section('title', 'Change Password')
+@section('eyebrow', 'Account Security')
+@section('page_title', 'Change Password')
+@section('page_subtitle', 'Update the password used to access the DataSensei admin workspace.')
 
-    <form method="POST" action="{{ route('profile.password.update') }}">
-      @csrf
-      @method('PATCH')
-      <div class="field">
-        <label>Current Password</label>
-        <input type="password" name="current_password" required autocomplete="current-password">
+@section('content')
+  <section class="split">
+    <article class="panel">
+      <div class="panel-head">
+        <div class="panel-heading">
+          <h2 class="panel-title">Security & Passwords</h2>
+          <p class="panel-subtitle">Confirm the current password before setting a new one.</p>
+        </div>
       </div>
-      <div class="field">
-        <label>New Password</label>
-        <input type="password" name="password" required autocomplete="new-password">
+      <div class="panel-body">
+        <form method="POST" action="{{ route('profile.password.update') }}">
+          @csrf
+          @method('PATCH')
+
+          <div class="field">
+            <label>Current Password</label>
+            <input class="input" type="password" name="current_password" required autocomplete="current-password" placeholder="Enter current password">
+          </div>
+
+          <div class="form-grid" style="margin-top:14px">
+            <div class="field">
+              <label>New Password</label>
+              <input class="input" type="password" name="password" required autocomplete="new-password" placeholder="Enter new password">
+            </div>
+            <div class="field">
+              <label>Confirm New Password</label>
+              <input class="input" type="password" name="password_confirmation" required autocomplete="new-password" placeholder="Confirm new password">
+            </div>
+          </div>
+
+          <div class="action-row" style="justify-content:flex-end;margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+            <a class="btn secondary" href="{{ url()->previous() }}">Back</a>
+            <button class="btn" type="submit">Update Password</button>
+          </div>
+        </form>
       </div>
-      <div class="field">
-        <label>Confirm New Password</label>
-        <input type="password" name="password_confirmation" required autocomplete="new-password">
+    </article>
+
+    <aside class="panel">
+      <div class="panel-head">
+        <div class="panel-heading">
+          <h2 class="panel-title">Password Guidance</h2>
+          <p class="panel-subtitle">Use a unique password that is difficult to guess.</p>
+        </div>
       </div>
-      <div class="actions">
-        <a class="btn secondary" href="{{ url()->previous() }}">Back</a>
-        <button class="btn primary" type="submit">Update Password</button>
+      <div class="panel-body">
+        <div style="display:flex;flex-direction:column;gap:14px;color:var(--muted);font-size:.86rem;line-height:1.6">
+          <p>Use at least eight characters and combine uppercase letters, lowercase letters, numbers, and symbols.</p>
+          <p>Avoid reusing a password from another website or sharing the password with another administrator.</p>
+          <p>After the update succeeds, continue using the same admin routes and permissions as before.</p>
+        </div>
       </div>
-    </form>
-  </div>
-</div>
-</body>
-</html>
+    </aside>
+  </section>
+@endsection
