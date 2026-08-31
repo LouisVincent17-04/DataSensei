@@ -11,7 +11,11 @@ use Illuminate\Database\Seeder;
  * Skips non-coding topic modules:
  * - Module 4: Mathematical Analysis I
  * - Module 5: Methods of Proof
+ * - Module 10: Database Management for Data Science (the generated coding
+ *   bank is generic Python, not SQLite/SQL database practice)
  * - Module 18: Privacy, Ethics & Data Governance
+ * - Module 22: Big Data & Cloud Computing
+ * - Module 24: Sequential Decision Making
  */
 class MissingCodingChallengeSeedersSeeder extends Seeder
 {
@@ -24,7 +28,6 @@ class MissingCodingChallengeSeedersSeeder extends Seeder
             Module7CodingChallengeSeederProfessional::class, // empty/stub
             Module9CodingChallengeSeederUniversityStudent::class, // empty/stub
             Module9CodingChallengeSeederIntermediate::class, // empty/stub
-            Module10CodingChallengeSeederAdvanced::class, // empty/stub
             Module11CodingChallengeSeederIntermediate::class, // empty/stub
             Module11CodingChallengeSeederAdvanced::class, // empty/stub
             Module11CodingChallengeSeederProfessional::class, // empty/stub
@@ -64,20 +67,10 @@ class MissingCodingChallengeSeedersSeeder extends Seeder
             Module21CodingChallengeSeederIntermediate::class, // empty/stub
             Module21CodingChallengeSeederAdvanced::class, // empty/stub
             Module21CodingChallengeSeederProfessional::class, // empty/stub
-            Module22CodingChallengeSeederNewbie::class, // empty/stub
-            Module22CodingChallengeSeederUniversityStudent::class, // empty/stub
-            Module22CodingChallengeSeederIntermediate::class, // empty/stub
-            Module22CodingChallengeSeederAdvanced::class, // empty/stub
-            Module22CodingChallengeSeederProfessional::class, // empty/stub
             Module23CodingChallengeSeederUniversityStudent::class, // empty/stub
             Module23CodingChallengeSeederIntermediate::class, // empty/stub
             Module23CodingChallengeSeederAdvanced::class, // empty/stub
             Module23CodingChallengeSeederProfessional::class, // empty/stub
-            Module24CodingChallengeSeederNewbie::class, // empty/stub
-            Module24CodingChallengeSeederUniversityStudent::class, // empty/stub
-            Module24CodingChallengeSeederIntermediate::class, // empty/stub
-            Module24CodingChallengeSeederAdvanced::class, // empty/stub
-            Module24CodingChallengeSeederProfessional::class, // empty/stub
         ]);
     }
 }

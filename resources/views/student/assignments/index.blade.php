@@ -398,8 +398,9 @@
       .empty { padding: 40px 16px 36px; }
     }
   </style>
+  @include('partials.admin-inspired-page-style')
 </head>
-<body>
+<body class="ds-admin-inspired">
 
   {{-- ── MOBILE TOPBAR ── --}}
   <header class="mobile-header" aria-label="Mobile navigation">
@@ -423,9 +424,9 @@
         {{-- ── PAGE HEADER ── --}}
         <div class="top-row">
           <div>
-            <div class="page-kicker">Student Assignment Center</div>
-            <h1 class="page-title">My Assignments</h1>
-            <p class="page-subtitle">View assigned MCQ and fill-in-the-blanks activities from your enrolled classes.</p>
+            <div class="page-kicker">Assignments</div>
+            <h1 class="page-title ds-page-title">My Assignments</h1>
+            <p class="page-subtitle">View activities from your classes, continue unfinished work, and open completed results.</p>
           </div>
         </div>
 

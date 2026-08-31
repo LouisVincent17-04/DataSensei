@@ -15,7 +15,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->configureFileBackedRuntimeStorage();
+    }
+
+    /**
+     * Keep Laravel runtime state out of database tables that are intentionally
+     * not part of this project. This also protects existing installations whose
+     * .env still contains the old database-backed defaults.
+     */
+    private function configureFileBackedRuntimeStorage(): void
+    {
+        if (config('session.driver') === 'database') {
+            config(['session.driver' => 'file']);
+        }
+
+        if (config('cache.default') === 'database') {
+            config(['cache.default' => 'file']);
+        }
     }
 
     /**
@@ -23,9 +39,65 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Schema::defaultStringLength(191);
+        // MySQL 5.5's older InnoDB key limit is 767 bytes. 191 utf8mb4
+        // characters (764 bytes) is safe only when the string is the whole
+        // key; this schema also has composite indexes that include an 8-byte
+        // foreign key. 189 leaves enough room without rewriting historical
+        // migrations or truncating existing installations.
+        Schema::defaultStringLength(189);
 
+        $this->configureAuthenticationRateLimiters();
         $this->configurePasswordOtpRateLimiters();
+    }
+
+    private function configureAuthenticationRateLimiters(): void
+    {
+        RateLimiter::for('login', function (Request $request): Limit {
+            $key = $this->emailRateLimitKey((string) $request->input('email')).'|'.$request->ip();
+
+            return Limit::perMinute(5)
+                ->by('login:'.$key)
+                ->response(fn (Request $request, array $headers) => back()
+                    ->withErrors(['email' => 'Too many sign-in attempts. Please wait one minute and try again.'])
+                    ->withInput($request->only('email'))
+                    ->withHeaders($headers));
+        });
+
+        RateLimiter::for('registration', fn (Request $request): Limit => Limit::perMinute(3)
+            ->by('registration:'.$request->ip())
+            ->response(fn (Request $request, array $headers) => back()
+                ->withErrors(['email' => 'Too many registration attempts. Please wait one minute and try again.'])
+                ->withInput($request->except(['password', 'password_confirmation']))
+                ->withHeaders($headers)));
+
+        RateLimiter::for('python-execution', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by('python-execution:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('sql-execution', fn (Request $request): Limit => Limit::perMinute(60)
+            ->by('sql-execution:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('code-review', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('code-review:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('model-development-training', fn (Request $request): Limit => Limit::perMinute(6)
+            ->by('model-development-training:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('model-development-prediction', fn (Request $request): Limit => Limit::perMinute(12)
+            ->by('model-development-prediction:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('ml-dataset-upload', fn (Request $request): Limit => Limit::perHour(12)
+            ->by('ml-dataset-upload:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('ml-training', fn (Request $request): array => [
+            Limit::perMinute(4)->by('ml-training-minute:'.($request->user()?->id ?? $request->ip())),
+            Limit::perHour(30)->by('ml-training-hour:'.($request->user()?->id ?? $request->ip())),
+        ]);
+
+        RateLimiter::for('ml-prediction', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by('ml-prediction:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('anti-cheat-event', fn (Request $request): Limit => Limit::perMinute(120)
+            ->by('anti-cheat-event:'.($request->user()?->id ?? $request->ip())));
     }
 
     private function configurePasswordOtpRateLimiters(): void

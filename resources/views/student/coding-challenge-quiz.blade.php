@@ -432,36 +432,36 @@
 
               {{-- Toggle stdin (hidden for done/locked) --}}
               @if(!$isDone && !$isLocked)
-                <button class="btn btn-run" onclick="toggleStdin({{ $i }})" title="Custom input for Run">
+                <button type="button" class="btn btn-run" onclick="toggleStdin({{ $i }})" title="Custom input for Run">
                   <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                   stdin
                 </button>
               @endif
 
               {{-- Run button --}}
-              <button class="btn btn-run" id="btn-run-{{ $i }}" onclick="runCode({{ $i }})" {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>
+              <button type="button" class="btn btn-run" id="btn-run-{{ $i }}" onclick="runCode({{ $i }})" {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>
                 <div class="spinner" id="run-spinner-{{ $i }}"></div>
                 <svg id="run-icon-{{ $i }}" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
                 Run
               </button>
 
               {{-- Retry (shown after failed submit) --}}
-              <button class="btn btn-retry" id="btn-retry-{{ $i }}" onclick="resetSubmit({{ $i }})">
+              <button type="button" class="btn btn-retry" id="btn-retry-{{ $i }}" onclick="resetSubmit({{ $i }})">
                 ↺ Retry
               </button>
 
               {{-- Next Question (shown after passing, if not last) --}}
-              <button class="btn btn-next" id="btn-next-{{ $i }}" onclick="gotoQ({{ $i + 1 }})">
+              <button type="button" class="btn btn-next" id="btn-next-{{ $i }}" onclick="gotoQ({{ $i + 1 }})">
                 Next →
               </button>
 
               {{-- Finish (shown after passing the last question) --}}
-              <button class="btn btn-finish" id="btn-finish-{{ $i }}" onclick="showCompletion()">
+              <button type="button" class="btn btn-finish" id="btn-finish-{{ $i }}" onclick="showCompletion()">
                 🎉 Finish
               </button>
 
               {{-- Submit button --}}
-              <button class="btn btn-submit" id="btn-submit-{{ $i }}" onclick="submitCode({{ $i }})" {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>
+              <button type="button" class="btn btn-submit" id="btn-submit-{{ $i }}" onclick="submitCode({{ $i }})" {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>
                 <div class="spinner" id="sub-spinner-{{ $i }}"></div>
                 <svg id="sub-icon-{{ $i }}" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 {{ $isDone ? '✓ Solved' : ($isExpired ? '⏱ Expired' : 'Run & Submit') }}
@@ -489,8 +489,8 @@
             <div class="output-wrap" id="output-wrap-{{ $i }}">
               <div class="output-inner">
                 <div class="output-tabs">
-                  <button class="output-tab active" id="tab-run-{{ $i }}"    onclick="switchTab({{ $i }}, 'run')">▶ Run Output</button>
-                  <button class="output-tab"         id="tab-submit-{{ $i }}" onclick="switchTab({{ $i }}, 'submit')">✓ Test Results</button>
+                  <button type="button" class="output-tab active" id="tab-run-{{ $i }}"    onclick="switchTab({{ $i }}, 'run')">▶ Run Output</button>
+                  <button type="button" class="output-tab"         id="tab-submit-{{ $i }}" onclick="switchTab({{ $i }}, 'submit')">✓ Test Results</button>
                 </div>
 
                 <div class="output-section active" id="sec-run-{{ $i }}">
@@ -522,9 +522,9 @@
         Question <strong id="footerQ">1</strong> of <strong>{{ $challenge->codingQuestions->count() }}</strong>
       </div>
       <div class="footer-nav">
-        <button class="btn btn-nav" id="btnPrev" onclick="gotoQ(currentQ - 1)" disabled>← Prev</button>
-        <button class="btn btn-nav" id="btnNext" onclick="gotoQ(currentQ + 1)" {{ $challenge->codingQuestions->count() <= 1 ? 'disabled' : '' }}>Next →</button>
-        <button class="btn btn-finish-footer" id="btnFinishFooter" onclick="showCompletion()">🎉 Finish Challenge</button>
+        <button type="button" class="btn btn-nav" id="btnPrev" onclick="gotoQ(currentQ - 1)" disabled>← Prev</button>
+        <button type="button" class="btn btn-nav" id="btnNext" onclick="gotoQ(currentQ + 1)" {{ $challenge->codingQuestions->count() <= 1 ? 'disabled' : '' }}>Next →</button>
+        <button type="button" class="btn btn-finish-footer" id="btnFinishFooter" onclick="showCompletion()">🎉 Finish Challenge</button>
       </div>
     </footer>
 
@@ -857,8 +857,11 @@ function unlockNextAfterTimeout(idx) {
   const idx = ACTIVE_IDX;
   if (hasAttempt[idx]) {
     seedTimer(idx, serverRemaining[idx]);
+  } else {
+    // Starting a timer is a state change. Keep the GET page read-only and use
+    // the existing CSRF-protected POST start request for the initial question.
+    gotoQ(idx);
   }
-  // If no attempt yet (edge case), seedTimer is called after the first gotoQ AJAX
   syncTimerDisplay();
 })();
 
@@ -911,14 +914,22 @@ async function gotoQ(idx) {
         },
         body: JSON.stringify({}),
       });
-      if (resp.ok) {
-        const data = await resp.json();
-        seedTimer(idx, data.remaining_seconds);
-        if (data.expired) handleExpired(idx);
+      if (!resp.ok) {
+        throw new Error(`Timer start failed with HTTP ${resp.status}.`);
       }
+
+      const data = await resp.json();
+      seedTimer(idx, data.remaining_seconds);
+      if (data.expired) handleExpired(idx);
     } catch (_) {
-      // Network error — seed from display value as fallback
-      seedTimer(idx, serverRemaining[idx]);
+      // The server is authoritative. Retry the idempotent POST instead of
+      // starting a client-only clock that the server cannot validate.
+      hasAttempt[idx] = false;
+      window.setTimeout(() => {
+        if (Q_STATE[idx] === 'active' && !hasAttempt[idx] && activeTimer === null) {
+          gotoQ(idx);
+        }
+      }, 3000);
     }
   }
 

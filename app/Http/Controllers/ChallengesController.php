@@ -20,6 +20,11 @@ class ChallengesController extends Controller
 {
     private const SUSPICIOUS_EVENT_LIMIT = 5;
 
+    private const QUIZ_EVENT_SEVERITY = [
+        'tab_hidden_or_app_switched' => 'low',
+        'page_leave_or_refresh' => 'low',
+    ];
+
     private function fallbackCategories(): \Illuminate\Support\Collection
     {
         return collect([
@@ -64,10 +69,16 @@ class ChallengesController extends Controller
     public function index(ChallengePathUnlockService $unlockService)
     {
         $categories = ChallengeCategory::orderBy('order_index')->get();
-        $hasUniversity = Auth::check() && !empty(Auth::user()->institution_id);
+        $hasUniversity = $this->hasActiveClassEnrollment();
 
         if ($categories->isEmpty()) {
             $categories = $this->fallbackCategories();
+        }
+
+        if (! $hasUniversity) {
+            $categories = $categories
+                ->reject(fn ($category): bool => $category->slug === 'university-student')
+                ->values();
         }
 
         $pathLocks = $unlockService->buildPathLocks(Auth::user(), 'mcq');
@@ -81,10 +92,16 @@ class ChallengesController extends Controller
     public function codingIndex(ChallengePathUnlockService $unlockService)
     {
         $categories = ChallengeCategory::orderBy('order_index')->get();
-        $hasUniversity = Auth::check() && !empty(Auth::user()->institution_id);
+        $hasUniversity = $this->hasActiveClassEnrollment();
 
         if ($categories->isEmpty()) {
             $categories = $this->fallbackCategories();
+        }
+
+        if (! $hasUniversity) {
+            $categories = $categories
+                ->reject(fn ($category): bool => $category->slug === 'university-student')
+                ->values();
         }
 
         $pathLocks = $unlockService->buildPathLocks(Auth::user(), 'coding');
@@ -103,6 +120,7 @@ class ChallengesController extends Controller
 
         $challenges = Challenge::where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', 0)
+            ->where('is_active', true)
             ->orderBy('order_index')
             ->orderBy('id')
             ->get();
@@ -110,36 +128,71 @@ class ChallengesController extends Controller
         $completedChallengeIds = [];
         $bestScores = [];
         $activeAttemptIds = [];
+        $latestResultAttemptIds = [];
 
         if (Auth::check()) {
+            $finishedAttempts = ChallengeAttempt::query()
+                ->where('user_id', Auth::id())
+                ->whereIn('challenge_id', $challenges->pluck('id'))
+                ->whereIn('status', ['submitted', 'expired', 'disqualified'])
+                ->orderByDesc('attempt_no')
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('challenge_id');
+
+            $rankedAttempts = $finishedAttempts->map(
+                fn ($attempts) => $attempts
+                    ->where('is_ranked', true)
+                    ->whereIn('status', ['submitted', 'expired'])
+                    ->filter(fn (ChallengeAttempt $attempt): bool => (int) $attempt->total_questions > 0)
+                    ->values()
+            );
+
+            $latestResultAttemptIds = $finishedAttempts
+                ->mapWithKeys(fn ($attempts, $challengeId): array => [
+                    (int) $challengeId => (int) $attempts->first()->id,
+                ])
+                ->all();
+
+            $attemptedChallengeIds = ChallengeAttempt::query()
+                ->where('user_id', Auth::id())
+                ->whereIn('challenge_id', $challenges->pluck('id'))
+                ->distinct()
+                ->pluck('challenge_id')
+                ->mapWithKeys(fn ($id): array => [(int) $id => true]);
+
             foreach ($challenges as $ch) {
-                $totalQuestions = $ch->questions()->count();
-                if ($totalQuestions === 0) {
+                $attempts = $rankedAttempts->get($ch->id, collect());
+                $best = $attempts->sortByDesc(fn (ChallengeAttempt $attempt): float =>
+                    (float) $attempt->score / max(1, (int) $attempt->total_questions)
+                )->first();
+
+                if ($best) {
+                    $bestScores[$ch->id] = ['score' => $best->score, 'xp' => $best->xp_awarded];
+                    if (((int) $best->score / max(1, (int) $best->total_questions)) >= 0.70) {
+                        $completedChallengeIds[] = $ch->id;
+                    }
                     continue;
                 }
 
-                $passingThreshold = (int) ceil($totalQuestions * 0.7);
+                if ($attemptedChallengeIds->has($ch->id)) {
+                    continue;
+                }
 
-                $hasPassed = DB::table('challenge_user')
+                // Preserve pre-attempt-table progress without allowing newer
+                // practice attempts to count as ranked completion.
+                $legacy = DB::table('challenge_user')
                     ->where('user_id', Auth::id())
                     ->where('challenge_id', $ch->id)
-                    ->where('score', '>=', $passingThreshold)
-                    ->exists();
+                    ->first();
+                $totalQuestions = $ch->questions()->count();
 
-                if ($hasPassed) {
-                    $completedChallengeIds[] = $ch->id;
+                if ($legacy && $totalQuestions > 0) {
+                    $bestScores[$ch->id] = ['score' => $legacy->score, 'xp' => $legacy->xp_awarded];
+                    if ((int) $legacy->score >= (int) ceil($totalQuestions * 0.70)) {
+                        $completedChallengeIds[] = $ch->id;
+                    }
                 }
-            }
-
-            $rows = DB::table('challenge_user')
-                ->where('user_id', Auth::id())
-                ->whereIn('challenge_id', $challenges->pluck('id'))
-                ->select('challenge_id', DB::raw('MAX(score) as best_score'), DB::raw('MAX(xp_awarded) as best_xp'))
-                ->groupBy('challenge_id')
-                ->get();
-
-            foreach ($rows as $row) {
-                $bestScores[$row->challenge_id] = ['score' => $row->best_score, 'xp' => $row->best_xp];
             }
 
             $activeAttemptIds = ChallengeAttempt::where('user_id', Auth::id())
@@ -154,7 +207,7 @@ class ChallengesController extends Controller
             : [];
 
         return view('student.challenges-map', compact(
-            'slug', 'category', 'challenges', 'completedChallengeIds', 'bestScores', 'exceptionalNotifications', 'activeAttemptIds'
+            'slug', 'category', 'challenges', 'completedChallengeIds', 'bestScores', 'exceptionalNotifications', 'activeAttemptIds', 'latestResultAttemptIds'
         ));
     }
 
@@ -166,6 +219,7 @@ class ChallengesController extends Controller
 
         $challenges = Challenge::where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', 1)
+            ->where('is_active', true)
             ->orderBy('order_index')
             ->orderBy('id')
             ->get();
@@ -249,7 +303,11 @@ class ChallengesController extends Controller
 
         if (now()->greaterThanOrEqualTo($attempt->expires_at)) {
             $result = $this->finalizeMcqAttempt($attempt, 'expired', $unlockService, $gamification);
-            return redirect()->route('challenges.map', $slug)->with('success', $result['message']);
+            return redirect()->route('challenges.quiz.result', [
+                'slug' => $slug,
+                'challenge' => $challenge->id,
+                'attempt' => $result['attempt_id'],
+            ])->with('success', $result['message']);
         }
 
         $challenge->setRelation('questions', $this->orderedQuestionsForAttempt($attempt));
@@ -275,6 +333,66 @@ class ChallengesController extends Controller
         ));
     }
 
+    public function showQuizResult(
+        $slug,
+        $challenge_id,
+        $attempt_id,
+        ChallengePathUnlockService $unlockService,
+        GamificationService $gamification
+    ) {
+        $challenge = Challenge::with('category')->findOrFail($challenge_id);
+        $this->ensureChallengeBelongsToSlug($challenge, $slug, false, false);
+
+        $attempt = ChallengeAttempt::with('answers.selectedOption')
+            ->where('id', (int) $attempt_id)
+            ->where('challenge_id', $challenge->id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        if ($attempt->status === 'in_progress') {
+            if (now()->greaterThanOrEqualTo($attempt->expires_at)) {
+                $this->finalizeMcqAttempt($attempt, 'expired', $unlockService, $gamification);
+                $attempt->refresh()->load('answers.selectedOption');
+            } else {
+                return redirect()->route('challenges.quiz', [
+                    'slug' => $slug,
+                    'challenge' => $challenge->id,
+                ]);
+            }
+        }
+
+        $answers = $attempt->answers->keyBy('challenge_question_id');
+        $questionResults = $this->orderedQuestionsForAttempt($attempt)
+            ->map(function (ChallengeQuestion $question) use ($answers): array {
+                $answer = $answers->get($question->id);
+                $selectedOption = $answer?->selectedOption;
+                $correctOption = $question->options->first(fn (ChallengeOption $option): bool => (bool) $option->is_correct);
+
+                return [
+                    'question' => $question,
+                    'selected_option' => $selectedOption,
+                    'correct_option' => $correctOption,
+                    'is_correct' => $selectedOption ? (bool) $selectedOption->is_correct : false,
+                ];
+            });
+
+        $attemptHistory = ChallengeAttempt::query()
+            ->where('user_id', Auth::id())
+            ->where('challenge_id', $challenge->id)
+            ->whereIn('status', ['submitted', 'expired', 'disqualified'])
+            ->orderByDesc('attempt_no')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('student.challenge-result', compact(
+            'slug',
+            'challenge',
+            'attempt',
+            'questionResults',
+            'attemptHistory'
+        ));
+    }
+
     public function autosaveQuiz(Request $request, $slug, $challenge_id): JsonResponse
     {
         $request->validate([
@@ -286,55 +404,61 @@ class ChallengesController extends Controller
         $challenge = Challenge::findOrFail($challenge_id);
         $this->ensureChallengeBelongsToSlug($challenge, $slug, false);
 
-        $attempt = $this->currentUserAttempt($challenge, (int) $request->input('attempt_id'));
-
-        if ($attempt->status !== 'in_progress') {
-            return response()->json([
-                'ok' => false,
-                'status' => $attempt->status,
-                'message' => 'This attempt is already finished.',
-            ], 409);
-        }
-
-        if (now()->greaterThanOrEqualTo($attempt->expires_at)) {
-            return response()->json([
-                'ok' => false,
-                'status' => 'expired',
-                'message' => 'Time is already up. Please submit to finalize the attempt.',
-            ], 409);
-        }
-
         $questionId = (int) $request->input('question_id');
         $optionId = $request->filled('option_id') ? (int) $request->input('option_id') : null;
 
-        $questionOrder = $this->asArray($attempt->question_order);
-        abort_unless(in_array($questionId, $questionOrder, true), 422, 'Question does not belong to this attempt.');
+        return DB::transaction(function () use ($request, $challenge, $questionId, $optionId) {
+            $attempt = ChallengeAttempt::where('id', (int) $request->input('attempt_id'))
+                ->where('challenge_id', $challenge->id)
+                ->where('user_id', Auth::id())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($optionId !== null) {
-            $validOption = ChallengeOption::where('id', $optionId)
-                ->where('challenge_question_id', $questionId)
-                ->exists();
-            abort_unless($validOption, 422, 'Selected option does not belong to this question.');
-        }
+            if ($attempt->status !== 'in_progress') {
+                return response()->json([
+                    'ok' => false,
+                    'status' => $attempt->status,
+                    'message' => 'This attempt is already finished.',
+                ], 409);
+            }
 
-        ChallengeAttemptAnswer::updateOrCreate(
-            [
-                'challenge_attempt_id' => $attempt->id,
-                'challenge_question_id' => $questionId,
-            ],
-            [
-                'selected_option_id' => $optionId,
-                'answered_at' => $optionId ? now() : null,
-            ]
-        );
+            if (now()->greaterThanOrEqualTo($attempt->expires_at)) {
+                return response()->json([
+                    'ok' => false,
+                    'status' => 'expired',
+                    'message' => 'Time is already up. Please submit to finalize the attempt.',
+                ], 409);
+            }
 
-        $attempt->forceFill(['last_seen_at' => now()])->save();
+            $questionOrder = $this->asArray($attempt->question_order);
+            abort_unless(in_array($questionId, $questionOrder, true), 422, 'Question does not belong to this attempt.');
 
-        return response()->json([
-            'ok' => true,
-            'answered_count' => $attempt->answers()->whereNotNull('selected_option_id')->count(),
-            'remaining_seconds' => max(0, now()->diffInSeconds($attempt->expires_at, false)),
-        ]);
+            if ($optionId !== null) {
+                $validOption = ChallengeOption::where('id', $optionId)
+                    ->where('challenge_question_id', $questionId)
+                    ->exists();
+                abort_unless($validOption, 422, 'Selected option does not belong to this question.');
+            }
+
+            ChallengeAttemptAnswer::updateOrCreate(
+                [
+                    'challenge_attempt_id' => $attempt->id,
+                    'challenge_question_id' => $questionId,
+                ],
+                [
+                    'selected_option_id' => $optionId,
+                    'answered_at' => $optionId ? now() : null,
+                ]
+            );
+
+            $attempt->forceFill(['last_seen_at' => now()])->save();
+
+            return response()->json([
+                'ok' => true,
+                'answered_count' => $attempt->answers()->whereNotNull('selected_option_id')->count(),
+                'remaining_seconds' => max(0, now()->diffInSeconds($attempt->expires_at, false)),
+            ]);
+        });
     }
 
     public function heartbeatQuiz(Request $request, $slug, $challenge_id): JsonResponse
@@ -363,46 +487,53 @@ class ChallengesController extends Controller
     {
         $request->validate([
             'attempt_id' => ['required', 'integer'],
-            'event_type' => ['required', 'string', 'max:80'],
-            'severity' => ['nullable', 'in:low,medium,high'],
+            'event_type' => ['required', 'string', 'in:' . implode(',', array_keys(self::QUIZ_EVENT_SEVERITY))],
             'details' => ['nullable', 'array'],
+            'details.answered' => ['nullable', 'integer', 'min:0', 'max:250'],
         ]);
 
         $challenge = Challenge::findOrFail($challenge_id);
         $this->ensureChallengeBelongsToSlug($challenge, $slug, false);
 
-        $attempt = $this->currentUserAttempt($challenge, (int) $request->input('attempt_id'));
+        return DB::transaction(function () use ($request, $challenge) {
+            $attempt = ChallengeAttempt::where('id', (int) $request->input('attempt_id'))
+                ->where('challenge_id', $challenge->id)
+                ->where('user_id', Auth::id())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($attempt->status !== 'in_progress') {
-            return response()->json(['ok' => true, 'ignored' => true]);
-        }
+            if ($attempt->status !== 'in_progress') {
+                return response()->json(['ok' => true, 'ignored' => true]);
+            }
 
-        $severity = $request->input('severity', 'low');
+            $eventType = (string) $request->input('event_type');
+            $severity = self::QUIZ_EVENT_SEVERITY[$eventType];
+            $details = ['answered' => (int) $request->input('details.answered', 0)];
 
-        ChallengeAttemptEvent::create([
-            'challenge_attempt_id' => $attempt->id,
-            'event_type' => substr($request->input('event_type'), 0, 80),
-            'severity' => $severity,
-            'details' => $request->input('details', []),
-            'occurred_at' => now(),
-        ]);
+            ChallengeAttemptEvent::create([
+                'challenge_attempt_id' => $attempt->id,
+                'event_type' => $eventType,
+                'severity' => $severity,
+                'details' => $details,
+                'occurred_at' => now(),
+            ]);
 
-        $increment = $severity === 'high' ? 3 : ($severity === 'medium' ? 2 : 1);
-        $attempt->increment('suspicious_event_count', $increment);
-        $attempt->refresh();
+            $increment = $severity === 'high' ? 3 : ($severity === 'medium' ? 2 : 1);
+            $attempt->suspicious_event_count += $increment;
 
-        if ($attempt->suspicious_event_count >= self::SUSPICIOUS_EVENT_LIMIT && $attempt->is_leaderboard_eligible) {
-            $attempt->forceFill([
-                'is_leaderboard_eligible' => false,
-                'notes' => trim(($attempt->notes ?? '') . "\nLeaderboard eligibility removed because the suspicious event limit was reached."),
-            ])->save();
-        }
+            if ($attempt->suspicious_event_count >= self::SUSPICIOUS_EVENT_LIMIT && $attempt->is_leaderboard_eligible) {
+                $attempt->is_leaderboard_eligible = false;
+                $attempt->notes = trim(($attempt->notes ?? '') . "\nLeaderboard eligibility removed because the suspicious event limit was reached.");
+            }
 
-        return response()->json([
-            'ok' => true,
-            'suspicious_event_count' => $attempt->suspicious_event_count,
-            'is_leaderboard_eligible' => (bool) $attempt->is_leaderboard_eligible,
-        ]);
+            $attempt->save();
+
+            return response()->json([
+                'ok' => true,
+                'suspicious_event_count' => $attempt->suspicious_event_count,
+                'is_leaderboard_eligible' => (bool) $attempt->is_leaderboard_eligible,
+            ]);
+        });
     }
 
     public function submitQuiz(Request $request, $slug, $challenge_id, ChallengePathUnlockService $unlockService, GamificationService $gamification)
@@ -418,19 +549,32 @@ class ChallengesController extends Controller
             'answers.*' => ['nullable', 'integer'],
         ]);
 
-        $attempt = $this->currentUserAttempt($challenge, (int) $request->input('attempt_id'));
+        $result = DB::transaction(function () use ($request, $challenge, $unlockService, $gamification) {
+            $attempt = ChallengeAttempt::where('id', (int) $request->input('attempt_id'))
+                ->where('challenge_id', $challenge->id)
+                ->where('user_id', Auth::id())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($attempt->status !== 'in_progress') {
-            return redirect()->route('challenges.map', $slug)
-                ->with('success', 'This attempt has already been finalized. Your saved result is still preserved.');
-        }
+            if ($attempt->status !== 'in_progress') {
+                return [
+                    'message' => 'This attempt has already been finalized. Your saved result is still preserved.',
+                    'attempt_id' => $attempt->id,
+                ];
+            }
 
-        $this->persistPostedAnswers($attempt, $request->input('answers', []));
+            $this->persistPostedAnswers($attempt, $request->input('answers', []));
 
-        $status = now()->greaterThanOrEqualTo($attempt->expires_at) ? 'expired' : 'submitted';
-        $result = $this->finalizeMcqAttempt($attempt, $status, $unlockService, $gamification);
+            $status = now()->greaterThanOrEqualTo($attempt->expires_at) ? 'expired' : 'submitted';
 
-        return redirect()->route('challenges.map', $slug)->with('success', $result['message']);
+            return $this->finalizeMcqAttempt($attempt, $status, $unlockService, $gamification);
+        });
+
+        return redirect()->route('challenges.quiz.result', [
+            'slug' => $slug,
+            'challenge' => $challenge->id,
+            'attempt' => $result['attempt_id'],
+        ])->with('success', $result['message']);
     }
 
     public function showCodingQuiz($slug, $challenge_id)
@@ -441,7 +585,11 @@ class ChallengesController extends Controller
 
     public function submitCodingQuiz(Request $request, $slug, $challenge_id)
     {
-        $challenge = Challenge::findOrFail($challenge_id);
+        $unlockService = app(ChallengePathUnlockService::class);
+        $this->ensurePathIsUnlocked($slug, 'coding', $unlockService);
+
+        $challenge = Challenge::with('category')->findOrFail($challenge_id);
+        $this->ensureChallengeBelongsToSlug($challenge, $slug, true);
 
         $totalQuestions = $challenge->codingQuestions()->count();
 
@@ -483,6 +631,19 @@ class ChallengesController extends Controller
         $userId = Auth::id();
 
         return DB::transaction(function () use ($challenge, $userId) {
+            // Serialize attempt creation for this user. Locking an absent attempt row
+            // alone cannot prevent two requests from creating attempt number one.
+            DB::table('users')->where('id', $userId)->lockForUpdate()->first();
+
+            // Coordinate with administrator edits/deactivation so a question
+            // snapshot cannot be created while the challenge is being changed.
+            $challenge = Challenge::query()
+                ->whereKey($challenge->id)
+                ->where('is_coding_challenge', false)
+                ->where('is_active', true)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $activeAttempt = ChallengeAttempt::where('user_id', $userId)
                 ->where('challenge_id', $challenge->id)
                 ->where('status', 'in_progress')
@@ -516,6 +677,8 @@ class ChallengesController extends Controller
                 ->values()
                 ->map(fn ($id) => (int) $id)
                 ->all();
+
+            abort_if(empty($questionIds), 422, 'This challenge has no questions yet. Please contact your instructor.');
 
             $optionOrder = [];
             foreach ($questionIds as $questionId) {
@@ -638,17 +801,24 @@ class ChallengesController extends Controller
 
     private function finalizeMcqAttempt(ChallengeAttempt $attempt, string $status, ChallengePathUnlockService $unlockService, GamificationService $gamification): array
     {
-        $attempt = ChallengeAttempt::with(['challenge.questions.options', 'challenge.category', 'answers.selectedOption'])
+        return DB::transaction(function () use ($attempt, $status, $unlockService, $gamification) {
+        $attempt = ChallengeAttempt::with(['challenge.category', 'answers.selectedOption'])
             ->where('id', $attempt->id)
             ->where('user_id', Auth::id())
+            ->lockForUpdate()
             ->firstOrFail();
 
         if ($attempt->status !== 'in_progress') {
-            return ['message' => 'This attempt was already finalized.'];
+            return [
+                'message' => 'This attempt was already finalized.',
+                'attempt_id' => $attempt->id,
+            ];
         }
 
         $challenge = $attempt->challenge;
-        $totalQuestions = max((int) $attempt->total_questions, $challenge->questions->count());
+        // Score against the immutable question snapshot captured when the attempt
+        // started, not questions an instructor may add while it is in progress.
+        $totalQuestions = max(0, (int) $attempt->total_questions);
         $correctCount = 0;
 
         foreach ($attempt->answers as $answer) {
@@ -716,14 +886,21 @@ class ChallengesController extends Controller
 
         return [
             'message' => $this->finishedAttemptMessage($attempt, $correctCount, $totalQuestions, $earnedXp, $leaderboardEligible, $achievements, $status),
+            'attempt_id' => $attempt->id,
         ];
+        });
     }
 
     private function recordLearningCompletion(ChallengeAttempt $attempt, int $earnedXp): void
     {
+        if (! $attempt->is_ranked) {
+            return;
+        }
+
         $existing = DB::table('challenge_user')
             ->where('user_id', $attempt->user_id)
             ->where('challenge_id', $attempt->challenge_id)
+            ->lockForUpdate()
             ->first();
 
         if (!$existing) {
@@ -807,6 +984,8 @@ class ChallengesController extends Controller
 
     private function ensurePathIsUnlocked(string $slug, string $track, ChallengePathUnlockService $unlockService): void
     {
+        $this->ensureUniversityStudentEnrollment($slug);
+
         $lockInfo = $unlockService->lockInfo(Auth::user(), $slug, $track);
 
         if (!($lockInfo['unlocked'] ?? false)) {
@@ -814,11 +993,34 @@ class ChallengesController extends Controller
         }
     }
 
-    private function ensureChallengeBelongsToSlug(Challenge $challenge, string $slug, bool $coding): void
+    private function ensureChallengeBelongsToSlug(Challenge $challenge, string $slug, bool $coding, bool $requireActive = true): void
     {
+        $this->ensureUniversityStudentEnrollment($slug);
         $challenge->loadMissing('category');
 
         abort_unless($challenge->category && $challenge->category->slug === $slug, 404);
         abort_unless((bool) $challenge->is_coding_challenge === $coding, 404);
+        if ($requireActive) {
+            abort_unless((bool) $challenge->is_active, 404);
+        }
+    }
+
+    private function ensureUniversityStudentEnrollment(string $slug): void
+    {
+        if ($slug !== 'university-student') {
+            return;
+        }
+
+        abort_unless($this->hasActiveClassEnrollment(), 404);
+    }
+
+    private function hasActiveClassEnrollment(): bool
+    {
+        $user = Auth::user();
+
+        return $user !== null
+            && $user->classesAsStudent()
+                ->active()
+                ->exists();
     }
 }

@@ -11,14 +11,15 @@ return [
     |
     | This option determines the default session driver that is utilized for
     | incoming requests. Laravel supports a variety of storage options to
-    | persist session data. Database storage is a great default choice.
+    | persist session data. DataSensei intentionally uses filesystem sessions
+    | because the framework sessions table is not part of its schema.
     |
     | Supported: "file", "cookie", "database", "memcached",
     |            "redis", "dynamodb", "array"
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------
@@ -32,7 +33,19 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    'lifetime' => max(1, (int) env('SESSION_LIFETIME', 240), (int) env('SESSION_IDLE_TIMEOUT', 240)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Inactivity Timeout
+    |--------------------------------------------------------------------------
+    |
+    | This timeout is based on genuine user activity. Automatic background
+    | requests, such as notification-count polling, do not reset it.
+    |
+    */
+
+    'idle_timeout' => (int) env('SESSION_IDLE_TIMEOUT', 240),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
@@ -47,7 +60,7 @@ return [
     |
     */
 
-    'encrypt' => env('SESSION_ENCRYPT', false),
+    'encrypt' => env('SESSION_ENCRYPT', true),
 
     /*
     |--------------------------------------------------------------------------

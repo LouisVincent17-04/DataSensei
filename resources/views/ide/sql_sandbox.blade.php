@@ -183,6 +183,9 @@
 
         .tb-btn { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.75rem; cursor: pointer; transition: all 0.15s; font-weight: 500; }
         .tb-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border-hover); }
+        .topbar-nav-divider { width: 1px; height: 20px; background: var(--border); margin: 0 2px 0 6px; flex-shrink: 0; }
+        .tb-btn.dashboard-btn { color: var(--muted); border-color: transparent; background: transparent; white-space: nowrap; }
+        .tb-btn.dashboard-btn:hover { color: var(--text); border-color: var(--border-hover); background: var(--surface2); }
         .tb-btn.run { background: var(--accent3); color: #fff; border-color: var(--accent3); font-weight: 600; }
         .tb-btn.run:hover { background: #0ea472; }
         .tb-btn.run:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -234,10 +237,44 @@
         .refresh-btn:hover { background: var(--border); color: var(--text); }
         .refresh-btn.spinning svg { animation: spin 0.6s linear infinite; }
 
-        .drop-toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; z-index: 99; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: none; }
-        .drop-toast.show { display: block; }
-        .drop-toast-title { color: var(--warn); font-weight: 700; font-size: 0.85rem; margin-bottom: 4px; }
-        .drop-toast-desc { font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
+        .drop-toast {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            max-width: none !important;
+            max-height: none !important;
+            margin: 0 !important;
+            padding: 20px !important;
+            border: 0 !important;
+            background: transparent !important;
+            overflow: hidden;
+            z-index: 2147483647;
+        }
+        .drop-toast[open] {
+            display: grid !important;
+            place-items: center !important;
+        }
+        .drop-toast::backdrop {
+            background: rgba(3, 8, 18, 0.72);
+            backdrop-filter: blur(3px);
+        }
+        .drop-dialog {
+            width: min(420px, calc(100vw - 40px));
+            margin: auto;
+            background: var(--surface);
+            border: 1px solid var(--border-hover);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 18px 55px rgba(0,0,0,0.6);
+            animation: dropDialogIn 0.16s ease-out;
+        }
+        @keyframes dropDialogIn {
+            from { opacity: 0; transform: translateY(8px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .drop-toast-title { color: var(--warn); font-weight: 700; font-size: 0.95rem; margin-bottom: 6px; }
+        .drop-toast-desc { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; line-height: 1.55; }
 
         /* ═══════════════════════════════════════════════════
            🤖 AI REVIEW CHATBOT WIDGET
@@ -398,14 +435,17 @@
         <span class="topbar-title">SQL Sandbox</span>
         
         <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-            <a href="#" id="returnToLessonBtn" class="tb-btn" style="display: none; color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1);">
+            <a href="{{ route('studentDashboard') }}" id="returnToLessonBtn" class="tb-btn" style="display: none; color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1);">
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 Return to Lesson
             </a>
             <button class="tb-btn" onclick="insertSnippet('select')">SELECT</button>
             <button class="tb-btn" onclick="insertSnippet('create')">CREATE</button>
-            <a href="{{ route('studentDashboard') }}" class="tb-btn" title="Back to Dashboard">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            @include('student.partials.notification-center', ['variant' => 'topbar'])
+            <span class="topbar-nav-divider" aria-hidden="true"></span>
+            <a href="{{ route('studentDashboard') }}" class="tb-btn dashboard-btn" title="Return to dashboard" aria-label="Return to dashboard">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+                <span>Dashboard</span>
             </a>
         </div>
     </div>
@@ -478,14 +518,16 @@
     </div>
 </div>
 
-<div class="drop-toast" id="drop-toast">
-    <div class="drop-toast-title">Delete Table?</div>
-    <div class="drop-toast-desc" id="drop-desc"></div>
-    <div style="display:flex; gap:8px; justify-content: flex-end;">
-        <button class="tb-btn" onclick="cancelDrop()">Cancel</button>
-        <button class="tb-btn" style="background:var(--warn); color:white; border:none;" onclick="confirmDrop()">Delete</button>
+<dialog class="drop-toast" id="drop-toast" aria-labelledby="drop-title" aria-describedby="drop-desc">
+    <div class="drop-dialog">
+        <div class="drop-toast-title" id="drop-title">Delete Table?</div>
+        <div class="drop-toast-desc" id="drop-desc"></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="tb-btn" id="drop-cancel-btn" type="button" onclick="cancelDrop()">Cancel</button>
+            <button class="tb-btn" id="drop-confirm-btn" type="button" style="background:var(--warn); color:white; border:none;" onclick="confirmDrop()">Delete</button>
+        </div>
     </div>
-</div>
+</dialog>
 
 {{-- ═══════════════════════════════════════════════════
      🤖 AI REVIEW CHATBOT WIDGET HTML
@@ -536,15 +578,15 @@
 ═══════════════════════════════════════════════════ --}}
 <script>
 // ── ReviewBot (SQL Sandbox) ───────────────────────────────────────────────────
-// Calls POST /api/code-review with { code, language: 'mysql' }
+// Calls POST /api/code-review with { code, language: 'sqlite' }
 // Returns JSON { ok, message }
-const REVIEW_URL = '/api/code-review';
+const REVIEW_URL = @json(route('api.code-review'));
 
 const ReviewBot = (() => {
   let _open     = false;
   let _busy     = false;
   let _lastCode = '';
-  let _lastLang = 'mysql';
+  let _lastLang = 'sqlite';
   let _lastRunOutput = '';
   const _history = [];
 
@@ -583,7 +625,7 @@ const ReviewBot = (() => {
   function autoReview(sql, runOutput = '') {
     if (!sql || !sql.trim()) return;
     _lastCode = sql;
-    _lastLang = 'mysql';
+    _lastLang = 'sqlite';
     _lastRunOutput = runOutput || '';
     _history.length = 0; // reset context per new run
 
@@ -598,7 +640,7 @@ const ReviewBot = (() => {
       '<div class="rb-line">I see you just ran a <strong style="color:var(--text)">SQL query</strong> — let me review it now...</div>'
     );
 
-    _sendReview(sql, 'mysql');
+    _sendReview(sql, 'sqlite');
   }
 
   /* ── Code generation detection ── */
@@ -653,7 +695,7 @@ const ReviewBot = (() => {
       const form = new FormData();
       form.append('mode',     'review');
       form.append('code',     code);
-      form.append('language', lang || 'mysql');
+      form.append('language', lang || 'sqlite');
       form.append('run_output', _lastRunOutput || '');
 
       const res  = await fetch(REVIEW_URL, {
@@ -661,20 +703,20 @@ const ReviewBot = (() => {
         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
         body: form,
       });
-      const data = await res.json();
+      const data = await _readJsonResponse(res);
       _removeTyping(typingId);
 
-      if (data.ok || data.message) {
-        const msg   = data.message || data.review || '';
-        const html  = _formatReview(msg);
-        _addBot(html);
-        _history.push({ role: 'assistant', content: msg });
-      } else {
-        _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(data.error || 'Review failed. Check your backend route.')}</div>`);
+      if (!res.ok || !data.ok) {
+        throw new Error(data.message || `Review request failed with HTTP ${res.status}.`);
       }
+
+      const msg  = data.message || '';
+      const html = _formatReview(msg);
+      _addBot(html);
+      _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      _addBot('<div class="rb-line" style="color:var(--warn)">Could not reach the review endpoint. Make sure <code style="font-family:JetBrains Mono,monospace;font-size:0.68rem">/api/code-review</code> is defined in your Laravel routes.</div>');
+      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The SQL review request failed.')}</div>`);
     } finally {
       _setBusy(false);
     }
@@ -699,17 +741,33 @@ const ReviewBot = (() => {
         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
         body: form,
       });
-      const data = await res.json();
+      const data = await _readJsonResponse(res);
       _removeTyping(typingId);
 
-      const msg  = data.message || data.review || data.error || 'No response.';
+      if (!res.ok || !data.ok) {
+        throw new Error(data.message || `Follow-up request failed with HTTP ${res.status}.`);
+      }
+
+      const msg  = data.message || 'No response.';
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      _addBot('<div class="rb-line" style="color:var(--warn)">Request failed.</div>');
+      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The follow-up request failed.')}</div>`);
     } finally {
       _setBusy(false);
+    }
+  }
+
+  async function _readJsonResponse(response) {
+    const text = await response.text();
+
+    if (!text.trim()) return {};
+
+    try {
+      return JSON.parse(text);
+    } catch (_) {
+      throw new Error(`Server returned a non-JSON response (HTTP ${response.status}).`);
     }
   }
 
@@ -808,11 +866,10 @@ const ReviewBot = (() => {
     }
     const CSRF = csrfMeta ? csrfMeta.content : '';
 
-    // ── BASE URL: use the named route to avoid subdirectory mismatches ────
-    // Previously `'{{ url("/sql-sandbox") }}'` could resolve incorrectly
-    // if APP_URL isn't set or the app is served from a subdirectory.
-    // route() is always authoritative in Laravel.
-    const BASE = '/sql-sandbox';
+    // Named routes remain correct when the application is hosted below a
+    // subdirectory or its public URL changes.
+    const EXECUTE_URL = @json(route('sql-sandbox.execute'));
+    const TABLES_URL  = @json(route('sql-sandbox.tables'));
 
     // UI References
     const $query     = document.getElementById('query');
@@ -830,12 +887,24 @@ const ReviewBot = (() => {
     // ── Session Integration ───────────────────────────────────────────────
 
     // 1. Handle "Return to Lesson" Logic
-    const sessionReturnUrl = @json($returnUrl ?? '');
+    function sameOriginUrl(value) {
+        if (!value) return null;
+        try {
+            const parsed = new URL(value, window.location.origin);
+            return parsed.origin === window.location.origin && ['http:', 'https:'].includes(parsed.protocol)
+                ? parsed.href
+                : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    const sessionReturnUrl = sameOriginUrl(@json($returnUrl ?? ''));
     if (sessionReturnUrl) {
         sessionStorage.setItem('datasensei_return_url', sessionReturnUrl);
     }
 
-    const returnUrl = sessionStorage.getItem('datasensei_return_url');
+    const returnUrl = sameOriginUrl(sessionStorage.getItem('datasensei_return_url'));
     const returnBtn = document.getElementById('returnToLessonBtn');
     if (returnUrl && returnBtn) {
         returnBtn.style.display = 'inline-flex';
@@ -948,14 +1017,51 @@ WHERE id = 2;`
 
     // ── Snippet helpers ───────────────────────────────────────────────────
 
-    window.insertSnippet = k => {
-        const s = { 
-            select: 'SELECT * FROM table_name LIMIT 10;',
-            create: 'CREATE TABLE students (\n  id INTEGER PRIMARY KEY,\n  name TEXT,\n  grade INTEGER\n);'
-        };
-        $query.value = s[k] || '';
-        $query.focus();
-        updateLines();
+    function sqlIdentifier(name) {
+        const identifier = String(name ?? '');
+        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)
+            ? identifier
+            : `"${identifier.replace(/"/g, '""')}"`;
+    }
+
+    window.insertSnippet = async k => {
+        if (k === 'select') {
+            try {
+                // Always read the current sandbox schema when SELECT is clicked.
+                // This keeps the generated query correct after CREATE/DROP operations.
+                const tableState = await fetchCurrentTableState();
+
+                if (tableState.tables.length === 0) {
+                    $query.value = '';
+                    updateLines();
+                    showInfo('No tables found. Create a table first using the CREATE function.');
+                    return;
+                }
+
+                // The tables endpoint is ordered by the database. With no explicit
+                // selected-table concept in this UI, use the first real table returned.
+                const tableName = String(tableState.tables[0]?.name ?? '');
+                if (!tableName) {
+                    showResult(false, 'Could not retrieve a valid table name from the SQL Sandbox.');
+                    return;
+                }
+
+                $query.value = `SELECT * FROM ${sqlIdentifier(tableName)} LIMIT 10;`;
+                $query.focus();
+                updateLines();
+                return;
+            } catch (error) {
+                console.error('[SQL Sandbox] SELECT table lookup failed:', error);
+                showResult(false, error?.message || 'Could not retrieve the available tables. Please refresh the schema and try again.');
+                return;
+            }
+        }
+
+        if (k === 'create') {
+            $query.value = 'CREATE TABLE students (\n  id INTEGER PRIMARY KEY,\n  name TEXT,\n  grade INTEGER\n);';
+            $query.focus();
+            updateLines();
+        }
     };
 
     // ── Line numbers ──────────────────────────────────────────────────────
@@ -1022,6 +1128,16 @@ WHERE id = 2;`
 
     // ── Result helpers ────────────────────────────────────────────────────
 
+    function showInfo(message) {
+        $idle.style.display = 'none';
+        $tblScroll.classList.remove('show');
+        $resultMsg.style.display = 'block';
+        $resultMsg.style.color = 'var(--muted)';
+        $resultMsg.textContent = message;
+        $badge.style.display = 'none';
+        $rowCount.textContent = '';
+    }
+
     function showResult(isSuccess, messageOrCols, rows) {
         $idle.style.display = 'none';
 
@@ -1051,10 +1167,26 @@ WHERE id = 2;`
     function showTable(cols, rows) {
         $resultMsg.style.display = 'none';
         $tblScroll.classList.add('show');
-        document.getElementById('result-head').innerHTML =
-            `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
-        document.getElementById('result-body').innerHTML =
-            rows.map(r => `<tr>${r.map(v => `<td>${v ?? 'NULL'}</td>`).join('')}</tr>`).join('');
+        const head = document.getElementById('result-head');
+        const body = document.getElementById('result-body');
+        const headRow = document.createElement('tr');
+
+        cols.forEach(column => {
+            const cell = document.createElement('th');
+            cell.textContent = String(column);
+            headRow.appendChild(cell);
+        });
+
+        head.replaceChildren(headRow);
+        body.replaceChildren(...rows.map(row => {
+            const tableRow = document.createElement('tr');
+            row.forEach(value => {
+                const cell = document.createElement('td');
+                cell.textContent = value === null ? 'NULL' : String(value);
+                tableRow.appendChild(cell);
+            });
+            return tableRow;
+        }));
         $rowCount.textContent = `${rows.length} row(s)`;
     }
 
@@ -1099,6 +1231,19 @@ WHERE id = 2;`
         return { ok: res.ok, status: res.status, data };
     }
 
+    async function fetchCurrentTableState() {
+        const { ok, data } = await apiFetch(TABLES_URL, { cache: 'no-store' });
+
+        if (!ok || data.status !== 'success') {
+            throw new Error(data.message || 'Could not retrieve the available tables from the SQL Sandbox.');
+        }
+
+        return {
+            ...data,
+            tables: Array.isArray(data.tables) ? data.tables : [],
+        };
+    }
+
     // ── Refresh Schema ────────────────────────────────────────────────────
     window.refreshSchema = async () => {
         $refreshBtn.classList.add('spinning');
@@ -1119,7 +1264,7 @@ WHERE id = 2;`
         $badge.style.display = 'none';
 
         try {
-            const { data } = await apiFetch(BASE + '/execute', {
+            const { data } = await apiFetch(EXECUTE_URL, {
                 method: 'POST',
                 body:   JSON.stringify({ query: q }),
             });
@@ -1154,8 +1299,7 @@ WHERE id = 2;`
     // ── Table Sidebar ─────────────────────────────────────────────────────
     window.loadTables = async () => {
         try {
-            const { data } = await apiFetch(BASE + '/tables');
-            if (data.status !== 'success') return;
+            const data = await fetchCurrentTableState();
 
             const fill = document.getElementById('quota-fill');
             if (fill) {
@@ -1165,26 +1309,57 @@ WHERE id = 2;`
             document.getElementById('quota-text').textContent = `${data.count}/${data.limit}`;
 
             if (data.tables.length === 0) {
-                $tableList.innerHTML = '<div class="empty-state"><span class="icon">🗄️</span>No tables yet</div>';
+                $tableList.innerHTML = '<div class="empty-state">No tables yet</div>';
                 return;
             }
 
-            $tableList.innerHTML = data.tables.map(t => `
-                <div class="tbl-item">
-                    <div class="tbl-header" onclick="this.parentElement.classList.toggle('open')">
-                        <svg class="tbl-chevron" viewBox="0 0 16 16" fill="currentColor"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>
-                        <span class="tbl-name">${t.name}</span>
-                        <div class="tbl-actions">
-                             <button class="tbl-btn" title="Delete Table" onclick="event.stopPropagation(); showDropToast('${t.name}')">
-                                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                             </button>
-                        </div>
-                    </div>
-                    <div class="col-list">
-                        ${t.columns.map(c => `<div class="col-row"><span class="col-name">${c.name}</span><span class="col-type">${c.type}</span></div>`).join('')}
-                    </div>
-                </div>
-            `).join('');
+            $tableList.replaceChildren(...data.tables.map(table => {
+                const item = document.createElement('div');
+                item.className = 'tbl-item';
+
+                const header = document.createElement('div');
+                header.className = 'tbl-header';
+                header.addEventListener('click', () => item.classList.toggle('open'));
+                header.innerHTML = '<svg class="tbl-chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/></svg>';
+
+                const name = document.createElement('span');
+                name.className = 'tbl-name';
+                name.textContent = String(table.name);
+                header.appendChild(name);
+
+                const actions = document.createElement('div');
+                actions.className = 'tbl-actions';
+                const drop = document.createElement('button');
+                drop.type = 'button';
+                drop.className = 'tbl-btn';
+                drop.title = 'Delete Table';
+                drop.setAttribute('aria-label', `Delete table ${table.name}`);
+                drop.innerHTML = '<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>';
+                drop.addEventListener('click', event => {
+                    event.stopPropagation();
+                    showDropToast(String(table.name));
+                });
+                actions.appendChild(drop);
+                header.appendChild(actions);
+
+                const columns = document.createElement('div');
+                columns.className = 'col-list';
+                for (const column of table.columns) {
+                    const row = document.createElement('div');
+                    row.className = 'col-row';
+                    const columnName = document.createElement('span');
+                    columnName.className = 'col-name';
+                    columnName.textContent = String(column.name);
+                    const type = document.createElement('span');
+                    type.className = 'col-type';
+                    type.textContent = String(column.type);
+                    row.append(columnName, type);
+                    columns.appendChild(row);
+                }
+
+                item.append(header, columns);
+                return item;
+            }));
         } catch (e) {
             console.warn('[SQL Sandbox] loadTables failed:', e);
         }
@@ -1195,29 +1370,71 @@ WHERE id = 2;`
 
     window.showDropToast = name => {
         tableToDrop = name;
-        document.getElementById('drop-desc').textContent = `Are you sure you want to delete '${name}'?`;
-        document.getElementById('drop-toast').classList.add('show');
+        document.getElementById('drop-desc').textContent = `Are you sure you want to delete '${name}'? This action cannot be undone.`;
+
+        const modal = document.getElementById('drop-toast');
+        if (typeof modal.showModal === 'function') {
+            if (!modal.open) modal.showModal();
+        } else {
+            modal.setAttribute('open', '');
+        }
+
+        requestAnimationFrame(() => document.getElementById('drop-cancel-btn')?.focus());
     };
 
     window.cancelDrop = () => {
-        document.getElementById('drop-toast').classList.remove('show');
+        const modal = document.getElementById('drop-toast');
+        if (typeof modal.close === 'function' && modal.open) {
+            modal.close();
+        } else {
+            modal.removeAttribute('open');
+        }
+
         tableToDrop = null;
+        const confirmButton = document.getElementById('drop-confirm-btn');
+        if (confirmButton) {
+            confirmButton.disabled = false;
+            confirmButton.textContent = 'Delete';
+        }
     };
 
     window.confirmDrop = async () => {
         if (!tableToDrop) return;
+
+        const confirmButton = document.getElementById('drop-confirm-btn');
+        if (confirmButton) {
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'Deleting…';
+        }
+
         try {
-            await apiFetch(`${BASE}/tables/${tableToDrop}`, {
+            const { ok, data } = await apiFetch(`${TABLES_URL}/${encodeURIComponent(tableToDrop)}`, {
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
             });
-            loadTables();
+            if (!ok) {
+                showResult(false, data.message || 'Could not delete the selected table.');
+            } else {
+                await loadTables();
+            }
         } catch (e) {
             console.error('[SQL Sandbox] confirmDrop failed:', e);
+            showResult(false, 'Could not delete the selected table. Please try again.');
         } finally {
             cancelDrop();
         }
     };
+
+    const dropModal = document.getElementById('drop-toast');
+
+    dropModal.addEventListener('click', event => {
+        if (event.target === dropModal) cancelDrop();
+    });
+
+    dropModal.addEventListener('cancel', event => {
+        event.preventDefault();
+        cancelDrop();
+    });
 
     // ── Clear ─────────────────────────────────────────────────────────────
     window.clearAll = () => {

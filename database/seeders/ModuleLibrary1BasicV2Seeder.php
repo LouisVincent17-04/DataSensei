@@ -17545,11 +17545,3 @@ print(student)',
         ];
     }
 }
-
-
-/*
- * Backward-compatible class name in case another runner still calls the previous seeder name.
- */
-class ModuleLibraryPythonBasicV2Seeder extends ModuleLibrary1BasicV2Seeder
-{
-}

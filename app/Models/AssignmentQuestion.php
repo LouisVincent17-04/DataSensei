@@ -46,6 +46,12 @@ class AssignmentQuestion extends Model
         return $this->hasMany(AssignmentSubmissionAnswer::class);
     }
 
+    public function iloMappings(): HasMany
+    {
+        return $this->hasMany(AssessmentQuestionIlo::class, 'question_id')
+            ->where('assessment_source', 'assignment');
+    }
+
     public function getTypeLabelAttribute(): string
     {
         return $this->question_type === 'mcq' ? 'MCQ' : 'Fill Blank';

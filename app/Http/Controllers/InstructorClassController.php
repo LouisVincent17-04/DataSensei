@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassRoom;
+use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class InstructorClassController extends Controller
 {
@@ -65,60 +67,40 @@ class InstructorClassController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'              => ['required', 'string', 'max:191'],
-            'section'           => ['nullable', 'string', 'max:191'],
+            'name'              => ['required', 'string', 'max:189'],
+            'section'           => ['nullable', 'string', 'max:189'],
             'subject_code'      => ['nullable', 'string', 'max:50'],
             'term'              => ['nullable', 'string', 'max:100'],
             'academic_year'     => ['nullable', 'string', 'max:20'],
             'description'       => ['nullable', 'string', 'max:1000'],
             'max_students'      => ['nullable', 'integer', 'min:1', 'max:1000'],
-            'allow_self_enroll' => ['boolean'],
         ]);
 
-        $validated['instructor_id']     = Auth::id();
-        $validated['institution_id']    = Auth::user()->institution_id ?? null;
-        $validated['allow_self_enroll'] = $request->boolean('allow_self_enroll');
+        $class = DB::transaction(function () use ($validated): ClassRoom {
+            $instructor = User::query()
+                ->whereKey(Auth::id())
+                ->where('role', User::ROLE_INSTRUCTOR)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $class = ClassRoom::create($validated);
+            $institution = Institution::query()
+                ->whereKey($instructor->institution_id)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            return ClassRoom::create([
+                ...$validated,
+                'instructor_id' => $instructor->id,
+                'institution_id' => $institution->id,
+                'allow_self_enroll' => false,
+            ]);
+        }, 3);
 
         return redirect()
             ->route('instructor.classes.index')
             ->with('success', "Class \"{$class->name}\" created successfully! Code: {$class->class_code}");
-    }
-
-    // ─── Students ────────────────────────────────────────────────────────────
-
-    public function students(Request $request, ClassRoom $class)
-    {
-        $this->authorizeClass($class);
-
-        $search = $request->input('search');
-        $tab    = $request->input('tab', 'enrolled'); // 'enrolled' | 'pending'
-
-        // Base: only role=1 (students), belonging to this class
-        $base = $class->students()
-                      ->where('role', 1)
-                      ->with('institution');
-
-        if ($search) {
-            $base->where(function ($q) use ($search) {
-                $q->where('users.name',  'like', "%{$search}%")
-                  ->orWhere('users.email', 'like', "%{$search}%");
-            });
-        }
-
-        // When you add an `approved` boolean to class_student, split here:
-        // enrolled → ->wherePivot('approved', true)
-        // pending  → ->wherePivot('approved', false)
-
-        $students      = (clone $base)->paginate(20)->withQueryString();
-        $enrolledCount = $class->students()->where('role', 1)->count();
-        $pendingCount  = 0; // update once pivot.approved column exists
-        $avgXp         = (int) $class->students()->where('role', 1)->avg('xp');
-
-        return view('instructor.classes.students', compact(
-            'class', 'students', 'tab', 'enrolledCount', 'pendingCount', 'avgXp'
-        ));
     }
 
     // ─── Show ────────────────────────────────────────────────────────────────
@@ -149,19 +131,37 @@ class InstructorClassController extends Controller
         $this->authorizeClass($class);
 
         $validated = $request->validate([
-            'name'              => ['required', 'string', 'max:191'],
-            'section'           => ['nullable', 'string', 'max:191'],
+            'name'              => ['required', 'string', 'max:189'],
+            'section'           => ['nullable', 'string', 'max:189'],
             'subject_code'      => ['nullable', 'string', 'max:50'],
             'term'              => ['nullable', 'string', 'max:100'],
             'academic_year'     => ['nullable', 'string', 'max:20'],
             'description'       => ['nullable', 'string', 'max:1000'],
             'max_students'      => ['nullable', 'integer', 'min:1', 'max:1000'],
-            'allow_self_enroll' => ['boolean'],
         ]);
 
-        $validated['allow_self_enroll'] = $request->boolean('allow_self_enroll');
+        $result = DB::transaction(function () use ($class, $validated): array {
+            $lockedClass = ClassRoom::query()->whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeClass($lockedClass);
+            $enrolledCount = $lockedClass->students()->count();
 
-        $class->update($validated);
+            if (($validated['max_students'] ?? null) !== null
+                && (int) $validated['max_students'] < $enrolledCount) {
+                return ['updated' => false, 'enrolled_count' => $enrolledCount];
+            }
+
+            $payload = $validated;
+            $payload['allow_self_enroll'] = false;
+            $lockedClass->update($payload);
+
+            return ['updated' => true, 'enrolled_count' => $enrolledCount];
+        }, 3);
+
+        if (! $result['updated']) {
+            return back()
+                ->withErrors(['max_students' => "Capacity cannot be lower than the {$result['enrolled_count']} currently enrolled students."])
+                ->withInput();
+        }
 
         return redirect()
             ->route('instructor.classes.index')
@@ -174,7 +174,22 @@ class InstructorClassController extends Controller
     {
         $this->authorizeClass($class);
 
-        $class->update(['is_archived' => true]);
+        DB::transaction(function () use ($class): void {
+            $lockedClass = ClassRoom::query()->whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeClass($lockedClass);
+            $lockedClass->update(['is_archived' => true]);
+
+            // Archiving stops new starts but keeps current attempts reviewable
+            // and submittable through their existing closed records.
+            $lockedClass->assignmentPosts()->where('status', 'published')->update(['status' => 'closed']);
+
+            if (Schema::hasTable('assessments')) {
+                DB::table('assessments')
+                    ->where('class_id', $lockedClass->id)
+                    ->where('status', 'published')
+                    ->update(['status' => 'closed', 'updated_at' => now()]);
+            }
+        }, 3);
 
         return back()->with('success', "Class \"{$class->name}\" has been archived.");
     }
@@ -183,7 +198,11 @@ class InstructorClassController extends Controller
     {
         $this->authorizeClass($class);
 
-        $class->update(['is_archived' => false]);
+        DB::transaction(function () use ($class): void {
+            $lockedClass = ClassRoom::query()->whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeClass($lockedClass);
+            $lockedClass->update(['is_archived' => false]);
+        }, 3);
 
         return back()->with('success', "Class \"{$class->name}\" has been restored.");
     }
@@ -193,50 +212,64 @@ class InstructorClassController extends Controller
     public function destroy(ClassRoom $class)
     {
         $this->authorizeClass($class);
+        $result = DB::transaction(function () use ($class): array {
+            $lockedClass = ClassRoom::query()->whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeClass($lockedClass);
+            $blockingReasons = [];
 
-        $blockingReasons = [];
+            if ($lockedClass->students()->exists()) {
+                $blockingReasons[] = 'it still has enrolled students';
+            }
+            if ($lockedClass->assignedModules()->exists()) {
+                $blockingReasons[] = 'it still has assigned modules';
+            }
+            if ($lockedClass->assignmentPosts()->exists()) {
+                $blockingReasons[] = 'it still has class assignments';
+            }
 
-        if ($class->students()->exists()) {
-            $blockingReasons[] = 'it still has enrolled students';
-        }
+            $hasAssignmentSubmissions = DB::table('assignment_submissions')
+                ->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
+                ->where('class_assignments.class_id', $lockedClass->id)
+                ->exists();
+            if ($hasAssignmentSubmissions) {
+                $blockingReasons[] = 'students already have assignment submissions';
+            }
 
-        if ($class->assignedModules()->exists()) {
-            $blockingReasons[] = 'it still has assigned modules';
-        }
+            if (DB::table('anti_cheat_events')->where('class_id', $lockedClass->id)->exists()) {
+                $blockingReasons[] = 'it has anti-cheat event records';
+            }
 
-        if ($class->assignmentPosts()->exists()) {
-            $blockingReasons[] = 'it still has class assignments';
-        }
+            foreach ([
+                'table_of_specifications' => 'tables of specification',
+                'assessments' => 'assessments',
+                'student_ilo_masteries' => 'ILO mastery records',
+                'student_performance_snapshots' => 'performance snapshots',
+                'student_performance_clusters' => 'performance cluster records',
+            ] as $table => $label) {
+                if (Schema::hasTable($table) && DB::table($table)->where('class_id', $lockedClass->id)->exists()) {
+                    $blockingReasons[] = "it has {$label}";
+                }
+            }
 
-        $hasAssignmentSubmissions = DB::table('assignment_submissions')
-            ->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
-            ->where('class_assignments.class_id', $class->id)
-            ->exists();
+            if ($blockingReasons !== []) {
+                return ['deleted' => false, 'reasons' => $blockingReasons, 'name' => $lockedClass->name];
+            }
 
-        if ($hasAssignmentSubmissions) {
-            $blockingReasons[] = 'students already have assignment submissions';
-        }
+            $name = $lockedClass->name;
+            $lockedClass->delete();
 
-        $hasAntiCheatEvents = DB::table('anti_cheat_events')
-            ->where('class_id', $class->id)
-            ->exists();
+            return ['deleted' => true, 'reasons' => [], 'name' => $name];
+        }, 3);
 
-        if ($hasAntiCheatEvents) {
-            $blockingReasons[] = 'it has anti-cheat event records';
-        }
-
-        if (!empty($blockingReasons)) {
+        if (! $result['deleted']) {
             return redirect()
                 ->route('instructor.classes.index')
-                ->with('error', 'This class cannot be permanently deleted because ' . implode(', ', $blockingReasons) . '. Archive the class instead to preserve records.');
+                ->with('error', 'This class cannot be permanently deleted because ' . implode(', ', $result['reasons']) . '. Archive the class instead to preserve records.');
         }
-
-        $name = $class->name;
-        $class->delete();
 
         return redirect()
             ->route('instructor.classes.index')
-            ->with('success', "Class \"{$name}\" has been permanently deleted.");
+            ->with('success', "Class \"{$result['name']}\" has been permanently deleted.");
     }
 
     // ─── Regenerate Code ─────────────────────────────────────────────────────
@@ -245,20 +278,15 @@ class InstructorClassController extends Controller
     {
         $this->authorizeClass($class);
 
-        $class->update(['class_code' => ClassRoom::generateUniqueCode()]);
+        $newCode = DB::transaction(function () use ($class): string {
+            $lockedClass = ClassRoom::query()->whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeClass($lockedClass);
+            $lockedClass->update(['class_code' => ClassRoom::generateUniqueCode()]);
 
-        return back()->with('success', "New class code generated: {$class->class_code}");
-    }
+            return $lockedClass->class_code;
+        }, 3);
 
-    // ─── Remove Student ──────────────────────────────────────────────────────
-
-    public function removeStudent(ClassRoom $class, User $student)
-    {
-        $this->authorizeClass($class);
-
-        $class->students()->detach($student->id);
-
-        return back()->with('success', "{$student->name} has been removed from the class.");
+        return back()->with('success', "New class code generated: {$newCode}");
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────

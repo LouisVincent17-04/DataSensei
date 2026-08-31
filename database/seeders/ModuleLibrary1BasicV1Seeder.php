@@ -6,7 +6,7 @@ use App\Models\ModuleLibraryItem;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class ModuleLibraryPythonBasicV1Seeder extends Seeder
+class ModuleLibrary1BasicV1Seeder extends Seeder
 {
     public function run(): void
     {
@@ -4112,5 +4112,4 @@ print("Python is readable.")',
         ];
     }
 }
-
 

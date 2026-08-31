@@ -4,16 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\AssignmentBlankAnswer;
 use App\Models\AssignmentQuestion;
-use App\Models\AssignmentQuestionOption;
 use App\Models\AssignmentSubmission;
 use App\Models\AssignmentSubmissionAnswer;
 use App\Models\ClassAssignment;
 use App\Services\AntiCheatPolicyService;
 use App\Services\GamificationService;
 use App\Services\IloMasteryService;
+use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class StudentAssignmentController extends Controller
@@ -173,27 +174,67 @@ class StudentAssignmentController extends Controller
 
         abort_unless($assignment->status === 'published', 403, 'This assignment is already closed.');
 
-        $studentId = Auth::id();
-        $assignment->load('libraryItem.questions');
+        $studentId = (int) Auth::id();
 
-        $latestSubmission = AssignmentSubmission::where('class_assignment_id', $assignment->id)
-            ->where('student_id', $studentId)
-            ->orderByDesc('attempt_no')
-            ->first();
+        // Lock the learner row so double-clicks and parallel requests cannot
+        // create two attempts with the same attempt number.
+        $attempt = DB::transaction(function () use ($assignment, $studentId): array {
+            $lockedAssignment = ClassAssignment::whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+            DB::table('users')->where('id', $studentId)->lockForUpdate()->first();
 
-        if ($latestSubmission && $latestSubmission->status === 'in_progress') {
-            return redirect()->route('student.assignments.take', [$assignment, $latestSubmission]);
-        }
+            $enrollment = DB::table('class_student')
+                ->where('class_id', $lockedAssignment->class_id)
+                ->where('student_id', $studentId)
+                ->lockForUpdate()
+                ->first();
 
-        $submittedAttempts = AssignmentSubmission::where('class_assignment_id', $assignment->id)
-            ->where('student_id', $studentId)
-            ->whereIn('status', ['submitted', 'late', 'graded'])
-            ->count();
+            abort_unless($enrollment, 403, 'You are not enrolled in this assignment class.');
+            abort_unless($lockedAssignment->status === 'published', 403, 'This assignment is closed.');
+            abort_if(
+                $lockedAssignment->available_at && now()->lessThan($lockedAssignment->available_at),
+                403,
+                'This assignment is not available yet.'
+            );
 
-        if ($submittedAttempts >= $assignment->max_attempts) {
-            if ($latestSubmission) {
+            $lockedAssignment->load('libraryItem.questions');
+            abort_unless($lockedAssignment->libraryItem, 422, 'This assignment no longer has a question source.');
+
+            $latestSubmission = AssignmentSubmission::where('class_assignment_id', $assignment->id)
+                ->where('student_id', $studentId)
+                ->orderByDesc('attempt_no')
+                ->first();
+
+            if ($latestSubmission && $latestSubmission->status === 'in_progress') {
+                return ['submission' => $latestSubmission, 'exhausted' => false];
+            }
+
+            $submittedAttempts = AssignmentSubmission::where('class_assignment_id', $assignment->id)
+                ->where('student_id', $studentId)
+                ->whereIn('status', ['submitted', 'late', 'graded'])
+                ->count();
+
+            if ($submittedAttempts >= max(1, (int) $lockedAssignment->max_attempts)) {
+                return ['submission' => $latestSubmission, 'exhausted' => true];
+            }
+
+            $submission = AssignmentSubmission::create([
+                'class_assignment_id' => $lockedAssignment->id,
+                'student_id' => $studentId,
+                'attempt_no' => ((int) ($latestSubmission?->attempt_no ?? 0)) + 1,
+                'status' => 'in_progress',
+                'score' => 0,
+                'total_points' => (int) $lockedAssignment->libraryItem->questions->sum('points'),
+                'anti_cheat_session_id' => Str::random(64),
+                'started_at' => now(),
+            ]);
+
+            return ['submission' => $submission, 'exhausted' => false];
+        }, 3);
+
+        if ($attempt['exhausted']) {
+            if ($attempt['submission']) {
                 return redirect()
-                    ->route('student.assignments.result', [$assignment, $latestSubmission])
+                    ->route('student.assignments.result', [$assignment, $attempt['submission']])
                     ->with('error', 'You have already used all attempts for this assignment.');
             }
 
@@ -202,72 +243,131 @@ class StudentAssignmentController extends Controller
                 ->with('error', 'You have already used all attempts for this assignment.');
         }
 
-        $submission = AssignmentSubmission::create([
-            'class_assignment_id' => $assignment->id,
-            'student_id' => $studentId,
-            'attempt_no' => $submittedAttempts + 1,
-            'status' => 'in_progress',
-            'score' => 0,
-            'total_points' => (int) $assignment->libraryItem->questions->sum('points'),
-            'started_at' => now(),
-        ]);
-
-        return redirect()->route('student.assignments.take', [$assignment, $submission]);
+        return redirect()->route('student.assignments.take', [$assignment, $attempt['submission']]);
     }
 
     public function take(ClassAssignment $assignment, AssignmentSubmission $submission)
     {
         $this->authorizeStudentSubmission($assignment, $submission);
 
-        if ($submission->status !== 'in_progress') {
-            return redirect()->route('student.assignments.result', [$assignment, $submission]);
-        }
+        // Older in-progress rows may pre-date the protection-token migration.
+        // Repair the row in place instead of exposing a technical migration error
+        // or forcing the learner to lose the attempt.
+        $antiCheatSessionId = DB::transaction(function () use ($assignment, $submission): string {
+            $lockedSubmission = AssignmentSubmission::query()
+                ->whereKey($submission->id)
+                ->where('class_assignment_id', $assignment->id)
+                ->where('student_id', Auth::id())
+                ->where('status', 'in_progress')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (trim((string) $lockedSubmission->anti_cheat_session_id) === '') {
+                $lockedSubmission->anti_cheat_session_id = Str::random(64);
+                $lockedSubmission->save();
+            }
+
+            return (string) $lockedSubmission->anti_cheat_session_id;
+        }, 3);
 
         $assignment->load(['classRoom', 'libraryItem.questions.options']);
+        abort_unless($assignment->libraryItem, 422, 'This assignment no longer has a question source.');
+        $remainingSeconds = $this->remainingSeconds($assignment, $submission);
 
         $antiCheatSettings = app(AntiCheatPolicyService::class)
             ->settingsForAssignment(Auth::user(), $assignment);
 
-        return view('student.assignments.take', compact('assignment', 'submission', 'antiCheatSettings'));
+        return view('student.assignments.take', compact(
+            'assignment',
+            'submission',
+            'antiCheatSettings',
+            'antiCheatSessionId',
+            'remainingSeconds'
+        ));
     }
 
-    public function submit(Request $request, ClassAssignment $assignment, AssignmentSubmission $submission, GamificationService $gamification)
+    public function submit(Request $request, ClassAssignment $assignment, AssignmentSubmission $submission, GamificationService $gamification, StudentNotificationService $notifications)
     {
         $this->authorizeStudentSubmission($assignment, $submission);
 
-        if ($submission->status !== 'in_progress') {
-            return redirect()->route('student.assignments.result', [$assignment, $submission]);
-        }
+        $validated = $request->validate([
+            'answers' => ['nullable', 'array', 'max:500'],
+            'answers.*' => ['nullable', 'string', 'max:30000'],
+            '_anti_cheat_session_id' => ['nullable', 'string', 'max:120'],
+        ]);
 
-        $blockedReason = app(AntiCheatPolicyService::class)->assignmentSubmissionBlocked(
-            Auth::user(),
-            $assignment,
-            $submission,
-            $request->input('_anti_cheat_session_id')
-        );
+        $answers = $validated['answers'] ?? [];
 
-        if ($blockedReason) {
-            return redirect()
-                ->route('student.assignments.take', [$assignment, $submission])
-                ->withErrors(['anti_cheat' => $blockedReason]);
-        }
+        $processedSubmission = DB::transaction(function () use ($assignment, $submission, $answers, $validated) {
+            $lockedSubmission = AssignmentSubmission::whereKey($submission->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $assignment->load(['libraryItem.questions.options', 'libraryItem.questions.blankAnswers']);
+            abort_unless(
+                (int) $lockedSubmission->class_assignment_id === (int) $assignment->id
+                && (int) $lockedSubmission->student_id === (int) Auth::id(),
+                403
+            );
 
-        $answers = $request->input('answers', []);
-        $score = 0;
-        $totalPoints = (int) $assignment->libraryItem->questions->sum('points');
+            // A concurrent submit request may already have completed this row.
+            if ($lockedSubmission->status !== 'in_progress') {
+                return null;
+            }
 
-        DB::transaction(function () use ($assignment, $submission, $answers, &$score, $totalPoints) {
-            foreach ($assignment->libraryItem->questions as $question) {
-                $rawAnswer = $answers[$question->id] ?? null;
+            $lockedAssignment = ClassAssignment::query()
+                ->whereKey($assignment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_unless(
+                in_array($lockedAssignment->status, ['published', 'closed'], true),
+                403,
+                'This assignment is not available.'
+            );
+
+            $enrollment = DB::table('class_student')
+                ->where('class_id', $lockedAssignment->class_id)
+                ->where('student_id', Auth::id())
+                ->lockForUpdate()
+                ->first();
+            abort_unless($enrollment, 403, 'You are not enrolled in this assignment class.');
+
+            $lockedAssignment->load([
+                'libraryItem.questions.options',
+                'libraryItem.questions.blankAnswers',
+            ]);
+            abort_unless($lockedAssignment->libraryItem, 422, 'This assignment no longer has a question source.');
+
+            // The server clock is authoritative. Do not accept answers after
+            // the configured deadline, even if a client-side timer is paused,
+            // edited, or prevented from submitting automatically.
+            $timedOut = $this->remainingSeconds($lockedAssignment, $lockedSubmission) === 0;
+
+            if (! $timedOut) {
+                $blockedReason = app(AntiCheatPolicyService::class)->assignmentSubmissionBlocked(
+                    Auth::user(),
+                    $lockedAssignment,
+                    $lockedSubmission,
+                    $validated['_anti_cheat_session_id'] ?? null
+                );
+
+                if ($blockedReason) {
+                    throw ValidationException::withMessages(['anti_cheat' => $blockedReason]);
+                }
+            }
+
+            $totalPoints = (int) $lockedAssignment->libraryItem->questions->sum('points');
+            $submittedAnswers = $timedOut ? [] : $answers;
+            $score = 0;
+
+            foreach ($lockedAssignment->libraryItem->questions as $question) {
+                $rawAnswer = $submittedAnswers[$question->id] ?? null;
                 [$isCorrect, $selectedOptionId, $answerText] = $this->gradeQuestion($question, $rawAnswer);
                 $pointsAwarded = $isCorrect ? (int) $question->points : 0;
                 $score += $pointsAwarded;
 
                 AssignmentSubmissionAnswer::updateOrCreate(
                     [
-                        'assignment_submission_id' => $submission->id,
+                        'assignment_submission_id' => $lockedSubmission->id,
                         'assignment_question_id' => $question->id,
                     ],
                     [
@@ -279,23 +379,49 @@ class StudentAssignmentController extends Controller
                 );
             }
 
-            $isLate = $assignment->due_at && now()->greaterThan($assignment->due_at);
+            $isLate = $lockedAssignment->due_at && now()->greaterThan($lockedAssignment->due_at);
 
-            $submission->update([
+            $lockedSubmission->update([
                 'status' => $isLate ? 'late' : 'graded',
                 'score' => $score,
                 'total_points' => $totalPoints,
                 'submitted_at' => now(),
                 'graded_at' => now(),
             ]);
-        });
 
-        $submission = $submission->fresh();
+            return [
+                'submission' => $lockedSubmission,
+                'timed_out' => $timedOut,
+            ];
+        }, 3);
+
+        if (!$processedSubmission) {
+            return redirect()->route('student.assignments.result', [$assignment, $submission]);
+        }
+
+        $submission = $processedSubmission['submission']->fresh();
+        $timedOut = (bool) $processedSubmission['timed_out'];
 
         app(IloMasteryService::class)->refreshForAssignmentSubmission($submission);
 
         $achievements = $gamification->awardForAssignmentSubmission(Auth::user(), $submission);
-        $message = 'Assignment submitted successfully.';
+
+        $percentage = $submission->total_points > 0
+            ? round(((float) $submission->score / (float) $submission->total_points) * 100, 1)
+            : 0;
+        $notifications->send(
+            Auth::user(),
+            'assignment_graded',
+            'Assignment result available',
+            'Your result for “' . $assignment->title . '” is available: ' . $percentage . '%.',
+            route('student.assignments.result', [$assignment, $submission]),
+            ['assignment_id' => $assignment->id, 'submission_id' => $submission->id, 'percentage' => $percentage],
+            'assignment-graded:' . $submission->id . ':' . optional($submission->graded_at)->format('YmdHis')
+        );
+
+        $message = $timedOut
+            ? 'Time expired. The assignment was submitted automatically.'
+            : 'Assignment submitted successfully.';
 
         if (!empty($achievements)) {
             $badgeText = collect($achievements)
@@ -383,8 +509,6 @@ class StudentAssignmentController extends Controller
 
     private function authorizeStudentSubmission(ClassAssignment $assignment, AssignmentSubmission $submission, bool $allowSubmitted = false): void
     {
-        $this->authorizeStudentAssignment($assignment);
-
         abort_unless(
             (int) $submission->class_assignment_id === (int) $assignment->id &&
             (int) $submission->student_id === (int) Auth::id(),
@@ -392,7 +516,22 @@ class StudentAssignmentController extends Controller
             'You are not allowed to access this submission.'
         );
 
-        if (!$allowSubmitted && $submission->status !== 'in_progress') {
+        if ($allowSubmitted) {
+            abort_unless(
+                in_array($submission->status, ['submitted', 'late', 'graded'], true),
+                403,
+                'This attempt has not been submitted yet.'
+            );
+
+            // Ownership of a completed record is sufficient. A learner who is
+            // later removed from a class must still be able to review their own
+            // submission history.
+            return;
+        }
+
+        $this->authorizeStudentAssignment($assignment);
+
+        if ($submission->status !== 'in_progress') {
             throw ValidationException::withMessages([
                 'submission' => 'This assignment attempt has already been submitted.',
             ]);
@@ -403,18 +542,22 @@ class StudentAssignmentController extends Controller
     {
         if ($question->question_type === 'mcq') {
             $selectedOptionId = $rawAnswer ? (int) $rawAnswer : null;
+            $selectedOption = $selectedOptionId
+                ? $question->options->firstWhere('id', $selectedOptionId)
+                : null;
 
-            $isCorrect = AssignmentQuestionOption::where('id', $selectedOptionId)
-                ->where('assignment_question_id', $question->id)
-                ->where('is_correct', true)
-                ->exists();
-
-            return [$isCorrect, $selectedOptionId, null];
+            return [
+                (bool) ($selectedOption?->is_correct),
+                $selectedOption?->id,
+                null,
+            ];
         }
 
         $answerText = trim((string) $rawAnswer);
 
-        $acceptedAnswers = AssignmentBlankAnswer::where('assignment_question_id', $question->id)->get();
+        $acceptedAnswers = $question->relationLoaded('blankAnswers')
+            ? $question->blankAnswers
+            : AssignmentBlankAnswer::where('assignment_question_id', $question->id)->get();
 
         $isCorrect = $acceptedAnswers->contains(function (AssignmentBlankAnswer $accepted) use ($answerText) {
             $expected = trim((string) $accepted->answer_text);
@@ -437,5 +580,19 @@ class StudentAssignmentController extends Controller
             ->map(fn ($id) => (int) $id)
             ->unique()
             ->values();
+    }
+
+    private function remainingSeconds(ClassAssignment $assignment, AssignmentSubmission $submission): ?int
+    {
+        $timeLimitMinutes = (int) ($assignment->libraryItem?->time_limit_minutes ?? 0);
+        if ($timeLimitMinutes < 1 || ! $submission->started_at) {
+            return null;
+        }
+
+        $expiresAt = $submission->started_at
+            ->copy()
+            ->addMinutes($timeLimitMinutes);
+
+        return max(0, (int) ceil(now()->diffInSeconds($expiresAt, false)));
     }
 }

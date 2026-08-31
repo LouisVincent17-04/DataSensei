@@ -1,3 +1,4 @@
+@include('partials.page-heading-style')
 <aside class="sidebar" id="admin-sidebar">
   <div class="sidebar-logo">
     @include('partials.brand-logo', [
@@ -61,15 +62,31 @@
     </a>
   </nav>
 
-  <nav class="nav-group" aria-label="Admin quick access">
-    <div class="nav-label">Quick Access</div>
+  <nav class="nav-group" aria-label="Admin content navigation">
+    <div class="nav-label">Platform Content</div>
 
     <a class="nav-item {{ request()->routeIs('admin.module-library.*') ? 'active' : '' }}" href="{{ route('admin.module-library.index') }}"
        @if(request()->routeIs('admin.module-library.*')) aria-current="page" @endif>
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
       </svg>
-      Module Library
+      Learning Modules
+    </a>
+
+    <a class="nav-item {{ request()->routeIs('admin.challenges.*') ? 'active' : '' }}" href="{{ route('admin.challenges.index') }}"
+       @if(request()->routeIs('admin.challenges.*')) aria-current="page" @endif>
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.3 2.3 0 114.2 1.3c-.8.8-2 1.1-2 2.7M12 17h.01"/>
+      </svg>
+      MCQ Challenges
+    </a>
+
+    <a class="nav-item {{ request()->routeIs('admin.assessments.*') ? 'active' : '' }}" href="{{ route('admin.assessments.index') }}"
+       @if(request()->routeIs('admin.assessments.*')) aria-current="page" @endif>
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4M9 18h6"/>
+      </svg>
+      Assessments
     </a>
   </nav>
 

@@ -120,7 +120,10 @@ class AdminDashboardService
                 'label' => 'Submissions',
                 'value' => $this->count('assignment_submissions')
                     + $this->count('coding_submissions')
-                    + $this->count('challenge_user'),
+                    + ($this->tableExists('challenge_attempts')
+                        ? $this->count('challenge_attempts')
+                        : $this->count('challenge_user'))
+                    + $this->count('assessment_submissions'),
                 'sub' => 'All learner attempts',
                 'tone' => 'blue',
             ],
@@ -178,16 +181,23 @@ class AdminDashboardService
                 'mcq' => 0,
                 'coding' => 0,
                 'assignments' => 0,
+                'assessments' => 0,
+                'toolkit' => 0,
                 'total' => 0,
             ];
         }
 
         $activityTables = [
             'users' => 'users',
-            'challenge_user' => 'mcq',
             'coding_submissions' => 'coding',
             'assignment_submissions' => 'assignments',
+            'assessment_submissions' => 'assessments',
+            'student_data_toolkit_activities' => 'toolkit',
         ];
+
+        $activityTables[$this->tableExists('challenge_attempts')
+            ? 'challenge_attempts'
+            : 'challenge_user'] = 'mcq';
 
         foreach ($activityTables as $table => $key) {
             if (
@@ -223,7 +233,9 @@ class AdminDashboardService
             $row['total'] = $row['users']
                 + $row['mcq']
                 + $row['coding']
-                + $row['assignments'];
+                + $row['assignments']
+                + $row['assessments']
+                + $row['toolkit'];
         }
 
         unset($row);
@@ -532,11 +544,15 @@ class AdminDashboardService
 
         $pythonDriver = (string) config(
             'code_execution.python.driver',
-            env('PYTHON_SANDBOX_DRIVER', 'local')
+            'docker'
         );
 
         $queueDriver = (string) config('queue.default');
         $cacheStore = (string) config('cache.default');
+        $sessionDriver = (string) config('session.driver');
+        $databaseSessionMissing = $sessionDriver === 'database' && ! $this->tableExists('sessions');
+        $databaseQueueMissing = $queueDriver === 'database' && ! $this->tableExists('jobs');
+        $databaseCacheMissing = $cacheStore === 'database' && ! $this->tableExists('cache');
 
         return [
             [
@@ -557,18 +573,38 @@ class AdminDashboardService
                 'note' => 'Compiler isolation mode',
             ],
             [
+                'label' => 'Session Storage',
+                'value' => $sessionDriver,
+                'status' => $databaseSessionMissing
+                    ? 'danger'
+                    : ($sessionDriver === 'file' && ! (bool) config('session.encrypt') ? 'warning' : 'ok'),
+                'note' => $databaseSessionMissing
+                    ? 'Database sessions selected, but the sessions table does not exist'
+                    : ($sessionDriver === 'file'
+                        ? ((bool) config('session.encrypt')
+                            ? 'Encrypted file sessions; no sessions table required'
+                            : 'File sessions are not encrypted')
+                        : 'Current authentication session backend'),
+            ],
+            [
                 'label' => 'Queue Driver',
                 'value' => $queueDriver,
-                'status' => $queueDriver === 'sync'
-                    ? 'warning'
-                    : 'ok',
-                'note' => 'Use database or Redis for production',
+                'status' => $databaseQueueMissing ? 'danger' : 'ok',
+                'note' => $databaseQueueMissing
+                    ? 'Database queue selected, but the jobs table does not exist'
+                    : ($queueDriver === 'sync'
+                        ? 'Synchronous delivery; no jobs table required'
+                        : 'Configured asynchronous delivery backend'),
             ],
             [
                 'label' => 'Cache Store',
                 'value' => $cacheStore,
-                'status' => 'ok',
-                'note' => 'Current cache backend',
+                'status' => $databaseCacheMissing ? 'danger' : 'ok',
+                'note' => $databaseCacheMissing
+                    ? 'Database cache selected, but the cache table does not exist'
+                    : ($cacheStore === 'file'
+                        ? 'Filesystem cache; no cache table required'
+                        : 'Current cache backend'),
             ],
         ];
     }
@@ -684,4 +720,3 @@ class AdminDashboardService
         return max(1, min($limit, 100));
     }
 }
-

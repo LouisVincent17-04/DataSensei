@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Challenge;
+use App\Models\ChallengeAttempt;
 use App\Models\ChallengeCategory;
 use App\Models\CodingSubmission;
 use App\Models\User;
@@ -26,10 +27,18 @@ class ChallengePathUnlockService
     ];
 
     private array $summaryCache = [];
+    private array $locksCache = [];
+    private array $activeEnrollmentCache = [];
 
     public function buildPathLocks(?User $user, string $track = 'mcq'): array
     {
         $track = $this->normalizeTrack($track);
+        $cacheKey = ($user?->id ?? 0).':'.$track;
+
+        if (array_key_exists($cacheKey, $this->locksCache)) {
+            return $this->locksCache[$cacheKey];
+        }
+
         $locks = [];
 
         foreach (self::PATHS as $index => $path) {
@@ -48,13 +57,23 @@ class ChallengePathUnlockService
                 continue;
             }
 
-            $previous = self::PATHS[$index - 1];
-            $previousSummary = $this->performanceSummary($user, $previous['slug'], $track);
+            if ($slug === 'university-student') {
+                if ($this->hasActiveClassEnrollment($user)) {
+                    $locks[$slug] = $this->unlocked(
+                        'Available through your active class enrollment.',
+                        'class_enrollment'
+                    );
+                } else {
+                    $locks[$slug] = $this->locked(
+                        'Enroll in an active class to access University Student challenges.'
+                    );
+                }
 
-            if ($slug === 'university-student' && !empty($user->institution_id)) {
-                $locks[$slug] = $this->unlocked('Unlocked through your institution/class enrollment.', 'institution');
                 continue;
             }
+
+            $previous = self::PATHS[$index - 1];
+            $previousSummary = $this->performanceSummary($user, $previous['slug'], $track);
 
             if ($previousSummary['completed']) {
                 $locks[$slug] = $this->unlocked('Unlocked by completing ' . $previous['name'] . '.', 'progression');
@@ -87,7 +106,7 @@ class ChallengePathUnlockService
             $locks[$slug] = $this->locked($reason);
         }
 
-        return $locks;
+        return $this->locksCache[$cacheKey] = $locks;
     }
 
     public function canAccess(?User $user, string $slug, string $track = 'mcq'): bool
@@ -104,6 +123,10 @@ class ChallengePathUnlockService
 
     public function notifyExceptionalUnlocks(User $user, string $track = 'mcq'): array
     {
+        // A submission may have been saved earlier in the same request. Clear only
+        // this user's request cache so unlock checks use the newly persisted result.
+        $this->forgetUserCache($user);
+
         $track = $this->normalizeTrack($track);
         $locks = $this->buildPathLocks($user, $track);
         $messages = [];
@@ -131,25 +154,23 @@ class ChallengePathUnlockService
             $type = 'exceptional_unlock_' . $track . '_' . $slug;
             $text = "Exceptional {$trackLabel} performance detected! You completed {$sourceName} with {$score} average performance and used about {$time}. {$pathName} is now unlocked early.";
 
-            $exists = DB::table('notifications')
-                ->where('user_id', $user->id)
-                ->where('type', $type)
-                ->exists();
+            $actionUrl = $track === 'coding'
+                ? route('challenges.coding.map', ['slug' => $slug])
+                : route('challenges.map', ['slug' => $slug]);
 
-            if ($exists) {
-                continue;
+            $notification = app(StudentNotificationService::class)->send(
+                $user,
+                $type,
+                'Challenge path unlocked',
+                $text,
+                $actionUrl,
+                ['track' => $track, 'path' => $slug],
+                $type
+            );
+
+            if ($notification?->wasRecentlyCreated) {
+                $messages[] = $text;
             }
-
-            DB::table('notifications')->insert([
-                'user_id' => $user->id,
-                'type' => $type,
-                'notification_text' => $text,
-                'is_read' => false,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $messages[] = $text;
         }
 
         return $messages;
@@ -169,22 +190,80 @@ class ChallengePathUnlockService
             : $this->mcqSummary($user, $slug);
     }
 
+    private function forgetUserCache(User $user): void
+    {
+        $prefix = $user->id . ':';
+
+        foreach (array_keys($this->summaryCache) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->summaryCache[$key]);
+            }
+        }
+
+        foreach (array_keys($this->locksCache) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->locksCache[$key]);
+            }
+        }
+
+        unset($this->activeEnrollmentCache[$user->id]);
+    }
+
+    private function hasActiveClassEnrollment(User $user): bool
+    {
+        if (array_key_exists($user->id, $this->activeEnrollmentCache)) {
+            return $this->activeEnrollmentCache[$user->id];
+        }
+
+        return $this->activeEnrollmentCache[$user->id] = $user->classesAsStudent()
+            ->active()
+            ->exists();
+    }
+
     private function mcqSummary(User $user, string $slug): array
     {
         $category = ChallengeCategory::where('slug', $slug)->first();
-        if (!$category) {
+        if (! $category) {
             return $this->emptySummary();
         }
 
         $challenges = Challenge::withCount('questions')
             ->where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', false)
+            ->where('is_active', true)
             ->orderBy('order_index')
             ->get();
 
         if ($challenges->isEmpty()) {
             return $this->emptySummary();
         }
+
+        $challengeIds = $challenges->pluck('id');
+        $attemptsByChallenge = ChallengeAttempt::query()
+            ->where('user_id', $user->id)
+            ->whereIn('challenge_id', $challengeIds)
+            ->get([
+                'challenge_id',
+                'status',
+                'is_ranked',
+                'score',
+                'total_questions',
+                'time_limit_seconds',
+                'time_taken_seconds',
+            ])
+            ->groupBy('challenge_id');
+
+        $legacyChallengeIds = $challengeIds
+            ->reject(fn ($challengeId): bool => $attemptsByChallenge->has($challengeId))
+            ->values();
+
+        $legacyProgress = $legacyChallengeIds->isEmpty()
+            ? collect()
+            : DB::table('challenge_user')
+                ->where('user_id', $user->id)
+                ->whereIn('challenge_id', $legacyChallengeIds)
+                ->get()
+                ->keyBy('challenge_id');
 
         $completed = 0;
         $scorePercents = [];
@@ -195,22 +274,44 @@ class ChallengePathUnlockService
                 continue;
             }
 
-            $best = DB::table('challenge_user')
-                ->where('user_id', $user->id)
-                ->where('challenge_id', $challenge->id)
-                ->orderByDesc('score')
-                ->orderBy('time_taken_seconds')
+            $attempts = $attemptsByChallenge->get($challenge->id, collect());
+            $best = $attempts
+                ->filter(fn (ChallengeAttempt $attempt): bool =>
+                    (bool) $attempt->is_ranked
+                    && in_array($attempt->status, ['submitted', 'expired'], true)
+                    && (int) $attempt->total_questions > 0
+                )
+                ->sort(function (ChallengeAttempt $left, ChallengeAttempt $right): int {
+                    $leftRatio = (int) $left->score / max(1, (int) $left->total_questions);
+                    $rightRatio = (int) $right->score / max(1, (int) $right->total_questions);
+
+                    if ($leftRatio !== $rightRatio) {
+                        return $leftRatio < $rightRatio ? 1 : -1;
+                    }
+
+                    return (int) $left->time_taken_seconds <=> (int) $right->time_taken_seconds;
+                })
                 ->first();
 
-            if (!$best) {
+            if (! $best && $attempts->isEmpty()) {
+                $best = $legacyProgress->get($challenge->id);
+            }
+
+            if (! $best) {
                 continue;
             }
 
-            $percent = ((int) $best->score / max(1, (int) $challenge->questions_count)) * 100;
+            $denominator = isset($best->total_questions)
+                ? (int) $best->total_questions
+                : (int) $challenge->questions_count;
+            $percent = ((int) $best->score / max(1, $denominator)) * 100;
             $scorePercents[] = $percent;
 
-            if ((int) $challenge->time_limit_seconds > 0 && (int) $best->time_taken_seconds > 0) {
-                $timeRatios[] = min(1, (int) $best->time_taken_seconds / (int) $challenge->time_limit_seconds);
+            $timeLimit = isset($best->time_limit_seconds)
+                ? (int) $best->time_limit_seconds
+                : (int) $challenge->time_limit_seconds;
+            if ($timeLimit > 0 && (int) $best->time_taken_seconds > 0) {
+                $timeRatios[] = min(1, (int) $best->time_taken_seconds / $timeLimit);
             }
 
             if ($percent >= self::PASSING_PERCENT) {
@@ -241,19 +342,40 @@ class ChallengePathUnlockService
     private function codingSummary(User $user, string $slug): array
     {
         $category = ChallengeCategory::where('slug', $slug)->first();
-        if (!$category) {
+        if (! $category) {
             return $this->emptySummary('coding');
         }
 
         $challenges = Challenge::with('codingQuestions')
             ->where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', true)
+            ->where('is_active', true)
             ->orderBy('order_index')
             ->get();
 
         if ($challenges->isEmpty()) {
             return $this->emptySummary('coding');
         }
+
+        $questionIds = $challenges
+            ->flatMap(fn (Challenge $challenge) => $challenge->codingQuestions->pluck('id'))
+            ->unique()
+            ->values();
+
+        $submissionsByQuestion = $questionIds->isEmpty()
+            ? collect()
+            : CodingSubmission::query()
+                ->where('user_id', $user->id)
+                ->whereIn('coding_question_id', $questionIds)
+                ->where('voided', false)
+                ->get([
+                    'coding_question_id',
+                    'status',
+                    'tests_passed',
+                    'tests_total',
+                    'time_taken_seconds',
+                ])
+                ->groupBy('coding_question_id');
 
         $completedChallenges = 0;
         $scoredQuestionPercents = [];
@@ -269,24 +391,30 @@ class ChallengePathUnlockService
             $passedQuestions = 0;
 
             foreach ($questions as $question) {
-                $attemptCount = CodingSubmission::where('user_id', $user->id)
-                    ->where('coding_question_id', $question->id)
-                    ->where('voided', false)
-                    ->count();
+                $submissions = $submissionsByQuestion->get($question->id, collect());
+                $attemptCount = $submissions->count();
 
                 if ($attemptCount > 0) {
                     $attemptCounts[] = $attemptCount;
                 }
 
-                $best = CodingSubmission::where('user_id', $user->id)
-                    ->where('coding_question_id', $question->id)
-                    ->where('voided', false)
-                    ->orderByDesc('tests_passed')
-                    ->orderByRaw("CASE WHEN status = 'passed' THEN 1 ELSE 0 END DESC")
-                    ->orderBy('time_taken_seconds')
+                $best = $submissions
+                    ->sort(function (CodingSubmission $left, CodingSubmission $right): int {
+                        if ((int) $left->tests_passed !== (int) $right->tests_passed) {
+                            return (int) $right->tests_passed <=> (int) $left->tests_passed;
+                        }
+
+                        $leftPassed = $left->status === 'passed' ? 1 : 0;
+                        $rightPassed = $right->status === 'passed' ? 1 : 0;
+                        if ($leftPassed !== $rightPassed) {
+                            return $rightPassed <=> $leftPassed;
+                        }
+
+                        return (int) $left->time_taken_seconds <=> (int) $right->time_taken_seconds;
+                    })
                     ->first();
 
-                if (!$best || (int) $best->tests_total <= 0) {
+                if (! $best || (int) $best->tests_total <= 0) {
                     continue;
                 }
 

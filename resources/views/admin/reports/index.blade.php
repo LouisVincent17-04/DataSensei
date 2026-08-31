@@ -20,7 +20,7 @@
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">System Health</h2>
-        <p class="panel-subtitle">Current application, sandbox, queue, and cache configuration.</p>
+        <p class="panel-subtitle">Current application, sandbox, session, queue, and cache configuration.</p>
       </div>
     </div>
     <div class="health">

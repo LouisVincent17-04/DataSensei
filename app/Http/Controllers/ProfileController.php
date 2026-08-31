@@ -7,8 +7,10 @@ use App\Models\InstructorApplication;
 use App\Models\Rank;
 use App\Models\User;
 use App\Services\PasswordResetOtpService;
+use App\Support\AuthSessionFingerprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -129,7 +131,7 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:189'],
             'bio'  => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -145,8 +147,6 @@ class ProfileController extends Controller
 
     public function updatePassword(Request $request, PasswordResetOtpService $otpService)
     {
-        $user = Auth::user();
-
         $passwordRule = Password::min((int) config('password_otp.password_min_length', 8))
             ->mixedCase()
             ->numbers()
@@ -161,7 +161,27 @@ class ProfileController extends Controller
             'password' => ['required', 'confirmed', $passwordRule],
         ]);
 
-        if (! Hash::check($validated['current_password'], $user->password)) {
+        $user = DB::transaction(function () use ($validated, $otpService): ?User {
+            $lockedUser = User::query()
+                ->whereKey(Auth::id())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! Hash::check($validated['current_password'], $lockedUser->password)) {
+                return null;
+            }
+
+            $lockedUser->forceFill([
+                'password' => Hash::make($validated['password']),
+                'remember_token' => Str::random(60),
+            ])->save();
+
+            $otpService->invalidateForUser($lockedUser);
+
+            return $lockedUser;
+        }, 3);
+
+        if (! $user) {
             return redirect()
                 ->route('profile', ['tab' => 'security'])
                 ->withErrors([
@@ -169,12 +189,10 @@ class ProfileController extends Controller
                 ]);
         }
 
-        $user->forceFill([
-            'password' => Hash::make($validated['password']),
-            'remember_token' => Str::random(60),
-        ])->save();
-
-        $otpService->invalidateForUser($user);
+        $request->session()->put(
+            AuthSessionFingerprint::SESSION_KEY,
+            AuthSessionFingerprint::for($user)
+        );
 
         return redirect()
             ->route('profile', ['tab' => 'security'])
@@ -183,100 +201,149 @@ class ProfileController extends Controller
 
     public function applyAsInstructor(Request $request)
     {
-        $user = Auth::user();
+        return DB::transaction(function () use ($request) {
+            $user = User::query()->whereKey(Auth::id())->lockForUpdate()->firstOrFail();
 
-        if ($user->role != User::ROLE_USER) {
+            if ((int) $user->role !== User::ROLE_USER) {
+                return redirect()
+                    ->route('profile', ['tab' => 'institution'])
+                    ->withErrors([
+                        'institution_application' => 'Only regular student accounts can apply as instructor.',
+                    ]);
+            }
+
+            if ($user->institution_id !== null) {
+                return redirect()
+                    ->route('profile', ['tab' => 'institution'])
+                    ->withErrors([
+                        'institution_application' => 'You already belong to an institution.',
+                    ]);
+            }
+
+            $validated = $request->validate([
+                'institution_id'   => ['required', 'exists:institutions,id'],
+                'institution_code' => ['required', 'string', 'size:6'],
+            ]);
+
+            $institution = Institution::where('id', $validated['institution_id'])
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $institution) {
+                return redirect()
+                    ->route('profile', ['tab' => 'institution'])
+                    ->withErrors([
+                        'institution_application' => 'Selected institution is invalid or inactive.',
+                    ])
+                    ->withInput();
+            }
+
+            $enteredCode = strtoupper(trim($validated['institution_code']));
+
+            if ($enteredCode !== strtoupper($institution->institution_code)) {
+                return redirect()
+                    ->route('profile', ['tab' => 'institution'])
+                    ->withErrors([
+                        'institution_code' => 'The institution code does not match the selected institution.',
+                    ])
+                    ->withInput();
+            }
+
+            $otherActiveApplication = InstructorApplication::query()
+                ->where('user_id', $user->id)
+                ->where('institution_id', '!=', $institution->id)
+                ->whereIn('status', ['pending', 'approved'])
+                ->with('institution')
+                ->first();
+
+            if ($otherActiveApplication) {
+                return redirect()
+                    ->route('profile', ['tab' => 'institution'])
+                    ->withErrors([
+                        'institution_application' => "You already have an active application with {$otherActiveApplication->institution->name}.",
+                    ]);
+            }
+
+            $existingApplication = InstructorApplication::where('user_id', $user->id)
+                ->where('institution_id', $institution->id)
+                ->first();
+
+            if ($existingApplication && $existingApplication->status === 'pending') {
+                return redirect()
+                    ->route('profile', ['tab' => 'institution'])
+                    ->withErrors([
+                        'institution_application' => 'You already have a pending instructor application for this institution.',
+                    ]);
+            }
+
+            InstructorApplication::updateOrCreate(
+                [
+                    'user_id'        => $user->id,
+                    'institution_id' => $institution->id,
+                ],
+                [
+                    'entered_code' => $enteredCode,
+                    'status'       => 'pending',
+                    'reviewed_by'  => null,
+                    'reviewed_at'  => null,
+                ]
+            );
+
             return redirect()
                 ->route('profile', ['tab' => 'institution'])
-                ->withErrors([
-                    'institution_application' => 'Only regular student accounts can apply as instructor.',
-                ]);
-        }
-
-        if ($user->institution_id !== null) {
-            return redirect()
-                ->route('profile', ['tab' => 'institution'])
-                ->withErrors([
-                    'institution_application' => 'You already belong to an institution.',
-                ]);
-        }
-
-        $validated = $request->validate([
-            'institution_id'   => ['required', 'exists:institutions,id'],
-            'institution_code' => ['required', 'string', 'size:6'],
-        ]);
-
-        $institution = Institution::where('id', $validated['institution_id'])
-            ->where('status', 'active')
-            ->first();
-
-        if (! $institution) {
-            return redirect()
-                ->route('profile', ['tab' => 'institution'])
-                ->withErrors([
-                    'institution_application' => 'Selected institution is invalid or inactive.',
-                ])
-                ->withInput();
-        }
-
-        $enteredCode = strtoupper(trim($validated['institution_code']));
-
-        if ($enteredCode !== strtoupper($institution->institution_code)) {
-            return redirect()
-                ->route('profile', ['tab' => 'institution'])
-                ->withErrors([
-                    'institution_code' => 'The institution code does not match the selected institution.',
-                ])
-                ->withInput();
-        }
-
-        $existingApplication = InstructorApplication::where('user_id', $user->id)
-            ->where('institution_id', $institution->id)
-            ->first();
-
-        if ($existingApplication && $existingApplication->status === 'pending') {
-            return redirect()
-                ->route('profile', ['tab' => 'institution'])
-                ->withErrors([
-                    'institution_application' => 'You already have a pending instructor application for this institution.',
-                ]);
-        }
-
-        if ($existingApplication && $existingApplication->status === 'approved') {
-            return redirect()
-                ->route('profile', ['tab' => 'institution'])
-                ->withErrors([
-                    'institution_application' => 'You are already approved for this institution.',
-                ]);
-        }
-
-        InstructorApplication::updateOrCreate(
-            [
-                'user_id'        => $user->id,
-                'institution_id' => $institution->id,
-            ],
-            [
-                'entered_code' => $enteredCode,
-                'status'       => 'pending',
-                'reviewed_by'  => null,
-                'reviewed_at'  => null,
-            ]
-        );
-
-        return redirect()
-            ->route('profile', ['tab' => 'institution'])
-            ->with('success', "Your instructor application to {$institution->name} has been submitted.");
+                ->with('success', "Your instructor application to {$institution->name} has been submitted.");
+        }, 3);
     }
 
-    public function deleteAccount(Request $request)
+    public function deleteAccount(Request $request, PasswordResetOtpService $otpService)
     {
         $user = Auth::user();
+
+        if (! $user->isLearner()) {
+            return redirect()
+                ->route('profile', ['tab' => 'security'])
+                ->withErrors([
+                    'delete_password' => 'Staff and instructor accounts must be deactivated by an administrator so institutional records are preserved.',
+                ]);
+        }
 
         $request->validate([
             'delete_password' => ['required', 'string'],
         ]);
 
-        if (! Hash::check($request->delete_password, $user->password)) {
+        $result = DB::transaction(function () use ($request, $otpService): string {
+            $lockedUser = User::query()
+                ->whereKey(Auth::id())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $lockedUser->isLearner()) {
+                return 'staff';
+            }
+
+            if (! Hash::check($request->delete_password, $lockedUser->password)) {
+                return 'password';
+            }
+
+            $lockedUser->forceFill([
+                'status' => 'disabled',
+                'remember_token' => Str::random(60),
+            ])->save();
+            $otpService->invalidateForUser($lockedUser);
+
+            return 'disabled';
+        }, 3);
+
+        if ($result === 'staff') {
+            return redirect()
+                ->route('profile', ['tab' => 'security'])
+                ->withErrors([
+                    'delete_password' => 'Your role changed. Staff and instructor accounts must be deactivated by an administrator.',
+                ]);
+        }
+
+        if ($result === 'password') {
             return redirect()
                 ->route('profile', ['tab' => 'security'])
                 ->withErrors([
@@ -284,13 +351,15 @@ class ProfileController extends Controller
                 ]);
         }
 
+        // Keep the learner row and all foreign-key-linked academic history.
+        // Login is blocked by the existing active-user checks until an
+        // administrator intentionally restores the account.
+        $user->status = 'disabled';
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        $user->delete();
-
-        return redirect('/login')->with('success', 'Your account has been deleted.');
+        return redirect('/login')->with('success', 'Your account has been deactivated. Your academic history has been preserved.');
     }
 }

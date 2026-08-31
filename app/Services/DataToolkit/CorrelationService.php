@@ -20,7 +20,9 @@ class CorrelationService
             $matrix[$xColumn] = [];
 
             foreach ($numericColumns as $yColumn) {
-                $r = $xColumn === $yColumn ? 1.0 : $this->pearsonForRows($rows, $xColumn, $yColumn);
+                // Even a diagonal cell is undefined for a constant column;
+                // calculate it instead of blindly displaying a perfect 1.0.
+                $r = $this->pearsonForRows($rows, $xColumn, $yColumn);
                 $interpretation = $r === null ? null : $this->interpret($r);
 
                 $matrix[$xColumn][$yColumn] = [

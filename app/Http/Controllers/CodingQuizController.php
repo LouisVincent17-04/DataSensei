@@ -12,6 +12,7 @@ use App\Services\ChallengePathUnlockService;
 use App\Services\GamificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Services\PythonSandboxService;
 
@@ -46,6 +47,16 @@ class CodingQuizController extends Controller
 
     private function ensureCodingPathIsUnlocked(string $slug): void
     {
+        if ($slug === 'university-student') {
+            $user = Auth::user();
+
+            abort_unless(
+                $user !== null
+                && $user->classesAsStudent()->active()->exists(),
+                404
+            );
+        }
+
         $service = app(ChallengePathUnlockService::class);
         $lockInfo = $service->lockInfo(Auth::user(), $slug, 'coding');
 
@@ -60,6 +71,7 @@ class CodingQuizController extends Controller
 
         abort_unless($challenge->category && $challenge->category->slug === $slug, 404);
         abort_unless((bool) $challenge->is_coding_challenge === true, 404);
+        abort_unless((bool) $challenge->is_active, 404);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -126,11 +138,6 @@ class CodingQuizController extends Controller
                 // Clock already running — FIX: use timestamp arithmetic
                 $remaining = $this->remainingSeconds($existing, $question);
 
-                if ($remaining <= 0 && !$existing->expired) {
-                    $existing->update(['expired' => true]);
-                    $existing->refresh();
-                }
-
                 // Expired questions are treated as finished-without-XP, not active.
                 // This lets the next unsolved question start instead of trapping the user
                 // forever on a 00:00 timer.
@@ -152,22 +159,17 @@ class CodingQuizController extends Controller
                     'started_at'        => $existing->started_at->toIso8601String(),
                     'has_attempt'       => true,
                 ];
+                $createdFirstAttempt = true;
 
             } elseif (!$createdFirstAttempt) {
-                // First unsolved question — stamp the clock now
-                $attempt = CodingQuestionAttempt::create([
-                    'user_id'            => $userId,
-                    'coding_question_id' => $question->id,
-                    'started_at'         => now(),
-                    'expired'            => false,
-                ]);
-
+                // The GET page remains read-only. JavaScript starts this first
+                // unsolved question through the CSRF-protected POST endpoint.
                 $attempts[$question->id] = [
                     'state'             => 'active',
-                    'remaining_seconds' => $question->time_limit_seconds, // full limit, just started
+                    'remaining_seconds' => $question->time_limit_seconds,
                     'expired'           => false,
-                    'started_at'        => $attempt->started_at->toIso8601String(),
-                    'has_attempt'       => true,
+                    'started_at'        => null,
+                    'has_attempt'       => false,
                 ];
 
                 $createdFirstAttempt = true;
@@ -213,6 +215,8 @@ class CodingQuizController extends Controller
     {
         $this->ensureCodingPathIsUnlocked($slug);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+        $this->ensureQuestionBelongsToChallenge($question, $challenge);
+        $this->ensureQuestionIsAvailable($question, $challenge);
 
         $userId = Auth::id();
 
@@ -245,10 +249,6 @@ class CodingQuizController extends Controller
         // FIX: use timestamp arithmetic, never diffInSeconds
         $remaining = $this->remainingSeconds($attempt, $question);
 
-        if ($remaining <= 0 && !$attempt->expired) {
-            $attempt->update(['expired' => true]);
-        }
-
         return response()->json([
             'remaining_seconds' => $remaining,
             'expired'           => $remaining <= 0,
@@ -263,6 +263,8 @@ class CodingQuizController extends Controller
     {
         $this->ensureCodingPathIsUnlocked($slug);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+        $this->ensureQuestionBelongsToChallenge($question, $challenge);
+        $this->ensureQuestionIsAvailable($question, $challenge);
 
         $attempt = CodingQuestionAttempt::where('user_id', Auth::id())
             ->where('coding_question_id', $question->id)
@@ -274,10 +276,6 @@ class CodingQuizController extends Controller
 
         // FIX: use timestamp arithmetic, never diffInSeconds
         $remaining = $this->remainingSeconds($attempt, $question);
-
-        if ($remaining <= 0 && !$attempt->expired) {
-            $attempt->update(['expired' => true]);
-        }
 
         return response()->json([
             'remaining_seconds' => $remaining,
@@ -293,6 +291,8 @@ class CodingQuizController extends Controller
     {
         $this->ensureCodingPathIsUnlocked($slug);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+        $this->ensureQuestionBelongsToChallenge($question, $challenge);
+        $this->ensureQuestionIsAvailable($question, $challenge);
 
         $request->validate([
             'code'  => 'required|string|max:20000',
@@ -321,12 +321,26 @@ class CodingQuizController extends Controller
     {
         $this->ensureCodingPathIsUnlocked($slug);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+        $this->ensureQuestionBelongsToChallenge($question, $challenge);
+        $this->ensureQuestionIsAvailable($question, $challenge);
 
         $request->validate([
             'code' => 'required|string|max:20000',
         ]);
 
         $userId = Auth::id();
+        $submissionLock = Cache::lock(
+            'datasensei:coding-submit:'.$userId.':'.$question->id,
+            600
+        );
+
+        if (!$submissionLock->get()) {
+            return response()->json([
+                'error' => 'This question is already being submitted. Please wait for the current result.',
+            ], 409);
+        }
+
+        try {
 
         // ── Anti-cheat: verify server-side timer ──────────────────────────
         $attempt = CodingQuestionAttempt::where('user_id', $userId)
@@ -360,6 +374,12 @@ class CodingQuizController extends Controller
         }
 
         $question->load('testCases');
+
+        if ($question->testCases->isEmpty()) {
+            return response()->json([
+                'error' => 'This coding question has no test cases and cannot be graded.',
+            ], 422);
+        }
 
         if ($timeExpired) {
             CodingSubmission::create([
@@ -466,7 +486,6 @@ class CodingQuizController extends Controller
         $previousBest = CodingSubmission::where('user_id', $userId)
             ->where('coding_question_id', $question->id)
             ->where('id', '!=', $submission->id)
-            ->where('voided', false)
             ->max('xp_earned') ?? 0;
 
         if ($xp > $previousBest) {
@@ -478,6 +497,7 @@ class CodingQuizController extends Controller
         $passedCount = CodingSubmission::where('user_id', $userId)
             ->whereIn('coding_question_id', $questionIds)
             ->where('status', 'passed')
+            ->where('voided', false)
             ->distinct('coding_question_id')
             ->count('coding_question_id');
 
@@ -508,6 +528,13 @@ class CodingQuizController extends Controller
             'challenge_complete' => $challengeComplete,
             'redirect_url'       => $challengeComplete ? route('challenges.coding.map', $slug) : null,
         ]);
+        } finally {
+            try {
+                $submissionLock->release();
+            } catch (\Throwable) {
+                // The lock has a finite TTL if its backend becomes unavailable.
+            }
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -658,31 +685,40 @@ class CodingQuizController extends Controller
         $userId      = Auth::id();
         $questionIds = $challenge->codingQuestions()->pluck('id');
 
-        // ── Enforce retake cap ────────────────────────────────────────────
-        $retakeRecord = CodingChallengeRetake::firstOrCreate(
-            ['user_id' => $userId, 'challenge_id' => $challenge->id],
-            ['retake_count' => 0],
-        );
+        $retakeAllowed = DB::transaction(function () use ($userId, $challenge, $questionIds): bool {
+            DB::table('users')->where('id', $userId)->lockForUpdate()->first();
 
-        if ($retakeRecord->retake_count >= CodingChallengeRetake::MAX_RETAKES) {
+            $retakeRecord = CodingChallengeRetake::firstOrCreate(
+                ['user_id' => $userId, 'challenge_id' => $challenge->id],
+                ['retake_count' => 0],
+            );
+            $retakeRecord = CodingChallengeRetake::whereKey($retakeRecord->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($retakeRecord->retake_count >= CodingChallengeRetake::MAX_RETAKES) {
+                return false;
+            }
+
+            CodingQuestionAttempt::where('user_id', $userId)
+                ->whereIn('coding_question_id', $questionIds)
+                ->delete();
+
+            CodingSubmission::where('user_id', $userId)
+                ->whereIn('coding_question_id', $questionIds)
+                ->where('voided', false)
+                ->update(['voided' => true]);
+
+            $retakeRecord->increment('retake_count');
+
+            return true;
+        }, 3);
+
+        if (!$retakeAllowed) {
             return redirect()
                 ->route('challenges.coding.map', $slug)
                 ->with('error', 'You have used all 3 retakes for this challenge.');
         }
-
-        // ── Reset attempts so server timer starts fresh ───────────────────
-        CodingQuestionAttempt::where('user_id', $userId)
-            ->whereIn('coding_question_id', $questionIds)
-            ->delete();
-
-        // ── Void old submissions — keeps history, hides from game logic ───
-        CodingSubmission::where('user_id', $userId)
-            ->whereIn('coding_question_id', $questionIds)
-            ->where('voided', false)
-            ->update(['voided' => true]);
-
-        // ── Increment retake counter ──────────────────────────────────────
-        $retakeRecord->increment('retake_count');
 
         // ── Go straight into the quiz (show() will create a fresh attempt) ─
         return redirect()->route(
@@ -698,18 +734,14 @@ class CodingQuizController extends Controller
     {
         $base = [
             'test_case_id' => $tc->id,
-            'input'        => $tc->input,
-            'expected'     => $tc->expected_output,
+            'input'        => $tc->is_hidden ? null : $tc->input,
+            'expected'     => $tc->is_hidden ? null : $tc->expected_output,
             'actual'       => null,
             'passed'       => false,
             'status'       => 'error',
             'stderr'       => null,
             'is_hidden'    => $tc->is_hidden,
         ];
-
-        if (config('app.env') === 'production') {
-            return array_merge($base, ['stderr' => 'Sandboxed execution not configured.']);
-        }
 
         $result   = $this->execute($code, $tc->input ?? '');
         $actual   = rtrim($result['stdout']);
@@ -738,6 +770,55 @@ class CodingQuizController extends Controller
             'plots' => $result['plots'] ?? [],
             'failed' => (bool) ($result['failed'] ?? true),
         ];
+    }
+
+    private function ensureQuestionBelongsToChallenge(CodingQuestion $question, Challenge $challenge): void
+    {
+        abort_unless((int) $question->challenge_id === (int) $challenge->id, 404);
+    }
+
+    private function ensureQuestionIsAvailable(CodingQuestion $question, Challenge $challenge): void
+    {
+        $orderedQuestions = $challenge->codingQuestions()
+            ->orderBy('order_index')
+            ->orderBy('id')
+            ->get(['id', 'time_limit_seconds']);
+        $targetIndex = $orderedQuestions->search(
+            fn (CodingQuestion $candidate) => (int) $candidate->id === (int) $question->id
+        );
+
+        abort_if($targetIndex === false, 404);
+
+        $preceding = $orderedQuestions->take((int) $targetIndex);
+        if ($preceding->isEmpty()) {
+            return;
+        }
+
+        $questionIds = $preceding->pluck('id');
+        $passedIds = CodingSubmission::where('user_id', Auth::id())
+            ->whereIn('coding_question_id', $questionIds)
+            ->where('status', 'passed')
+            ->where('voided', false)
+            ->pluck('coding_question_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $attempts = CodingQuestionAttempt::where('user_id', Auth::id())
+            ->whereIn('coding_question_id', $questionIds)
+            ->get()
+            ->keyBy('coding_question_id');
+
+        foreach ($preceding as $previousQuestion) {
+            if (in_array((int) $previousQuestion->id, $passedIds, true)) {
+                continue;
+            }
+
+            $attempt = $attempts->get($previousQuestion->id);
+            if ($attempt && ($attempt->expired || $this->remainingSeconds($attempt, $previousQuestion) <= 0)) {
+                continue;
+            }
+
+            abort(403, 'Complete or time out the preceding coding question before opening this one.');
+        }
     }
 
 }

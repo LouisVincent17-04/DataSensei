@@ -33,14 +33,14 @@
             @foreach($columns as $key => $label)
               @php $value = data_get($row, $key); @endphp
               <td>
-                @if(is_numeric($value) && ! str_contains((string) $key, 'id'))
+                @if(str_contains((string) $key, 'time_seconds') && is_numeric($value))
+                  {{ gmdate('i:s', max(0, (int) $value)) }}
+                @elseif(is_numeric($value) && ! str_contains((string) $key, 'id'))
                   <span class="strong">{{ number_format((float) $value, str_contains((string) $key, 'avg') ? 2 : 0) }}</span>
                 @elseif($key === 'status')
                   <span class="pill {{ $value === 'active' || $value === 'published' || $value === 'submitted' || $value === 'graded' ? 'pill-green' : 'pill-orange' }}">{{ $value ?: '—' }}</span>
                 @elseif($key === 'severity')
                   <span class="pill {{ $value === 'critical' || $value === 'severe' ? 'pill-red' : ($value === 'warning' ? 'pill-orange' : 'pill-blue') }}">{{ $value ?: '—' }}</span>
-                @elseif(str_contains((string) $key, 'time_seconds') && is_numeric($value))
-                  {{ gmdate('i:s', max(0, (int) $value)) }}
                 @elseif(str_contains((string) $key, 'activity') || str_contains((string) $key, 'created') || str_contains((string) $key, 'occurred'))
                   <span class="muted">{{ $value ? \Carbon\Carbon::parse($value)->format('M d, Y h:i A') : '—' }}</span>
                 @else

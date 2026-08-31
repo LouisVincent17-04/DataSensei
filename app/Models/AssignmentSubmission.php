@@ -22,6 +22,7 @@ class AssignmentSubmission extends Model
         'submitted_at',
         'graded_at',
         'feedback',
+        'anti_cheat_session_id',
     ];
 
     protected $casts = [

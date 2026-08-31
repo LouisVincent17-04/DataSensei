@@ -8,13 +8,17 @@ use Illuminate\Database\Seeder;
  * Runs coding challenge seeders only for topics where coding is appropriate.
  *
  * Included modules:
- * 1, 2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24
+ * 1, 2, 3, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 23
  *
  * Excluded because they are better assessed with MCQ, fill-in-the-blank,
  * proof/case analysis, or reflection assignments instead of coding challenges:
  * - Module 4: Mathematical Analysis I
  * - Module 5: Methods of Proof
+ * - Module 10: Database Management for Data Science (the generated bank is
+ *   generic Python rather than SQL/database practice)
  * - Module 18: Privacy, Ethics & Data Governance
+ * - Module 22: Big Data & Cloud Computing
+ * - Module 24: Sequential Decision Making
  */
 class RelevantCodingChallengeSeedersSeeder extends Seeder
 {
@@ -56,11 +60,6 @@ class RelevantCodingChallengeSeedersSeeder extends Seeder
             Module9CodingChallengeSeederIntermediate::class,
             Module9CodingChallengeSeederAdvanced::class,
             Module9CodingChallengeSeederProfessional::class,
-            Module10CodingChallengeSeederNewbie::class,
-            Module10CodingChallengeSeederUniversityStudent::class,
-            Module10CodingChallengeSeederIntermediate::class,
-            Module10CodingChallengeSeederAdvanced::class,
-            Module10CodingChallengeSeederProfessional::class,
             Module11CodingChallengeSeederNewbie::class,
             Module11CodingChallengeSeederUniversityStudent::class,
             Module11CodingChallengeSeederIntermediate::class,
@@ -111,21 +110,11 @@ class RelevantCodingChallengeSeedersSeeder extends Seeder
             Module21CodingChallengeSeederIntermediate::class,
             Module21CodingChallengeSeederAdvanced::class,
             Module21CodingChallengeSeederProfessional::class,
-            Module22CodingChallengeSeederNewbie::class,
-            Module22CodingChallengeSeederUniversityStudent::class,
-            Module22CodingChallengeSeederIntermediate::class,
-            Module22CodingChallengeSeederAdvanced::class,
-            Module22CodingChallengeSeederProfessional::class,
             Module23CodingChallengeSeederNewbie::class,
             Module23CodingChallengeSeederUniversityStudent::class,
             Module23CodingChallengeSeederIntermediate::class,
             Module23CodingChallengeSeederAdvanced::class,
             Module23CodingChallengeSeederProfessional::class,
-            Module24CodingChallengeSeederNewbie::class,
-            Module24CodingChallengeSeederUniversityStudent::class,
-            Module24CodingChallengeSeederIntermediate::class,
-            Module24CodingChallengeSeederAdvanced::class,
-            Module24CodingChallengeSeederProfessional::class,
         ]);
     }
 }

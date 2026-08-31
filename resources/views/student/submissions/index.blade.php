@@ -641,8 +641,9 @@
       }
     }
   </style>
+  @include('partials.admin-inspired-page-style')
 </head>
-<body>
+<body class="ds-admin-inspired">
   <header class="mobile-header">
     <button class="hamburger" id="js-menu-btn" type="button" aria-label="Open navigation" aria-expanded="false">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -662,10 +663,10 @@
       <div class="wrap">
         <div class="top-row">
           <div>
-            <div class="page-kicker">Student Submission History</div>
-            <h1 class="page-title">My Submissions</h1>
+            <div class="page-kicker">Assignments</div>
+            <h1 class="page-title ds-page-title">My Submissions</h1>
             <p class="page-subtitle">
-              Review every assignment attempt, score, submission status, and instructor feedback without mixing them with assignments that are still available to start.
+              Review your assignment attempts, scores, status, and instructor feedback.
             </p>
           </div>
 

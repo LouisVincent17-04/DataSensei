@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ModuleLibraryItem extends Model
 {
@@ -31,16 +33,93 @@ class ModuleLibraryItem extends Model
         'module_no' => 'integer',
         'version_no' => 'integer',
         'estimated_minutes' => 'integer',
-        'content_sections' => 'array',
-        'mcq_questions' => 'array',
         'sort_order' => 'integer',
         'is_active' => 'boolean',
     ];
 
 
-    public function classAssignments()
+    /**
+     * Normalize seeded and administrator-authored learning sections.
+     *
+     * Some legacy seeders passed an already JSON-encoded string through an
+     * Eloquent array cast, which produced double-encoded values. These
+     * accessors accept both the normal JSON representation and those legacy
+     * values, while always exposing an array to the rest of the application.
+     */
+    public function getContentSectionsAttribute(mixed $value): array
+    {
+        return $this->normalizeStructuredArray($value);
+    }
+
+    public function setContentSectionsAttribute(mixed $value): void
+    {
+        $this->attributes['content_sections'] = $this->encodeStructuredArray($value);
+    }
+
+    public function getMcqQuestionsAttribute(mixed $value): array
+    {
+        return $this->normalizeStructuredArray($value);
+    }
+
+    public function setMcqQuestionsAttribute(mixed $value): void
+    {
+        $this->attributes['mcq_questions'] = $this->encodeStructuredArray($value);
+    }
+
+    private function normalizeStructuredArray(mixed $value): array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (!is_string($value)) {
+            return [];
+        }
+
+        $decoded = $value;
+
+        // Decode more than once to support legacy double-encoded JSON.
+        for ($attempt = 0; $attempt < 3 && is_string($decoded); $attempt++) {
+            $decoded = trim($decoded);
+
+            if ($decoded === '') {
+                return [];
+            }
+
+            $next = json_decode($decoded, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return [];
+            }
+
+            $decoded = $next;
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function encodeStructuredArray(mixed $value): string
+    {
+        $encoded = json_encode(
+            $this->normalizeStructuredArray($value),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+
+        return $encoded === false ? '[]' : $encoded;
+    }
+
+    public function classAssignments(): HasMany
     {
         return $this->hasMany(ClassModuleAssignment::class, 'module_library_item_id');
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
     }
 
     public static function defaultLibrary(): array

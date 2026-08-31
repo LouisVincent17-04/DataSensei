@@ -24,6 +24,9 @@ return new class extends Migration
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('graded_at')->nullable();
             $table->text('feedback')->nullable();
+            $table->string('anti_cheat_session_id', 120)
+                ->nullable()
+                ->unique('assignment_submission_anti_cheat_session_uq');
             $table->timestamps();
 
             $table->unique(['class_assignment_id', 'student_id', 'attempt_no'], 'assignment_submission_attempt_unique');

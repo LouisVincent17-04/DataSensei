@@ -46,9 +46,11 @@ class CategoricalAnalysisService
         }
 
         arsort($frequency);
+        $uniqueCount = count($frequency);
+        $displayFrequency = array_slice($frequency, 0, 50, true);
 
         $distribution = [];
-        foreach ($frequency as $label => $count) {
+        foreach ($displayFrequency as $label => $count) {
             $distribution[] = [
                 'label' => $label,
                 'count' => $count,
@@ -60,11 +62,12 @@ class CategoricalAnalysisService
 
         return [
             'column' => $column,
-            'unique_count' => count($frequency),
+            'unique_count' => $uniqueCount,
             'missing_count' => $missing,
             'most_frequent' => $mostFrequent,
             'distribution' => $distribution,
-            'interpretation' => $this->interpret($column, count($frequency), $mostFrequent),
+            'distribution_truncated' => $uniqueCount > count($displayFrequency),
+            'interpretation' => $this->interpret($column, $uniqueCount, $mostFrequent),
         ];
     }
 

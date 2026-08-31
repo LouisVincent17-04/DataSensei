@@ -37,7 +37,7 @@ class AdminGamificationController extends Controller
     {
         $data = $request->validate([
             'achievement_key' => ['required', 'string', 'max:100', Rule::unique('achievement_definitions', 'achievement_key')->ignore($achievement->id)],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:189'],
             'description' => ['nullable', 'string', 'max:2000'],
             'icon' => ['nullable', 'string', 'max:50'],
             'badge_color' => ['nullable', 'string', 'max:50'],
@@ -68,7 +68,7 @@ class AdminGamificationController extends Controller
     {
         $data = $request->validate([
             'mission_key' => ['required', 'string', 'max:100', Rule::unique('mission_definitions', 'mission_key')->ignore($mission->id)],
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:189'],
             'description' => ['nullable', 'string', 'max:2000'],
             'period_type' => ['required', Rule::in(['daily', 'weekly'])],
             'target_type' => ['required', 'string', 'max:80'],

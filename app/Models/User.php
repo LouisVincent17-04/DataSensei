@@ -168,6 +168,31 @@ class User extends Authenticatable
         return $this->hasMany(AssignmentSubmission::class, 'student_id');
     }
 
+    public function studentNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class, 'user_id');
+    }
+
+    public function uploadedMlDatasets(): HasMany
+    {
+        return $this->hasMany(UserDataset::class, 'user_id');
+    }
+
+    public function mlModels(): HasMany
+    {
+        return $this->hasMany(MlModel::class, 'user_id');
+    }
+
+    public function mlTrainingJobs(): HasMany
+    {
+        return $this->hasMany(TrainingJob::class, 'user_id');
+    }
+
+    public function mlPredictionLogs(): HasMany
+    {
+        return $this->hasMany(PredictionLog::class, 'user_id');
+    }
+
     public function userAchievements(): HasMany
     {
         return $this->hasMany(UserAchievement::class, 'user_id');
@@ -188,6 +213,26 @@ class User extends Authenticatable
     public function dataToolkitActivities(): HasMany
     {
         return $this->hasMany(StudentDataToolkitActivity::class, 'user_id');
+    }
+
+    public function competencySnapshots(): HasMany
+    {
+        return $this->hasMany(StudentCompetencySnapshot::class, 'student_id');
+    }
+
+    public function competencyTrends(): HasMany
+    {
+        return $this->hasMany(StudentCompetencyTrend::class, 'student_id');
+    }
+
+    public function modelDevelopmentRuns(): HasMany
+    {
+        return $this->hasMany(ModelDevelopmentRun::class, 'user_id');
+    }
+
+    public function modelPredictions(): HasMany
+    {
+        return $this->hasMany(ModelPrediction::class, 'user_id');
     }
 
     public function currentRank(): ?Rank

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AssignmentSubmission;
+use App\Models\AssessmentSubmission;
 use App\Models\Challenge;
 use App\Models\ChallengeAttempt;
 use App\Models\CodingSubmission;
@@ -38,6 +39,7 @@ class StudentAnalyticsService
             'challenges' => $this->challengeAnalytics($student),
             'coding' => $this->codingAnalytics($student),
             'assignments' => $this->assignmentAnalytics($student),
+            'assessments' => $this->assessmentAnalytics($student),
             'ilo_mastery' => $this->iloMastery($student),
             'achievements' => $this->achievementAnalytics($student),
             'data_toolkit' => $this->dataToolkitAnalytics($student),
@@ -92,26 +94,45 @@ class StudentAnalyticsService
 
     private function challengeAnalytics(User $student): array
     {
-        $legacyAttempts = Schema::hasTable('challenge_user')
-            ? DB::table('challenge_user')->where('user_id', $student->id)->get()
+        $serverAttempts = Schema::hasTable('challenge_attempts')
+            ? ChallengeAttempt::where('user_id', $student->id)
+                ->where('is_ranked', true)
+                ->whereIn('status', ['submitted', 'expired'])
+                ->get()
             : collect();
 
-        $serverAttempts = class_exists(ChallengeAttempt::class) && Schema::hasTable('challenge_attempts')
-            ? ChallengeAttempt::where('user_id', $student->id)->whereIn('status', ['submitted', 'expired'])->get()
+        // challenge_user is a best-progress compatibility row. Include it only
+        // for challenges that have no server-side attempt records, otherwise the
+        // same completion would be counted twice.
+        $legacy = Schema::hasTable('challenge_user')
+            ? DB::table('challenge_user as cu')
+                ->leftJoin('challenge_questions as cq', 'cq.challenge_id', '=', 'cu.challenge_id')
+                ->where('cu.user_id', $student->id)
+                ->when(
+                    $serverAttempts->isNotEmpty(),
+                    fn ($query) => $query->whereNotIn('cu.challenge_id', $serverAttempts->pluck('challenge_id')->unique()),
+                )
+                ->groupBy('cu.id', 'cu.score')
+                ->selectRaw('cu.score, COUNT(cq.id) as total_questions')
+                ->get()
             : collect();
 
-        $completed = $legacyAttempts->count() + $serverAttempts->count();
-        $totalScore = (float) $legacyAttempts->sum('score') + (float) $serverAttempts->sum('score');
-        $averageScore = $completed > 0 ? round($totalScore / $completed, 1) : 0;
+        $percentages = $serverAttempts
+            ->concat($legacy)
+            ->filter(fn ($attempt) => (int) $attempt->total_questions > 0)
+            ->map(fn ($attempt) => ((int) $attempt->score / (int) $attempt->total_questions) * 100);
+        $completed = $serverAttempts->count() + $legacy->count();
+        $averageScore = $percentages->isNotEmpty() ? round((float) $percentages->avg(), 1) : 0;
+
         $rankedEligible = $serverAttempts->where('is_leaderboard_eligible', true)->where('is_ranked', true)->count();
-        $flagged = $serverAttempts->where('is_leaderboard_eligible', false)->count();
+        $flagged = $serverAttempts->where('is_ranked', true)->where('is_leaderboard_eligible', false)->count();
 
         return [
             'completed' => $completed,
             'average_score' => $averageScore,
             'ranked_eligible' => $rankedEligible,
             'flagged' => $flagged,
-            'available' => Challenge::where('is_coding_challenge', false)->count(),
+            'available' => Challenge::where('is_coding_challenge', false)->where('is_active', true)->count(),
         ];
     }
 
@@ -142,14 +163,39 @@ class StudentAnalyticsService
         }
 
         $submissions = AssignmentSubmission::where('student_id', $student->id)->get();
-        $graded = $submissions->where('status', 'graded');
-        $scored = $graded->filter(fn ($submission) => (float) $submission->total_points > 0);
+        $graded = $submissions->filter(fn ($submission) => $submission->graded_at !== null);
+        $scored = $submissions
+            ->filter(fn ($submission) => $submission->graded_at !== null)
+            ->filter(fn ($submission) => (float) $submission->total_points > 0);
 
         return [
             'submitted' => $submissions->whereIn('status', ['submitted', 'late', 'graded'])->count(),
             'graded' => $graded->count(),
             'late' => $submissions->where('status', 'late')->count(),
             'average_score' => $scored->count() > 0
+                ? round($scored->avg(fn ($submission) => ((float) $submission->score / max(1, (float) $submission->total_points)) * 100), 1)
+                : 0,
+        ];
+    }
+
+    private function assessmentAnalytics(User $student): array
+    {
+        if (! Schema::hasTable('assessment_submissions')) {
+            return ['submitted' => 0, 'graded' => 0, 'pending_review' => 0, 'average_score' => 0];
+        }
+
+        $submissions = AssessmentSubmission::where('student_id', $student->id)->get();
+        $graded = $submissions->filter(fn ($submission) => $submission->graded_at !== null);
+        $scored = $graded->filter(fn ($submission) => (float) $submission->total_points > 0);
+
+        return [
+            'submitted' => $submissions->whereIn('status', ['submitted', 'late', 'graded'])->count(),
+            'graded' => $graded->count(),
+            'pending_review' => $submissions
+                ->whereIn('status', ['submitted', 'late'])
+                ->filter(fn ($submission) => $submission->graded_at === null)
+                ->count(),
+            'average_score' => $scored->isNotEmpty()
                 ? round($scored->avg(fn ($submission) => ((float) $submission->score / max(1, (float) $submission->total_points)) * 100), 1)
                 : 0,
         ];
@@ -234,6 +280,14 @@ class StudentAnalyticsService
                 ->pluck('total', 'day')
             : collect();
 
+        $assessments = Schema::hasTable('assessment_submissions')
+            ? AssessmentSubmission::selectRaw('DATE(created_at) as day, COUNT(*) as total')
+                ->where('student_id', $student->id)
+                ->where('created_at', '>=', now()->subDays(14))
+                ->groupBy('day')
+                ->pluck('total', 'day')
+            : collect();
+
         $toolkit = Schema::hasTable('student_data_toolkit_activities')
             ? StudentDataToolkitActivity::selectRaw('DATE(created_at) as day, COUNT(*) as total')
                 ->where('user_id', $student->id)
@@ -244,7 +298,10 @@ class StudentAnalyticsService
 
         return $days->map(fn (string $day) => [
             'day' => $day,
-            'total' => (int) ($coding[$day] ?? 0) + (int) ($assignments[$day] ?? 0) + (int) ($toolkit[$day] ?? 0),
+            'total' => (int) ($coding[$day] ?? 0)
+                + (int) ($assignments[$day] ?? 0)
+                + (int) ($assessments[$day] ?? 0)
+                + (int) ($toolkit[$day] ?? 0),
         ])->values()->all();
     }
 

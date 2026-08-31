@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AchievementDefinition;
 use App\Models\AssignmentSubmission;
 use App\Models\Challenge;
+use App\Models\ChallengeAttempt;
 use App\Models\CodingQuestion;
 use App\Models\CodingSubmission;
 use App\Models\MissionDefinition;
@@ -121,11 +122,14 @@ class GamificationService
         $today = now()->toDateString();
         $week = now()->startOfWeek()->toDateString();
 
-        return MissionDefinition::where('is_active', true)
-            ->orderBy('period_type')
-            ->orderBy('sort_order')
-            ->get()
-            ->map(function (MissionDefinition $mission) use ($user, $today, $week) {
+        return DB::transaction(function () use ($user, $today, $week) {
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+
+            return MissionDefinition::where('is_active', true)
+                ->orderBy('period_type')
+                ->orderBy('sort_order')
+                ->get()
+                ->map(function (MissionDefinition $mission) use ($user, $today, $week) {
                 $periodStart = $mission->period_type === 'weekly' ? $week : $today;
                 $progress = StudentMissionProgress::firstOrCreate(
                     [
@@ -143,46 +147,50 @@ class GamificationService
                 $mission->setRelation('currentProgress', $progress);
                 return $mission;
             });
+        }, 3);
     }
 
     private function unlock(User $user, string $key, string $source, ?int $sourceId, float $progress): ?UserAchievement
     {
-        $definition = AchievementDefinition::where('achievement_key', $key)
-            ->where('is_active', true)
-            ->first();
+        return DB::transaction(function () use ($user, $key, $source, $sourceId, $progress): ?UserAchievement {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $definition = AchievementDefinition::where('achievement_key', $key)
+                ->where('is_active', true)
+                ->first();
 
-        if (!$definition) {
-            return null;
-        }
+            if (!$definition) {
+                return null;
+            }
 
-        $existing = UserAchievement::where('user_id', $user->id)
-            ->where('achievement_definition_id', $definition->id)
-            ->first();
+            $existing = UserAchievement::where('user_id', $lockedUser->id)
+                ->where('achievement_definition_id', $definition->id)
+                ->first();
 
-        if ($existing) {
-            return null;
-        }
+            if ($existing) {
+                return null;
+            }
 
-        $achievement = UserAchievement::create([
-            'user_id' => $user->id,
-            'achievement_definition_id' => $definition->id,
-            'unlocked_at' => now(),
-            'trigger_source' => $source,
-            'source_id' => $sourceId,
-            'progress_value' => $progress,
-            'details' => [
-                'source' => $source,
-                'progress' => $progress,
-            ],
-        ]);
+            $achievement = UserAchievement::create([
+                'user_id' => $lockedUser->id,
+                'achievement_definition_id' => $definition->id,
+                'unlocked_at' => now(),
+                'trigger_source' => $source,
+                'source_id' => $sourceId,
+                'progress_value' => $progress,
+                'details' => [
+                    'source' => $source,
+                    'progress' => $progress,
+                ],
+            ]);
 
-        if ((int) $definition->xp_reward > 0) {
-            $user->increment('xp', (int) $definition->xp_reward);
-        }
+            if ((int) $definition->xp_reward > 0) {
+                $lockedUser->increment('xp', (int) $definition->xp_reward);
+            }
 
-        $this->notify($user, 'achievement_unlocked_' . $definition->achievement_key, 'Achievement unlocked: ' . $definition->name . ' +' . $definition->xp_reward . ' XP');
+            $this->notify($lockedUser, 'achievement_unlocked_' . $definition->achievement_key, 'Achievement unlocked: ' . $definition->name . ' +' . $definition->xp_reward . ' XP');
 
-        return $achievement->load('achievement');
+            return $achievement->load('achievement');
+        }, 3);
     }
 
     private function incrementMissions(User $user, array $targetTypes): void
@@ -191,46 +199,53 @@ class GamificationService
             return;
         }
 
-        $missions = MissionDefinition::where('is_active', true)
-            ->whereIn('target_type', $targetTypes)
-            ->get();
+        DB::transaction(function () use ($user, $targetTypes): void {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $missions = MissionDefinition::where('is_active', true)
+                ->whereIn('target_type', $targetTypes)
+                ->get();
 
-        foreach ($missions as $mission) {
-            $periodStart = $mission->period_type === 'weekly'
-                ? now()->startOfWeek()->toDateString()
-                : now()->toDateString();
+            foreach ($missions as $mission) {
+                $periodStart = $mission->period_type === 'weekly'
+                    ? now()->startOfWeek()->toDateString()
+                    : now()->toDateString();
 
-            $progress = StudentMissionProgress::firstOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'mission_definition_id' => $mission->id,
-                    'period_start' => $periodStart,
-                ],
-                [
-                    'progress_count' => 0,
-                    'is_completed' => false,
-                    'xp_awarded' => 0,
-                ]
-            );
+                $progress = StudentMissionProgress::firstOrCreate(
+                    [
+                        'user_id' => $lockedUser->id,
+                        'mission_definition_id' => $mission->id,
+                        'period_start' => $periodStart,
+                    ],
+                    [
+                        'progress_count' => 0,
+                        'is_completed' => false,
+                        'xp_awarded' => 0,
+                    ]
+                );
+                $progress = StudentMissionProgress::query()
+                    ->whereKey($progress->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            if ($progress->is_completed) {
-                continue;
-            }
-
-            $progress->progress_count = min((int) $mission->target_count, (int) $progress->progress_count + 1);
-
-            if ($progress->progress_count >= (int) $mission->target_count) {
-                $progress->is_completed = true;
-                $progress->completed_at = now();
-                $progress->xp_awarded = (int) $mission->xp_reward;
-                if ((int) $mission->xp_reward > 0) {
-                    $user->increment('xp', (int) $mission->xp_reward);
+                if ($progress->is_completed) {
+                    continue;
                 }
-                $this->notify($user, 'mission_completed_' . $mission->mission_key, 'Mission complete: ' . $mission->title . ' +' . $mission->xp_reward . ' XP');
-            }
 
-            $progress->save();
-        }
+                $progress->progress_count = min((int) $mission->target_count, (int) $progress->progress_count + 1);
+
+                if ($progress->progress_count >= (int) $mission->target_count) {
+                    $progress->is_completed = true;
+                    $progress->completed_at = now();
+                    $progress->xp_awarded = (int) $mission->xp_reward;
+                    if ((int) $mission->xp_reward > 0) {
+                        $lockedUser->increment('xp', (int) $mission->xp_reward);
+                    }
+                    $this->notify($lockedUser, 'mission_completed_' . $mission->mission_key, 'Mission complete: ' . $mission->title . ' +' . $mission->xp_reward . ' XP');
+                }
+
+                $progress->save();
+            }
+        }, 3);
     }
 
     private function completedChallengePath(User $user, Challenge $challenge, bool $coding): bool
@@ -242,6 +257,7 @@ class GamificationService
 
         $pathChallenges = Challenge::where('challenge_category_id', $challenge->challenge_category_id)
             ->where('is_coding_challenge', $coding)
+            ->where('is_active', true)
             ->get();
 
         if ($pathChallenges->isEmpty()) {
@@ -271,11 +287,23 @@ class GamificationService
                     return false;
                 }
 
-                $passed = DB::table('challenge_user')
+                $passed = ChallengeAttempt::query()
                     ->where('user_id', $user->id)
                     ->where('challenge_id', $pathChallenge->id)
-                    ->where('score', '>=', (int) ceil($total * 0.70))
+                    ->where('is_ranked', true)
+                    ->whereIn('status', ['submitted', 'expired'])
+                    ->where('total_questions', '>', 0)
+                    ->whereRaw('score * 100 >= total_questions * 70')
                     ->exists();
+
+                if (! $passed && ! ChallengeAttempt::where('user_id', $user->id)
+                    ->where('challenge_id', $pathChallenge->id)->exists()) {
+                    $passed = DB::table('challenge_user')
+                        ->where('user_id', $user->id)
+                        ->where('challenge_id', $pathChallenge->id)
+                        ->where('score', '>=', (int) ceil($total * 0.70))
+                        ->exists();
+                }
 
                 if (!$passed) {
                     return false;
@@ -288,43 +316,46 @@ class GamificationService
 
     private function updateStreak(User $user): void
     {
-        $last = $user->last_activity ? Carbon::parse($user->last_activity)->startOfDay() : null;
-        $today = now()->startOfDay();
+        DB::transaction(function () use ($user): void {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $last = $lockedUser->last_activity ? Carbon::parse($lockedUser->last_activity)->startOfDay() : null;
+            $today = now()->startOfDay();
 
-        if (!$last) {
-            $user->forceFill(['streak' => max(1, (int) $user->streak), 'last_activity' => now()])->save();
-            return;
-        }
+            if (!$last) {
+                $lockedUser->forceFill(['streak' => max(1, (int) $lockedUser->streak), 'last_activity' => now()])->save();
+                return;
+            }
 
-        if ($last->equalTo($today)) {
-            return;
-        }
+            if ($last->equalTo($today)) {
+                return;
+            }
 
-        $newStreak = $last->copy()->addDay()->equalTo($today)
-            ? ((int) $user->streak + 1)
-            : 1;
+            $newStreak = $last->copy()->addDay()->equalTo($today)
+                ? ((int) $lockedUser->streak + 1)
+                : 1;
 
-        $user->forceFill(['streak' => $newStreak, 'last_activity' => now()])->save();
+            $lockedUser->forceFill(['streak' => $newStreak, 'last_activity' => now()])->save();
 
-        if ($newStreak >= 7) {
-            $this->unlock($user, 'seven_day_streak', 'streak', null, $newStreak);
-        }
+            if ($newStreak >= 7) {
+                $this->unlock($lockedUser, 'seven_day_streak', 'streak', null, $newStreak);
+            }
+        }, 3);
     }
 
     private function notify(User $user, string $type, string $text): void
     {
-        if (!Schema::hasTable('notifications')) {
-            return;
-        }
+        $isAchievement = str_starts_with($type, 'achievement_unlocked_');
+        $isMission = str_starts_with($type, 'mission_completed_');
 
-        DB::table('notifications')->insert([
-            'user_id' => $user->id,
-            'type' => substr($type, 0, 191),
-            'notification_text' => $text,
-            'is_read' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        app(StudentNotificationService::class)->send(
+            $user,
+            $type,
+            $isAchievement ? 'Achievement unlocked' : ($isMission ? 'Mission completed' : 'Progress update'),
+            $text,
+            route('student.achievements.index'),
+            [],
+            $type
+        );
     }
 
     private function compactUnlocks(array $items): array

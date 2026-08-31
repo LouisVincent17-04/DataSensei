@@ -106,7 +106,7 @@
 
   <div class="main">
     <div class="topbar">
-      <h1>Institution Management</h1>
+      <h1 class="ds-page-title">Institution Management</h1>
     </div>
 
     <div class="content">

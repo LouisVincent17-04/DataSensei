@@ -6,6 +6,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Institution;
+use App\Models\ClassRoom;
+use App\Support\AuthSessionFingerprint;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,15 +44,23 @@ class UserManagementController extends Controller
         }
 
         // Filter by role (accepts string label or numeric)
-        if ($role = $request->input('role')) {
-            $roleMap = ['student' => 1, 'admin' => 2, 'super_admin' => 3];
-            if (isset($roleMap[$role])) {
-                $query->where('role', $roleMap[$role]);
+        if (($role = $request->input('role')) !== null && $role !== '') {
+            $roleMap = [
+                'student' => User::ROLE_USER,
+                'admin' => User::ROLE_ADMIN,
+                'super_admin' => User::ROLE_SUPERADMIN,
+                'instructor' => User::ROLE_INSTRUCTOR,
+                'institution_admin' => User::ROLE_INSTITUTION_ADMIN,
+            ];
+            $roleValue = is_numeric($role) ? (int) $role : ($roleMap[$role] ?? null);
+
+            if (in_array($roleValue, array_keys(User::ROLE_LABELS), true)) {
+                $query->where('role', $roleValue);
             }
         }
 
         // Filter by status
-        if ($status = $request->input('status')) {
+        if (($status = $request->input('status')) && in_array($status, ['active', 'disabled'], true)) {
             $query->where('status', $status);
         }
 
@@ -56,11 +69,12 @@ class UserManagementController extends Controller
             $query->where('institution_id', $institutionId);
         }
 
+        $totalUsers   = (clone $query)->count();
         $users        = $query->paginate(15)->withQueryString();
         $institutions = Institution::orderBy('name')->get();
-        $totalUsers   = $query->toBase()->getCountForPagination();
+        $activeInstitutions = $institutions->where('status', 'active');
 
-        return view('superadmin.users.index', compact('users', 'institutions', 'totalUsers'));
+        return view('superadmin.users.index', compact('users', 'institutions', 'activeInstitutions', 'totalUsers'));
     }
 
     // ─── STORE (CREATE) ──────────────────────────────────────────────────────────
@@ -68,9 +82,9 @@ class UserManagementController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'     => 'required|string|max:255',
+            'name'     => 'required|string|max:189',
             'email'    => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
             'role'     => 'required|in:student,admin',   // super_admin cannot be created via this form
             'status'   => 'required|in:active,disabled',
         ]);
@@ -78,8 +92,8 @@ class UserManagementController extends Controller
         $roleMap = ['student' => User::ROLE_USER, 'admin' => User::ROLE_ADMIN];
 
         User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
+            'name'     => trim($data['name']),
+            'email'    => strtolower(trim($data['email'])),
             'password' => Hash::make($data['password']),
             'role'     => $roleMap[$data['role']],
             'status'   => $data['status'],
@@ -99,32 +113,49 @@ class UserManagementController extends Controller
 
     public function update(Request $request, User $user)
     {
-        // Prevent editing another super-admin unless you are one (extra guard)
-        if ($user->isSuperAdmin() && auth()->id() !== $user->id) {
-            return redirect()->route('superadmin.users.index')
-                             ->with('error', 'You cannot edit another Super Admin.');
-        }
-
         $data = $request->validate([
-            'name'   => 'required|string|max:255',
+            'name'   => 'required|string|max:189',
             'email'  => 'required|email|unique:users,email,' . $user->id,
-            'role'   => 'required|in:student,admin,super_admin',
             'status' => 'required|in:active,disabled',
         ]);
 
-        $roleMap = [
-            'student'     => User::ROLE_USER,
-            'admin'       => User::ROLE_ADMIN,
-            'super_admin' => User::ROLE_SUPERADMIN,
-        ];
+        $result = DB::transaction(function () use ($user, $data): string {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        $user->update([
-            'name'   => $data['name'],
-            'email'  => $data['email'],
-            'role'   => $roleMap[$data['role']],
-            'status' => $data['status'],
-            // institution_id deliberately not touched here
-        ]);
+            if ($lockedUser->isSuperAdmin() && auth()->id() !== $lockedUser->id) {
+                return 'protected';
+            }
+
+            if ($lockedUser->id === auth()->id() && $data['status'] !== 'active') {
+                return 'self_disable';
+            }
+
+            $lockedUser->update([
+                'name' => trim($data['name']),
+                'email' => strtolower(trim($data['email'])),
+                'status' => $data['status'],
+            ]);
+
+            return 'updated';
+        }, 3);
+
+        if ($result === 'protected') {
+            return redirect()->route('superadmin.users.index')
+                ->with('error', 'You cannot edit another Super Admin.');
+        }
+
+        if ($result === 'self_disable') {
+            return redirect()->route('superadmin.users.index')
+                ->with('error', 'You cannot disable your own account.');
+        }
+
+        if ((int) $user->id === (int) auth()->id()) {
+            $currentUser = User::query()->findOrFail($user->id);
+            $request->session()->put(
+                AuthSessionFingerprint::SESSION_KEY,
+                AuthSessionFingerprint::for($currentUser)
+            );
+        }
 
         return redirect()->route('superadmin.users.index')
                          ->with('success', 'User updated successfully.');
@@ -134,20 +165,36 @@ class UserManagementController extends Controller
 
     public function toggleStatus(User $user)
     {
-        // Prevent disabling yourself
-        if ($user->id === auth()->id()) {
+        $result = DB::transaction(function () use ($user): array {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedUser->id === auth()->id()) {
+                return ['status' => 'self', 'label' => null];
+            }
+
+            if ($lockedUser->isSuperAdmin()) {
+                return ['status' => 'protected', 'label' => null];
+            }
+
+            $lockedUser->update([
+                'status' => $lockedUser->status === 'active' ? 'disabled' : 'active',
+            ]);
+
+            return ['status' => 'updated', 'label' => ucfirst($lockedUser->status)];
+        }, 3);
+
+        if ($result['status'] === 'self') {
             return redirect()->route('superadmin.users.index')
-                             ->with('error', 'You cannot disable your own account.');
+                ->with('error', 'You cannot disable your own account.');
         }
 
-        $user->update([
-            'status' => $user->status === 'active' ? 'disabled' : 'active',
-        ]);
-
-        $label = ucfirst($user->status); // reflects new value after update
+        if ($result['status'] === 'protected') {
+            return redirect()->route('superadmin.users.index')
+                ->with('error', 'Another Super Admin account cannot be disabled here.');
+        }
 
         return redirect()->route('superadmin.users.index')
-                         ->with('success', "User has been {$label}.");
+                         ->with('success', "User has been {$result['label']}.");
     }
 
     // ─── PROMOTE ROLE ────────────────────────────────────────────────────────────
@@ -160,24 +207,49 @@ class UserManagementController extends Controller
             'role' => 'required|in:admin,super_admin',
         ]);
 
-        if ($user->id === auth()->id()) {
-            return redirect()->route('superadmin.users.index')
-                             ->with('error', 'You cannot change your own role here.');
-        }
-
         $roleMap = [
             'admin'       => User::ROLE_ADMIN,
             'super_admin' => User::ROLE_SUPERADMIN,
         ];
 
-        $updateData = ['role' => $roleMap[$request->role]];
+        $result = DB::transaction(function () use ($user, $request, $roleMap): string {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        // Promoting to super_admin detaches them from any institution
-        if ($request->role === 'super_admin') {
-            $updateData['institution_id'] = null;
+            if ($lockedUser->id === auth()->id()) {
+                return 'self';
+            }
+
+            if ($lockedUser->isUser() && $lockedUser->classesAsStudent()->exists()) {
+                return 'enrolled';
+            }
+
+            $expectedRole = match ((int) $lockedUser->role) {
+                User::ROLE_USER => User::ROLE_ADMIN,
+                User::ROLE_ADMIN => User::ROLE_SUPERADMIN,
+                default => null,
+            };
+
+            if ($expectedRole === null || $roleMap[$request->role] !== $expectedRole) {
+                return 'invalid';
+            }
+
+            $lockedUser->update([
+                'role' => $roleMap[$request->role],
+                'institution_id' => null,
+            ]);
+
+            return 'promoted';
+        }, 3);
+
+        if ($result === 'self') {
+            return redirect()->route('superadmin.users.index')->with('error', 'You cannot change your own role here.');
         }
-
-        $user->update($updateData);
+        if ($result === 'enrolled') {
+            return redirect()->route('superadmin.users.index')->with('error', 'Remove this learner from all classes before promoting the account.');
+        }
+        if ($result === 'invalid') {
+            return redirect()->route('superadmin.users.index')->with('error', 'That promotion is not a valid one-step role change.');
+        }
 
         $label = $request->role === 'super_admin' ? 'Super Admin' : 'Admin';
 
@@ -192,35 +264,54 @@ class UserManagementController extends Controller
 
     public function demote(Request $request, User $user)
     {
-        if ($user->id === auth()->id()) {
-            return redirect()->route('superadmin.users.index')
-                             ->with('error', 'You cannot change your own role.');
+        $result = DB::transaction(function () use ($user): array {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedUser->id === auth()->id()) {
+                return ['status' => 'self', 'role' => null, 'name' => $lockedUser->name];
+            }
+            if ($lockedUser->isInstructor() && ClassRoom::where('instructor_id', $lockedUser->id)->exists()) {
+                return ['status' => 'owns_classes', 'role' => null, 'name' => $lockedUser->name];
+            }
+            if ($lockedUser->isUser()) {
+                return ['status' => 'lowest', 'role' => null, 'name' => $lockedUser->name];
+            }
+
+            $newRole = match ((int) $lockedUser->role) {
+                User::ROLE_SUPERADMIN => User::ROLE_ADMIN,
+                User::ROLE_ADMIN, User::ROLE_INSTRUCTOR, User::ROLE_INSTITUTION_ADMIN => User::ROLE_USER,
+                default => null,
+            };
+
+            if ($newRole === null) {
+                return ['status' => 'invalid', 'role' => null, 'name' => $lockedUser->name];
+            }
+
+            $lockedUser->update(['role' => $newRole, 'institution_id' => null]);
+
+            return ['status' => 'demoted', 'role' => $newRole, 'name' => $lockedUser->name];
+        }, 3);
+
+        if ($result['status'] === 'self') {
+            return redirect()->route('superadmin.users.index')->with('error', 'You cannot change your own role.');
         }
-
-        if ($user->isUser()) {
-            return redirect()->route('superadmin.users.index')
-                             ->with('error', "{$user->name} is already a Student — cannot demote further.");
+        if ($result['status'] === 'owns_classes') {
+            return redirect()->route('superadmin.users.index')->with('error', 'Transfer or permanently remove this instructor\'s classes before demoting the account.');
         }
-
-        $newRole     = $user->role - 1;                    // 3→2 or 2→1
-        $roleLabels  = [1 => 'Student', 2 => 'Admin'];
-
-        $updateData  = ['role' => $newRole];
-
-        // Demoting an institution admin back to student revokes institution access
-        if ($newRole === User::ROLE_USER) {
-            $updateData['institution_id'] = null;
+        if ($result['status'] === 'lowest') {
+            return redirect()->route('superadmin.users.index')->with('error', "{$result['name']} is already a Student — cannot demote further.");
         }
-
-        $user->update($updateData);
+        if ($result['status'] === 'invalid') {
+            return redirect()->route('superadmin.users.index')->with('error', 'This account cannot be demoted from its current role.');
+        }
 
         return redirect()->route('superadmin.users.index')
-                         ->with('success', "{$user->name} has been demoted to {$roleLabels[$newRole]}.");
+                         ->with('success', "{$result['name']} has been demoted to ".User::ROLE_LABELS[$result['role']].'.');
     }
 
     // ─── ASSIGN INSTITUTION ADMIN ────────────────────────────────────────────────
     // Super admins may designate a user (student or existing admin) as the admin
-    // of a specific institution. This sets their role to ROLE_ADMIN and links them
+    // of a specific institution. This sets their role to ROLE_INSTITUTION_ADMIN and links them
     // to the chosen institution.
     //
     // NOTE: Super admins CANNOT add regular members/students to an institution —
@@ -229,28 +320,57 @@ class UserManagementController extends Controller
 
     public function assignInstitutionAdmin(Request $request, User $user)
     {
-        if ($user->isSuperAdmin()) {
-            return redirect()->route('superadmin.users.index')
-                             ->with('error', 'A Super Admin cannot be assigned as an institution admin.');
-        }
-
-        if ($user->id === auth()->id()) {
-            return redirect()->route('superadmin.users.index')
-                             ->with('error', 'You cannot change your own role.');
-        }
-
         $data = $request->validate([
-            'institution_id' => 'required|exists:institutions,id',
+            'institution_id' => [
+                'required',
+                Rule::exists('institutions', 'id')->where(fn ($query) => $query->where('status', 'active')),
+            ],
         ]);
 
-        $institution = Institution::findOrFail($data['institution_id']);
+        $result = DB::transaction(function () use ($user, $data): array {
+            $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        $user->update([
-            'role'           => User::ROLE_INSTITUTION_ADMIN,
-            'institution_id' => $institution->id,
-        ]);
+            if ($lockedUser->isSuperAdmin()) {
+                return ['status' => 'protected', 'name' => $lockedUser->name, 'institution' => null];
+            }
+            if ($lockedUser->id === auth()->id()) {
+                return ['status' => 'self', 'name' => $lockedUser->name, 'institution' => null];
+            }
+            if ($lockedUser->isInstructor() && ClassRoom::where('instructor_id', $lockedUser->id)->exists()) {
+                return ['status' => 'owns_classes', 'name' => $lockedUser->name, 'institution' => null];
+            }
+            if ($lockedUser->isUser() && $lockedUser->classesAsStudent()->exists()) {
+                return ['status' => 'enrolled', 'name' => $lockedUser->name, 'institution' => null];
+            }
+
+            $institution = Institution::query()
+                ->whereKey($data['institution_id'])
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedUser->update([
+                'role' => User::ROLE_INSTITUTION_ADMIN,
+                'institution_id' => $institution->id,
+            ]);
+
+            return ['status' => 'assigned', 'name' => $lockedUser->name, 'institution' => $institution->name];
+        }, 3);
+
+        if ($result['status'] === 'protected') {
+            return redirect()->route('superadmin.users.index')->with('error', 'A Super Admin cannot be assigned as an institution admin.');
+        }
+        if ($result['status'] === 'self') {
+            return redirect()->route('superadmin.users.index')->with('error', 'You cannot change your own role.');
+        }
+        if ($result['status'] === 'owns_classes') {
+            return redirect()->route('superadmin.users.index')->with('error', 'Transfer or permanently remove this instructor\'s classes before changing the account role.');
+        }
+        if ($result['status'] === 'enrolled') {
+            return redirect()->route('superadmin.users.index')->with('error', 'Remove this learner from all classes before assigning institution-admin access.');
+        }
 
         return redirect()->route('superadmin.users.index')
-                         ->with('success', "{$user->name} is now the Institution Admin of {$institution->name}.");
+                         ->with('success', "{$result['name']} is now the Institution Admin of {$result['institution']}.");
     }
 }

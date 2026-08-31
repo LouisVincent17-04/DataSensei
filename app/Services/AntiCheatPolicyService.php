@@ -91,12 +91,17 @@ class AntiCheatPolicyService
             return null;
         }
 
+        $expectedSessionId = (string) ($submission->anti_cheat_session_id ?? '');
+        if ($expectedSessionId === '' || ! is_string($sessionId) || ! hash_equals($expectedSessionId, $sessionId)) {
+            return 'The protected attempt identity is invalid. Reload the assignment and try again.';
+        }
+
         $query = AntiCheatEvent::where('user_id', $user->id)
             ->where('assessment_type', 'assignment')
             ->where('class_assignment_id', $assignment->id)
             ->where('assignment_submission_id', $submission->id);
 
-        $this->applySessionScope($query, $sessionId);
+        $this->applySessionScope($query, $expectedSessionId);
 
         return $this->blockedReason($query, $policy);
     }
@@ -146,14 +151,9 @@ class AntiCheatPolicyService
             ->orderByRaw('CASE WHEN class_id IS NULL THEN 0 ELSE 1 END');
     }
 
-    private function applySessionScope(Builder $query, ?string $sessionId): void
+    private function applySessionScope(Builder $query, string $sessionId): void
     {
-        if ($sessionId) {
-            $query->where('attempt_session_id', $sessionId);
-            return;
-        }
-
-        $query->where('created_at', '>=', now()->subHours(6));
+        $query->where('attempt_session_id', $sessionId);
     }
 
     private function blockedReason(Builder $query, array $policy): ?string

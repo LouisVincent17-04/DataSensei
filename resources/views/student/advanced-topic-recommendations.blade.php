@@ -17,7 +17,7 @@
 
     <div class="top">
       <div>
-        <h1 class="title">Advanced Topic Recommendations</h1>
+        <h1 class="title ds-page-title">Advanced Topic Recommendations</h1>
         <div class="subtitle">DataSensei recommends higher difficulty paths when your score, time efficiency, and completion evidence show exceptional mastery.</div>
       </div>
     </div>

@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DataSensei — Modules</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script>
-    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
-  </script>
   <style>
     :root {
       --bg:          #0d1320;
@@ -46,10 +43,15 @@
     .page-modules-topbar { height: 64px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; }
     .page-modules-topbar h1 { font-size: 1.125rem; font-weight: 600; color: var(--text); flex: 1; letter-spacing: -0.01em; }
     
-    .page-modules-search { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; gap: 10px; width: 260px; transition: border-color 0.15s; }
+    .page-modules-search { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; gap: 8px; width: min(320px, 38vw); min-height: 38px; transition: border-color 0.15s; }
     .page-modules-search:focus-within { border-color: var(--accent); }
-    .page-modules-search input { background: none; border: none; outline: none; color: var(--text); font-size: 0.875rem; font-family: inherit; width: 100%; }
+    .page-modules-search input { min-height: 0 !important; height: 20px !important; padding: 0 !important; background: transparent !important; border: 0 !important; border-radius: 0 !important; outline: none; box-shadow: none !important; color: var(--text); font-size: 0.875rem; font-family: inherit; width: 100%; }
     .page-modules-search input::placeholder { color: var(--dim); }
+    .page-modules-search-clear { width: 24px; height: 24px; flex: 0 0 24px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+    .page-modules-search-clear:hover { background: var(--surface2); color: var(--text); }
+    .page-modules-search-clear[hidden] { display: none; }
+    .page-modules-search-status { color: var(--dim); font-size: .75rem; }
+    .page-modules-empty-search { padding: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--muted); text-align: center; }
     
     .page-modules-topbar-btn { width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all 0.15s; position: relative; }
     .page-modules-topbar-btn:hover { color: var(--text); border-color: var(--border-hover); }
@@ -142,6 +144,9 @@
     @media (max-width: 1200px) { .page-modules-grid { grid-template-columns: repeat(2,1fr); } }
     @media (max-width: 900px)  { .page-modules-grid { grid-template-columns: 1fr; } }
     @media (max-width: 700px)  { 
+      .page-modules-topbar { height: auto; min-height: 64px; padding: 12px 16px; flex-wrap: wrap; }
+      .page-modules-topbar h1 { flex: 1 1 calc(100% - 96px); }
+      .page-modules-search { order: 2; width: 100%; }
       .page-modules-header { flex-direction: column; }
       .page-modules-summary { width: 100%; justify-content: space-between; }
     }
@@ -178,15 +183,15 @@
         <h1>Modules</h1>
         <div class="page-modules-search">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Search modules..." id="searchInput" />
+          <input type="search" placeholder="Search by title or description" id="searchInput" autocomplete="off" aria-label="Search modules" />
+          <button class="page-modules-search-clear" id="clearModuleSearch" type="button" aria-label="Clear module search" hidden>×</button>
         </div>
-        <div class="page-modules-topbar-btn">
+        <a class="page-modules-topbar-btn" href="{{ route('student.notifications.index') }}" aria-label="Open notifications">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-          <span class="page-modules-notif-dot"></span>
-        </div>
-        <div class="page-modules-topbar-btn">
+        </a>
+        <a class="page-modules-topbar-btn" href="{{ route('profile') }}" aria-label="Open profile">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-        </div>
+        </a>
       </header>
 
       <main class="page-modules-content">
@@ -215,14 +220,15 @@
         </div>
 
         <div class="page-modules-filter-row">
-          <button class="page-modules-filter-tab active" onclick="filterModules('all', this)">All</button>
-          <button class="page-modules-filter-tab" onclick="filterModules('unlocked', this)">Unlocked</button>
-          <button class="page-modules-filter-tab" onclick="filterModules('locked', this)">Locked</button>
-          <button class="page-modules-filter-tab" onclick="filterModules('year1', this)">Year 1</button>
-          <button class="page-modules-filter-tab" onclick="filterModules('year2', this)">Year 2</button>
-          <button class="page-modules-filter-tab" onclick="filterModules('year3', this)">Year 3</button>
-          <button class="page-modules-filter-tab" onclick="filterModules('year4', this)">Year 4</button>
+          <button type="button" class="page-modules-filter-tab active" onclick="filterModules('all', this)">All</button>
+          <button type="button" class="page-modules-filter-tab" onclick="filterModules('unlocked', this)">Unlocked</button>
+          <button type="button" class="page-modules-filter-tab" onclick="filterModules('locked', this)">Locked</button>
+          <button type="button" class="page-modules-filter-tab" onclick="filterModules('year1', this)">Year 1</button>
+          <button type="button" class="page-modules-filter-tab" onclick="filterModules('year2', this)">Year 2</button>
+          <button type="button" class="page-modules-filter-tab" onclick="filterModules('year3', this)">Year 3</button>
+          <button type="button" class="page-modules-filter-tab" onclick="filterModules('year4', this)">Year 4</button>
           <div class="page-modules-filter-spacer"></div>
+          <span class="page-modules-search-status" id="moduleSearchStatus" role="status" aria-live="polite"></span>
           <div class="page-modules-unlock-note">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             Complete prerequisites to unlock modules
@@ -343,6 +349,10 @@
           </div>
         @endforeach
 
+        <div class="page-modules-empty-search" id="moduleSearchEmpty" hidden>
+          No modules match the current search and filter.
+        </div>
+
       </main>
     </div>
   </div>
@@ -356,43 +366,58 @@
       });
     });
 
+    let activeModuleFilter = 'all';
+
     function filterModules(type, btn) {
+      activeModuleFilter = type;
       document.querySelectorAll('.page-modules-filter-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
 
-      const cards  = document.querySelectorAll('.page-modules-card');
-      const groups = document.querySelectorAll('.page-modules-year-group');
-
-      cards.forEach(card => {
-        let show = false;
-        if (type === 'all')      show = true;
-        else if (type === 'unlocked') show = card.dataset.status === 'unlocked' || card.dataset.status === 'completed';
-        else if (type === 'locked')   show = card.dataset.status === 'locked';
-        else show = card.dataset.year === type;
-        card.style.display = show ? '' : 'none';
-      });
-
-      groups.forEach(group => {
-        const visible = [...group.querySelectorAll('.page-modules-card')].some(c => c.style.display !== 'none');
-        group.style.display = visible ? '' : 'none';
-      });
+      applyModuleFilters();
     }
 
-    document.getElementById('searchInput').addEventListener('input', function () {
-      const q = this.value.toLowerCase();
+    function applyModuleFilters() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const cards = [...document.querySelectorAll('.page-modules-card')];
       const groups = document.querySelectorAll('.page-modules-year-group');
+      let visibleCount = 0;
 
-      document.querySelectorAll('.page-modules-card').forEach(card => {
+      cards.forEach(card => {
         const title = card.querySelector('.page-modules-title')?.textContent.toLowerCase() || '';
-        const desc  = card.querySelector('.page-modules-desc')?.textContent.toLowerCase() || '';
-        card.style.display = (title.includes(q) || desc.includes(q)) ? '' : 'none';
+        const description = card.querySelector('.page-modules-desc')?.textContent.toLowerCase() || '';
+        const matchesSearch = !query || title.includes(query) || description.includes(query);
+        let matchesFilter = activeModuleFilter === 'all';
+
+        if (activeModuleFilter === 'unlocked') {
+          matchesFilter = card.dataset.status === 'unlocked' || card.dataset.status === 'completed';
+        } else if (activeModuleFilter === 'locked') {
+          matchesFilter = card.dataset.status === 'locked';
+        } else if (activeModuleFilter.startsWith('year')) {
+          matchesFilter = card.dataset.year === activeModuleFilter;
+        }
+
+        card.hidden = !(matchesSearch && matchesFilter);
+        if (!card.hidden) visibleCount += 1;
       });
 
       groups.forEach(group => {
-        const visible = [...group.querySelectorAll('.page-modules-card')].some(c => c.style.display !== 'none');
-        group.style.display = visible ? '' : 'none';
+        group.hidden = ![...group.querySelectorAll('.page-modules-card')].some(card => !card.hidden);
       });
+
+      document.getElementById('moduleSearchEmpty').hidden = visibleCount !== 0;
+      document.getElementById('moduleSearchStatus').textContent = `${visibleCount} module${visibleCount === 1 ? '' : 's'} shown`;
+      document.getElementById('clearModuleSearch').hidden = query === '';
+    }
+
+    document.getElementById('searchInput').addEventListener('input', applyModuleFilters);
+    document.getElementById('clearModuleSearch').addEventListener('click', function () {
+      const search = document.getElementById('searchInput');
+      search.value = '';
+      search.focus();
+      applyModuleFilters();
     });
+
+    applyModuleFilters();
   </script>
 
 </body>

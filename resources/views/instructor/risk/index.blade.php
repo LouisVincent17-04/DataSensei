@@ -17,7 +17,7 @@
 
     <div class="top">
       <div>
-        <h1 class="title">At-Risk Alerts</h1>
+        <h1 class="title ds-page-title">At-Risk Alerts</h1>
         <p class="subtitle">Detect learners who may need intervention using score, engagement, missing work, late work, and violations.</p>
       </div>
     </div>
@@ -29,26 +29,33 @@
             <option value="{{ $class->id }}" @selected($selectedClass && $selectedClass->id === $class->id)>{{ $class->name }}</option>
           @endforeach
         </select>
-        <button class="btn" type="submit">Refresh</button>
+        <button class="btn secondary" type="submit">View Saved Risk</button>
       </form>
+      @if($selectedClass && ! $selectedClass->is_archived)
+        <form method="POST" action="{{ route('instructor.risk.refresh') }}" class="form-row" style="margin-top:10px">@csrf<input type="hidden" name="class_id" value="{{ $selectedClass->id }}"><button class="btn" type="submit">Recalculate Now</button><span class="muted">Last calculated: {{ $lastCalculatedAt?->format('M d, Y h:i A') ?? 'not yet calculated' }}</span></form>
+      @elseif($selectedClass)
+        <p class="muted">This class is archived. Saved risk results remain viewable, but recalculation is disabled.</p>
+      @endif
     </div>
+
+    @if(session('success'))<div class="alert">{{ session('success') }}</div>@endif
 
     <div class="card table-wrap">
       <table class="table">
-        <thead><tr><th>Student</th><th>Cluster</th><th>Risk</th><th>Score</th><th>Engagement</th><th>Evidence</th></tr></thead>
+        <thead><tr><th>Student</th><th>Performance Segment</th><th>Risk</th><th>Score</th><th>Engagement</th><th>Evidence</th></tr></thead>
         <tbody>
         @forelse($snapshots as $snapshot)
           @php $riskClass = $snapshot->risk_level === 'high' ? 'bad' : ($snapshot->risk_level === 'medium' ? 'warn' : 'good'); @endphp
           <tr>
             <td>{{ $snapshot->student->name ?? 'Student' }}</td>
-            <td>{{ $snapshot->cluster_label }}</td>
+            <td>{{ $snapshot->cluster_label }}@if($snapshot->segment_reason)<div class="muted" style="font-size:.75rem;margin-top:4px">{{ $snapshot->segment_reason }}</div>@endif</td>
             <td><span class="badge {{ $riskClass }}">{{ ucfirst($snapshot->risk_level) }}</span></td>
             <td>{{ $snapshot->average_score_percent }}%</td>
             <td>{{ $snapshot->engagement_score }}%</td>
             <td class="muted">Missing: {{ $snapshot->missing_assignments }}, Late: {{ $snapshot->late_submissions }}, Violations: {{ $snapshot->anti_cheat_warnings }}</td>
           </tr>
         @empty
-          <tr><td colspan="6" class="muted">No at-risk data yet.</td></tr>
+          <tr><td colspan="6" class="muted">No saved risk calculation yet. Click Recalculate Now.</td></tr>
         @endforelse
         </tbody>
       </table>

@@ -8,24 +8,9 @@
   @include('partials.brand-head')
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-  {{-- CodeMirror 6 via CDN --}}
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/python/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/closebrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/matchbrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/comment/comment.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldgutter.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/indent-fold.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/fold/foldgutter.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/selection/active-line.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/show-hint.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/anyword-hint.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/hint/show-hint.min.css" />
+  {{-- CodeMirror 5 is bundled locally so the IDE works offline and loads in two requests. --}}
+  <link rel="stylesheet" href="{{ asset('vendor/codemirror/codemirror.bundle.css') }}" />
+  <script defer src="{{ asset('vendor/codemirror/codemirror.bundle.js') }}"></script>
 
   <style>
     :root {
@@ -47,6 +32,9 @@
     .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
     .tb-btn { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 0.75rem; font-family: inherit; cursor: pointer; transition: all 0.15s; font-weight: 500; }
     .tb-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border-hover); }
+    .topbar-nav-divider { width: 1px; height: 20px; background: var(--border); margin: 0 2px 0 6px; flex-shrink: 0; }
+    .tb-btn.dashboard-btn { color: var(--muted); border-color: transparent; background: transparent; white-space: nowrap; }
+    .tb-btn.dashboard-btn:hover { color: var(--text); border-color: var(--border-hover); background: var(--surface2); }
     .tb-btn.run { background: var(--accent3); color: #fff; border-color: var(--accent3); font-weight: 600; }
     .tb-btn.run:hover { background: #0ea472; border-color: #0ea472; }
     .tb-btn.run:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -147,8 +135,9 @@
     .modal p.subtitle { font-size: 0.85rem; color: var(--muted); margin-top: -12px; margin-bottom: 8px; }
     .modal-input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
     .modal-input-group label { font-size: 0.8rem; font-weight: 600; color: var(--accent); }
-    .modal input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 0.9rem; font-family: inherit; padding: 10px 12px; outline: none; transition: border-color 0.15s; }
-    .modal input:focus { border-color: var(--accent); }
+    .modal input, .modal textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 0.9rem; font-family: inherit; padding: 10px 12px; outline: none; transition: border-color 0.15s; }
+    .modal textarea { min-height: 120px; resize: vertical; font-family: 'JetBrains Mono', monospace; }
+    .modal input:focus, .modal textarea:focus { border-color: var(--accent); }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
     .modal-btn { padding: 8px 16px; border-radius: var(--radius); font-size: 0.85rem; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.15s; }
     .modal-btn:hover { background: var(--surface2); color: var(--text); }
@@ -294,6 +283,7 @@
     .rb-input-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .rb-clear { font-size: 0.68rem; color: var(--dim); background: none; border: none; cursor: pointer; font-family: inherit; padding: 3px; border-radius: 3px; transition: color 0.15s; }
     .rb-clear:hover { color: var(--muted); }
+    .rb-clear:disabled { opacity: 0.45; cursor: not-allowed; }
     #rb-send {
       display: flex; align-items: center; gap: 5px;
       padding: 6px 12px; border-radius: var(--radius); border: none;
@@ -324,13 +314,12 @@
       <span class="seg" id="breadcrumb-file"></span>
     </div>
     <div class="topbar-actions">
-      <span id="save-indicator" style="font-size:0.7rem;color:var(--accent3);display:none"></span>
-      <a href="#" id="returnToLessonBtn" class="tb-btn" style="display: none; color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1);">
+      <a href="{{ route('studentDashboard') }}" id="returnToLessonBtn" class="tb-btn" style="display: none; color: var(--accent); border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.1);">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         Return to Lesson
       </a>
-      <select class="tb-select" id="pythonSampleSelect" title="Auto-generate sample Python code" onchange="IDE.insertPythonSample(this.value); this.value='';">
-        <option value="">Generate Python sample...</option>
+      <select class="tb-select" id="pythonSampleSelect" title="Auto-generate sample Python code" aria-label="Generate a predefined Python sample">
+        <option value="">Generate a Python sample...</option>
         <option value="simple">Simple Code</option>
         <option value="input">Code with Input</option>
         <option value="list">Code with Array/List</option>
@@ -345,12 +334,16 @@
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         Run
       </button>
-      <div class="topbar-sep"></div>
-      <a href="{{ route('studentDashboard') }}" class="tb-btn" title="Back to Dashboard">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      @include('student.partials.notification-center', ['variant' => 'topbar'])
+      <span class="topbar-nav-divider" aria-hidden="true"></span>
+      <a href="{{ route('studentDashboard') }}" class="tb-btn dashboard-btn" title="Return to dashboard" aria-label="Return to dashboard">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+        <span>Dashboard</span>
       </a>
     </div>
   </div>
+
+  <span id="save-indicator" data-ds-global-notification role="status" style="font-size:0.7rem;color:var(--accent3);display:none"></span>
 
   <div class="workspace">
     <div class="activity-bar">
@@ -414,7 +407,7 @@
   <div class="modal">
     <h3>Input Required</h3>
     <p class="subtitle" id="input-modal-subtitle">Your program is paused and waiting for input.</p>
-    <div class="modal-input-group"><label id="input-modal-label">Prompt:</label><input type="text" id="dynamic-single-input" placeholder="Type your answer here..." autocomplete="off" spellcheck="false" /></div>
+    <div class="modal-input-group"><label id="input-modal-label">Program input</label><textarea id="dynamic-single-input" maxlength="10000" placeholder="Enter one input value per line..." autocomplete="off" spellcheck="false"></textarea></div>
     <div class="modal-actions"><button class="modal-btn" onclick="IDE.cancelInput()">Cancel Run</button><button class="modal-btn primary" onclick="IDE.submitInput()">Submit</button></div>
   </div>
 </div>
@@ -443,12 +436,12 @@
       <div class="rb-header-title">AI Code Reviewer</div>
       <div class="rb-header-sub">Auto-reviews on every Run</div>
     </div>
-    <div class="rb-status" id="rb-status">
+    <div class="rb-status" id="rb-status" role="status" aria-live="polite">
       <div class="rb-status-dot"></div><span>Ready</span>
     </div>
   </div>
 
-  <div id="rb-msgs"></div>
+  <div id="rb-msgs" aria-live="polite"></div>
 
   <div class="rb-input-area">
     <div class="rb-input-label">Ask a follow-up</div>
@@ -468,9 +461,9 @@
 ═══════════════════════════════════════════════════ --}}
 <script>
 // ── ReviewBot ─────────────────────────────────────────────────────────────────
-// Change REVIEW_URL to match your Laravel route that proxies code_reviewer.py
-// Route should accept POST { code, language } and return JSON { ok, message }
-const REVIEW_URL = '/api/code-review';
+// Laravel endpoint handled by CodeReviewController.
+const REVIEW_URL = @json(route('api.code-review'));
+const REVIEW_CLIENT_TIMEOUT_MS = {{ ((int) config('code_execution.ollama.timeout_seconds', 40) + 5) * 1000 }};
 
 const ReviewBot = (() => {
   let _open     = false;
@@ -478,6 +471,7 @@ const ReviewBot = (() => {
   let _lastCode = '';
   let _lastLang = 'python';
   let _lastRunOutput = '';
+  let _activeController = null;
   // Accumulate review context for multi-turn follow-ups
   const _history = [];
 
@@ -515,6 +509,12 @@ const ReviewBot = (() => {
   /* ── Called by IDE.run() automatically ── */
   function autoReview(code, lang, filename, runOutput = '') {
     if (!code || !code.trim()) return;
+    if (_busy) {
+      _open_panel();
+      _addBot('<div class="rb-line" style="color:var(--warn2)">An AI review is already running. Please wait for it to finish before requesting another review.</div>');
+      return;
+    }
+
     _lastCode = code;
     _lastLang = lang || 'python';
     _lastRunOutput = runOutput || '';
@@ -533,7 +533,7 @@ const ReviewBot = (() => {
       `<div class="rb-line">I see you just ran your <strong style="color:var(--text)">${escH(filename || langLabel)}</strong> — let me review it now...</div>`
     );
 
-    _sendReview(code, lang);
+    void _sendReview(code, lang);
   }
 
   /* ── Code generation detection ── */
@@ -546,6 +546,11 @@ const ReviewBot = (() => {
   function sendFollowUp() {
     const question = $input().value.trim();
     if (!question || _busy) return;
+
+    if (!_lastCode.trim()) {
+      _addBot('<div class="rb-line" style="color:var(--warn2)">Run a Python file first so I have code and output to discuss.</div>');
+      return;
+    }
 
     // Block code generation requests on the frontend
     if (_isCodeGenRequest(question)) {
@@ -561,11 +566,8 @@ const ReviewBot = (() => {
     $input().value = '';
     _addUser(question);
 
-    const messages = _history.length
-      ? [..._history, { role: 'user', content: question }]
-      : [{ role: 'user', content: `Regarding this code:\n\`\`\`\n${_lastCode}\n\`\`\`\n\n${question}` }];
-
-    _callAI(messages);
+    _history.push({ role: 'user', content: question });
+    void _callAI(question);
   }
 
   function handleKey(e) {
@@ -574,6 +576,7 @@ const ReviewBot = (() => {
 
   /* ── Clear ── */
   function clear() {
+    if (_busy) return;
     $msgs().innerHTML = '';
     _history.length = 0;
     _addWelcome();
@@ -591,61 +594,188 @@ const ReviewBot = (() => {
       form.append('language', lang || 'python');
       form.append('run_output', _lastRunOutput || '');
 
-      const res  = await fetch(REVIEW_URL, {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-        body: form,
-      });
-      const data = await res.json();
+      const { data } = await _postReview(form);
       _removeTyping(typingId);
 
-      if (data.ok || data.message) {
-        const msg   = data.message || data.review || '';
-        const html  = _formatReview(msg);
-        _addBot(html);
-        // Store in history for follow-ups
-        _history.push({ role: 'assistant', content: msg });
-      } else {
-        _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(data.error || 'Review failed. Check your backend route.')}</div>`);
-      }
+      const msg = data.message || '';
+      _addBot(_formatReview(msg));
+      _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      _addBot('<div class="rb-line" style="color:var(--warn)">Could not reach the review endpoint. Make sure <code style="font-family:JetBrains Mono,monospace;font-size:0.68rem">/api/code-review</code> is defined in your Laravel routes.</div>');
+      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The code review request failed.')}</div>`);
     } finally {
       _setBusy(false);
     }
   }
 
   /* ── Core: send follow-up ── */
-  async function _callAI(messages) {
+  async function _callAI(question) {
     const typingId = _addTyping();
     _setBusy(true);
+    let liveMessage = null;
+    let streamedText = '';
 
     try {
       const form = new FormData();
       form.append('mode',     'chat');
       form.append('code',     _lastCode);
       form.append('language', _lastLang);
-      form.append('question', messages[messages.length - 1].content);
+      form.append('question', question);
       form.append('run_output', _lastRunOutput || '');
-      form.append('previous_context', _history.map(h => h.content).slice(-4).join('\n---\n'));
+      form.append('previous_context', _history.slice(0, -1).slice(-4).map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n---\n'));
+      form.append('stream', '1');
 
-      const res  = await fetch(REVIEW_URL, {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-        body: form,
+      let completed = false;
+      let finalMessage = '';
+      const result = await _postReview(form, {
+        stream: true,
+        onEvent(event, payload) {
+          if (event === 'delta' && payload.text) {
+            streamedText += payload.text;
+            _removeTyping(typingId);
+
+            if (!liveMessage) {
+              liveMessage = _addBot(_formatReview(streamedText));
+            } else {
+              liveMessage.querySelector('.rb-bubble').innerHTML = _formatReview(streamedText);
+              _scroll();
+            }
+          } else if (event === 'done') {
+            completed = true;
+            finalMessage = payload.message || streamedText;
+          } else if (event === 'error') {
+            throw new Error(payload.message || 'The AI response stream failed.');
+          }
+        },
       });
-      const data = await res.json();
-      _removeTyping(typingId);
 
-      const msg  = data.message || data.review || data.error || 'No response.';
-      _addBot(_formatReview(msg));
+      const msg = result.streamed
+        ? (completed ? finalMessage : '')
+        : (result.data.message || '');
+
+      if (!msg) {
+        throw new Error('The AI response ended before it was complete.');
+      }
+
+      _removeTyping(typingId);
+      if (liveMessage) {
+        liveMessage.querySelector('.rb-bubble').innerHTML = _formatReview(msg);
+      } else {
+        liveMessage = _addBot(_formatReview(msg));
+      }
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      _addBot('<div class="rb-line" style="color:var(--warn)">Request failed.</div>');
+      if (liveMessage) liveMessage.remove();
+      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The follow-up request failed.')}</div>`);
     } finally {
       _setBusy(false);
+    }
+  }
+
+  async function _postReview(form, { stream = false, onEvent = null } = {}) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REVIEW_CLIENT_TIMEOUT_MS);
+    _activeController = controller;
+
+    try {
+      const response = await fetch(REVIEW_URL, {
+        method: 'POST',
+        headers: {
+          'Accept': stream ? 'application/json, text/event-stream' : 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: form,
+        signal: controller.signal,
+      });
+      const contentType = response.headers.get('content-type') || '';
+
+      if (stream && contentType.includes('text/event-stream')) {
+        if (!response.ok) {
+          throw new Error(`AI request failed with HTTP ${response.status}.`);
+        }
+
+        await _readEventStream(response, onEvent || (() => {}));
+
+        return { streamed: true, data: null };
+      }
+
+      const data = await _readJsonResponse(response);
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || `AI request failed with HTTP ${response.status}.`);
+      }
+
+      return { streamed: false, data };
+    } catch (error) {
+      controller.abort();
+
+      if (error.name === 'AbortError') {
+        throw new Error('The AI request timed out. Ollama may be offline or overloaded.');
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+      if (_activeController === controller) _activeController = null;
+    }
+  }
+
+  async function _readEventStream(response, onEvent) {
+    if (!response.body) {
+      throw new Error('This browser could not read the AI response stream.');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    const dispatch = (block) => {
+      const lines = block.split(/\r?\n/);
+      let event = 'message';
+      const dataLines = [];
+
+      for (const line of lines) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+      }
+
+      if (dataLines.length === 0) return;
+
+      let payload;
+      try {
+        payload = JSON.parse(dataLines.join('\n'));
+      } catch (error) {
+        throw new Error('The AI response stream contained malformed data.');
+      }
+
+      onEvent(event, payload);
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() || '';
+      blocks.forEach(dispatch);
+    }
+
+    buffer += decoder.decode();
+    if (buffer.trim()) dispatch(buffer);
+  }
+
+  async function _readJsonResponse(response) {
+    const text = await response.text();
+
+    if (!text.trim()) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      throw new Error(`Server returned a non-JSON response (HTTP ${response.status}).`);
     }
   }
 
@@ -660,6 +790,7 @@ const ReviewBot = (() => {
     const el = _buildMsg('rb-bot', html);
     $msgs().appendChild(el);
     _scroll();
+    return el;
   }
 
   function _addTyping() {
@@ -689,20 +820,23 @@ const ReviewBot = (() => {
   function _setBusy(on) {
     _busy = on;
     $send().disabled = on;
+    $input().setAttribute('aria-busy', on ? 'true' : 'false');
+    const clearButton = document.querySelector('.rb-clear');
+    if (clearButton) clearButton.disabled = on;
     $send().innerHTML = on
       ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Wait…'
       : '<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Ask';
     const $s = $status();
     $s.className = on ? 'rb-status rb-busy' : 'rb-status';
     $s.innerHTML = on
-      ? '<div class="rb-status-dot"></div><span>Reviewing…</span>'
+      ? '<div class="rb-status-dot"></div><span>AI is thinking...</span>'
       : '<div class="rb-status-dot"></div><span>Ready</span>';
   }
 
   /* ── Review formatter ── */
   function _formatReview(raw) {
     if (!raw || !raw.trim()) return '<div class="rb-line" style="color:var(--dim)">(No response)</div>';
-    const SECTION = /^(Status|Issues?|Fix|Suggestion|Suggestions|Warning|Warnings|Notes?|Summary|Result)s?:/i;
+    const SECTION = /^(Status|Feedback|Issues?|Fix|Suggestion|Suggestions|Warning|Warnings|Notes?|Summary|Result)s?:/i;
     const segs = raw.split(/(```[a-z]*\n?)/);
     let html = '', inCode = false, codeAcc = '';
     for (const seg of segs) {
@@ -728,7 +862,7 @@ const ReviewBot = (() => {
   }
 
   function escH(s) {
-    return (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   return { toggle, autoReview, sendFollowUp, handleKey, clear };
@@ -739,19 +873,53 @@ const ReviewBot = (() => {
 const WORKSPACE_ID = {{ $workspace->id }};
 const TREE_DATA = @json($tree);
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+const NODES_URL = @json(route('ide.nodes.store'));
+const TREE_URL = @json(route('ide.tree'));
 
 const IDE = (() => {
   let openTabs = []; let activeTab = null; let cm = null; let treeData = [...TREE_DATA]; let cmChanging = false;
   let draggedNodeId = null;
+  let runInProgress = false;
 
   function byId(id) { return document.getElementById(id); }
   function setText(id, value) { const node = byId(id); if (node) node.textContent = value ?? ''; }
   function setHtml(id, value) { const node = byId(id); if (node) node.innerHTML = value ?? ''; }
   function setDisplay(id, value) { const node = byId(id); if (node) node.style.display = value; }
 
-  function init() { 
-      renderTree(); initCM(); setupResize(); setupKeyboard(); handleLessonImports(); 
+  function init() {
+      renderTree();
+
+      if (!initCM()) {
+          return;
+      }
+
+      setupResize(); setupKeyboard(); setupPythonSampleSelect(); handleLessonImports();
       setupGlobalDropZone();
+      window.addEventListener('beforeunload', (event) => {
+          if (!openTabs.some(tab => tab.modified)) return;
+          event.preventDefault();
+          event.returnValue = '';
+      });
+  }
+
+  function setupPythonSampleSelect() {
+      const select = document.getElementById('pythonSampleSelect');
+      if (!select) return;
+
+      select.addEventListener('change', async () => {
+          const key = select.value;
+          if (!key) return;
+
+          select.disabled = true;
+          setStatus('Generating sample…');
+
+          try {
+              await insertPythonSample(key);
+          } finally {
+              select.value = '';
+              select.disabled = false;
+          }
+      });
   }
 
   // Safe duplicate-name generator: main.py -> main_1.py.
@@ -836,7 +1004,7 @@ const IDE = (() => {
           const reader = new FileReader();
           reader.onload = async (e) => {
               try {
-                  await api('/ide/nodes', 'POST', { workspace_id: WORKSPACE_ID, parent_id: parentId, type: 'file', name: fileNameToUse, content: e.target.result, language: 'python' });
+                  await api(NODES_URL, 'POST', { workspace_id: WORKSPACE_ID, parent_id: parentId, type: 'file', name: fileNameToUse, content: e.target.result, language: 'python' });
                   resolve();
               } catch (err) {
                   if (err.collision) {
@@ -857,7 +1025,7 @@ const IDE = (() => {
       try {
           const payload = { parent_id: newParentId };
           if (overrideName) payload.new_name = overrideName;
-          await api(`/ide/nodes/${nodeId}/move`, 'PATCH', payload);
+          await api(`${NODES_URL}/${encodeURIComponent(nodeId)}/move`, 'PATCH', payload);
           await refreshTree(); setStatus('Ready');
       } catch (err) {
           if (err.collision) {
@@ -885,8 +1053,18 @@ const IDE = (() => {
     const returnUrl = sessionStorage.getItem('datasensei_return_url');
     const returnBtn = document.getElementById('returnToLessonBtn');
     if (returnUrl && returnBtn) {
-        returnBtn.style.display = 'inline-flex'; returnBtn.href = returnUrl;
-        returnBtn.addEventListener('click', () => sessionStorage.removeItem('datasensei_return_url'));
+        try {
+            const parsedReturnUrl = new URL(returnUrl, window.location.origin);
+            if (parsedReturnUrl.origin === window.location.origin && ['http:', 'https:'].includes(parsedReturnUrl.protocol)) {
+                returnBtn.style.display = 'inline-flex';
+                returnBtn.href = parsedReturnUrl.pathname + parsedReturnUrl.search + parsedReturnUrl.hash;
+                returnBtn.addEventListener('click', () => sessionStorage.removeItem('datasensei_return_url'));
+            } else {
+                sessionStorage.removeItem('datasensei_return_url');
+            }
+        } catch (_) {
+            sessionStorage.removeItem('datasensei_return_url');
+        }
     }
 
     const pendingCode = sessionStorage.getItem('datasensei_pending_code');
@@ -905,10 +1083,10 @@ const IDE = (() => {
             setStatus('Loading practice file...');
             let nodeToOpen;
             if (practiceFile) {
-                await api(`/ide/nodes/${practiceFile.id}/save`, 'PATCH', { content: pendingCode });
+                await api(`${NODES_URL}/${encodeURIComponent(practiceFile.id)}/save`, 'PATCH', { content: pendingCode });
                 nodeToOpen = practiceFile; nodeToOpen.content = pendingCode;
             } else {
-                const res = await api('/ide/nodes', 'POST', { workspace_id: WORKSPACE_ID, parent_id: null, type: 'file', name: 'practice.py', content: pendingCode, language: 'python' });
+                const res = await api(NODES_URL, 'POST', { workspace_id: WORKSPACE_ID, parent_id: null, type: 'file', name: 'practice.py', content: pendingCode, language: 'python' });
                 nodeToOpen = res.node;
             }
             await refreshTree();
@@ -923,6 +1101,13 @@ const IDE = (() => {
   }
 
   function initCM() {
+    if (typeof window.CodeMirror !== 'function') {
+      setStatus('Editor unavailable');
+      setHtml('terminal-body', '<div class="term-error">The code editor could not be loaded. Verify the public/vendor/codemirror assets are installed.</div>');
+      ['btn-save', 'btn-run', 'pythonSampleSelect'].forEach(id => { const element = byId(id); if (element) element.disabled = true; });
+      return false;
+    }
+
     cm = CodeMirror(document.getElementById('cm-host'), {
       mode: 'python', theme: 'dracula', lineNumbers: true, lineWrapping: false, tabSize: 4, indentUnit: 4, smartIndent: true,
       autoCloseBrackets: true, matchBrackets: true, styleActiveLine: true, foldGutter: true, gutters: ['CodeMirror-linenumbers','CodeMirror-foldgutter'],
@@ -931,6 +1116,7 @@ const IDE = (() => {
     });
     cm.on('change', () => { if (cmChanging) return; if (activeTab !== null) { const tab = openTabs.find(t => t.id === activeTab); if (tab && !tab.modified) { tab.modified = true; renderTabBar(); } } });
     cm.on('cursorActivity', () => { const cur = cm.getCursor(); setText('status-pos', `Ln ${cur.line + 1}, Col ${cur.ch + 1}`); });
+    return true;
   }
 
   function renderTree() { const root = document.getElementById('tree-root'); root.innerHTML = ''; treeData.forEach(node => root.appendChild(buildTreeNode(node, 0))); attachCtxMenuListeners(); }
@@ -959,36 +1145,48 @@ const IDE = (() => {
     return wrap;
   }
 
-  function attachCtxMenuListeners() { document.getElementById('tree-root').addEventListener('contextmenu', (e) => { const row = e.target.closest('.tree-row'); if (!row) return; e.preventDefault(); const nodeEl = row.closest('.tree-node'); const id = parseInt(nodeEl.dataset.id); const type = nodeEl.dataset.type; const name = row.querySelector('.node-name').textContent; showCtxMenu(e.clientX, e.clientY, id, type, name); }); }
+  function attachCtxMenuListeners() { const root = document.getElementById('tree-root'); if (root.dataset.contextMenuReady === 'true') return; root.dataset.contextMenuReady = 'true'; root.addEventListener('contextmenu', (e) => { const row = e.target.closest('.tree-row'); if (!row) return; e.preventDefault(); const nodeEl = row.closest('.tree-node'); const id = parseInt(nodeEl.dataset.id); const type = nodeEl.dataset.type; const name = row.querySelector('.node-name').textContent; showCtxMenu(e.clientX, e.clientY, id, type, name); }); }
   function openFile(id, name, content) { document.querySelectorAll('.tree-row').forEach(r => r.classList.remove('active')); const nodeEl = document.querySelector(`.tree-node[data-id="${id}"]`); if (nodeEl) nodeEl.querySelector('.tree-row').classList.add('active'); setText('breadcrumb-file', name); setDisplay('breadcrumb-sep', ''); if (!openTabs.find(t => t.id === id)) { openTabs.push({ id, name, content, modified: false }); } activeTab = id; renderTabBar(); loadTabContent(id); updateStatusLang(name); }
-  function loadTabContent(id) { const tab = openTabs.find(t => t.id === id); if (!tab) return; document.getElementById('editor-empty').style.display = 'none'; const cmHost = document.getElementById('cm-host'); cmHost.style.display = 'block'; setTimeout(() => { cm.refresh(); }, 10); cm.focus(); cmChanging = true; cm.setValue(tab.content ?? ''); cmChanging = false; cm.clearHistory(); cm.scrollTo(0, 0); }
+  function loadTabContent(id) { const tab = openTabs.find(t => t.id === id); if (!tab || !cm) return; document.getElementById('editor-empty').style.display = 'none'; const cmHost = document.getElementById('cm-host'); cmHost.style.display = 'block'; setTimeout(() => { cm.refresh(); }, 10); cm.focus(); cmChanging = true; cm.setValue(tab.content ?? ''); cmChanging = false; cm.clearHistory(); cm.scrollTo(0, 0); }
   function syncActiveTabContent() { if (activeTab === null) return; const tab = openTabs.find(t => t.id === activeTab); if (tab) tab.content = cm.getValue(); }
   function renderTabBar() { const bar = document.getElementById('tab-bar'); bar.innerHTML = ''; openTabs.forEach(tab => { const el = document.createElement('div'); el.className = 'tab' + (tab.id === activeTab ? ' active' : '') + (tab.modified ? ' modified' : ''); el.innerHTML = `<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${escHtml(tab.name)}${tab.modified ? '<span class="tab-dot"></span>' : ''}<span class="tab-close" data-close="${tab.id}"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>`; el.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeTab(tab.id); else switchTab(tab.id); }); bar.appendChild(el); }); }
   function switchTab(id) { syncActiveTabContent(); activeTab = id; renderTabBar(); loadTabContent(id); const tab = openTabs.find(t => t.id === id); if (tab) { setText('breadcrumb-file', tab.name); updateStatusLang(tab.name); } }
-  function closeTab(id) { syncActiveTabContent(); const idx = openTabs.findIndex(t => t.id === id); openTabs.splice(idx, 1); if (activeTab === id) { if (openTabs.length === 0) { activeTab = null; document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; setText('breadcrumb-file', ''); setDisplay('breadcrumb-sep', 'none'); } else { const next = openTabs[Math.min(idx, openTabs.length - 1)]; switchTab(next.id); return; } } renderTabBar(); }
-  async function save() { if (activeTab === null) return; syncActiveTabContent(); const tab = openTabs.find(t => t.id === activeTab); if (!tab) return; setStatus('Saving…'); try { const res = await api(`/ide/nodes/${tab.id}/save`, 'PATCH', { content: tab.content }); tab.modified = false; renderTabBar(); flashSave('Saved'); setStatus('Saved'); } catch(e) { setStatus('Save failed'); } }
+  function closeTab(id) { syncActiveTabContent(); const idx = openTabs.findIndex(t => t.id === id); if (idx < 0) return; const closingTab = openTabs[idx]; if (closingTab.modified && !confirm(`Close "${closingTab.name}" without saving your changes?`)) return; openTabs.splice(idx, 1); if (activeTab === id) { if (openTabs.length === 0) { activeTab = null; document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; setText('breadcrumb-file', ''); setDisplay('breadcrumb-sep', 'none'); } else { const next = openTabs[Math.min(idx, openTabs.length - 1)]; switchTab(next.id); return; } } renderTabBar(); }
+  async function save() { if (activeTab === null) return false; syncActiveTabContent(); const tab = openTabs.find(t => t.id === activeTab); if (!tab) return false; setStatus('Saving…'); try { await api(`${NODES_URL}/${encodeURIComponent(tab.id)}/save`, 'PATCH', { content: tab.content }); tab.modified = false; renderTabBar(); flashSave('Saved'); setStatus('Saved'); return true; } catch(e) { termPrint('error', 'Save failed: ' + e.message); setStatus('Save failed'); return false; } }
   function flashSave(msg) { const el = byId('save-indicator'); if (!el) return; el.textContent = msg; el.style.display = 'inline'; el.className = 'save-flash'; setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 2000); }
 
   let currentInputResolve = null;
   function askUserForInput(promptText) { return new Promise((resolve) => { const modal = document.getElementById('program-input-modal'); const label = document.getElementById('input-modal-label'); const input = document.getElementById('dynamic-single-input'); label.textContent = promptText; input.value = ""; modal.classList.add('open'); setTimeout(() => input.focus(), 50); currentInputResolve = resolve; }); }
   function submitInput() { const val = document.getElementById('dynamic-single-input').value; document.getElementById('program-input-modal').classList.remove('open'); if (currentInputResolve) { currentInputResolve(val); currentInputResolve = null; } }
   function cancelInput() { document.getElementById('program-input-modal').classList.remove('open'); if (currentInputResolve) { currentInputResolve(null); currentInputResolve = null; } }
-  document.getElementById('dynamic-single-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitInput(); });
+  document.getElementById('dynamic-single-input').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); submitInput(); }
+  });
 
   async function run() {
-    if (activeTab === null) return; await save(); const tab = openTabs.find(t => t.id === activeTab); if (!tab) return;
-    const code = tab.content || ""; const inputRegex = /input\((['"]?)(.*?)\1\)/g; let match; let inputsList = [];
-    while ((match = inputRegex.exec(code)) !== null) {
-        let userResponse = await askUserForInput(match[2] || "Input value:");
-        if (userResponse === null) { setStatus('Run canceled'); return; }
-        inputsList.push(userResponse);
-    }
-    const runBtn = document.getElementById('btn-run'); runBtn.disabled = true; runBtn.innerHTML = '<div class="spinner"></div> Running…';
-    const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal();
-    termPrint('prompt', `$ python3 ${tab.name}`); setStatus('Running…');
+    if (runInProgress || activeTab === null || !cm) return;
+    runInProgress = true;
+    const runBtn = document.getElementById('btn-run');
+    runBtn.disabled = true;
+    runBtn.innerHTML = '<div class="spinner"></div> Preparing…';
 
     try {
-      const res = await api(`/ide/nodes/${tab.id}/run`, 'POST', { stdin: inputsList.join('\n'), content: tab.content });
+      if (!await save()) return;
+      const tab = openTabs.find(t => t.id === activeTab);
+      if (!tab) return;
+
+      const code = tab.content || "";
+      let stdin = '';
+      if (/\binput\s*\(/.test(code)) {
+        stdin = await askUserForInput('Program input (one value per line; Ctrl+Enter to continue)');
+        if (stdin === null) { setStatus('Run canceled'); return; }
+      }
+
+      runBtn.innerHTML = '<div class="spinner"></div> Running…';
+      const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal();
+      termPrint('prompt', `$ python3 ${tab.name}`); setStatus('Running…');
+
+      const res = await api(`${NODES_URL}/${encodeURIComponent(tab.id)}/run`, 'POST', { stdin, content: tab.content });
       if (res.output) termPrint('output', res.output); if (res.error) termPrint('error', res.error);
       if (res.plots && res.plots.length > 0) res.plots.forEach(b64 => termPrintImage(b64));
       if (!res.output && !res.error && (!res.plots || res.plots.length === 0)) termPrint('info', '(No output)');
@@ -1002,9 +1200,13 @@ const IDE = (() => {
         `Execution time: ${res.execution_time_ms}ms`,
         res.plots && res.plots.length > 0 ? `Plots generated: ${res.plots.length}` : ''
       ].filter(Boolean).join('\n\n');
-      ReviewBot.autoReview(tab.content || cm.getValue(), 'python', tab.name, reviewOutput);
+      ReviewBot.autoReview(code, 'python', tab.name, reviewOutput);
     } catch(e) { termPrint('error', 'Request failed: ' + e.message); setStatus('Run failed');
-    } finally { runBtn.disabled = false; runBtn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run`; }
+    } finally {
+      runInProgress = false;
+      runBtn.disabled = false;
+      runBtn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run`;
+    }
   }
 
   const PYTHON_SAMPLES = {
@@ -1156,7 +1358,7 @@ plt.show()
 
       for (let attempt = 0; attempt < 5; attempt++) {
         try {
-          const res = await api('/ide/nodes', 'POST', {
+          const res = await api(NODES_URL, 'POST', {
             workspace_id: WORKSPACE_ID,
             parent_id: parentId,
             type: 'file',
@@ -1193,30 +1395,34 @@ plt.show()
   }
 
   async function insertPythonSample(key) {
-    if (!key || !PYTHON_SAMPLES[key]) return;
+    if (!key || !PYTHON_SAMPLES[key] || !cm) return;
 
     const sample = PYTHON_SAMPLES[key];
+    const parentId = parentIdOfActiveTab();
+    let candidateName = nextAvailableName(sample.filename, parentId);
 
-    if (activeTab === null) {
-      let candidateName = nextAvailableName(sample.filename, null);
+    try {
+      // A generated sample always becomes its own Python file. This avoids
+      // unexpectedly overwriting the currently open file and makes repeated
+      // sample generation predictable.
+      const supportFileNames = await createSampleSupportFiles(sample, parentId);
+      const generatedCode = renderSampleCode(sample, supportFileNames);
 
-      for (let attempt = 0; attempt < 5; attempt++) {
+      for (let attempt = 0; attempt < 10; attempt++) {
         try {
-          const supportFileNames = await createSampleSupportFiles(sample, null);
-          const generatedCode = renderSampleCode(sample, supportFileNames);
-
-          const res = await api('/ide/nodes', 'POST', {
+          const res = await api(NODES_URL, 'POST', {
             workspace_id: WORKSPACE_ID,
-            parent_id: null,
+            parent_id: parentId,
             type: 'file',
             name: candidateName,
             content: generatedCode,
             language: 'python'
           });
+
           await refreshTree();
           openFile(res.node.id, res.node.name, res.node.content ?? generatedCode);
           setStatus(`${sample.title} generated`);
-          termPrint('info', `${sample.title} generated as ${candidateName}.`);
+          termPrint('info', `${sample.title} generated as ${res.node.name || candidateName}. Press Run when ready.`);
           return;
         } catch (err) {
           if (err.collision) {
@@ -1224,40 +1430,13 @@ plt.show()
             continue;
           }
 
-          termPrint('error', err.message || 'Could not generate sample file.');
-          setStatus('Sample generation failed');
-          return;
+          throw err;
         }
       }
 
-      termPrint('error', 'Could not generate a unique sample filename. Please delete an older sample or rename it.');
-      setStatus('Sample generation failed');
-      return;
-    }
-
-    const tab = openTabs.find(t => t.id === activeTab);
-    const current = cm ? cm.getValue().trim() : '';
-
-    if (current && !confirm(`Replace the current file content with "${sample.title}"?`)) {
-      setStatus('Sample canceled');
-      return;
-    }
-
-    try {
-      const supportFileNames = await createSampleSupportFiles(sample, parentIdOfActiveTab());
-      const generatedCode = renderSampleCode(sample, supportFileNames);
-
-      cm.setValue(generatedCode);
-      if (tab) {
-        tab.content = generatedCode;
-        tab.modified = true;
-      }
-      renderTabBar();
-      await refreshTree();
-      setStatus(`${sample.title} inserted`);
-      termPrint('info', `${sample.title} inserted. Supporting data files were added to the project folder. Press Save or Run when ready.`);
+      throw new Error('Could not generate a unique sample filename. Delete or rename an older sample and try again.');
     } catch (err) {
-      termPrint('error', err.message || 'Could not generate supporting data file.');
+      termPrint('error', err.message || 'Could not generate the Python sample.');
       setStatus('Sample generation failed');
     }
   }
@@ -1267,11 +1446,11 @@ plt.show()
   function promptRename(id, currentName) { _renameId = id; _modalCallback = 'rename'; document.getElementById('modal-title').textContent = 'Rename'; document.getElementById('modal-input').value = currentName; document.getElementById('modal-bg').classList.add('open'); setTimeout(() => { const inp = document.getElementById('modal-input'); inp.focus(); inp.select(); }, 50); }
   function closeModal() { document.getElementById('modal-bg').classList.remove('open'); _modalCallback = null; }
   async function confirmModal() { const val = document.getElementById('modal-input').value.trim(); if (!val) return; const callback = _modalCallback; const type = _modalType; const parentId = _modalParentId; const renameId = _renameId; closeModal(); if (callback === 'create') await createNode(type, parentId, val); else if (callback === 'rename') await renameNode(renameId, val); }
-  async function createNode(type, parentId, name) { setStatus('Creating…'); try { const res = await api('/ide/nodes', 'POST', { workspace_id: WORKSPACE_ID, parent_id: parentId, type, name, content: type === 'file' ? '' : null, language: 'python' }); await refreshTree(); setStatus('Created'); if (type === 'file') openFile(res.node.id, res.node.name, res.node.content ?? ''); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
-  async function renameNode(id, name) { setStatus('Renaming…'); try { await api(`/ide/nodes/${id}/rename`, 'PATCH', { name }); const tab = openTabs.find(t => t.id === id); if (tab) { tab.name = name; renderTabBar(); setText('breadcrumb-file', name); } await refreshTree(); setStatus('Renamed'); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
+  async function createNode(type, parentId, name) { setStatus('Creating…'); try { const res = await api(NODES_URL, 'POST', { workspace_id: WORKSPACE_ID, parent_id: parentId, type, name, content: type === 'file' ? '' : null, language: 'python' }); await refreshTree(); setStatus('Created'); if (type === 'file') openFile(res.node.id, res.node.name, res.node.content ?? ''); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
+  async function renameNode(id, name) { setStatus('Renaming…'); try { await api(`${NODES_URL}/${encodeURIComponent(id)}/rename`, 'PATCH', { name }); const tab = openTabs.find(t => t.id === id); if (tab) { tab.name = name; renderTabBar(); setText('breadcrumb-file', name); } await refreshTree(); setStatus('Renamed'); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
   function confirmDelete(id, name) { if (!confirm(`Delete "${name}"? This cannot be undone.`)) return; deleteNode(id); }
-  async function deleteNode(id) { setStatus('Deleting…'); try { await api(`/ide/nodes/${id}`, 'DELETE'); openTabs = openTabs.filter(t => t.id !== id); if (activeTab === id) { activeTab = openTabs.length ? openTabs[openTabs.length - 1].id : null; if (activeTab) loadTabContent(activeTab); else { document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; } } renderTabBar(); await refreshTree(); setStatus('Deleted'); } catch(e) { setStatus('Error'); } }
-  async function refreshTree() { const res = await api('/ide/tree', 'GET'); treeData = res.tree; renderTree(); }
+  async function deleteNode(id) { setStatus('Deleting…'); try { await api(`${NODES_URL}/${encodeURIComponent(id)}`, 'DELETE'); openTabs = openTabs.filter(t => t.id !== id); if (activeTab === id) { activeTab = openTabs.length ? openTabs[openTabs.length - 1].id : null; if (activeTab) loadTabContent(activeTab); else { document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; } } renderTabBar(); await refreshTree(); setStatus('Deleted'); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
+  async function refreshTree() { const res = await api(TREE_URL, 'GET'); treeData = res.tree; renderTree(); }
   function showCtxMenu(x, y, id, type, name) { const menu = document.getElementById('ctx-menu'); menu.innerHTML = ''; const items = type === 'folder' ? [{ label: 'New File', action: () => promptCreate('file', id) }, { label: 'New Folder', action: () => promptCreate('folder', id) }, { sep: true }, { label: 'Rename', action: () => promptRename(id, name) }, { label: 'Delete', action: () => confirmDelete(id, name), danger: true }] : [{ label: 'Open', action: () => { const node = findNode(treeData, id); if (node) openFile(node.id, node.name, node.content ?? ''); } }, { sep: true }, { label: 'Rename', action: () => promptRename(id, name) }, { label: 'Delete', action: () => confirmDelete(id, name), danger: true }]; items.forEach(item => { if (item.sep) { const sep = document.createElement('div'); sep.className = 'ctx-sep'; menu.appendChild(sep); } else { const el = document.createElement('div'); el.className = 'ctx-item' + (item.danger ? ' danger' : ''); el.textContent = item.label; el.addEventListener('click', () => { closeCtxMenu(); item.action(); }); menu.appendChild(el); } }); menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.classList.add('open'); setTimeout(() => document.addEventListener('click', closeCtxMenu, { once: true }), 10); }
   function closeCtxMenu() { document.getElementById('ctx-menu').classList.remove('open'); }
   function termPrint(type, text) { const body = document.getElementById('terminal-body'); const div = document.createElement('div'); div.className = `term-${type}`; if (type === 'prompt') div.innerHTML = `<span class="term-prompt">›</span> ${escHtml(text)}`; else div.textContent = text; body.appendChild(div); body.scrollTop = body.scrollHeight; const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal(); }
@@ -1281,7 +1460,7 @@ plt.show()
   function setupResize() { const handle = document.getElementById('resize-handle'); const panel = document.getElementById('bottom-panel'); let dragging = false; let startY, startH; handle.addEventListener('mousedown', (e) => { dragging = true; startY = e.clientY; startH = panel.offsetHeight; document.body.style.cursor = 'ns-resize'; document.body.style.userSelect = 'none'; }); document.addEventListener('mousemove', (e) => { if (!dragging) return; const diff = startY - e.clientY; const newH = Math.max(34, Math.min(startH + diff, 500)); panel.style.height = newH + 'px'; }); document.addEventListener('mouseup', () => { dragging = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; }); }
   function togglePanel(name) { if (name === 'explorer') { const el = document.getElementById('explorer-panel'); el.style.display = el.style.display === 'none' ? '' : 'none'; } }
   function collapseAll() { document.querySelectorAll('.tree-children').forEach(c => c.classList.remove('open')); document.querySelectorAll('.tree-row').forEach(r => r.classList.remove('open')); }
-  function setupKeyboard() { document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); } if (e.key === 'Escape') { closeModal(); closeCtxMenu(); cancelInput(); } }); document.getElementById('modal-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmModal(); }); }
+  function setupKeyboard() { document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeCtxMenu(); cancelInput(); return; } if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return; if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); } }); document.getElementById('modal-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmModal(); }); }
   function setStatus(msg) { setText('status-msg', msg); }
   function updateStatusLang(name) { const ext = String(name || '').split('.').pop().toLowerCase(); const map = { py: 'Python 3', js: 'JavaScript', ts: 'TypeScript', md: 'Markdown', txt: 'Plain Text' }; setText('status-lang', map[ext] || 'Python 3'); }
   function focusSearch() { if (cm) cm.execCommand('find'); }

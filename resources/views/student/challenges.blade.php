@@ -152,7 +152,7 @@
   <div class="page-challenges-main">
 
     <div class="page-challenges-hero">
-      <h1 class="page-challenges-hero-title">Select Your <span>Challenge Path</span></h1>
+      <h1 class="page-challenges-hero-title ds-page-title">Select Your <span>Challenge Path</span></h1>
       <p class="page-challenges-hero-subtitle">Choose your starting point based on your current experience level to receive a personalized curriculum map.</p>
     </div>
 
@@ -192,7 +192,7 @@
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
             </div>
             <div class="page-challenges-card-icon" style="color: var(--dim);">
-              {!! $cat->icon_svg !!}
+              @include('student.partials.challenge-category-icon', ['slug' => $cat->slug])
             </div>
             <h2 class="page-challenges-card-title" style="color: var(--muted);">{{ $cat->name }}</h2>
             <span class="page-challenges-card-audience" style="color: var(--dim);">{{ $cat->target_audience }}</span>
@@ -211,7 +211,7 @@
               <div class="page-challenges-card-badge">Exceptional Unlock</div>
             @endif
             <div class="page-challenges-card-icon">
-              {!! $cat->icon_svg !!}
+              @include('student.partials.challenge-category-icon', ['slug' => $cat->slug])
             </div>
             <h2 class="page-challenges-card-title">{{ $cat->name }}</h2>
             <span class="page-challenges-card-audience">{{ $cat->target_audience }}</span>

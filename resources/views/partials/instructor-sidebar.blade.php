@@ -1,3 +1,4 @@
+@include('partials.page-heading-style')
 {{-- resources/views/partials/instructor-sidebar.blade.php --}}
 <aside class="sidebar">
   @php
@@ -59,6 +60,16 @@
         <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
       </svg>
       Challenge Pool
+      <span class="badge">University</span>
+    </a>
+
+    <a href="{{ $safeRoute('instructor.assessments.index', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.assessments.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>
+      </svg>
+      Assessments
+      <span class="badge">Form</span>
     </a>
 
     <a href="{{ $safeRoute('instructor.assignments.index', '#') }}"
@@ -78,7 +89,7 @@
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M4 5h16M4 12h16M4 19h16"/>
       </svg>
-      Table of Specification
+      Table of Specifications
       <span class="badge">TOS</span>
     </a>
 
@@ -118,12 +129,31 @@
   <nav class="nav-group">
     <div class="nav-label">Analytics</div>
 
+    <a href="{{ $safeRoute('instructor.model-development.index', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.model-development.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 19V5a2 2 0 012-2h12a2 2 0 012 2v14"/>
+        <path d="M8 15l3-3 2 2 3-4"/><path d="M4 19h16"/>
+      </svg>
+      Student Model Development
+    </a>
+
     <a href="{{ $safeRoute('instructor.analytics.index', '#') }}"
        class="nav-item {{ request()->routeIs('instructor.analytics.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
       Class Analytics
+    </a>
+
+    <a href="{{ $safeRoute('instructor.competencies.index', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.competencies.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/>
+        <path d="M2 21h20"/>
+      </svg>
+      Skills Competency Matrix
+      <span class="badge">Compare</span>
     </a>
 
     <a href="{{ $safeRoute('instructor.mastery.index', '#') }}"

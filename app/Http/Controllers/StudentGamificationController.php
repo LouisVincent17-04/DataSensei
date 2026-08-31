@@ -42,7 +42,7 @@ class StudentGamificationController extends Controller
 
     public function leaderboard(Request $request)
     {
-        $period = $request->input('period', 'all');
+        $period = 'all';
 
         $achievementCounts = Schema::hasTable('user_achievements')
             ? DB::table('user_achievements')
@@ -52,6 +52,7 @@ class StudentGamificationController extends Controller
 
         $users = User::query()
             ->where('role', User::ROLE_USER)
+            ->where('status', 'active')
             ->when($achievementCounts, function ($query) use ($achievementCounts) {
                 $query->leftJoinSub($achievementCounts, 'ua', 'ua.user_id', '=', 'users.id')
                     ->select('users.*', DB::raw('COALESCE(ua.achievements_count, 0) as achievements_count'));
@@ -65,8 +66,10 @@ class StudentGamificationController extends Controller
             ->withQueryString();
 
         $currentRank = User::where('role', User::ROLE_USER)
+            ->where('status', 'active')
             ->where('xp', '>', Auth::user()->xp ?? 0)
-            ->count() + 1;
+            ->distinct()
+            ->count('xp') + 1;
 
         return view('student.gamification.leaderboard', compact('users', 'period', 'currentRank'));
     }

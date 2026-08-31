@@ -131,7 +131,13 @@
         <div class="student-mod-header">
             <div class="student-mod-kicker">Student Learning</div>
             <h1>Learning Modules</h1>
-            <p>Open a module to study the same DataSensei guided lesson structure.</p>
+            <p>
+                @if($isClassScoped)
+                    Open a module assigned through one of your active classes.
+                @else
+                    Open any active module in the independent-learning library.
+                @endif
+            </p>
         </div>
 
         <div class="student-mod-grid">
@@ -152,7 +158,11 @@
                     </div>
                 </article>
             @empty
-                <div class="student-mod-empty">No modules available yet.</div>
+                <div class="student-mod-empty">
+                    {{ $isClassScoped
+                        ? 'No module versions have been assigned to your active classes yet.'
+                        : 'No modules are available yet.' }}
+                </div>
             @endforelse
         </div>
     </main>

@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ClassRoom;
 use App\Models\User;
+use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ClassStudentController extends Controller
@@ -22,6 +24,14 @@ class ClassStudentController extends Controller
             403,
             'You are not allowed to manage this class.'
         );
+
+        if ($class->institution_id !== null) {
+            abort_unless(
+                (int) $class->institution_id === (int) Auth::user()->institution_id,
+                403,
+                'This class is not part of your active institution.'
+            );
+        }
     }
 
     /**
@@ -43,7 +53,6 @@ class ClassStudentController extends Controller
     {
         $this->ensureCanManageClass($class);
 
-        $tab = $request->input('tab', 'enrolled');
         $search = $request->input('search');
 
         $base = $class->students()
@@ -64,9 +73,7 @@ class ClassStudentController extends Controller
         return view('instructor.classes.students', [
             'class' => $class,
             'students' => $students,
-            'tab' => $tab,
             'enrolledCount' => $class->students()->where('role', 1)->count(),
-            'pendingCount' => 0,
             'avgXp' => (int) $class->students()->where('role', 1)->avg('xp'),
         ]);
     }
@@ -77,18 +84,19 @@ class ClassStudentController extends Controller
      * This is now the only safe way to enroll students into an institution/class.
      * Students can no longer self-enroll by sharing an institution code.
      */
-    public function addByEmail(Request $request, ClassRoom $class)
+    public function addByEmail(Request $request, ClassRoom $class, StudentNotificationService $notifications)
     {
         $this->ensureCanManageClass($class);
 
         $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:191'],
         ]);
 
         $email = strtolower(trim($validated['email']));
 
         $student = User::whereRaw('LOWER(email) = ?', [$email])
             ->where('role', 1)
+            ->where('status', 'active')
             ->first();
 
         if (!$student) {
@@ -97,81 +105,152 @@ class ClassStudentController extends Controller
             ]);
         }
 
-        $institutionId = $this->resolveInstitutionIdForEnrollment($class);
+        $result = DB::transaction(function () use ($class, $student): string {
+            $lockedClass = ClassRoom::whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $lockedStudent = User::whereKey($student->id)->lockForUpdate()->firstOrFail();
 
-        if (!$institutionId) {
-            throw ValidationException::withMessages([
-                'email' => 'Cannot add this student because this instructor/class has no institution assigned.',
+            // Ownership and account eligibility are rechecked after locking so
+            // a parallel role, institution, archive, or capacity change cannot
+            // be bypassed between validation and enrollment.
+            $this->ensureCanManageClass($lockedClass);
+
+            if ((int) $lockedStudent->role !== User::ROLE_USER || ! $lockedStudent->is_active) {
+                return 'ineligible';
+            }
+
+            $institutionId = $this->resolveInstitutionIdForEnrollment($lockedClass);
+            if (! $institutionId) {
+                return 'no_institution';
+            }
+
+            if ($lockedClass->is_archived) {
+                return 'archived';
+            }
+
+            $alreadyEnrolled = DB::table('class_student')
+                ->where('class_id', $lockedClass->id)
+                ->where('student_id', $lockedStudent->id)
+                ->exists();
+
+            if ($alreadyEnrolled) {
+                return 'duplicate';
+            }
+
+            $studentCount = DB::table('class_student')
+                ->where('class_id', $lockedClass->id)
+                ->count();
+
+            if ($lockedClass->max_students !== null && $studentCount >= (int) $lockedClass->max_students) {
+                return 'full';
+            }
+
+            if ($lockedStudent->institution_id !== null
+                && (int) $lockedStudent->institution_id !== (int) $institutionId) {
+                return 'different_institution';
+            }
+
+            if ($lockedStudent->institution_id === null) {
+                $lockedStudent->update(['institution_id' => $institutionId]);
+            }
+
+            DB::table('class_student')->insert([
+                'class_id' => $lockedClass->id,
+                'student_id' => $lockedStudent->id,
+                'enrolled_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
+
+            return 'added';
+        }, 3);
+
+        if ($result !== 'added') {
+            $message = match ($result) {
+                'ineligible' => 'The account is no longer an active student.',
+                'no_institution' => 'This instructor or class has no institution assigned.',
+                'archived' => 'Students cannot be added to an archived class.',
+                'duplicate' => "{$student->name} is already in this class.",
+                'full' => 'This class has reached its maximum student capacity.',
+                'different_institution' => 'This student belongs to a different institution.',
+                default => 'The student could not be enrolled.',
+            };
+
+            throw ValidationException::withMessages(['email' => $message]);
         }
 
-        /*
-         * Do not lock/block a student just because they already have institution_id.
-         * If empty, assign the instructor/class institution.
-         * If already set, keep it as-is. This prevents unwanted overwrites while still allowing class enrollment.
-         */
-        if (empty($student->institution_id)) {
-            $student->institution_id = $institutionId;
-            $student->save();
-        }
-
-        $alreadyEnrolled = $class->students()
-            ->where('users.id', $student->id)
-            ->exists();
-
-        if ($alreadyEnrolled) {
-            return back()->with('error', "{$student->name} is already in this class.");
-        }
-
-        $pivotData = [];
-
-        /*
-         * If your class_student pivot table has enrolled_at, keep this.
-         * If it does not, remove this line.
-         */
-        $pivotData['enrolled_at'] = now();
-
-        $class->students()->attach($student->id, $pivotData);
+        $notifications->send(
+            $student,
+            'class_enrollment',
+            'Added to a class',
+            'You were added to “' . $class->name . '”. New modules, assignments, and assessments for this class will appear in your account.',
+            route('studentDashboard'),
+            ['class_id' => $class->id],
+            'class-enrollment:' . $class->id . ':' . now()->format('YmdHis')
+        );
 
         return back()->with('success', "{$student->name} ({$student->email}) has been added to {$class->name}.");
     }
 
-    public function approve(ClassRoom $class, User $student)
+    public function remove(ClassRoom $class, User $student, StudentNotificationService $notifications)
     {
         $this->ensureCanManageClass($class);
 
-        return back()->with('success', "{$student->name} has been approved.");
-    }
+        $result = DB::transaction(function () use ($class, $student): string {
+            $lockedClass = ClassRoom::query()->whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $lockedStudent = User::query()->whereKey($student->id)->lockForUpdate()->firstOrFail();
+            $this->ensureCanManageClass($lockedClass);
 
-    public function approveBulk(Request $request, ClassRoom $class)
-    {
-        $this->ensureCanManageClass($class);
+            $enrollment = DB::table('class_student')
+                ->where('class_id', $lockedClass->id)
+                ->where('student_id', $lockedStudent->id)
+                ->lockForUpdate()
+                ->first();
 
-        $ids = collect($request->input('student_ids', []))
-            ->map(fn ($id) => (int) $id)
-            ->filter()
-            ->values()
-            ->toArray();
+            if (! $enrollment) {
+                return 'missing';
+            }
 
-        if (empty($ids)) {
-            return back()->with('error', 'No students selected.');
+            if ($this->hasInProgressWork($lockedClass->id, [$lockedStudent->id])) {
+                return 'in_progress';
+            }
+
+            DB::table('class_student')
+                ->where('class_id', $lockedClass->id)
+                ->where('student_id', $lockedStudent->id)
+                ->delete();
+
+            return 'removed';
+        }, 3);
+
+        if ($result === 'missing') {
+            return back()->with('error', 'That student is not enrolled in this class.');
         }
 
-        return back()->with('success', count($ids) . ' student(s) approved.');
-    }
+        if ($result === 'in_progress') {
+            return back()->with('error', 'This student has an in-progress assignment or assessment attempt. Resolve it before removing them.');
+        }
 
-    public function remove(ClassRoom $class, User $student)
-    {
-        $this->ensureCanManageClass($class);
-
-        $class->students()->detach($student->id);
+        $notifications->send(
+            $student,
+            'class_removed',
+            'Removed from a class',
+            'You were removed from “' . $class->name . '”. Its active coursework is no longer available in your account.',
+            route('studentDashboard'),
+            ['class_id' => $class->id],
+            'class-removed:' . $class->id . ':' . now()->format('YmdHis')
+        );
 
         return back()->with('success', "{$student->name} has been removed from the class.");
     }
 
-    public function removeBulk(Request $request, ClassRoom $class)
+    public function removeBulk(Request $request, ClassRoom $class, StudentNotificationService $notifications)
     {
         $this->ensureCanManageClass($class);
+
+        $request->validate([
+            'student_ids' => ['required', 'array', 'max:100'],
+            'student_ids.*' => ['integer', 'distinct', 'exists:users,id'],
+        ]);
 
         $ids = collect($request->input('student_ids', []))
             ->map(fn ($id) => (int) $id)
@@ -183,8 +262,80 @@ class ClassStudentController extends Controller
             return back()->with('error', 'No students selected.');
         }
 
-        $class->students()->detach($ids);
+        $result = DB::transaction(function () use ($class, $ids): array {
+            $lockedClass = ClassRoom::query()->whereKey($class->id)->lockForUpdate()->firstOrFail();
+            $this->ensureCanManageClass($lockedClass);
 
-        return back()->with('success', count($ids) . ' student(s) removed.');
+            User::query()
+                ->whereIn('id', $ids)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get(['id']);
+
+            $enrolledIds = DB::table('class_student')
+                ->where('class_id', $lockedClass->id)
+                ->whereIn('student_id', $ids)
+                ->orderBy('student_id')
+                ->lockForUpdate()
+                ->pluck('student_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            if ($enrolledIds === []) {
+                return ['status' => 'missing', 'count' => 0, 'student_ids' => []];
+            }
+
+            if ($this->hasInProgressWork($lockedClass->id, $enrolledIds)) {
+                return ['status' => 'in_progress', 'count' => 0, 'student_ids' => []];
+            }
+
+            $count = DB::table('class_student')
+                ->where('class_id', $lockedClass->id)
+                ->whereIn('student_id', $enrolledIds)
+                ->delete();
+
+            return ['status' => 'removed', 'count' => $count, 'student_ids' => $enrolledIds];
+        }, 3);
+
+        if ($result['status'] === 'missing') {
+            return back()->with('error', 'None of the selected accounts are enrolled in this class.');
+        }
+
+        if ($result['status'] === 'in_progress') {
+            return back()->with('error', 'One or more selected students have in-progress assignment or assessment attempts. Resolve those attempts before removing the group.');
+        }
+
+        $notifications->sendToUsers(
+            $result['student_ids'],
+            'class_removed',
+            'Removed from a class',
+            'You were removed from “' . $class->name . '”. Its active coursework is no longer available in your account.',
+            route('studentDashboard'),
+            ['class_id' => $class->id],
+            'class-removed:' . $class->id . ':' . now()->format('YmdHis')
+        );
+
+        return back()->with('success', $result['count'] . ' student(s) removed.');
+    }
+
+    private function hasInProgressWork(int $classId, array $studentIds): bool
+    {
+        $hasAssignment = DB::table('assignment_submissions')
+            ->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
+            ->where('class_assignments.class_id', $classId)
+            ->whereIn('assignment_submissions.student_id', $studentIds)
+            ->where('assignment_submissions.status', 'in_progress')
+            ->exists();
+
+        if ($hasAssignment) {
+            return true;
+        }
+
+        return DB::table('assessment_submissions')
+            ->join('assessments', 'assessments.id', '=', 'assessment_submissions.assessment_id')
+            ->where('assessments.class_id', $classId)
+            ->whereIn('assessment_submissions.student_id', $studentIds)
+            ->where('assessment_submissions.status', 'in_progress')
+            ->exists();
     }
 }

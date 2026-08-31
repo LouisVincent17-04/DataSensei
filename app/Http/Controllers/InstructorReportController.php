@@ -15,7 +15,11 @@ class InstructorReportController extends Controller
         $selectedClass = $classes->firstWhere('id', (int) $request->input('class_id')) ?? $classes->first();
 
         $snapshots = StudentPerformanceSnapshot::with('student')
-            ->when($selectedClass, fn ($q) => $q->where('class_id', $selectedClass->id))
+            ->when(
+                $selectedClass,
+                fn ($q) => $q->where('class_id', $selectedClass->id),
+                fn ($q) => $q->whereRaw('1 = 0')
+            )
             ->latest('generated_at')
             ->limit(100)
             ->get();

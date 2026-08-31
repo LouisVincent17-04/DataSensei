@@ -197,12 +197,6 @@
       opacity:.72;
       filter:saturate(.78);
     }
-    .achievement-card.locked .achievement-mark{
-      color:#9aa9bd;
-      background:linear-gradient(180deg,#162235,#0d1728);
-      border-color:#273b59;
-      box-shadow:none;
-    }
     .achievement-card.locked::before{background:linear-gradient(90deg,#334861,transparent)}
 
     .tier-1{--card-accent:#60a5fa}
@@ -212,23 +206,7 @@
     .tier-5{--card-accent:#f5b84b}
     .tier-6{--card-accent:#fb7185}
 
-    .achievement-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .achievement-mark{
-      width:48px;
-      height:48px;
-      display:grid;
-      place-items:center;
-      border-radius:16px;
-      color:white;
-      font-size:.9rem;
-      font-weight:950;
-      letter-spacing:.045em;
-      background:
-        linear-gradient(145deg,color-mix(in srgb,var(--card-accent) 88%,#ffffff 5%),color-mix(in srgb,var(--card-accent) 45%,#07101e 55%));
-      border:1px solid color-mix(in srgb,var(--card-accent) 62%,white 8%);
-      box-shadow:0 14px 30px color-mix(in srgb,var(--card-accent) 24%,transparent);
-      text-shadow:0 1px 2px rgba(0,0,0,.25);
-    }
+    .achievement-top{display:flex;align-items:flex-start;justify-content:flex-end;gap:12px;margin-bottom:12px}
     .status-pill{
       padding:5px 9px;
       border-radius:999px;
@@ -255,16 +233,17 @@
     @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.main{padding:22px}}
     @media(max-width:700px){.layout{display:block}.stats{grid-template-columns:1fr}.title{font-size:1.72rem}.grid{grid-template-columns:1fr}}
   </style>
+  @include('partials.admin-inspired-page-style')
 </head>
-<body>
+<body class="ds-admin-inspired">
 <div class="layout">
   @include('partials.sidebar')
   <main class="main">
     <div class="header">
       <div>
-        <div class="eyebrow">Student Progress</div>
-        <h1 class="title">Achievements & Missions</h1>
-        <p class="subtitle">Track earned milestones, current missions, XP growth, and learning consistency without cartoon-style icons.</p>
+        <div class="eyebrow">Progress</div>
+        <h1 class="title ds-page-title">Achievements & Missions</h1>
+        <p class="subtitle">See what you have unlocked, check active missions, and follow your XP progress.</p>
       </div>
       <a href="{{ route('student.leaderboard.index') }}" class="leaderboard-link">View Leaderboard</a>
     </div>
@@ -294,7 +273,7 @@
           <div class="meta">{{ $progress->progress_count }}/{{ $target }} · {{ ucfirst($mission->period_type) }} {{ $progress->is_completed ? '· Completed' : '' }}</div>
         </div>
       @empty
-        <div class="mission">Run <code>php artisan db:seed --class=GamificationSeeder</code> to create missions.</div>
+        <div class="mission">No active missions are available yet.</div>
       @endforelse
     </section>
 
@@ -303,23 +282,10 @@
       @forelse($definitions as $definition)
         @php
           $record = $unlocked->get($definition->id);
-          $words = preg_split('/\s+/', trim($definition->name ?? 'Achievement'));
-          $code = '';
-          foreach ($words as $word) {
-              $clean = preg_replace('/[^A-Za-z0-9]/', '', $word);
-              if ($clean !== '') {
-                  $code .= strtoupper(substr($clean, 0, 1));
-              }
-              if (strlen($code) >= 3) {
-                  break;
-              }
-          }
-          $code = $code ?: 'DS';
           $tierClass = 'tier-' . ((($loop->iteration - 1) % 6) + 1);
         @endphp
         <article class="achievement-card {{ $tierClass }} {{ $record ? '' : 'locked' }}">
           <div class="achievement-top">
-            <div class="achievement-mark" aria-hidden="true">{{ $code }}</div>
             <span class="status-pill {{ $record ? 'unlocked' : 'locked' }}">{{ $record ? 'Unlocked' : 'Locked' }}</span>
           </div>
           <div class="name">{{ $definition->name }}</div>
@@ -330,7 +296,7 @@
           @endif
         </article>
       @empty
-        <div class="empty-card">No achievement definitions yet. Run <code>php artisan db:seed --class=GamificationSeeder</code>.</div>
+        <div class="empty-card">No achievement milestones are available yet.</div>
       @endforelse
     </section>
   </main>

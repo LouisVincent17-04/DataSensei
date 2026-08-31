@@ -31,8 +31,6 @@ final class PythonCodePolicyService
                 => 'Operating-system process execution is blocked.',
             '/\b(?:socket\s*\.|requests\s*\.|urllib\s*\.|httpx\s*\.)/i'
                 => 'Outbound network access is blocked.',
-            '/\b(?:pip|pip3|ensurepip)\b/i'
-                => 'Package installation is disabled inside the sandbox.',
             '/\b(?:sys\s*\.\s*modules|sys\s*\.\s*path|os\s*\.\s*environ|os\s*\.\s*getenv)\b/i'
                 => 'Runtime internals and environment variables are not available to student code.',
             '/\b__(?:subclasses|globals|builtins|loader|spec|code|mro|bases)__\b/i'

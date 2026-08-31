@@ -17,7 +17,7 @@
 
     <div class="top">
       <div>
-        <h1 class="title">Anti-Cheat Events</h1>
+        <h1 class="title ds-page-title">Anti-Cheat Events</h1>
         <p class="subtitle">Review violations recorded during instructor-given assignments only.</p>
       </div>
     </div>

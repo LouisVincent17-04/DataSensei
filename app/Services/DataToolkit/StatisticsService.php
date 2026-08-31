@@ -185,7 +185,7 @@ class StatisticsService
     /**
      * @param array<int, float> $values
      */
-    private function mode(array $values): float|int|null
+    private function mode(array $values): float|int|string|null
     {
         if ($values === []) {
             return null;
@@ -198,10 +198,22 @@ class StatisticsService
             $counts[$key] = ($counts[$key] ?? 0) + 1;
         }
 
-        arsort($counts);
-        $mode = (float) array_key_first($counts);
+        $highestFrequency = max($counts);
 
-        return $this->roundNumber($mode);
+        // A value occurring only once is not a meaningful mode. Returning the
+        // first value in an all-unique dataset made the UI report a false mode.
+        if ($highestFrequency <= 1) {
+            return null;
+        }
+
+        $modes = [];
+        foreach ($counts as $value => $frequency) {
+            if ($frequency === $highestFrequency) {
+                $modes[] = $this->roundNumber((float) $value);
+            }
+        }
+
+        return count($modes) === 1 ? $modes[0] : implode(', ', $modes);
     }
 
     public function isMissing(mixed $value): bool

@@ -17,7 +17,7 @@
 
     <div class="top">
       <div>
-        <h1 class="title">ILO Mastery</h1>
+        <h1 class="title ds-page-title">ILO Mastery</h1>
         <p class="subtitle">Track student mastery per intended learning outcome and module.</p>
       </div>
     </div>
@@ -60,13 +60,19 @@
           <tr>
             <td>{{ $mastery->student->name ?? 'Student' }}</td>
             <td>{{ $mastery->ilo->ilo_code ?? 'ILO' }} — {{ $mastery->ilo->title ?? '' }}</td>
-            <td>{{ $mastery->mastery_percent }}%</td>
+            <td>
+              @if((int) $mastery->evidence_count === 0)
+                <span class="muted">No mapped evidence yet</span>
+              @else
+                {{ $mastery->mastery_percent }}%
+              @endif
+            </td>
             <td><span class="badge {{ $statusClass }}">{{ ucwords(str_replace('_', ' ', $mastery->status)) }}</span></td>
-            <td>{{ $mastery->evidence_count }}</td>
+            <td>{{ $mastery->evidence_count }} mapped item{{ (int) $mastery->evidence_count === 1 ? '' : 's' }}</td>
             <td>{{ optional($mastery->last_evaluated_at)->format('M d, Y h:i A') ?? '—' }}</td>
           </tr>
         @empty
-          <tr><td colspan="6" class="muted">No mastery data yet.</td></tr>
+          <tr><td colspan="6" class="muted">No mapped mastery evidence yet for this class and module. Grade an assessment or assignment question that is explicitly mapped to an ILO.</td></tr>
         @endforelse
         </tbody>
       </table>

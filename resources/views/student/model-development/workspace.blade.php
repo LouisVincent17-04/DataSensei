@@ -1,0 +1,1 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url={{ route('student.model-development.index') }}"><title>Legacy Model Workspace</title></head><body><a href="{{ route('student.model-development.index') }}">Open Model Development</a></body></html>

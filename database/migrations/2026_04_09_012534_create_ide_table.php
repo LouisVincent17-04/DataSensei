@@ -24,7 +24,7 @@ return new class extends Migration
             $table->enum('type', ['file', 'folder']);
             $table->string('name');
             $table->longText('content')->nullable();   // null for folders
-            $table->string('language')->default('python');
+            $table->string('language')->nullable();
             $table->integer('order')->default(0);
             $table->timestamps();
 

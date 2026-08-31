@@ -14,8 +14,11 @@ class TableOfSpecificationRow extends Model
         'table_of_specification_id',
         'ilo_id',
         'topic_title',
+        'subtopic_title',
+        'learning_objective',
         'difficulty_slug',
         'item_count',
+        'default_points',
         'cognitive_level',
     ];
 
@@ -23,6 +26,7 @@ class TableOfSpecificationRow extends Model
         'table_of_specification_id' => 'integer',
         'ilo_id' => 'integer',
         'item_count' => 'integer',
+        'default_points' => 'integer',
     ];
 
     public function tableOfSpecification(): BelongsTo

@@ -251,9 +251,9 @@
     }, 180);
   }
 
-  async function logAttemptEvent(eventType, severity = 'low', details = {}) {
+  async function logAttemptEvent(eventType, details = {}) {
     try {
-      await postJson(eventUrl, { attempt_id: attemptId, event_type: eventType, severity, details });
+      await postJson(eventUrl, { attempt_id: attemptId, event_type: eventType, details });
     } catch (error) {
       // Event logging should never disturb the student taking the quiz.
     }
@@ -290,7 +290,7 @@
     submitting = true;
     submitBtn.disabled = true;
     setSaveState('Time is up. Submitting saved answers...', 'error');
-    form.submit();
+    HTMLFormElement.prototype.submit.call(form);
   }
 
   form.addEventListener('submit', () => {
@@ -301,13 +301,13 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && !submitting) {
-      logAttemptEvent('tab_hidden_or_app_switched', 'low', { answered: answeredQuestions.size });
+      logAttemptEvent('tab_hidden_or_app_switched', { answered: answeredQuestions.size });
     }
   });
 
   window.addEventListener('beforeunload', (e) => {
     if (!submitting) {
-      logAttemptEvent('page_leave_or_refresh', 'low', { answered: answeredQuestions.size });
+      logAttemptEvent('page_leave_or_refresh', { answered: answeredQuestions.size });
       e.preventDefault();
       e.returnValue = '';
     }

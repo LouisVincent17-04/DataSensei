@@ -43,60 +43,79 @@ class InstructorApplicationController extends Controller
             'institution_code' => ['required', 'string', 'size:6'],
         ]);
 
-        $user = Auth::user();
         $code = strtoupper(trim($request->institution_code));
 
-        // 1. Find the institution by code
-        $institution = Institution::where('institution_code', $code)
-            ->where('status', 'active')
-            ->first();
+        return DB::transaction(function () use ($code) {
+            $user = User::query()->whereKey(Auth::id())->lockForUpdate()->firstOrFail();
 
-        if (! $institution) {
-            return back()
-                ->withInput()
-                ->withErrors(['institution_code' => 'Invalid or inactive institution code. Please double-check and try again.']);
-        }
-
-        // 2. Prevent duplicate applications
-        $existing = InstructorApplication::where('user_id', $user->id)
-            ->where('institution_id', $institution->id)
-            ->first();
-
-        if ($existing) {
-            if ($existing->isPending()) {
+            if ((int) $user->role !== User::ROLE_USER || $user->institution_id !== null) {
                 return back()->withErrors([
-                    'institution_code' => "You already have a pending application for {$institution->name}.",
+                    'institution_code' => 'Only an unassigned learner account can submit an instructor application.',
                 ]);
             }
 
-            if ($existing->isApproved()) {
+            // Lock the institution so it cannot be disabled between validation
+            // and creation of the pending application.
+            $institution = Institution::where('institution_code', $code)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $institution) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['institution_code' => 'Invalid or inactive institution code. Please double-check and try again.']);
+            }
+
+            // 2. Prevent duplicate applications
+            $otherActiveApplication = InstructorApplication::query()
+                ->where('user_id', $user->id)
+                ->where('institution_id', '!=', $institution->id)
+                ->whereIn('status', ['pending', 'approved'])
+                ->with('institution')
+                ->first();
+
+            if ($otherActiveApplication) {
                 return back()->withErrors([
-                    'institution_code' => "You are already an approved instructor at {$institution->name}.",
+                    'institution_code' => "You already have an active application with {$otherActiveApplication->institution->name}.",
                 ]);
             }
 
-            // If previously rejected, allow re-application by updating the record
-            $existing->update([
-                'entered_code' => $code,
-                'status'       => 'pending',
-                'reviewed_by'  => null,
-                'reviewed_at'  => null,
+            $existing = InstructorApplication::where('user_id', $user->id)
+                ->where('institution_id', $institution->id)
+                ->first();
+
+            if ($existing) {
+                if ($existing->isPending()) {
+                    return back()->withErrors([
+                        'institution_code' => "You already have a pending application for {$institution->name}.",
+                    ]);
+                }
+
+                // Re-open a rejected or legacy approved record after the account has
+                // been returned to an unassigned learner role.
+                $existing->update([
+                    'entered_code' => $code,
+                    'status'       => 'pending',
+                    'reviewed_by'  => null,
+                    'reviewed_at'  => null,
+                ]);
+
+                return redirect()->route('instructor.apply')
+                    ->with('success', "Your re-application to {$institution->name} has been submitted and is pending review.");
+            }
+
+            // 3. Create the application
+            InstructorApplication::create([
+                'user_id'        => $user->id,
+                'institution_id' => $institution->id,
+                'entered_code'   => $code,
+                'status'         => 'pending',
             ]);
 
             return redirect()->route('instructor.apply')
-                ->with('success', "Your re-application to {$institution->name} has been submitted and is pending review.");
-        }
-
-        // 3. Create the application
-        InstructorApplication::create([
-            'user_id'        => $user->id,
-            'institution_id' => $institution->id,
-            'entered_code'   => $code,
-            'status'         => 'pending',
-        ]);
-
-        return redirect()->route('instructor.apply')
-            ->with('success', "Application submitted to {$institution->name}! You'll be notified once an admin reviews it.");
+                ->with('success', "Application submitted to {$institution->name}! You'll be notified once an admin reviews it.");
+        }, 3);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -112,7 +131,10 @@ class InstructorApplicationController extends Controller
         $admin       = Auth::user();
         $institution = $admin->institution;
 
-        $status = $request->query('status', 'pending'); // default to pending tab
+        $status = (string) $request->query('status', 'pending');
+        if (! in_array($status, ['pending', 'approved', 'rejected', 'all'], true)) {
+            $status = 'pending';
+        }
 
         $applications = InstructorApplication::where('institution_id', $institution->id)
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
@@ -143,23 +165,67 @@ class InstructorApplicationController extends Controller
     {
         $this->authorizeAdminAccess($application);
 
-        if (! $application->isPending()) {
-            return back()->with('error', 'This application has already been reviewed.');
-        }
+        $result = DB::transaction(function () use ($application): string {
+            $lockedApplication = InstructorApplication::query()
+                ->whereKey($application->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        DB::transaction(function () use ($application) {
-            $application->update([
+            if (! $lockedApplication->isPending()) {
+                return 'reviewed';
+            }
+
+            $reviewer = User::query()->whereKey(Auth::id())->lockForUpdate()->firstOrFail();
+            if (! $reviewer->is_active
+                || ! $reviewer->isInstitutionAdmin()
+                || (int) $reviewer->institution_id !== (int) $lockedApplication->institution_id) {
+                return 'unauthorized';
+            }
+
+            $applicant = User::query()
+                ->whereKey($lockedApplication->user_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $applicant->is_active || (int) $applicant->role !== User::ROLE_USER || $applicant->institution_id !== null) {
+                return 'ineligible';
+            }
+
+            $institution = Institution::query()
+                ->whereKey($lockedApplication->institution_id)
+                ->lockForUpdate()
+                ->first();
+            if (! $institution || $institution->status !== 'active') {
+                return 'inactive_institution';
+            }
+
+            $lockedApplication->update([
                 'status'      => 'approved',
-                'reviewed_by' => Auth::id(),
+                'reviewed_by' => $reviewer->id,
                 'reviewed_at' => now(),
             ]);
 
-            // Link the instructor to the institution in the users table
-            $application->user->update([
-                'institution_id' => $application->institution_id,
+            $applicant->update([
+                'institution_id' => $lockedApplication->institution_id,
                 'role'           => User::ROLE_INSTRUCTOR,
             ]);
-        });
+
+            return 'approved';
+        }, 3);
+
+        if ($result === 'reviewed') {
+            return back()->with('error', 'This application has already been reviewed.');
+        }
+
+        if ($result === 'ineligible') {
+            return back()->with('error', 'This applicant is disabled, already assigned, or no longer eligible for approval.');
+        }
+
+        if ($result === 'inactive_institution') {
+            return back()->with('error', 'This institution is inactive and cannot approve new instructors.');
+        }
+
+        abort_if($result === 'unauthorized', 403, 'Your access to this institution changed before the review completed.');
 
         return back()->with('success', "{$application->user->name} has been approved as an instructor.");
     }
@@ -172,15 +238,37 @@ class InstructorApplicationController extends Controller
     {
         $this->authorizeAdminAccess($application);
 
-        if (! $application->isPending()) {
+        $rejected = DB::transaction(function () use ($application): string {
+            $lockedApplication = InstructorApplication::query()
+                ->whereKey($application->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $lockedApplication->isPending()) {
+                return 'reviewed';
+            }
+
+            $reviewer = User::query()->whereKey(Auth::id())->lockForUpdate()->firstOrFail();
+            if (! $reviewer->is_active
+                || ! $reviewer->isInstitutionAdmin()
+                || (int) $reviewer->institution_id !== (int) $lockedApplication->institution_id) {
+                return 'unauthorized';
+            }
+
+            $lockedApplication->update([
+                'status'      => 'rejected',
+                'reviewed_by' => $reviewer->id,
+                'reviewed_at' => now(),
+            ]);
+
+            return 'rejected';
+        }, 3);
+
+        if ($rejected === 'reviewed') {
             return back()->with('error', 'This application has already been reviewed.');
         }
 
-        $application->update([
-            'status'      => 'rejected',
-            'reviewed_by' => Auth::id(),
-            'reviewed_at' => now(),
-        ]);
+        abort_if($rejected === 'unauthorized', 403, 'Your access to this institution changed before the review completed.');
 
         return back()->with('success', "{$application->user->name}'s application has been rejected.");
     }

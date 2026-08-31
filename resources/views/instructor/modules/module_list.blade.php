@@ -512,8 +512,9 @@
       }
     }
   </style>
+  @include('partials.admin-inspired-page-style')
 </head>
-<body>
+<body class="ds-admin-inspired">
   <div class="ds-shell">
     @includeIf('partials.instructor-sidebar')
 
@@ -521,8 +522,8 @@
       <div class="library-wrap">
         <header class="top-row">
           <div>
-            <div class="page-kicker">Instructor Workspace</div>
-            <h1 class="page-title">Module Library</h1>
+            <div class="page-kicker">Learning Content</div>
+            <h1 class="page-title ds-page-title">Module Library</h1>
             <p class="page-subtitle">
               Browse module versions, preview DataSensei lesson content, and assign the selected versions to one of your classes.
             </p>
@@ -638,6 +639,7 @@
                                   type="radio"
                                   name="selected_modules[{{ $moduleNo }}]"
                                   value="{{ $version->id }}"
+                                  @disabled(! $version->is_active)
                                 >
 
                                 <span class="version-info">
@@ -646,6 +648,9 @@
                                     {{ $version->module_code }}
                                     · {{ $version->version_code }}
                                     · {{ $version->estimated_minutes }} min
+                                    @unless ($version->is_active)
+                                      · Retired (existing classes only)
+                                    @endunless
                                   </small>
                                 </span>
 

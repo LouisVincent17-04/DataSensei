@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             ChallengeCategorySeeder::class,
             AchievementDefinitionsSeeder::class,
             MissionDefinitionsSeeder::class,
+            HybridMlSeeder::class,
         ]);
     }
 }

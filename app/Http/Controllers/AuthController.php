@@ -7,14 +7,25 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Module;
-use App\Http\Controllers\SqlSandboxController;
+use App\Support\AuthSessionFingerprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
+    public function home(Request $request)
+    {
+        if ($request->user()) {
+            return $this->redirectUserByRole($request->user());
+        }
+
+        return redirect()->route('login');
+    }
+
     public function showLogin(Request $request)
     {
-        if (Auth::check()) {
-            return $this->redirectUserByRole(Auth::user());
+        if ($request->user()) {
+            return $this->redirectUserByRole($request->user());
         }
 
         return view('auth.login');
@@ -22,104 +33,126 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
+        $credentials = $request->validate([
             'email'    => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        if (! Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+        $credentials['email'] = strtolower(trim($credentials['email']));
+
+        if (! Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
             return back()
                 ->withErrors([
                     'email' => 'The provided credentials do not match our records.',
                 ])
-                ->withInput();
+                ->withInput($request->only('email'));
         }
 
         $request->session()->regenerate();
 
-        $user = Auth::user();
+        $user = $request->user();
 
-        if (isset($user->status) && $user->status === 'disabled') {
-            Auth::logout();
+        $accessFailure = $user ? $this->accessFailureReason($user) : 'Your account cannot be accessed.';
+
+        if ($accessFailure !== null) {
+            Auth::guard('web')->logout();
 
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return back()
+            return redirect()->route('login')
                 ->withErrors([
-                    'email' => 'Your account has been disabled. Please contact the administrator.',
+                    'email' => $accessFailure,
                 ])
-                ->withInput();
+                ->withInput($request->only('email'));
         }
 
-        SqlSandboxController::provisionSandbox($user->id);
+        $request->session()->put(
+            AuthSessionFingerprint::SESSION_KEY,
+            AuthSessionFingerprint::for($user)
+        );
 
         return $this->redirectUserByRole($user);
     }
 
     public function register(Request $request)
     {
-        $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
         ]);
 
-        $user = User::create([
-            'name'     => trim($request->name),
-            'email'    => strtolower(trim($request->email)),
-            'password' => Hash::make($request->password),
-            'role'     => User::ROLE_USER,
-            'status'   => 'active',
+        $validated = $request->validate([
+            'name'     => ['required', 'string', 'max:189'],
+            'email'    => ['required', 'email', 'max:189', 'unique:users,email'],
+            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
         ]);
 
-        SqlSandboxController::provisionSandbox($user->id);
-
-        Auth::login($user);
-
-        $firstModule = Module::orderBy('order_index', 'asc')->first();
-
-        if ($firstModule) {
-            $user->modules()->syncWithoutDetaching([
-                $firstModule->id => ['is_unlocked' => true],
+        $user = DB::transaction(function () use ($validated): User {
+            $user = User::create([
+                'name'     => trim($validated['name']),
+                'email'    => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role'     => User::ROLE_USER,
+                'status'   => 'active',
             ]);
-        }
 
-        return redirect('/student/dashboard')->with('success', 'Welcome to DataSensei!');
+            $firstModule = Module::orderBy('order_index', 'asc')->first();
+
+            if ($firstModule) {
+                $user->modules()->syncWithoutDetaching([
+                    $firstModule->id => ['is_unlocked' => true],
+                ]);
+            }
+
+            return $user;
+        }, 3);
+
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
+        $request->session()->put(
+            AuthSessionFingerprint::SESSION_KEY,
+            AuthSessionFingerprint::for($user)
+        );
+
+        return $this->redirectUserByRole($user)->with('success', 'Welcome to DataSensei!');
     }
 
     public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login');
+        return redirect()->route('login');
     }
 
     private function redirectUserByRole(User $user)
     {
-        if ($user->role == User::ROLE_SUPERADMIN) {
-            return redirect('/superadmin/dashboard');
+        return match ((int) $user->role) {
+            User::ROLE_SUPERADMIN => redirect()->route('superadmin.dashboard'),
+            User::ROLE_ADMIN => redirect()->route('admin.dashboard'),
+            User::ROLE_INSTITUTION_ADMIN => redirect()->route('institution-admin.dashboard'),
+            User::ROLE_INSTRUCTOR => redirect()->route('instructor.dashboard'),
+            User::ROLE_USER => redirect()->route('studentDashboard'),
+            default => redirect()->route('login'),
+        };
+    }
+
+    private function accessFailureReason(User $user): ?string
+    {
+        if (! $user->is_active) {
+            return 'Your account has been disabled. Please contact the administrator.';
         }
 
-        if ($user->role == User::ROLE_ADMIN) {
-            return redirect('/admin/dashboard');
+        if (! in_array((int) $user->role, [User::ROLE_INSTRUCTOR, User::ROLE_INSTITUTION_ADMIN], true)) {
+            return null;
         }
 
-        if ($user->role == User::ROLE_INSTITUTION_ADMIN) {
-            return redirect('/institution_admin/dashboard');
+        if (! $user->institution_id || ! $user->institution || ! $user->institution->isActive()) {
+            return 'Your institution access is inactive. Please contact the administrator.';
         }
 
-        if ($user->role == User::ROLE_INSTRUCTOR) {
-            return redirect('/instructor/dashboard');
-        }
-
-        if ($user->role == User::ROLE_USER) {
-            return redirect('/student/dashboard');
-        }
-
-        return redirect('/');
+        return null;
     }
 }

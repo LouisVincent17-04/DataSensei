@@ -73,6 +73,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'ollama_performance' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/ollama-performance.log'),
+            'level' => env('OLLAMA_LOG_LEVEL', 'info'),
+            'days' => (int) env('OLLAMA_LOG_DAYS', 7),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

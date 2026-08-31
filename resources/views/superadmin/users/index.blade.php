@@ -121,7 +121,7 @@
 
   <div class="main">
     <div class="topbar">
-      <h1>User Management</h1>
+      <h1 class="ds-page-title">User Management</h1>
     </div>
 
     <div class="content">
@@ -329,7 +329,7 @@
           <div class="form-row">
             <div class="form-group">
               <label>Password *</label>
-              <input class="form-control" type="password" name="password" placeholder="Min. 6 characters" required>
+              <input class="form-control" type="password" name="password" placeholder="8+ chars, upper/lower, number, symbol" required>
               @error('password')<span class="form-error">{{ $message }}</span>@enderror
             </div>
             <div class="form-group">

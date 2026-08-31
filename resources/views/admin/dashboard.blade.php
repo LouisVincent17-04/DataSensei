@@ -40,7 +40,7 @@
       <div class="panel-head">
         <div class="panel-heading">
           <h2 class="panel-title">14-Day Platform Activity</h2>
-          <p class="panel-subtitle">Combined account, challenge, coding, and assignment activity.</p>
+          <p class="panel-subtitle">Combined account, challenge, coding, assignment, assessment, and Data Toolkit activity.</p>
         </div>
         <span class="badge info">Last 14 days</span>
       </div>

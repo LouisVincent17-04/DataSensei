@@ -17,7 +17,7 @@
         <div class="top">
           <div>
             <div class="kicker">Instructor Assignment Proctoring</div>
-            <h1 class="title">Assignment Anti-Cheat Settings</h1>
+            <h1 class="title ds-page-title">Assignment Anti-Cheat Settings</h1>
             <p class="subtitle">Configure anti-cheat safeguards for assignments you give to your classes. These settings do not affect public MCQ Challenges or public Coding Challenges.</p>
           </div>
         </div>

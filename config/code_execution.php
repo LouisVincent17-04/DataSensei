@@ -40,9 +40,20 @@ return [
 
     'ollama' => [
         'url' => env('OLLAMA_URL', 'http://127.0.0.1:11434/api/generate'),
-        'model' => env('OLLAMA_MODEL', 'deepseek-coder'),
-        'timeout_seconds' => (int) env('OLLAMA_TIMEOUT', 30),
-        'max_concurrent_requests' => (int) env('OLLAMA_MAX_CONCURRENT', 4),
-        'max_response_chars' => (int) env('OLLAMA_MAX_RESPONSE_CHARS', 5000),
+        'model' => env('OLLAMA_MODEL', 'qwen2.5-coder:1.5b-instruct'),
+        /* Stay below PHP's common 60-second limit so failures remain graceful. */
+        'timeout_seconds' => min(45, max(5, (int) env('OLLAMA_TIMEOUT', 40))),
+        'connect_timeout_seconds' => min(5, max(1, (int) env('OLLAMA_CONNECT_TIMEOUT', 2))),
+        'keep_alive' => env('OLLAMA_KEEP_ALIVE', '30m'),
+        /* One local model should not be saturated by accidental parallel work. */
+        'max_concurrent_requests' => min(2, max(1, (int) env('OLLAMA_MAX_CONCURRENT', 1))),
+        'num_ctx' => min(8192, max(2048, (int) env('OLLAMA_NUM_CTX', 4096))),
+        'review_num_predict' => min(512, max(96, (int) env('OLLAMA_REVIEW_NUM_PREDICT', 220))),
+        'chat_num_predict' => min(768, max(128, (int) env('OLLAMA_CHAT_NUM_PREDICT', 320))),
+        'max_code_chars' => 6000,
+        'max_run_output_chars' => 1800,
+        'max_history_chars' => 1800,
+        'max_response_chars' => min(12000, max(1000, (int) env('OLLAMA_MAX_RESPONSE_CHARS', 6000))),
+        'slow_request_ms' => 10000,
     ],
 ];

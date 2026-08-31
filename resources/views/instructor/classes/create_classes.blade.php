@@ -277,7 +277,7 @@
         My Classes
       </a>
       <div class="topbar-divider"></div>
-      <h1>{{ $editing ? 'Edit Class' : 'Create New Class' }}</h1>
+      <h1 class="ds-page-title">{{ $editing ? 'Edit Class' : 'Create New Class' }}</h1>
     </header>
 
     <main class="content">
@@ -330,7 +330,7 @@
                     value="{{ old('name', $class->name ?? '') }}"
                     placeholder="e.g. Introduction to Data Science"
                     class="{{ $errors->has('name') ? 'error' : '' }}"
-                    maxlength="191"
+                    maxlength="189"
                     data-counter="name-counter"
                     autocomplete="off"
                   />
@@ -357,7 +357,7 @@
                       value="{{ old('section', $class->section ?? '') }}"
                       placeholder="e.g. BSIT 3-A"
                       class="{{ $errors->has('section') ? 'error' : '' }}"
-                      maxlength="191"
+                      maxlength="189"
                     />
                     @error('section')
                       <div class="field-error">{{ $message }}</div>
@@ -482,7 +482,7 @@
                 </div>
                 <div>
                   <div class="card-title">Enrolment Settings</div>
-                  <div class="card-subtitle">Control how students can join</div>
+                  <div class="card-subtitle">Set capacity for instructor-managed enrolment</div>
                 </div>
               </div>
               <div class="card-body">
@@ -504,19 +504,6 @@
                   @enderror
                 </div>
 
-                <div class="toggle-row">
-                  <div class="toggle-info">
-                    <div class="toggle-label">Allow Self-Enrolment</div>
-                    <div class="toggle-desc">Students can join using the class code without manual approval.</div>
-                  </div>
-                  <label class="toggle-switch">
-                    <input
-                      type="checkbox" name="allow_self_enroll" value="1"
-                      {{ old('allow_self_enroll', $class->allow_self_enroll ?? true) ? 'checked' : '' }}
-                    />
-                    <span class="toggle-track"></span>
-                  </label>
-                </div>
               </div>
             </div>
 

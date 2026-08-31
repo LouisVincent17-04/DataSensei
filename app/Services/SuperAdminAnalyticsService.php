@@ -8,6 +8,8 @@ use Illuminate\Support\Str;
 
 class SuperAdminAnalyticsService
 {
+    private const MAX_RANGE_DAYS = 366;
+
     private const ROLE_LABELS = [
         1 => 'Student',
         2 => 'Admin',
@@ -72,6 +74,10 @@ class SuperAdminAnalyticsService
             [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
         }
 
+        if ($start->diffInDays($end) + 1 > self::MAX_RANGE_DAYS) {
+            $start = $end->copy()->subDays(self::MAX_RANGE_DAYS - 1)->startOfDay();
+        }
+
         return [
             'from' => $start,
             'to' => $end,
@@ -83,8 +89,16 @@ class SuperAdminAnalyticsService
 
     private function safeDate(?string $value, Carbon $fallback): Carbon
     {
+        if (! $value || preg_match('/^\d{4}-\d{2}-\d{2}$/D', $value) !== 1) {
+            return $fallback->copy();
+        }
+
         try {
-            return $value ? Carbon::parse($value) : $fallback->copy();
+            $date = Carbon::createFromFormat('!Y-m-d', $value);
+
+            return $date && $date->toDateString() === $value
+                ? $date
+                : $fallback->copy();
         } catch (\Throwable $e) {
             return $fallback->copy();
         }
@@ -107,8 +121,9 @@ class SuperAdminAnalyticsService
             ['label' => 'Classes', 'value' => $this->count('classes'), 'sub' => $this->count('class_student') . ' enrollments', 'tone' => 'orange'],
             ['label' => 'Module Library', 'value' => $this->count('module_library_items'), 'sub' => 'Reusable learning items', 'tone' => 'blue'],
             ['label' => 'Assignments', 'value' => $this->count('class_assignments'), 'sub' => $this->count('assignment_submissions') . ' student submissions', 'tone' => 'green'],
-            ['label' => 'MCQ Challenges', 'value' => $this->countWhere('challenges', ['is_coding_challenge' => 0]), 'sub' => $this->count('challenge_user') . ' attempts', 'tone' => 'purple'],
-            ['label' => 'Coding Challenges', 'value' => $this->countWhere('challenges', ['is_coding_challenge' => 1]), 'sub' => $this->count('coding_submissions') . ' submissions', 'tone' => 'orange'],
+            ['label' => 'Assessments', 'value' => $this->count('assessments'), 'sub' => $this->count('assessment_submissions') . ' student attempts', 'tone' => 'blue'],
+            ['label' => 'MCQ Challenges', 'value' => $this->countWhere('challenges', ['is_coding_challenge' => 0, 'is_active' => 1]), 'sub' => $this->count('challenge_attempts') . ' attempts', 'tone' => 'purple'],
+            ['label' => 'Coding Challenges', 'value' => $this->countWhere('challenges', ['is_coding_challenge' => 1, 'is_active' => 1]), 'sub' => $this->count('coding_submissions') . ' submissions', 'tone' => 'orange'],
             ['label' => 'Anti-Cheat Events', 'value' => $this->count('anti_cheat_events'), 'sub' => 'Assignment protection logs', 'tone' => 'red'],
             ['label' => 'New Users', 'value' => $newUsers, 'sub' => $range['from_date'] . ' to ' . $range['to_date'], 'tone' => 'blue'],
             ['label' => 'Active Accounts', 'value' => $activeUsers, 'sub' => $disabledUsers . ' disabled', 'tone' => 'green'],
@@ -148,6 +163,7 @@ class SuperAdminAnalyticsService
                 'mcq' => 0,
                 'coding' => 0,
                 'assignments' => 0,
+                'assessments' => 0,
                 'anti_cheat' => 0,
                 'total' => 0,
             ];
@@ -155,9 +171,10 @@ class SuperAdminAnalyticsService
         }
 
         foreach ([
-            'challenge_user' => 'mcq',
+            'challenge_attempts' => 'mcq',
             'coding_submissions' => 'coding',
             'assignment_submissions' => 'assignments',
+            'assessment_submissions' => 'assessments',
             'anti_cheat_events' => 'anti_cheat',
         ] as $table => $key) {
             foreach ($this->dailyCounts($table, $range) as $row) {
@@ -168,7 +185,7 @@ class SuperAdminAnalyticsService
         }
 
         foreach ($dates as &$row) {
-            $row['total'] = $row['mcq'] + $row['coding'] + $row['assignments'] + $row['anti_cheat'];
+            $row['total'] = $row['mcq'] + $row['coding'] + $row['assignments'] + $row['assessments'] + $row['anti_cheat'];
         }
 
         return array_values($dates);
@@ -256,6 +273,7 @@ class SuperAdminAnalyticsService
             'codingPerformance' => $this->codingPerformance($range),
             'hardestCoding' => $this->hardestCodingQuestions($range),
             'assignmentPerformance' => $this->assignmentPerformance($range),
+            'assessmentPerformance' => $this->assessmentPerformance($range),
             'categoryBreakdown' => $this->categoryBreakdown(),
         ];
     }
@@ -284,15 +302,16 @@ class SuperAdminAnalyticsService
         $summary = $this->summary($range);
         $antiCheat = $this->countDateRange('anti_cheat_events', 'created_at', $range);
         $submissions = $this->countDateRange('assignment_submissions', 'created_at', $range);
+        $assessments = $this->countDateRange('assessment_submissions', 'created_at', $range);
         $coding = $this->countDateRange('coding_submissions', 'created_at', $range);
-        $mcq = $this->countDateRange('challenge_user', 'created_at', $range);
+        $mcq = $this->countDateRange('challenge_attempts', 'created_at', $range);
         $students = $this->countWhere('users', ['role' => 1]);
         $atRisk = count($this->atRiskStudents($range));
 
         $items = [];
         $items[] = [
             'title' => 'Platform activity in selected range',
-            'body' => 'There are ' . number_format($mcq + $coding + $submissions) . ' learning actions in the selected period: ' . number_format($mcq) . ' MCQ attempts, ' . number_format($coding) . ' coding submissions, and ' . number_format($submissions) . ' assignment submissions.',
+            'body' => 'There are ' . number_format($mcq + $coding + $submissions + $assessments) . ' learning actions in the selected period: ' . number_format($mcq) . ' MCQ attempts, ' . number_format($coding) . ' coding submissions, ' . number_format($submissions) . ' assignment submissions, and ' . number_format($assessments) . ' assessment attempts.',
             'tone' => 'blue',
         ];
 
@@ -326,6 +345,7 @@ class SuperAdminAnalyticsService
 
         return DB::table('users')
             ->where('role', 1)
+            ->where('status', 'active')
             ->select('id', 'name', 'email', 'xp', 'streak', 'last_activity')
             ->orderByDesc('xp')
             ->orderByDesc('streak')
@@ -337,21 +357,25 @@ class SuperAdminAnalyticsService
 
     private function topMcqStudents(array $range): array
     {
-        if (! $this->tableExists('challenge_user')) {
+        if (! $this->tableExists('challenge_attempts')) {
             return [];
         }
 
-        return DB::table('challenge_user as cu')
-            ->join('users as u', 'u.id', '=', 'cu.user_id')
+        return DB::table('challenge_attempts as ca')
+            ->join('users as u', 'u.id', '=', 'ca.user_id')
             ->where('u.role', 1)
-            ->whereBetween('cu.created_at', [$range['from'], $range['to']])
+            ->where('u.status', 'active')
+            ->where('ca.is_ranked', true)
+            ->where('ca.is_leaderboard_eligible', true)
+            ->whereIn('ca.status', ['submitted', 'expired'])
+            ->whereBetween('ca.created_at', [$range['from'], $range['to']])
             ->select(
                 'u.name',
                 'u.email',
                 DB::raw('COUNT(*) as attempts_count'),
-                DB::raw('ROUND(AVG(cu.score), 2) as avg_score'),
-                DB::raw('SUM(cu.xp_awarded) as total_xp'),
-                DB::raw('ROUND(AVG(cu.time_taken_seconds), 0) as avg_time_seconds')
+                DB::raw('ROUND(AVG(CASE WHEN ca.total_questions > 0 THEN (ca.score * 100.0 / ca.total_questions) ELSE 0 END), 2) as avg_score'),
+                DB::raw('SUM(ca.xp_awarded) as total_xp'),
+                DB::raw('ROUND(AVG(ca.time_taken_seconds), 0) as avg_time_seconds')
             )
             ->groupBy('u.id', 'u.name', 'u.email')
             ->orderByDesc('avg_score')
@@ -371,6 +395,8 @@ class SuperAdminAnalyticsService
         return DB::table('coding_submissions as cs')
             ->join('users as u', 'u.id', '=', 'cs.user_id')
             ->where('u.role', 1)
+            ->where('u.status', 'active')
+            ->where('cs.voided', false)
             ->whereBetween('cs.created_at', [$range['from'], $range['to']])
             ->select(
                 'u.name',
@@ -399,12 +425,14 @@ class SuperAdminAnalyticsService
         return DB::table('assignment_submissions as s')
             ->join('users as u', 'u.id', '=', 's.student_id')
             ->where('u.role', 1)
+            ->where('u.status', 'active')
+            ->whereIn('s.status', ['submitted', 'late', 'graded'])
             ->whereBetween('s.created_at', [$range['from'], $range['to']])
             ->select(
                 'u.name',
                 'u.email',
                 DB::raw('COUNT(*) as submissions_count'),
-                DB::raw('ROUND(AVG(CASE WHEN s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE 0 END), 2) as avg_score'),
+                DB::raw('ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2) as avg_score'),
                 DB::raw("SUM(CASE WHEN s.status = 'late' THEN 1 ELSE 0 END) as late_count")
             )
             ->groupBy('u.id', 'u.name', 'u.email')
@@ -426,9 +454,23 @@ class SuperAdminAnalyticsService
 
         $rows = DB::table('users as u')
             ->where('u.role', 1)
-            ->leftJoin('assignment_submissions as s', 's.student_id', '=', 'u.id')
-            ->leftJoin('challenge_user as cu', 'cu.user_id', '=', 'u.id')
-            ->leftJoin('coding_submissions as cs', 'cs.user_id', '=', 'u.id')
+            ->where('u.status', 'active')
+            ->leftJoin('assignment_submissions as s', function ($join) use ($range) {
+                $join->on('s.student_id', '=', 'u.id')
+                    ->whereIn('s.status', ['submitted', 'late', 'graded'])
+                    ->whereBetween('s.created_at', [$range['from'], $range['to']]);
+            })
+            ->leftJoin('challenge_attempts as cu', function ($join) use ($range) {
+                $join->on('cu.user_id', '=', 'u.id')
+                    ->whereIn('cu.status', ['submitted', 'expired'])
+                    ->where('cu.is_ranked', true)
+                    ->whereBetween('cu.created_at', [$range['from'], $range['to']]);
+            })
+            ->leftJoin('coding_submissions as cs', function ($join) use ($range) {
+                $join->on('cs.user_id', '=', 'u.id')
+                    ->where('cs.voided', false)
+                    ->whereBetween('cs.created_at', [$range['from'], $range['to']]);
+            })
             ->select(
                 'u.id',
                 'u.name',
@@ -439,7 +481,7 @@ class SuperAdminAnalyticsService
                 DB::raw('COUNT(DISTINCT s.id) as assignment_submissions_count'),
                 DB::raw('COUNT(DISTINCT cu.id) as mcq_attempts_count'),
                 DB::raw('COUNT(DISTINCT cs.id) as coding_submissions_count'),
-                DB::raw('ROUND(AVG(CASE WHEN s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2) as assignment_avg')
+                DB::raw('ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2) as assignment_avg')
             )
             ->groupBy('u.id', 'u.name', 'u.email', 'u.xp', 'u.streak', 'u.last_activity')
             ->havingRaw('(MAX(COALESCE(u.xp, 0)) < 50) OR (MAX(u.last_activity) IS NULL OR MAX(u.last_activity) < ?) OR assignment_avg < 70', [$cutoff])
@@ -467,22 +509,26 @@ class SuperAdminAnalyticsService
 
     private function mcqPerformance(array $range, string $sort): array
     {
-        if (! $this->tableExists('challenge_user')) {
+        if (! $this->tableExists('challenge_attempts')) {
             return [];
         }
 
         $query = DB::table('challenges as ch')
-            ->join('challenge_user as cu', 'cu.challenge_id', '=', 'ch.id')
+            ->join('challenge_attempts as ca', 'ca.challenge_id', '=', 'ch.id')
             ->leftJoin('challenge_categories as cc', 'cc.id', '=', 'ch.challenge_category_id')
             ->where('ch.is_coding_challenge', 0)
-            ->whereBetween('cu.created_at', [$range['from'], $range['to']])
+            ->where('ch.is_active', true)
+            ->where('ca.is_ranked', true)
+            ->where('ca.is_leaderboard_eligible', true)
+            ->whereIn('ca.status', ['submitted', 'expired'])
+            ->whereBetween('ca.created_at', [$range['from'], $range['to']])
             ->select(
                 'ch.id',
                 'ch.title',
-                DB::raw('COALESCE(cc.name, cc.slug, "Uncategorized") as level'),
-                DB::raw('COUNT(cu.id) as attempts_count'),
-                DB::raw('ROUND(AVG(cu.score), 2) as avg_score'),
-                DB::raw('ROUND(AVG(cu.time_taken_seconds), 0) as avg_time_seconds')
+                DB::raw("COALESCE(cc.name, cc.slug, 'Uncategorized') as level"),
+                DB::raw('COUNT(ca.id) as attempts_count'),
+                DB::raw('ROUND(AVG(CASE WHEN ca.total_questions > 0 THEN (ca.score * 100.0 / ca.total_questions) ELSE 0 END), 2) as avg_score'),
+                DB::raw('ROUND(AVG(ca.time_taken_seconds), 0) as avg_time_seconds')
             )
             ->groupBy('ch.id', 'ch.title', 'cc.name', 'cc.slug');
 
@@ -505,16 +551,18 @@ class SuperAdminAnalyticsService
             ->join('coding_questions as cq', 'cq.challenge_id', '=', 'ch.id')
             ->join('coding_submissions as cs', 'cs.coding_question_id', '=', 'cq.id')
             ->leftJoin('challenge_categories as cc', 'cc.id', '=', 'ch.challenge_category_id')
+            ->where('ch.is_active', true)
+            ->where('cs.voided', false)
             ->whereBetween('cs.created_at', [$range['from'], $range['to']])
             ->select(
                 'ch.id',
                 'ch.title',
-                DB::raw('COALESCE(cc.name, cc.slug, "Uncategorized") as level'),
+                DB::raw("COALESCE(cc.name, cc.slug, 'Uncategorized') as level"),
                 DB::raw('COUNT(cs.id) as submissions_count'),
                 DB::raw("SUM(CASE WHEN cs.status = 'passed' THEN 1 ELSE 0 END) as passed_count"),
                 DB::raw('ROUND(AVG(CASE WHEN cs.tests_total > 0 THEN (cs.tests_passed * 100.0 / cs.tests_total) ELSE 0 END), 2) as avg_test_score')
             )
-            ->groupBy('ch.id', 'ch.title', 'cc.name', 'cc.title', 'cc.slug')
+            ->groupBy('ch.id', 'ch.title', 'cc.name', 'cc.slug')
             ->orderByDesc('submissions_count')
             ->limit(15)
             ->get()
@@ -531,6 +579,8 @@ class SuperAdminAnalyticsService
         return DB::table('coding_questions as cq')
             ->join('challenges as ch', 'ch.id', '=', 'cq.challenge_id')
             ->join('coding_submissions as cs', 'cs.coding_question_id', '=', 'cq.id')
+            ->where('ch.is_active', true)
+            ->where('cs.voided', false)
             ->whereBetween('cs.created_at', [$range['from'], $range['to']])
             ->select(
                 'cq.id',
@@ -558,6 +608,7 @@ class SuperAdminAnalyticsService
         return DB::table('class_assignments as ca')
             ->leftJoin('classes as c', 'c.id', '=', 'ca.class_id')
             ->join('assignment_submissions as s', 's.class_assignment_id', '=', 'ca.id')
+            ->whereIn('s.status', ['submitted', 'late', 'graded'])
             ->whereBetween('s.created_at', [$range['from'], $range['to']])
             ->select(
                 'ca.id',
@@ -566,9 +617,38 @@ class SuperAdminAnalyticsService
                 'c.name as class_name',
                 DB::raw('COUNT(s.id) as submissions_count'),
                 DB::raw("SUM(CASE WHEN s.status = 'late' THEN 1 ELSE 0 END) as late_count"),
-                DB::raw('ROUND(AVG(CASE WHEN s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE 0 END), 2) as avg_score')
+                DB::raw('ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2) as avg_score')
             )
             ->groupBy('ca.id', 'ca.title', 'ca.status', 'c.name')
+            ->orderByDesc('submissions_count')
+            ->limit(15)
+            ->get()
+            ->map(fn ($row) => (array) $row)
+            ->all();
+    }
+
+    private function assessmentPerformance(array $range): array
+    {
+        if (! $this->tableExists('assessment_submissions') || ! $this->tableExists('assessments')) {
+            return [];
+        }
+
+        return DB::table('assessments as a')
+            ->leftJoin('classes as c', 'c.id', '=', 'a.class_id')
+            ->join('assessment_submissions as s', 's.assessment_id', '=', 'a.id')
+            ->whereIn('s.status', ['submitted', 'late', 'graded'])
+            ->whereBetween('s.created_at', [$range['from'], $range['to']])
+            ->select(
+                'a.id',
+                'a.title',
+                'a.status',
+                'c.name as class_name',
+                DB::raw('COUNT(s.id) as submissions_count'),
+                DB::raw("SUM(CASE WHEN s.status = 'late' THEN 1 ELSE 0 END) as late_count"),
+                DB::raw('SUM(CASE WHEN s.graded_at IS NULL THEN 1 ELSE 0 END) as pending_review_count'),
+                DB::raw('ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2) as avg_score')
+            )
+            ->groupBy('a.id', 'a.title', 'a.status', 'c.name')
             ->orderByDesc('submissions_count')
             ->limit(15)
             ->get()
@@ -586,9 +666,9 @@ class SuperAdminAnalyticsService
             ->leftJoin('challenges as ch', 'ch.challenge_category_id', '=', 'cc.id')
             ->select(
                 'cc.id',
-                DB::raw('COALESCE(cc.name, cc.slug, "Uncategorized") as level'),
-                DB::raw('COUNT(DISTINCT CASE WHEN ch.is_coding_challenge = 0 THEN ch.id ELSE NULL END) as mcq_count'),
-                DB::raw('COUNT(DISTINCT CASE WHEN ch.is_coding_challenge = 1 THEN ch.id ELSE NULL END) as coding_count')
+                DB::raw("COALESCE(cc.name, cc.slug, 'Uncategorized') as level"),
+                DB::raw('COUNT(DISTINCT CASE WHEN ch.is_active = 1 AND ch.is_coding_challenge = 0 THEN ch.id ELSE NULL END) as mcq_count'),
+                DB::raw('COUNT(DISTINCT CASE WHEN ch.is_active = 1 AND ch.is_coding_challenge = 1 THEN ch.id ELSE NULL END) as coding_count')
             )
             ->groupBy('cc.id', 'cc.name', 'cc.slug')
             ->orderBy('cc.id')
@@ -632,8 +712,8 @@ class SuperAdminAnalyticsService
 
         return DB::table($table)
             ->whereBetween('created_at', [$range['from'], $range['to']])
-            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'), DB::raw('COUNT(*) as total'))
-            ->groupBy(DB::raw('DATE_FORMAT(created_at, "%Y-%m")'))
+            ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as period"), DB::raw('COUNT(*) as total'))
+            ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
             ->orderBy('period')
             ->get()
             ->map(fn ($row) => ['period' => $row->period, 'total' => (int) $row->total])
@@ -663,7 +743,7 @@ class SuperAdminAnalyticsService
         }
 
         $query = DB::table($table)
-            ->select(DB::raw('COALESCE(' . $this->quoteColumn($column) . ', "Unknown") as label'), DB::raw('COUNT(*) as total'))
+            ->select(DB::raw("COALESCE(" . $this->quoteColumn($column) . ", 'Unknown') as label"), DB::raw('COUNT(*) as total'))
             ->groupBy($column)
             ->orderByDesc('total');
 
@@ -722,7 +802,10 @@ class SuperAdminAnalyticsService
 
             $rows = [$columns];
             foreach ($items as $item) {
-                $rows[] = array_map(fn ($column) => $item[$column] ?? '', $columns);
+                $rows[] = array_map(
+                    fn ($column) => $this->safeCsvCell($item[$column] ?? ''),
+                    $columns
+                );
             }
             return $rows;
         }
@@ -752,5 +835,16 @@ class SuperAdminAnalyticsService
     private function quoteColumn(string $column): string
     {
         return '`' . str_replace('`', '``', $column) . '`';
+    }
+
+    private function safeCsvCell(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        return preg_match('/^\s*[=+\-@]/u', $value) === 1 || str_starts_with($value, "\t") || str_starts_with($value, "\r")
+            ? "'" . $value
+            : $value;
     }
 }

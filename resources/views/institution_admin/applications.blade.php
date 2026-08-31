@@ -6,6 +6,7 @@
   <title>DataSensei — Instructor Applications</title>
   @include('partials.brand-head')
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  @include('partials.page-heading-style')
   <style>
     :root {
       --bg:          #0d1320;
@@ -171,7 +172,7 @@
   {{-- ── MAIN ── --}}
   <div class="main">
     <div class="topbar">
-      <h1>Instructor Applications</h1>
+      <h1 class="ds-page-title">Instructor Applications</h1>
       <span class="topbar-meta">{{ now()->format('l, F j, Y') }}</span>
     </div>
 

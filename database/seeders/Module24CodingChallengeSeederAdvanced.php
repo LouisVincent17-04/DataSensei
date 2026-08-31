@@ -12,6 +12,9 @@ class Module24CodingChallengeSeederAdvanced extends Seeder
 {
     public function run(): void
     {
+        $this->command?->warn('This legacy coding seeder is retired because this curriculum module should not publish a coding challenge.');
+        return;
+
         $category = ChallengeCategory::where('slug', 'advanced')->first();
 
         if (! $category) {

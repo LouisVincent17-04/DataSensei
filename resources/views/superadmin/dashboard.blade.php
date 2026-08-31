@@ -119,7 +119,7 @@
 
     {{-- TOPBAR --}}
     <div class="topbar">
-      <h1>Super Admin Dashboard</h1>
+      <h1 class="ds-page-title">Super Admin Dashboard</h1>
       <span class="topbar-meta">{{ now()->format('l, F j, Y') }}</span>
     </div>
 

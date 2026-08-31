@@ -193,7 +193,7 @@
 
     @if(!empty($exceptionalNotifications))
       @foreach($exceptionalNotifications as $notification)
-        <div class="challenge-map-alert" style="background:rgba(245,158,11,0.12); border-bottom-color:rgba(245,158,11,0.35); color:#fbbf24;">
+        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:rgba(245,158,11,0.12); border-bottom-color:rgba(245,158,11,0.35); color:#fbbf24;">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           {{ $notification }}
         </div>

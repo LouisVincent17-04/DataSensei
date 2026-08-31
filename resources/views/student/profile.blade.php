@@ -8,9 +8,6 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <script>
-    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
-  </script>
 
   <style>
     :root {
@@ -27,17 +24,12 @@
     .page-profile-main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:0}
     .page-profile-topbar{height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;gap:16px;flex-shrink:0;z-index:10}
     .page-profile-topbar h1{font-size:1.125rem;font-weight:600;color:var(--text);flex:1}
-    .page-profile-topbar-btn{width:36px;height:36px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:all .15s;position:relative}
-    .page-profile-topbar-btn:hover{color:var(--text);border-color:var(--border-hover)}
-    .page-profile-notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--accent);border-radius:50%;border:2px solid var(--bg)}
     .page-profile-content{flex:1;overflow-y:auto;padding:32px;display:flex;flex-direction:column;gap:24px}
     .page-profile-content-inner{max-width:1100px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:24px}
     .page-profile-header-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column}
     .page-profile-info-section{padding:32px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
     .page-profile-identity{display:flex;align-items:center;gap:24px}
     .page-profile-avatar-large{width:90px;height:90px;border-radius:12px;background:var(--surface2);border:1px solid var(--border-hover);display:flex;align-items:center;justify-content:center;font-size:2.25rem;font-weight:700;color:var(--accent);position:relative;flex-shrink:0}
-    .page-profile-avatar-upload{position:absolute;bottom:-8px;right:-8px;width:30px;height:30px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;transition:all .15s}
-    .page-profile-avatar-upload:hover{background:var(--accent);border-color:var(--accent);color:#fff}
     .page-profile-text h2{font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:4px}
     .page-profile-text p{font-size:.875rem;color:var(--muted)}
     .page-profile-badges{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
@@ -86,52 +78,39 @@
     .page-profile-status-rejected{color:var(--warn);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.1)}
 
 
-    /* ─── Rank Showcase: DataSensei Progression System ───────────────────── */
+    /* ─── Rank Progress ─────────────────────────────────────────────────── */
     .page-profile-info-section{gap:24px;flex-wrap:wrap}
-    .page-profile-rank-showcase{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1;--rank-glow:rgba(148,163,184,.28);position:relative;isolation:isolate;overflow:hidden;min-width:330px;max-width:470px;flex:1;padding:18px;border-radius:24px;border:1px solid color-mix(in srgb,var(--rank-b) 38%,transparent);background:radial-gradient(circle at 12% 0%,rgba(255,255,255,.13),transparent 31%),linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),linear-gradient(135deg,rgba(17,24,39,.94),rgba(15,23,42,.84));box-shadow:0 22px 60px rgba(0,0,0,.34),0 0 38px var(--rank-glow);transform:translateZ(0)}
-    .page-profile-rank-showcase::before{content:"";position:absolute;inset:-2px;background:conic-gradient(from 135deg,transparent 0 12%,var(--rank-a),var(--rank-b),var(--rank-c),transparent 72%);opacity:.55;filter:blur(28px);z-index:-2;animation:rank-orbit 7s linear infinite}
-    .page-profile-rank-showcase::after{content:"";position:absolute;inset:1px;border-radius:23px;background:linear-gradient(135deg,rgba(15,23,42,.82),rgba(17,24,39,.54));z-index:-1}
-    .page-profile-rank-aurora{position:absolute;inset:-80px;background:radial-gradient(circle at 18% 26%,color-mix(in srgb,var(--rank-a) 45%,transparent),transparent 30%),radial-gradient(circle at 82% 18%,color-mix(in srgb,var(--rank-b) 45%,transparent),transparent 28%),radial-gradient(circle at 55% 96%,color-mix(in srgb,var(--rank-c) 36%,transparent),transparent 31%);opacity:.78;filter:blur(12px);animation:rank-aurora 9s ease-in-out infinite alternate;pointer-events:none}
-    .page-profile-rank-shell{position:relative;display:grid;grid-template-columns:82px 1fr;gap:16px;align-items:center}
-    .page-profile-rank-emblem{position:relative;width:82px;height:82px;border-radius:24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,color-mix(in srgb,var(--rank-a) 34%,#020617),color-mix(in srgb,var(--rank-b) 20%,#020617));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -20px 36px rgba(0,0,0,.22),0 14px 30px var(--rank-glow);border:1px solid color-mix(in srgb,var(--rank-c) 48%,transparent)}
-    .page-profile-rank-emblem span{font-size:2rem;font-weight:900;letter-spacing:-.06em;color:#fff;text-shadow:0 0 18px var(--rank-b),0 2px 18px rgba(0,0,0,.65)}
-    .page-profile-rank-emblem::before{content:"";position:absolute;inset:8px;border-radius:18px;border:1px solid rgba(255,255,255,.2)}
-    .page-profile-rank-kicker{font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:color-mix(in srgb,var(--rank-c) 82%,#fff);margin-bottom:4px}
-    .page-profile-rank-title{font-size:1.7rem;font-weight:900;line-height:.95;color:#fff;letter-spacing:-.045em;text-shadow:0 0 26px var(--rank-glow)}
-    .page-profile-rank-subtitle{font-size:.76rem;color:rgba(226,232,240,.78);margin-top:7px;line-height:1.45}
-    .page-profile-rank-progress{position:relative;height:11px;border-radius:999px;background:rgba(2,6,23,.55);border:1px solid rgba(255,255,255,.12);overflow:hidden;margin-top:14px;box-shadow:inset 0 1px 10px rgba(0,0,0,.45)}
-    .page-profile-rank-progress-fill{height:100%;width:var(--rank-progress,0%);border-radius:inherit;background:linear-gradient(90deg,var(--rank-a),var(--rank-b),var(--rank-c));box-shadow:0 0 24px var(--rank-glow);position:relative;transition:width .55s cubic-bezier(.2,.8,.2,1)}
-    .page-profile-rank-progress-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:rank-shimmer 2.8s ease-in-out infinite}
-    .page-profile-rank-foot{display:flex;justify-content:space-between;gap:12px;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:rgba(203,213,225,.8)}
-    .page-profile-rank-foot strong{color:#fff}
-    .rank-tier-1{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1;--rank-glow:rgba(148,163,184,.28)}
-    .rank-tier-2{--rank-a:#0f766e;--rank-b:#14b8a6;--rank-c:#99f6e4;--rank-glow:rgba(20,184,166,.30)}
-    .rank-tier-3{--rank-a:#2563eb;--rank-b:#38bdf8;--rank-c:#bfdbfe;--rank-glow:rgba(56,189,248,.34)}
-    .rank-tier-4{--rank-a:#7c3aed;--rank-b:#a855f7;--rank-c:#ddd6fe;--rank-glow:rgba(168,85,247,.38)}
-    .rank-tier-5{--rank-a:#c026d3;--rank-b:#ec4899;--rank-c:#fbcfe8;--rank-glow:rgba(236,72,153,.42)}
-    .rank-tier-6{--rank-a:#ea580c;--rank-b:#f97316;--rank-c:#fed7aa;--rank-glow:rgba(249,115,22,.44)}
-    .rank-tier-7{--rank-a:#dc2626;--rank-b:#f43f5e;--rank-c:#fecdd3;--rank-glow:rgba(244,63,94,.46)}
-    .rank-tier-8{--rank-a:#f59e0b;--rank-b:#facc15;--rank-c:#fb7185;--rank-glow:rgba(250,204,21,.64)}
-    .page-profile-rank-showcase.rank-tier-8{border-color:rgba(250,204,21,.62);background:radial-gradient(circle at 15% 0%,rgba(254,243,199,.24),transparent 31%),radial-gradient(circle at 88% 12%,rgba(244,63,94,.22),transparent 25%),linear-gradient(135deg,rgba(69,26,3,.88),rgba(15,23,42,.82) 55%,rgba(76,5,25,.76));box-shadow:0 30px 90px rgba(0,0,0,.42),0 0 60px rgba(250,204,21,.34),0 0 110px rgba(244,63,94,.20)}
-    .page-profile-rank-showcase.rank-tier-8 .page-profile-rank-emblem{border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff7ed,#facc15 28%,#f59e0b 52%,#881337 100%);box-shadow:0 0 38px rgba(250,204,21,.52),0 0 84px rgba(251,113,133,.32),inset 0 2px 12px rgba(255,255,255,.44)}
-    .page-profile-rank-showcase.rank-tier-8 .page-profile-rank-emblem::after{content:"✦";position:absolute;right:-6px;top:-10px;font-size:1.25rem;color:#fef3c7;text-shadow:0 0 18px #facc15,18px 22px 0 rgba(254,243,199,.8),-18px 58px 0 rgba(251,113,133,.75)}
+    .page-profile-rank-showcase{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1;min-width:330px;max-width:470px;flex:1;padding:20px;border-radius:var(--radius);border:1px solid color-mix(in srgb,var(--rank-b) 38%,var(--border));background:var(--surface2);box-shadow:0 12px 28px rgba(0,0,0,.18)}
+    .page-profile-rank-shell{display:block}
+    .page-profile-rank-kicker{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+    .page-profile-rank-title{font-size:1.45rem;font-weight:700;line-height:1.15;color:var(--text)}
+    .page-profile-rank-subtitle{font-size:.78rem;color:var(--muted);margin-top:7px;line-height:1.5}
+    .page-profile-rank-progress{height:8px;border-radius:999px;background:var(--bg);border:1px solid var(--border);overflow:hidden;margin-top:16px}
+    .page-profile-rank-progress-fill{height:100%;width:var(--rank-progress,0%);border-radius:inherit;background:var(--rank-b);transition:width .4s ease}
+    .page-profile-rank-foot{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:.7rem;color:var(--muted)}
+    .page-profile-rank-foot strong{color:var(--text)}
+    .rank-tier-1{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1}
+    .rank-tier-2{--rank-a:#0f766e;--rank-b:#14b8a6;--rank-c:#99f6e4}
+    .rank-tier-3{--rank-a:#2563eb;--rank-b:#38bdf8;--rank-c:#bfdbfe}
+    .rank-tier-4{--rank-a:#7c3aed;--rank-b:#a855f7;--rank-c:#ddd6fe}
+    .rank-tier-5{--rank-a:#c026d3;--rank-b:#ec4899;--rank-c:#fbcfe8}
+    .rank-tier-6{--rank-a:#ea580c;--rank-b:#f97316;--rank-c:#fed7aa}
+    .rank-tier-7{--rank-a:#dc2626;--rank-b:#f43f5e;--rank-c:#fecdd3}
+    .rank-tier-8{--rank-a:#b45309;--rank-b:#f59e0b;--rank-c:#fde68a}
     .page-profile-rank-path{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
-    .page-profile-rank-step{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.015));padding:14px;min-height:112px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;isolation:isolate}
-    .page-profile-rank-step::before{content:"";position:absolute;inset:auto -20% -45% -20%;height:72px;background:radial-gradient(circle,color-mix(in srgb,var(--rank-b) 42%,transparent),transparent 66%);opacity:.45;z-index:-1}
-    .page-profile-rank-step.unlocked{border-color:color-mix(in srgb,var(--rank-b) 48%,transparent);box-shadow:0 12px 30px rgba(0,0,0,.18)}
-    .page-profile-rank-step.current{transform:translateY(-2px);border-color:color-mix(in srgb,var(--rank-c) 70%,transparent);box-shadow:0 18px 44px var(--rank-glow)}
-    .page-profile-rank-step.locked{opacity:.52;filter:saturate(.55)}
+    .page-profile-rank-step{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);padding:14px;min-height:108px;transition:border-color .18s ease,background .18s ease}
+    .page-profile-rank-step.unlocked{border-color:color-mix(in srgb,var(--rank-b) 48%,var(--border))}
+    .page-profile-rank-step.current{border-color:var(--rank-b);background:color-mix(in srgb,var(--rank-b) 8%,var(--surface2))}
+    .page-profile-rank-step.locked{opacity:.58}
     .page-profile-rank-step-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
-    .page-profile-rank-step-no{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:rgba(226,232,240,.72)}
-    .page-profile-rank-step-mark{width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--rank-a),var(--rank-b));color:#fff;font-size:.82rem;font-weight:900;box-shadow:0 0 18px var(--rank-glow)}
-    .page-profile-rank-step-name{font-size:.95rem;font-weight:800;color:#fff;margin-bottom:5px}
-    .page-profile-rank-step-exp{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:rgba(203,213,225,.78)}
+    .page-profile-rank-step-no{font-size:.68rem;font-weight:600;letter-spacing:.05em;color:var(--muted)}
+    .page-profile-rank-step-status{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+    .page-profile-rank-step.current .page-profile-rank-step-status{color:var(--rank-b)}
+    .page-profile-rank-step-name{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:5px}
+    .page-profile-rank-step-exp{font-size:.7rem;color:var(--muted)}
     .page-profile-rank-empty{font-size:.82rem;color:var(--muted);line-height:1.6}
-    @keyframes rank-orbit{to{transform:rotate(360deg)}}
-    @keyframes rank-aurora{0%{transform:translate3d(-10px,-6px,0) scale(1)}100%{transform:translate3d(14px,10px,0) scale(1.08)}}
-    @keyframes rank-shimmer{0%,35%{transform:translateX(-100%)}75%,100%{transform:translateX(100%)}}
     @media(max-width:1050px){.page-profile-rank-showcase{order:3;max-width:none;width:100%}.page-profile-stats-row{order:2}}
-    @media(max-width:700px){.page-profile-rank-showcase{min-width:0}.page-profile-rank-shell{grid-template-columns:1fr;text-align:center}.page-profile-rank-emblem{margin:0 auto}.page-profile-rank-foot{flex-direction:column;align-items:center}.page-profile-rank-path{grid-template-columns:1fr}}
+    @media(max-width:700px){.page-profile-rank-showcase{min-width:0}.page-profile-rank-foot{flex-direction:column}.page-profile-rank-path{grid-template-columns:1fr}}
 
     ::-webkit-scrollbar{width:6px;height:6px}
     ::-webkit-scrollbar-track{background:transparent}
@@ -194,17 +173,6 @@
   $rankName = $currentRank->rank_name ?? 'Unranked';
   $rankExpRequired = (int) ($currentRank->exp_required ?? 0);
   $rankXpToNext = $rankXpToNext ?? 0;
-  $rankEmblems = [
-      1 => '△',
-      2 => '◇',
-      3 => '◆',
-      4 => '✦',
-      5 => '✧',
-      6 => '✹',
-      7 => '✺',
-      8 => '✵',
-  ];
-  $rankEmblem = $rankEmblems[$currentRankTier] ?? '◆';
 @endphp
 
 <div class="page-layout-wrapper">
@@ -212,14 +180,7 @@
 
   <div class="page-profile-main">
     <header class="page-profile-topbar">
-      <h1>Account Settings</h1>
-
-      <div class="page-profile-topbar-btn" title="Notifications">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-        </svg>
-        <span class="page-profile-notif-dot"></span>
-      </div>
+      <h1 class="ds-page-title">Account Settings</h1>
     </header>
 
     <main class="page-profile-content">
@@ -242,12 +203,6 @@
             <div class="page-profile-identity">
               <div class="page-profile-avatar-large">
                 {{ strtoupper(substr($currentUser->name ?? 'U', 0, 1)) }}
-
-                <div class="page-profile-avatar-upload" title="Change Avatar">
-                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                  </svg>
-                </div>
               </div>
 
               <div class="page-profile-text">
@@ -267,20 +222,15 @@
 
 
             <div class="page-profile-rank-showcase {{ $rankTierClass }}" style="--rank-progress: {{ $rankProgressPercent }}%;">
-              <div class="page-profile-rank-aurora"></div>
               <div class="page-profile-rank-shell">
-                <div class="page-profile-rank-emblem" aria-hidden="true">
-                  <span>{{ $rankEmblem }}</span>
-                </div>
-
                 <div class="page-profile-rank-details">
-                  <div class="page-profile-rank-kicker">Current Rank • Tier {{ $currentRankPosition }} of {{ $totalRanks }}</div>
+                  <div class="page-profile-rank-kicker">Current Rank · Tier {{ $currentRankPosition }} of {{ $totalRanks }}</div>
                   <div class="page-profile-rank-title">{{ $rankName }}</div>
                   <div class="page-profile-rank-subtitle">
                     @if ($nextRank)
                       Earn {{ number_format($rankXpToNext) }} more XP to reach {{ $nextRank->rank_name }}.
                     @else
-                      You are at the highest DataSensei rank. This is the peak progression design.
+                      You have reached the highest available rank.
                     @endif
                   </div>
 
@@ -289,11 +239,11 @@
                   </div>
 
                   <div class="page-profile-rank-foot">
-                    <span><strong>{{ number_format($currentUser->xp ?? 0) }}</strong> XP owned</span>
+                    <span><strong>{{ number_format($currentUser->xp ?? 0) }}</strong> current XP</span>
                     @if ($nextRank)
-                      <span><strong>{{ number_format($nextRank->exp_required) }}</strong> XP next</span>
+                      <span><strong>{{ number_format($nextRank->exp_required) }}</strong> XP required</span>
                     @else
-                      <span><strong>MAX</strong> rank unlocked</span>
+                      <span><strong>Highest rank</strong></span>
                     @endif
                   </div>
                 </div>
@@ -407,7 +357,7 @@
               <div class="page-profile-card-header">
                 <div>
                   <div class="page-profile-card-title">Rank Progression</div>
-                  <div class="page-profile-card-subtitle">These are ranks, not trophies. Your total XP automatically determines the highest rank you qualify for.</div>
+                  <div class="page-profile-card-subtitle">Your total XP determines the highest rank you currently qualify for.</div>
                 </div>
               </div>
 
@@ -420,13 +370,12 @@
                         $isUnlockedRank = (int) ($currentUser->xp ?? 0) >= (int) $rank->exp_required;
                         $isCurrentRank = $currentRank && (int) $currentRank->rank_id === $rankTier;
                         $stepClass = $isCurrentRank ? 'current' : ($isUnlockedRank ? 'unlocked' : 'locked');
-                        $stepEmblem = $rankEmblems[$rankTier] ?? '◆';
                       @endphp
 
                       <div class="page-profile-rank-step rank-tier-{{ max(1, min(8, $rankTier)) }} {{ $stepClass }}">
                         <div class="page-profile-rank-step-top">
-                          <span class="page-profile-rank-step-no">TIER {{ $rankTier }}</span>
-                          <span class="page-profile-rank-step-mark">{{ $stepEmblem }}</span>
+                          <span class="page-profile-rank-step-no">Tier {{ $rankTier }}</span>
+                          <span class="page-profile-rank-step-status">{{ $isCurrentRank ? 'Current' : ($isUnlockedRank ? 'Unlocked' : 'Locked') }}</span>
                         </div>
                         <div class="page-profile-rank-step-name">{{ $rank->rank_name }}</div>
                         <div class="page-profile-rank-step-exp">{{ number_format($rank->exp_required) }} XP required</div>
@@ -671,17 +620,17 @@
             <div class="page-profile-card">
               <div class="page-profile-card-header">
                 <div>
-                  <div class="page-profile-card-title">Danger Zone</div>
-                  <div class="page-profile-card-subtitle">Permanent account actions.</div>
+                  <div class="page-profile-card-title">Deactivate Account</div>
+                  <div class="page-profile-card-subtitle">Disable access while preserving your academic records.</div>
                 </div>
               </div>
 
               <div class="page-profile-card-body">
                 <p class="page-profile-danger-note">
-                  If you delete your account, all your progress, IDE saves, and code submissions will be permanently lost.
+                  Deactivation signs you out and blocks future login. Your grades, submissions, progress, and class history are kept for academic record integrity. An administrator can restore access when appropriate.
                 </p>
 
-                <form action="{{ route('profile.delete') }}" method="POST" onsubmit="return confirm('Are you sure you want to delete your account? This action cannot be undone.');">
+                <form action="{{ route('profile.delete') }}" method="POST" onsubmit="return confirm('Deactivate your account and sign out now? Your academic history will be preserved.');">
                   @csrf
                   @method('DELETE')
 
@@ -690,7 +639,7 @@
                     <input
                       type="password"
                       name="delete_password"
-                      placeholder="Enter password to delete account"
+                      placeholder="Enter password to deactivate account"
                       required
                     >
 
@@ -700,7 +649,7 @@
                   </div>
 
                   <button type="submit" class="page-profile-btn page-profile-btn-danger">
-                    Delete Account
+                    Deactivate Account
                   </button>
                 </form>
               </div>

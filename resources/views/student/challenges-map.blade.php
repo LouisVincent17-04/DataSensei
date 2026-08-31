@@ -174,7 +174,7 @@
   <div class="challenge-map-main">
 
     <div class="challenge-map-topbar">
-      <h1 class="challenge-map-topbar-title">
+      <h1 class="challenge-map-topbar-title ds-page-title">
         {{ $category->name }} Path
         <small>{{ $challenges->count() }} modules</small>
       </h1>
@@ -197,7 +197,7 @@
 
     @if(!empty($exceptionalNotifications))
       @foreach($exceptionalNotifications as $notification)
-        <div class="challenge-map-alert" style="background:rgba(245,158,11,0.12); border-bottom-color:rgba(245,158,11,0.35); color:#fbbf24;">
+        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:rgba(245,158,11,0.12); border-bottom-color:rgba(245,158,11,0.35); color:#fbbf24;">
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>
@@ -336,6 +336,11 @@
 
                 @if($state === 'completed')
                   <div class="challenge-map-node-status" style="color: var(--accent3); margin-bottom: 8px;">Challenge Completed</div>
+                  @if(isset($latestResultAttemptIds[$ch->id]))
+                    <a href="{{ route('challenges.quiz.result', ['slug' => $slug, 'challenge' => $ch->id, 'attempt' => $latestResultAttemptIds[$ch->id]]) }}" class="challenge-map-btn-start">
+                      View Results & History
+                    </a>
+                  @endif
                   <a href="{{ route('challenges.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}" class="challenge-map-btn-retry">
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -351,6 +356,11 @@
                     </svg>
                     {{ $hasActiveAttempt ? 'Resume Attempt' : 'Try Again' }}
                   </a>
+                  @if(isset($latestResultAttemptIds[$ch->id]))
+                    <a href="{{ route('challenges.quiz.result', ['slug' => $slug, 'challenge' => $ch->id, 'attempt' => $latestResultAttemptIds[$ch->id]]) }}" class="challenge-map-btn-retry">
+                      View Results & History
+                    </a>
+                  @endif
 
                 @elseif($state === 'active')
                   <a href="{{ route('challenges.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}" class="challenge-map-btn-start">
@@ -359,6 +369,11 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                     </svg>
                   </a>
+                  @if(isset($latestResultAttemptIds[$ch->id]))
+                    <a href="{{ route('challenges.quiz.result', ['slug' => $slug, 'challenge' => $ch->id, 'attempt' => $latestResultAttemptIds[$ch->id]]) }}" class="challenge-map-btn-retry">
+                      View Results & History
+                    </a>
+                  @endif
 
                 @else
                   <div class="challenge-map-node-status">Complete prior modules to unlock</div>

@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    'default' => env('QUEUE_CONNECTION', 'sync'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,6 +42,18 @@ return [
             'queue' => env('DB_QUEUE', 'default'),
             'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
             'after_commit' => false,
+        ],
+
+        // Long-running, isolated machine-learning queue. The retry window is
+        // intentionally longer than the worker timeout to prevent duplicate
+        // execution of the same training job.
+        'machine_learning' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => env('ML_QUEUE_NAME', 'machine-learning'),
+            'retry_after' => (int) env('ML_QUEUE_RETRY_AFTER', 1200),
+            'after_commit' => true,
         ],
 
         'beanstalkd' => [
@@ -84,8 +96,8 @@ return [
         'failover' => [
             'driver' => 'failover',
             'connections' => [
-                'database',
                 'deferred',
+                'sync',
             ],
         ],
 
@@ -121,7 +133,7 @@ return [
     */
 
     'failed' => [
-        'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
+        'driver' => env('QUEUE_FAILED_DRIVER', 'null'),
         'database' => env('DB_CONNECTION', 'sqlite'),
         'table' => 'failed_jobs',
     ],

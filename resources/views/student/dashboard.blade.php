@@ -1,828 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DataSensei — Student Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script>
-    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
-</script>
   <style>
-    :root {
-      --bg:          #0d1320;
-      --surface:     #111c2d;
-      --surface2:    #1a2638;
-      --border:      #1e2f47;
-      --border-hover:#2c4168;
-      --accent:      #3b82f6;
-      --accent-hover:#2563eb;
-      --accent2:     #8b5cf6;
-      --accent3:     #10b981;
-      --accent4:     #f59e0b;
-      --warn:        #ef4444;
-      --text:        #fafafa;
-      --muted:       #7f93b0;
-      --dim:         #3d5272;
-      --radius:      8px;
-      --radius-sm:   6px;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* ── MAIN ── */
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-    /* ── TOPBAR ── */
-    .topbar {
-      height: 64px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 32px;
-      gap: 16px;
-      flex-shrink: 0;
-    }
-
-    .topbar h1 {
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: var(--text);
-      flex: 1;
-      letter-spacing: -0.01em;
-    }
-
-    .topbar-search {
-      display: flex;
-      align-items: center;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 12px;
-      gap: 10px;
-      width: 260px;
-      transition: border-color 0.15s;
-    }
-
-    .topbar-search:focus-within { border-color: var(--accent); }
-
-    .topbar-search input {
-      background: none; border: none; outline: none;
-      color: var(--text); font-size: 0.875rem; font-family: inherit; width: 100%;
-    }
-
-    .topbar-search input::placeholder { color: var(--dim); }
-
-    .topbar-btn {
-      width: 36px; height: 36px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--muted);
-      transition: all 0.15s; position: relative;
-    }
-
-    .topbar-btn:hover { color: var(--text); border-color: var(--border-hover); }
-
-    .notif-dot {
-      position: absolute; top: -2px; right: -2px;
-      width: 8px; height: 8px;
-      background: var(--accent);
-      border-radius: 50%;
-      border: 2px solid var(--bg);
-    }
-
-    /* ── CONTENT ── */
-    .content {
-      flex: 1; overflow-y: auto;
-      padding: 32px;
-      display: flex; flex-direction: column; gap: 24px;
-    }
-
-    /* ── WELCOME BANNER ── */
-    .welcome-banner {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--accent);
-      border-radius: var(--radius);
-      padding: 28px 32px;
-      display: flex; align-items: center;
-      justify-content: space-between; gap: 24px;
-    }
-
-    .welcome-text h2 {
-      font-size: 1.5rem; font-weight: 700;
-      color: var(--text); line-height: 1.2;
-      margin-bottom: 8px; letter-spacing: -0.02em;
-    }
-
-    .welcome-text p {
-      font-size: 0.875rem; color: var(--muted);
-      max-width: 500px; line-height: 1.5;
-    }
-
-    .welcome-cta { display: flex; gap: 12px; margin-top: 20px; }
-
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      gap: 8px; padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 0.875rem; font-weight: 500;
-      cursor: pointer; border: 1px solid transparent;
-      transition: all 0.15s; font-family: inherit;
-    }
-
-    .btn-primary  { background: var(--text); color: var(--bg); }
-    .btn-primary:hover { background: #e4e4e7; }
-    .btn-ghost    { background: var(--surface2); color: var(--text); border-color: var(--border); }
-    .btn-ghost:hover  { background: var(--border); }
-
-    /* ── STAT CARDS ── */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      display: flex; flex-direction: column; gap: 16px;
-      transition: border-color 0.2s;
-    }
-
-    .stat-card:hover { border-color: var(--border-hover); }
-
-    .stat-header { display: flex; align-items: center; justify-content: space-between; }
-
-    .stat-title { font-size: 0.875rem; font-weight: 500; color: var(--muted); }
-
-    .stat-icon {
-      width: 32px; height: 32px;
-      border-radius: var(--radius-sm);
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--text);
-    }
-
-    .stat-main { display: flex; align-items: baseline; gap: 8px; }
-
-    .stat-value {
-      font-size: 1.75rem; font-weight: 600;
-      color: var(--text); line-height: 1;
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .stat-bar {
-      height: 4px; background: var(--surface2);
-      border-radius: 4px; overflow: hidden; margin-top: auto;
-    }
-
-    .stat-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
-
-    /* ── GRIDS ── */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-
-    /* ── CARD ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      display: flex; flex-direction: column;
-    }
-
-    .card-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-
-    .card-title  { font-weight: 600; font-size: 1rem; color: var(--text); }
-    .card-subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-    .card-body   { padding: 24px; flex: 1; }
-
-    .link-sm {
-      font-size: 0.875rem; font-weight: 500;
-      color: var(--muted); cursor: pointer; text-decoration: none;
-      transition: color 0.15s;
-    }
-    .link-sm:hover { color: var(--text); }
-
-    /* ── MODULES ── */
-    .module-list { display: flex; flex-direction: column; gap: 20px; }
-    .module-item { display: flex; align-items: center; gap: 16px; }
-
-    .module-icon {
-      width: 40px; height: 40px;
-      border-radius: var(--radius-sm);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; font-size: 1rem;
-    }
-
-    .module-info { flex: 1; min-width: 0; }
-
-    .module-name {
-      font-size: 0.875rem; font-weight: 500; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-
-    .module-meta { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-
-    .module-progress {
-      display: flex; flex-direction: column;
-      align-items: flex-end; gap: 6px; min-width: 80px;
-    }
-
-    .module-pct {
-      font-size: 0.875rem; font-weight: 600;
-      color: var(--text); font-variant-numeric: tabular-nums;
-    }
-
-    .prog-bar {
-      width: 80px; height: 6px;
-      background: var(--surface2); border-radius: 4px; overflow: hidden;
-    }
-
-    .prog-fill { height: 100%; border-radius: 4px; transition: width 1.2s ease; }
-
-    /* ── ACTIVITY ── */
-    .activity-list { display: flex; flex-direction: column; gap: 20px; }
-
-    .activity-item {
-      display: flex; gap: 16px; position: relative;
-    }
-
-    .activity-item:not(:last-child)::after {
-      content: ''; position: absolute;
-      top: 24px; left: 7px; bottom: -20px;
-      width: 1px; background: var(--border);
-    }
-
-    .activity-dot {
-      width: 15px; height: 15px; border-radius: 50%;
-      background: var(--surface);
-      border: 3px solid var(--border);
-      margin-top: 3px; flex-shrink: 0;
-      position: relative; z-index: 1;
-    }
-
-    .activity-dot.completed { border-color: var(--accent3); }
-    .activity-dot.action   { border-color: var(--accent); }
-    .activity-dot.warning  { border-color: var(--accent4); }
-    .activity-dot.purple   { border-color: var(--accent2); }
-
-    .activity-content { flex: 1; }
-    .activity-title { font-size: 0.875rem; color: var(--text); line-height: 1.5; }
-    .activity-title strong { font-weight: 600; }
-    .activity-time { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-
-    /* ── CHALLENGES ── */
-    .challenge-list { display: flex; flex-direction: column; gap: 12px; }
-
-    .challenge-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      display: flex; align-items: center; gap: 16px;
-      cursor: pointer; transition: border-color 0.15s;
-    }
-
-    .challenge-card:hover { border-color: var(--border-hover); }
-
-    .challenge-diff {
-      padding: 4px 8px; border-radius: 4px;
-      font-size: 0.6875rem; font-weight: 600;
-      letter-spacing: 0.05em; flex-shrink: 0;
-    }
-
-    .diff-easy   { background: rgba(16,185,129,0.1); color: var(--accent3); }
-    .diff-medium { background: rgba(245,158,11,0.1); color: var(--accent4); }
-    .diff-hard   { background: rgba(239,68,68,0.1);  color: var(--warn); }
-
-    .challenge-info { flex: 1; }
-    .challenge-name { font-size: 0.875rem; font-weight: 500; color: var(--text); }
-    .challenge-meta { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-    .challenge-pts  { font-weight: 600; font-size: 0.875rem; color: var(--text); }
-
-    /* ── CHART ── */
-    .chart-wrap { padding: 4px 0 0; }
-    .chart-svg  { width: 100%; height: 160px; display: block; }
-
-    .chart-legend { display: flex; gap: 20px; margin-top: 20px; justify-content: center; }
-
-    .legend-item {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 0.75rem; font-weight: 500; color: var(--muted);
-    }
-
-    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
-
-    /* ── LEADERBOARD ── */
-    .lb-list { display: flex; flex-direction: column; gap: 4px; }
-
-    .lb-item {
-      display: flex; align-items: center; gap: 16px;
-      padding: 10px 12px; border-radius: var(--radius-sm);
-      transition: background 0.15s;
-    }
-
-    .lb-item:hover { background: var(--surface2); }
-
-    .lb-item.you {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-    }
-
-    .lb-rank {
-      font-weight: 600; font-size: 0.875rem;
-      width: 20px; text-align: center;
-      flex-shrink: 0; color: var(--muted);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .lb-rank.gold   { color: #f59e0b; }
-    .lb-rank.silver { color: #a1a1aa; }
-    .lb-rank.bronze { color: #cd7c3a; }
-
-    .lb-avatar {
-      width: 30px; height: 30px;
-      border-radius: var(--radius-sm);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.7rem; font-weight: 600; flex-shrink: 0;
-    }
-
-    .lb-name {
-      flex: 1; font-size: 0.875rem;
-      font-weight: 500; color: var(--text);
-      display: flex; align-items: center; gap: 8px;
-    }
-
-    .lb-you-tag {
-      font-size: 0.65rem;
-      background: var(--accent); color: #fff;
-      border-radius: 4px; padding: 2px 6px; font-weight: 600;
-    }
-
-    .lb-pts {
-      font-weight: 500; font-size: 0.875rem;
-      color: var(--muted); font-variant-numeric: tabular-nums;
-    }
-
-    /* ── DEADLINES ── */
-    .deadline-list { display: flex; flex-direction: column; gap: 16px; }
-    .deadline-item { display: flex; align-items: center; gap: 16px; }
-
-    .deadline-date {
-      text-align: center; width: 48px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 0; flex-shrink: 0;
-    }
-
-    .deadline-day {
-      font-weight: 600; font-size: 1rem;
-      color: var(--text); line-height: 1;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .deadline-month {
-      font-size: 0.6875rem; font-weight: 500;
-      color: var(--muted); text-transform: uppercase; margin-top: 4px;
-    }
-
-    .deadline-info { flex: 1; }
-    .deadline-title { font-size: 0.875rem; font-weight: 500; color: var(--text); }
-    .deadline-sub   { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-
-    .deadline-pill {
-      font-size: 0.6875rem; font-weight: 600;
-      padding: 3px 8px; border-radius: 4px; flex-shrink: 0;
-    }
-
-    .pill-urgent { background: rgba(239,68,68,0.1);  color: var(--warn); }
-    .pill-soon   { background: rgba(245,158,11,0.1); color: var(--accent4); }
-    .pill-ok     { background: rgba(16,185,129,0.1); color: var(--accent3); }
-
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 1100px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
-    @media (max-width: 900px)  { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
-    @media (max-width: 700px)  {
-      .stats-row { grid-template-columns: 1fr; }
-      .welcome-banner { flex-direction: column; align-items: flex-start; }
-    }
+    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;--text:#fafafa;--muted:#8ca0bb;--accent:#3b82f6;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--radius:10px}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}.main{flex:1;min-width:0}.topbar{height:64px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}.topbar h1{font-size:1.05rem;margin:0}.profile-link,.link{color:var(--muted);text-decoration:none}.profile-link:hover,.link:hover{color:var(--text)}.content{padding:28px;display:grid;gap:22px}.welcome,.card,.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}.welcome{padding:24px 26px;border-left:4px solid var(--accent);display:flex;justify-content:space-between;gap:20px;align-items:center}.welcome h2{margin:0 0 6px;font-size:1.45rem}.welcome p,.muted{color:var(--muted)}.welcome p{margin:0;line-height:1.5}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);text-decoration:none;font-weight:650;font-size:.84rem}.btn.primary{background:var(--text);color:var(--bg)}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}.stat{padding:18px}.stat .label{color:var(--muted);font-size:.78rem}.stat strong{display:block;font-size:1.65rem;margin-top:10px}.stat small{display:block;color:var(--muted);margin-top:5px}.grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.8fr);gap:22px}.stack{display:grid;gap:22px}.card-head{padding:17px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:16px;align-items:center}.card-head h3{font-size:.96rem;margin:0}.card-body{padding:18px 20px}.module-list,.activity-list,.challenge-list,.rank-list,.deadline-list{display:grid;gap:11px}.module,.challenge,.rank,.deadline,.activity{border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:13px 14px}.module{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}.module-title,.item-title{font-weight:700;font-size:.88rem}.meta{font-size:.76rem;color:var(--muted);margin-top:4px;line-height:1.45}.progress{height:6px;width:110px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-top:7px}.progress span{display:block;height:100%;background:var(--accent)}.challenge,.deadline{display:flex;justify-content:space-between;align-items:center;gap:14px;color:inherit;text-decoration:none}.challenge:hover,.deadline:hover{border-color:#35517a}.pill{display:inline-flex;padding:4px 7px;border-radius:999px;background:var(--surface2);color:var(--muted);font-size:.69rem;font-weight:700;text-transform:uppercase}.pill.green{color:#79e6bb}.pill.amber{color:#f8ca75}.rank{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center}.rank.you{border-color:var(--accent)}.rank-no{font-weight:800;color:var(--muted)}.rank-xp{font-size:.78rem;color:var(--muted)}.activity{display:grid;grid-template-columns:auto 1fr;gap:11px}.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);margin-top:5px}.empty{padding:18px;border:1px dashed var(--border);border-radius:8px;color:var(--muted);font-size:.84rem;text-align:center}.current-rank{margin-top:12px;color:var(--muted);font-size:.8rem}.flash{padding:12px 14px;border-radius:8px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#a7f3d0}@media(max-width:1200px){.stats{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}}@media(max-width:760px){.content{padding:18px}.topbar{padding:0 18px}.stats{grid-template-columns:1fr 1fr}.welcome{align-items:flex-start;flex-direction:column}}@media(max-width:480px){.stats{grid-template-columns:1fr}.challenge,.deadline{align-items:flex-start;flex-direction:column}.module{grid-template-columns:1fr}.progress{width:100%}}
   </style>
 </head>
 <body>
-
   @include('partials.sidebar')
-
   <div class="main">
-
     <header class="topbar">
-      <h1>Overview</h1>
-      <div class="topbar-search">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" placeholder="Search resources, modules..." />
-      </div>
-      <div class="topbar-btn">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        <span class="notif-dot"></span>
-      </div>
-      <div class="topbar-btn">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-      </div>
+      <h1 class="ds-page-title">Student Dashboard</h1>
+      <a class="profile-link" href="{{ route('profile') }}">{{ $user->name }}</a>
     </header>
 
     <main class="content">
+      @if (session('success'))
+        <div class="flash" role="status">{{ session('success') }}</div>
+      @endif
 
-      @php 
-      
-        $modulesCompleted = DB::table('module_user')->where('user_id', Auth::id())->count(); 
-        $totalModules = DB::table('modules')->count();
-        $moduleProgress = $totalModules > 0 ? round(($modulesCompleted / $totalModules) * 100) : 0;
-      
-      @endphp
-
-      <section class="welcome-banner">
-        <div class="welcome-text">
-          @auth
-            <h2>Welcome back, {{ Auth::user()->name }}!</h2>
-          @else
-            <h2>Welcome back, User!</h2>
-          @endauth
-          <p>You're making steady progress on your data science curriculum. Review your open challenges or jump back into the active module.</p>
-          <div class="welcome-cta">
-            <button class="btn btn-primary">Resume Module</button>
-            <button class="btn btn-ghost" onclick="window.location.href='/ide'">Open IDE Workspace</button>
-          </div>
+      <section class="welcome">
+        <div>
+          <h2>Welcome back, {{ $user->name }}.</h2>
+          <p>Your dashboard now reflects saved coursework, challenge attempts, and tracked activity.</p>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="{{ route('modules.index') }}">Continue learning</a>
+          <a class="btn" href="{{ route('ide.index') }}">Open Python IDE</a>
+          <a class="btn" href="{{ route('student.competencies.index') }}">Skills Competencies</a>
         </div>
       </section>
 
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Modules Completed</span>
-            <div class="stat-icon">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+      <section class="stats" aria-label="Learning summary">
+        <div class="stat"><span class="label">Modules completed</span><strong>{{ $stats['completed_modules'] }}</strong><small>of {{ $stats['total_modules'] }}</small></div>
+        <div class="stat"><span class="label">Average score</span><strong>{{ $stats['average_score'] }}%</strong><small>graded and ranked work</small></div>
+        <div class="stat"><span class="label">Challenges passed</span><strong>{{ $stats['passed_challenges'] }}</strong><small>ranked, at least 70%</small></div>
+        <div class="stat"><span class="label">Tracked activity</span><strong>{{ $stats['tracked_minutes'] }}</strong><small>minutes in challenges and runs</small></div>
+        <div class="stat"><span class="label">Experience</span><strong>{{ number_format((int) $user->xp) }}</strong><small>{{ (int) $user->streak }} day streak</small></div>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <article class="card">
+            <div class="card-head"><h3>Learning modules</h3><a class="link" href="{{ route('modules.index') }}">View all →</a></div>
+            <div class="card-body module-list">
+              @forelse ($learningModules as $module)
+                <div class="module">
+                  <div>
+                    <div class="module-title">{{ $module['title'] }}</div>
+                    <div class="meta">{{ $module['completed_lessons'] }} of {{ $module['total_lessons'] }} lessons · {{ $module['is_completed'] ? 'Completed' : ($module['is_unlocked'] ? 'Available' : 'Locked') }}</div>
+                    <div class="progress" aria-label="{{ $module['progress'] }} percent complete"><span style="width:{{ $module['progress'] }}%"></span></div>
+                  </div>
+                  @if ($module['is_unlocked'])
+                    <a class="btn" href="{{ route('lesson.show', ['module' => $module['id']]) }}">Open</a>
+                  @else
+                    <span class="pill">Locked</span>
+                  @endif
+                </div>
+              @empty
+                <div class="empty">No curriculum modules are available yet.</div>
+              @endforelse
             </div>
-          </div>
-          <div class="stat-main">
-            <span class="stat-value">@php echo $modulesCompleted."(".$moduleProgress."%)"; @endphp</span>
-          </div>
-          <div class="stat-bar"><div class="stat-bar-fill" style="width:<?php echo $moduleProgress; ?>%;background:var(--accent)"></div></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h3>Open challenges</h3><a class="link" href="{{ route('challenges') }}">All challenges →</a></div>
+            <div class="card-body challenge-list">
+              @forelse ($openChallenges as $challenge)
+                @php
+                  $challengeUrl = $challenge->is_coding_challenge
+                    ? route('challenges.coding.quiz', ['slug' => $challenge->category->slug, 'challenge' => $challenge])
+                    : route('challenges.quiz', ['slug' => $challenge->category->slug, 'challenge' => $challenge]);
+                  $questionCount = $challenge->is_coding_challenge ? $challenge->coding_questions_count : $challenge->questions_count;
+                @endphp
+                <a class="challenge" href="{{ $challengeUrl }}">
+                  <div><div class="item-title">{{ $challenge->title }}</div><div class="meta">{{ $challenge->category->name }} · {{ $questionCount }} {{ Str::plural('question', $questionCount) }}</div></div>
+                  <span class="pill {{ $challenge->is_coding_challenge ? 'amber' : 'green' }}">{{ $challenge->is_coding_challenge ? 'Coding' : 'MCQ' }} · {{ $challenge->base_xp }} XP</span>
+                </a>
+              @empty
+                <div class="empty">No unlocked challenges are pending.</div>
+              @endforelse
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h3>Recent activity</h3><a class="link" href="{{ route('student.analytics.index') }}">Analytics →</a></div>
+            <div class="card-body activity-list">
+              @forelse ($recentActivity as $activity)
+                <div class="activity"><span class="dot"></span><div><div class="item-title">{{ $activity['type'] }} · {{ $activity['title'] }}</div><div class="meta">{{ $activity['detail'] }} · {{ $activity['at']->diffForHumans() }}</div></div></div>
+              @empty
+                <div class="empty">Completed work will appear here.</div>
+              @endforelse
+            </div>
+          </article>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Average Score</span>
-            <div class="stat-icon">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div class="stack">
+          <article class="card">
+            <div class="card-head"><h3>Leaderboard</h3><a class="link" href="{{ route('student.leaderboard.index') }}">Full board →</a></div>
+            <div class="card-body rank-list">
+              @forelse ($leaderboard as $leader)
+                <div class="rank {{ $leader->id === $user->id ? 'you' : '' }}">
+                  <span class="rank-no">{{ $loop->iteration }}</span>
+                  <span>{{ $leader->name }} @if ($leader->id === $user->id)<span class="pill green">You</span>@endif</span>
+                  <span class="rank-xp">{{ number_format((int) $leader->xp) }} XP</span>
+                </div>
+              @empty
+                <div class="empty">No ranked learners yet.</div>
+              @endforelse
+              <div class="current-rank">Your current XP rank: #{{ $currentRank }}</div>
             </div>
-          </div>
-          <div class="stat-main">
-            <span class="stat-value">87%</span>
-          </div>
-          <div class="stat-bar"><div class="stat-bar-fill" style="width:87%;background:var(--accent3)"></div></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><h3>Upcoming deadlines</h3><a class="link" href="{{ route('student.assignments.index') }}">Coursework →</a></div>
+            <div class="card-body deadline-list">
+              @forelse ($upcomingDeadlines as $deadline)
+                <a class="deadline" href="{{ $deadline['url'] }}">
+                  <div><div class="item-title">{{ $deadline['title'] }}</div><div class="meta">{{ $deadline['type'] }}{{ $deadline['class_name'] ? ' · '.$deadline['class_name'] : '' }}</div></div>
+                  <span class="pill amber">{{ $deadline['due_at']->format('M j, g:i A') }}</span>
+                </a>
+              @empty
+                <div class="empty">No published deadlines are upcoming.</div>
+              @endforelse
+            </div>
+          </article>
         </div>
-
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Challenges Solved</span>
-            <div class="stat-icon">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-          </div>
-          <div class="stat-main">
-            <span class="stat-value">142</span>
-          </div>
-          <div class="stat-bar"><div class="stat-bar-fill" style="width:71%;background:var(--accent2)"></div></div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Total Study Time</span>
-            <div class="stat-icon">
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-          </div>
-          <div class="stat-main">
-            <span class="stat-value">38h</span>
-          </div>
-          <div class="stat-bar"><div class="stat-bar-fill" style="width:55%;background:var(--accent4)"></div></div>
-        </div>
-      </div>
-
-      <div class="grid-2">
-
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Learning Modules</div>
-              <div class="card-subtitle">Your progress across all 8 modules</div>
-            </div>
-            <a href="#" class="link-sm">View All →</a>
-          </div>
-          <div class="card-body">
-            <div class="module-list">
-              <div class="module-item">
-                <div class="module-info">
-                  <div class="module-name">No Active Module</div>
-                  <div class="module-meta">Go To Modules</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Recent Activity</div>
-              <div class="card-subtitle">Your latest learning events</div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="activity-list">
-              <div class="activity-item">
-                <div class="activity-dot completed"></div>
-                <div class="activity-content">
-                  <div class="activity-title">Completed <strong>Data Cleaning with Pandas</strong> — scored 94%</div>
-                  <div class="activity-time">2 hours ago</div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-dot action"></div>
-                <div class="activity-content">
-                  <div class="activity-title">Ran Python notebook in the <strong>Online IDE</strong> — no errors</div>
-                  <div class="activity-time">3 hours ago</div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-dot warning"></div>
-                <div class="activity-content">
-                  <div class="activity-title">Attempted challenge: <strong>EDA on Housing Dataset</strong></div>
-                  <div class="activity-time">Yesterday, 8:45 PM</div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-dot purple"></div>
-                <div class="activity-content">
-                  <div class="activity-title">Received AI feedback on <strong>K-Means Clustering</strong> submission</div>
-                  <div class="activity-time">Yesterday, 6:12 PM</div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-dot completed"></div>
-                <div class="activity-content">
-                  <div class="activity-title">Completed quiz: <strong>Descriptive Statistics Basics</strong> — 10/10</div>
-                  <div class="activity-time">2 days ago</div>
-                </div>
-              </div>
-              <div class="activity-item">
-                <div class="activity-dot"></div>
-                <div class="activity-content">
-                  <div class="activity-title">Enrolled in <strong>Automated Grading Module</strong></div>
-                  <div class="activity-time">3 days ago</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="grid-3">
-
-        <div style="display:flex;flex-direction:column;gap:24px;">
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Weekly Activity</div>
-                <div class="card-subtitle">Challenges solved &amp; study time</div>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="chart-wrap">
-                <svg class="chart-svg" viewBox="0 0 560 160" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stop-color="#3b82f6" stop-opacity="0.15"/>
-                      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
-                    </linearGradient>
-                    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stop-color="#8b5cf6" stop-opacity="0.12"/>
-                      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
-                    </linearGradient>
-                  </defs>
-                  <line x1="0" y1="120" x2="560" y2="120" stroke="#1e2f47" stroke-width="1"/>
-                  <line x1="0" y1="90"  x2="560" y2="90"  stroke="#1e2f47" stroke-width="1"/>
-                  <line x1="0" y1="60"  x2="560" y2="60"  stroke="#1e2f47" stroke-width="1"/>
-                  <line x1="0" y1="30"  x2="560" y2="30"  stroke="#1e2f47" stroke-width="1"/>
-                  <path d="M20,100 L100,70 L180,85 L260,35 L340,55 L420,28 L500,45 L540,40 L540,120 L20,120 Z" fill="url(#g1)"/>
-                  <path d="M20,110 L100,95 L180,100 L260,70 L340,82 L420,62 L500,72 L540,68 L540,120 L20,120 Z" fill="url(#g2)"/>
-                  <polyline points="20,100 100,70 180,85 260,35 340,55 420,28 500,45 540,40" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
-                  <polyline points="20,110 100,95 180,100 260,70 340,82 420,62 500,72 540,68" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5,3"/>
-                  <circle cx="260" cy="35" r="4" fill="#3b82f6"/>
-                  <circle cx="420" cy="28" r="4" fill="#3b82f6"/>
-                  <text x="20"  y="148" fill="#3d5272" font-size="11" font-family="Inter,sans-serif" text-anchor="middle">Mon</text>
-                  <text x="100" y="148" fill="#3d5272" font-size="11" font-family="Inter,sans-serif" text-anchor="middle">Tue</text>
-                  <text x="180" y="148" fill="#3d5272" font-size="11" font-family="Inter,sans-serif" text-anchor="middle">Wed</text>
-                  <text x="260" y="148" fill="#3d5272" font-size="11" font-family="Inter,sans-serif" text-anchor="middle">Thu</text>
-                  <text x="340" y="148" fill="#3d5272" font-size="11" font-family="Inter,sans-serif" text-anchor="middle">Fri</text>
-                  <text x="420" y="148" fill="#3d5272" font-size="11" font-family="Inter,sans-serif" text-anchor="middle">Sat</text>
-                  <text x="500" y="148" fill="#3d5272" font-size="11" font-family="Inter,sans-serif" text-anchor="middle">Sun</text>
-                </svg>
-              </div>
-              <div class="chart-legend">
-                <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Challenges</div>
-                <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div>Study Time</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Open Challenges</div>
-                <div class="card-subtitle">Pending for you right now</div>
-              </div>
-              <a href="#" class="link-sm">All →</a>
-            </div>
-            <div class="card-body">
-              <div class="challenge-list">
-                <div class="challenge-card">
-                  <span class="challenge-diff diff-easy">EASY</span>
-                  <div class="challenge-info">
-                    <div class="challenge-name">Basic EDA on Titanic Dataset</div>
-                    <div class="challenge-meta">pandas · seaborn · ~45 min</div>
-                  </div>
-                  <span class="challenge-pts">+50 pts</span>
-                </div>
-                <div class="challenge-card">
-                  <span class="challenge-diff diff-medium">MEDIUM</span>
-                  <div class="challenge-info">
-                    <div class="challenge-name">Build a Linear Regression Model</div>
-                    <div class="challenge-meta">scikit-learn · ~90 min</div>
-                  </div>
-                  <span class="challenge-pts">+120 pts</span>
-                </div>
-                <div class="challenge-card">
-                  <span class="challenge-diff diff-hard">HARD</span>
-                  <div class="challenge-info">
-                    <div class="challenge-name">Implement K-Means from Scratch</div>
-                    <div class="challenge-meta">numpy · matplotlib · ~2 hr</div>
-                  </div>
-                  <span class="challenge-pts">+250 pts</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:24px;">
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Leaderboard</div>
-                <div class="card-subtitle">Top students this month</div>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="lb-list">
-                <div class="lb-item">
-                  <span class="lb-rank gold">1</span>
-                  <div class="lb-avatar">MR</div>
-                  <span class="lb-name">Maria R.</span>
-                  <span class="lb-pts">3,842 pts</span>
-                </div>
-                <div class="lb-item">
-                  <span class="lb-rank silver">2</span>
-                  <div class="lb-avatar">JC</div>
-                  <span class="lb-name">Juan C.</span>
-                  <span class="lb-pts">3,601 pts</span>
-                </div>
-                <div class="lb-item">
-                  <span class="lb-rank bronze">3</span>
-                  <div class="lb-avatar">AC</div>
-                  <span class="lb-name">Ana C.</span>
-                  <span class="lb-pts">3,210 pts</span>
-                </div>
-                <div class="lb-item you">
-                  <span class="lb-rank">7</span>
-                  <div class="lb-avatar">LS</div>
-                  <span class="lb-name">
-                    @if (auth()->check())
-                      {{ auth()->user()->name}}.
-                    @else
-                      User
-                    @endif 
-                  <span class="lb-you-tag">You</span></span>
-                  <span class="lb-pts">2,485 pts</span>
-                </div>
-                <div class="lb-item">
-                  <span class="lb-rank">8</span>
-                  <div class="lb-avatar">KD</div>
-                  <span class="lb-name">Karl D.</span>
-                  <span class="lb-pts">2,310 pts</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div class="card-title">Upcoming Deadlines</div>
-                <div class="card-subtitle">Don't miss these submissions</div>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="deadline-list">
-                <div class="deadline-item">
-                  <div class="deadline-date">
-                    <div class="deadline-day">09</div>
-                    <div class="deadline-month">Apr</div>
-                  </div>
-                  <div class="deadline-info">
-                    <div class="deadline-title">Data Cleaning Assignment</div>
-                    <div class="deadline-sub">Module 1 · Submit notebook</div>
-                  </div>
-                  <span class="deadline-pill pill-urgent">Tomorrow</span>
-                </div>
-                <div class="deadline-item">
-                  <div class="deadline-date">
-                    <div class="deadline-day">14</div>
-                    <div class="deadline-month">Apr</div>
-                  </div>
-                  <div class="deadline-info">
-                    <div class="deadline-title">EDA Mini-Project</div>
-                    <div class="deadline-sub">Module 2 · Kaggle dataset</div>
-                  </div>
-                  <span class="deadline-pill pill-soon">6 days</span>
-                </div>
-                <div class="deadline-item">
-                  <div class="deadline-date">
-                    <div class="deadline-day">22</div>
-                    <div class="deadline-month">Apr</div>
-                  </div>
-                  <div class="deadline-info">
-                    <div class="deadline-title">Supervised Learning Quiz</div>
-                    <div class="deadline-sub">Module 3 · Auto-graded</div>
-                  </div>
-                  <span class="deadline-pill pill-ok">14 days</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
+      </section>
     </main>
   </div>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('.stat-bar-fill, .prog-fill').forEach(el => {
-        const target = el.style.width;
-        el.style.width = '0%';
-        setTimeout(() => { el.style.width = target; }, 150);
-      });
-    });
-  </script>
-
 </body>
 </html>

@@ -231,17 +231,30 @@
   .right {
     background: var(--panel);
     border-left: 0.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: stretch;
+    justify-items: center;
     padding: 40px 48px;
     position: relative;
     overflow-y: auto;
   }
 
   .form-card {
+    grid-row: 2;
+    align-self: center;
     width: 100%;
     max-width: 360px;
+  }
+
+  .right #ds-global-notification-stack {
+    grid-row: 1;
+    align-self: start;
+    justify-self: end;
+    width: min(420px, 100%);
+    max-width: 100%;
+    margin: 0 0 16px auto !important;
   }
 
   .tabs {
@@ -467,62 +480,6 @@
   .cta-btn:hover::after { background: rgba(255,255,255,0.08); }
   .cta-btn:active { transform: scale(0.985); }
 
-  .divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 20px 0;
-  }
-
-  .divider::before, .divider::after {
-    content: '';
-    flex: 1;
-    height: 0.5px;
-    background: var(--border);
-  }
-
-  .divider span {
-    font-size: 12px;
-    color: var(--text-3);
-    white-space: nowrap;
-  }
-
-  .social-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .social-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-2);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-  }
-
-  .social-btn:hover {
-    border-color: rgba(255,255,255,0.14);
-    color: var(--text-1);
-    background: var(--surface-2);
-  }
-
-  .social-btn svg {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-  }
-
   .strength-wrap {
     margin-top: 7px;
     display: none;
@@ -580,13 +537,24 @@
     text-align: center;
   }
 
-  .terms-text a {
+  .terms-text a,
+  .terms-link {
     color: var(--accent);
     text-decoration: none;
     opacity: 0.85;
   }
 
-  .terms-text a:hover {
+  .terms-link {
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .terms-text a:hover,
+  .terms-link:hover {
     opacity: 1;
   }
 
@@ -680,12 +648,18 @@
     </div>
   </div>
 
-  <div class="right">
+  <div class="right auth-page-notification-host">
     <div class="form-card">
       <div class="tabs">
         <button class="tab-btn {{ !$isRegisterTab ? 'active' : '' }}" onclick="switchTab('login')" type="button">Sign in</button>
         <button class="tab-btn {{ $isRegisterTab ? 'active' : '' }}" onclick="switchTab('register')" type="button">Create account</button>
       </div>
+
+      @if (session('status') || request()->boolean('expired'))
+        <div class="alert alert-success" data-ds-global-notification role="status">
+          {{ session('status') ?: 'Your session expired because there was no activity. Please sign in again.' }}
+        </div>
+      @endif
 
       @if (session('success'))
         <div class="alert alert-success">
@@ -776,29 +750,8 @@
           <button type="submit" class="cta-btn" id="login-btn">Sign in to DataSensei</button>
         </form>
 
-        <div class="divider"><span>or continue with</span></div>
-
-        <div class="social-row">
-          <a href="{{ url('/auth/google') }}" class="social-btn">
-            <svg viewBox="0 0 16 16" fill="none">
-              <path d="M15.54 8.18c0-.57-.05-1.12-.14-1.64H8v3.1h4.23a3.62 3.62 0 01-1.57 2.37v1.97h2.54c1.49-1.37 2.34-3.39 2.34-5.8z" fill="#4285F4"/>
-              <path d="M8 16c2.13 0 3.91-.7 5.21-1.9l-2.54-1.97c-.71.47-1.61.75-2.67.75-2.05 0-3.79-1.39-4.41-3.25H1.06v2.03A7.98 7.98 0 008 16z" fill="#34A853"/>
-              <path d="M3.59 9.63A4.83 4.83 0 013.34 8c0-.57.1-1.12.25-1.63V4.34H1.06A7.98 7.98 0 000 8c0 1.29.31 2.5.86 3.57l2.73-1.94z" fill="#FBBC05"/>
-              <path d="M8 3.18c1.15 0 2.19.4 3 1.17l2.25-2.25A7.96 7.96 0 008 0 7.98 7.98 0 001.06 4.34L3.59 6.37C4.21 4.57 5.95 3.18 8 3.18z" fill="#EA4335"/>
-            </svg>
-            Google
-          </a>
-
-          <a href="{{ url('/auth/github') }}" class="social-btn">
-            <svg viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
-            GitHub
-          </a>
-        </div>
-
         <p class="terms-text" style="margin-top:18px;">
-          Don't have an account? <a href="#" onclick="switchTab('register'); return false;">Create one free</a>
+          Don't have an account? <button class="terms-link" type="button" onclick="switchTab('register')">Create one free</button>
         </p>
       </div>
 
@@ -869,7 +822,7 @@
                 type="password"
                 name="password"
                 id="reg-pwd"
-                placeholder="Min. 8 characters"
+                placeholder="8+ chars with upper/lowercase, number, symbol"
                 required
                 autocomplete="new-password"
                 style="padding-right: 40px;"
@@ -931,11 +884,11 @@
         </form>
 
         <p class="terms-text">
-          By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+          Create an account only if you are authorized to use DataSensei. Your institution may apply its own terms and privacy policy.
         </p>
 
         <p class="terms-text" style="margin-top:10px;">
-          Already have an account? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>
+          Already have an account? <button class="terms-link" type="button" onclick="switchTab('login')">Sign in</button>
         </p>
       </div>
     </div>
@@ -945,19 +898,32 @@
 <script>
 (function(){
   const canvas = document.getElementById('bg-canvas');
-  const ctx = canvas.getContext('2d');
-  let W, H, particles = [];
+  const ctx = canvas?.getContext('2d');
+  if (!canvas || !ctx) return;
+
+  let W = 0;
+  let H = 0;
+  let particles = [];
+  let animationFrameId = null;
+  let lastFrameAt = 0;
+  let running = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function resize(){
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.round(W * pixelRatio);
+    canvas.height = Math.round(H * pixelRatio);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   }
 
   function createParticles(){
     particles = [];
-    const N = Math.floor((W * H) / 18000);
+    const count = Math.min(85, Math.max(24, Math.floor((W * H) / 30000)));
 
-    for(let i = 0; i < N; i++){
+    for(let i = 0; i < count; i++){
       particles.push({
         x: Math.random() * W,
         y: Math.random() * H,
@@ -969,7 +935,19 @@
     }
   }
 
-  function draw(){
+  function draw(timestamp){
+    if (!running) {
+      animationFrameId = null;
+      return;
+    }
+
+    animationFrameId = requestAnimationFrame(draw);
+
+    // Thirty frames per second is visually smooth for the background and
+    // leaves more CPU time for form handling and the login redirect.
+    if (timestamp - lastFrameAt < 33) return;
+    lastFrameAt = timestamp;
+
     ctx.clearRect(0, 0, W, H);
 
     for(let i = 0; i < particles.length; i++){
@@ -978,13 +956,13 @@
         const q = particles[j];
         const dx = p.x - q.x;
         const dy = p.y - q.y;
-        const d = Math.sqrt(dx * dx + dy * dy);
+        const distanceSquared = dx * dx + dy * dy;
 
-        if(d < 100){
+        if(distanceSquared < 10000){
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = `rgba(99,179,237,${(1 - d / 100) * 0.06})`;
+          ctx.strokeStyle = `rgba(99,179,237,${(1 - distanceSquared / 10000) * 0.06})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
@@ -1003,18 +981,34 @@
       if(p.x < 0 || p.x > W) p.vx *= -1;
       if(p.y < 0 || p.y > H) p.vy *= -1;
     });
+  }
 
-    requestAnimationFrame(draw);
+  function start(){
+    if (!running) running = true;
+    if (animationFrameId === null) animationFrameId = requestAnimationFrame(draw);
+  }
+
+  function stop(){
+    running = false;
+    if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
   }
 
   window.addEventListener('resize', () => {
     resize();
     createParticles();
+  }, { passive: true });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stop();
+    else if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) start();
   });
 
   resize();
   createParticles();
-  draw();
+  if (running) start();
+
+  window.DataSenseiBackground = { start, stop };
 })();
 
 const tokens = [
@@ -1057,6 +1051,19 @@ function renderTokens(){
 }
 
 renderTokens();
+
+
+document.querySelectorAll('.form-panel form').forEach(form => {
+  form.addEventListener('submit', () => {
+    window.DataSenseiBackground?.stop();
+
+    const button = form.querySelector('button[type="submit"]');
+    if (!button) return;
+
+    button.disabled = true;
+    button.textContent = button.id === 'reg-btn' ? 'Creating account…' : 'Signing in…';
+  });
+});
 
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach((button, index) => {

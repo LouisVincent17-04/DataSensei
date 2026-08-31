@@ -1,0 +1,77 @@
+DATASENSEI HYBRID MACHINE LEARNING MODULE
+==========================================
+
+This package contains updated/new files only. Extract it into the DataSensei
+project root and allow folders/files to merge and overwrite.
+
+IMPORTANT
+---------
+The earlier "predefined CSV only" package is not required. This implementation
+supports both built-in datasets and private CSV/XLSX uploads while keeping
+system benchmark models completely separate from student-trained models.
+
+1. PHP EXTENSIONS
+-----------------
+Enable these XAMPP PHP extensions in php.ini, then restart Apache/terminal:
+
+extension=fileinfo
+extension=zip
+extension=simplexml
+extension=pdo_mysql
+
+Laravel/PHPUnit may also require mbstring, dom, xml, and xmlwriter.
+
+2. ENVIRONMENT SETTINGS
+-----------------------
+Add or update:
+
+QUEUE_CONNECTION=database
+QUEUE_FAILED_DRIVER=database-uuids
+ML_QUEUE_CONNECTION=machine_learning
+ML_QUEUE_NAME=machine-learning
+ML_QUEUE_RETRY_AFTER=1200
+ML_RUNNER_DRIVER=docker
+ML_RUNNER_IMAGE=datasensei-python-runner:latest
+ML_TRAINING_TIMEOUT=600
+ML_PREDICTION_TIMEOUT=30
+ML_MAX_UPLOAD_KB=10240
+ML_MAX_ROWS=50000
+ML_MAX_COLUMNS=200
+
+3. BUILD THE TRUSTED PYTHON RUNNER
+----------------------------------
+From C:\xampp\htdocs\DataSensei:
+
+docker build -t datasensei-python-runner:latest docker/python-runner
+
+For controlled local development without Docker, set ML_RUNNER_DRIVER=local and
+install the packages documented in docs/HYBRID_ML_DEPLOYMENT.md.
+
+4. INSTALL DATABASE TABLES AND SYSTEM BENCHMARKS
+-------------------------------------------------
+Run:
+
+php artisan optimize:clear
+php artisan ml:install
+
+The installer runs migrations and registers 10 built-in datasets and 31
+read-only pretrained system models. Existing student/user data is not deleted.
+
+5. START BOTH PROCESSES
+-----------------------
+Start DataSensei normally. In a separate command window run:
+
+start-ml-worker.bat
+
+Keep the worker window open while models are queued or training.
+
+6. FIRST CHECK
+--------------
+Open:
+
+http://127.0.0.1:8000/student/model-development
+
+Use Iris, train a small Decision Tree or Logistic Regression model, wait for the
+progress page to reach 100%, open the model dashboard, and try one prediction.
+
+More documentation is available under docs/HYBRID_ML_*.md.

@@ -17,7 +17,7 @@
 
     <div class="top">
       <div>
-        <h1 class="title">Submissions</h1>
+        <h1 class="title ds-page-title">Submissions</h1>
         <p class="subtitle">Review submitted assignment attempts across your classes.</p>
       </div>
     </div>

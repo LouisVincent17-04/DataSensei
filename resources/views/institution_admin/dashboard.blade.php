@@ -6,6 +6,7 @@
   <title>DataSensei — Institution Admin Dashboard</title>
   @include('partials.brand-head')
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  @include('partials.page-heading-style')
   <style>
     :root {
       --bg:          #0d1320;
@@ -200,7 +201,7 @@
   {{-- ── MAIN ── --}}
   <div class="main">
     <div class="topbar">
-      <h1>Institution Admin Dashboard</h1>
+      <h1 class="ds-page-title">Institution Admin Dashboard</h1>
       <span class="topbar-meta">{{ now()->format('l, F j, Y') }}</span>
     </div>
 
@@ -227,13 +228,13 @@
             {{ $institution->institution_code }}
           </div>
           <div class="inst-code-actions">
-            <button class="code-toggle-btn" id="code-toggle-btn" onclick="toggleCode()">
+            <button type="button" class="code-toggle-btn" id="code-toggle-btn" onclick="toggleCode()">
               <svg id="code-eye-icon" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
               <span id="code-toggle-label">Show Code</span>
             </button>
-            <button class="code-copy-btn" id="code-copy-btn" onclick="copyCode()" title="Copy to clipboard">
+            <button type="button" class="code-copy-btn" id="code-copy-btn" onclick="copyCode()" title="Copy to clipboard">
               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
               </svg>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\InstructorApplication;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,7 +30,8 @@ class InstitutionAdminController extends Controller
         $totalMembers = $institution->users()->count();
 
         // Approved instructors
-        $totalInstructors = $institution->approvedApplications()
+        $totalInstructors = $institution->users()
+            ->where('role', User::ROLE_INSTRUCTOR)
             ->count();
 
         // Pending applications waiting for review
@@ -39,6 +41,7 @@ class InstitutionAdminController extends Controller
         $rejectedCount = $institution->instructorApplications()
             ->where('status', 'rejected')
             ->whereMonth('reviewed_at', now()->month)
+            ->whereYear('reviewed_at', now()->year)
             ->count();
 
         // ── Recent pending applications (for dashboard preview) ─────────────────
@@ -50,6 +53,9 @@ class InstitutionAdminController extends Controller
 
         // ── Recent approved (for "Your Instructors" preview) ───────────────────
         $recentApproved = $institution->approvedApplications()
+            ->whereHas('user', fn ($query) => $query
+                ->where('role', User::ROLE_INSTRUCTOR)
+                ->where('institution_id', $institution->id))
             ->with(['user', 'reviewer'])
             ->latest('reviewed_at')
             ->take(5)

@@ -3,68 +3,98 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Table of Specification — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-:root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;--text:#fafafa;--muted:#7f93b0;--accent:#3b82f6;--good:#10b981;--warn:#f59e0b;--bad:#ef4444;--radius:14px;--radius-sm:8px}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}.layout{display:flex;min-height:100vh}.main{flex:1;padding:32px;min-width:0;background:radial-gradient(circle at top right,rgba(59,130,246,.10),transparent 40%),var(--bg)}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}.title{font-size:1.8rem;font-weight:800;margin:0}.subtitle{color:var(--muted);margin-top:8px;line-height:1.6}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.metric{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}.metric .num{font-size:1.6rem;font-weight:800}.metric .lbl{color:var(--muted);font-size:.85rem;margin-top:4px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}.table th{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}.badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:.75rem;font-weight:700;border:1px solid var(--border);background:var(--surface2);color:var(--text)}.badge.good{color:var(--good);border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.08)}.badge.warn{color:var(--warn);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}.badge.bad{color:var(--bad);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08)}.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--radius-sm);background:var(--accent);color:white;text-decoration:none;border:0;font-weight:700;cursor:pointer}.btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}.btn.good{background:var(--good)}.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:var(--radius-sm)}.muted{color:var(--muted)}.alert{padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:16px;border:1px solid rgba(16,185,129,.25);background:rgba(16,185,129,.08);color:var(--good)}.alert.error{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08);color:var(--bad)}.pagination{margin-top:16px}.pagination nav{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:1000px){.grid,.grid-2{grid-template-columns:1fr}.main{padding:20px}}@media(max-width:700px){.layout{display:block}}
-</style>
-
+  <title>Table of Specifications — DataSensei</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  @include('instructor.tos.partials.styles')
 </head>
 <body>
 <div class="layout">
   @include('partials.instructor-sidebar')
   <main class="main">
+    <div class="wrap">
+      <div class="top">
+        <div>
+          <div class="kicker">Assessment Blueprint</div>
+          <h1 class="title ds-page-title">Table of Specifications</h1>
+          <p class="subtitle">Plan what an assessment should cover first. Write the actual questions only after the blueprint is ready.</p>
+        </div>
+        <a class="btn" href="{{ route('instructor.tos.create') }}">+ Create TOS</a>
+      </div>
 
-    <div class="top">
-      <div>
-        <h1 class="title">Table of Specification</h1>
-        <p class="subtitle">Use your five DataSensei levels as assessment difficulty levels: Newbie, University Student, Intermediate, Advanced, and Professional.</p>
+      @if(session('success'))<div class="alert">{{ session('success') }}</div>@endif
+      @if(session('error'))<div class="alert error">{{ session('error') }}</div>@endif
+
+      <div class="card">
+        <div class="section-title">
+          <div>
+            <h3>Your assessment blueprints</h3>
+            <div class="muted small">Guidance first: Create TOS → Set Distribution → Review & Generate.</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Assessment</th>
+                <th>Subject / Course</th>
+                <th>Coverage</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+            @forelse($tosList as $tos)
+              @php($summary = $tos->blueprint_status)
+              <tr>
+                <td>
+                  <strong>{{ $tos->title }}</strong>
+                  @if($tos->assessments_count > 0)
+                    <div class="muted small">Linked to {{ $tos->assessments_count }} assessment(s)</div>
+                  @endif
+                </td>
+                <td>{{ $tos->classRoom->name ?? 'Template / no class' }}</td>
+                <td>{{ $tos->coverage_label }}</td>
+                <td>{{ (int) $tos->assigned_items }} / {{ (int) ($tos->total_items ?: $tos->assigned_items) }}</td>
+                <td>
+                  <span class="badge {{ $summary['code'] === 'complete' ? 'good' : ($summary['code'] === 'invalid' ? 'bad' : 'warn') }}">
+                    {{ $summary['label'] }}
+                  </span>
+                </td>
+                <td>
+                  <div class="actions">
+                    <a class="btn secondary" href="{{ route('instructor.tos.show', $tos) }}">Open</a>
+                    <a class="btn secondary" href="{{ route('instructor.tos.review', $tos) }}">Review</a>
+                    @if($tos->assessments_count === 0)
+                      <form method="POST" action="{{ route('instructor.tos.destroy', $tos) }}" onsubmit="return confirm('Delete this Table of Specification? This cannot be undone.');">
+                        @csrf
+                        @method('DELETE')
+                        <button class="btn bad" type="submit">Delete</button>
+                      </form>
+                    @else
+                      <span class="badge">Protected</span>
+                    @endif
+                  </div>
+                </td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="6">
+                  <div style="padding:30px 10px;text-align:center">
+                    <strong>No TOS yet.</strong>
+                    <p class="muted">Create your first assessment blueprint using the 3-step wizard.</p>
+                    <a class="btn" href="{{ route('instructor.tos.create') }}">Create TOS</a>
+                  </div>
+                </td>
+              </tr>
+            @endforelse
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">{{ $tosList->links() }}</div>
       </div>
     </div>
-
-    @if(session('success'))<div class="alert">{{ session('success') }}</div>@endif
-    @if($errors->any())<div class="alert error">{{ $errors->first() }}</div>@endif
-
-    <div class="card">
-      <h3>Generate Default TOS</h3>
-      <form method="POST" action="{{ route('instructor.tos.store') }}" class="form-row">
-        @csrf
-        <select name="class_id">
-          <option value="">No class / template only</option>
-          @foreach($classes as $class)
-            <option value="{{ $class->id }}">{{ $class->name }}</option>
-          @endforeach
-        </select>
-        <select name="module_no">
-          @for($i = 1; $i <= 24; $i++)
-            <option value="{{ $i }}">Module {{ $i }}</option>
-          @endfor
-        </select>
-        <button class="btn" type="submit">Generate</button>
-      </form>
-    </div>
-
-    <div class="card table-wrap">
-      <table class="table">
-        <thead><tr><th>Title</th><th>Class</th><th>Module</th><th>Status</th><th>Rows</th><th>Action</th></tr></thead>
-        <tbody>
-        @forelse($tosList as $tos)
-          <tr>
-            <td>{{ $tos->title }}</td>
-            <td>{{ $tos->classRoom->name ?? 'Template' }}</td>
-            <td>Module {{ $tos->module_no }}</td>
-            <td><span class="badge">{{ ucfirst($tos->status) }}</span></td>
-            <td>{{ $tos->rows->count() }}</td>
-            <td><a class="btn secondary" href="{{ route('instructor.tos.show', $tos) }}">Open</a></td>
-          </tr>
-        @empty
-          <tr><td colspan="6" class="muted">No TOS yet.</td></tr>
-        @endforelse
-        </tbody>
-      </table>
-      <div class="pagination">{{ $tosList->links() }}</div>
-    </div>
-
   </main>
 </div>
 </body>

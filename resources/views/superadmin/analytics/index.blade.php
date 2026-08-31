@@ -43,7 +43,7 @@
 
 <div class="main">
   <div class="topbar">
-    <h1>Platform Analytics</h1>
+    <h1 class="ds-page-title">Platform Analytics</h1>
     <span class="range-label">{{ $range['from_date'] }} → {{ $range['to_date'] }}</span>
   </div>
 

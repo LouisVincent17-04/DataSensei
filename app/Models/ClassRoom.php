@@ -95,11 +95,6 @@ class ClassRoom extends Model
                     ->withTimestamps();
     }
 
-    public function challengeAssignments(): HasMany
-    {
-        return $this->hasMany(ClassChallengeAssignment::class, 'class_id');
-    }
-
     // Added for ModuleLibrary — links to class_module_assignments
     public function assignedModules(): HasMany
     {
@@ -111,10 +106,44 @@ class ClassRoom extends Model
         return $this->hasMany(ClassAssignment::class, 'class_id');
     }
 
+    public function competencySnapshots(): HasMany
+    {
+        return $this->hasMany(StudentCompetencySnapshot::class, 'class_id');
+    }
+
+    public function competencyTrends(): HasMany
+    {
+        return $this->hasMany(StudentCompetencyTrend::class, 'class_id');
+    }
+
+    public function modelDevelopmentRuns(): HasMany
+    {
+        return $this->hasMany(ModelDevelopmentRun::class, 'class_id');
+    }
+
+    public function mlDatasets(): HasMany
+    {
+        return $this->hasMany(UserDataset::class, 'class_id');
+    }
+
+    public function mlModels(): HasMany
+    {
+        return $this->hasMany(MlModel::class, 'class_id');
+    }
+
+    public function mlTrainingJobs(): HasMany
+    {
+        return $this->hasMany(TrainingJob::class, 'class_id');
+    }
+
     // ─── Accessors ───────────────────────────────────────────────────────────
 
     public function getStudentCountAttribute(): int
     {
+        if (array_key_exists('students_count', $this->attributes)) {
+            return (int) $this->attributes['students_count'];
+        }
+
         return $this->students()->count();
     }
 

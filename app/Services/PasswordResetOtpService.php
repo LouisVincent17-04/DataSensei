@@ -229,7 +229,6 @@ class PasswordResetOtpService
 
         if ($reset) {
             event(new PasswordReset($user));
-            $this->invalidateDatabaseSessions($user);
         }
 
         Log::log($reset ? 'notice' : 'warning', $reset
@@ -278,29 +277,6 @@ class PasswordResetOtpService
     private function generateOtp(): string
     {
         return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-    }
-
-
-    private function invalidateDatabaseSessions(User $user): void
-    {
-        if (config('session.driver') !== 'database') {
-            return;
-        }
-
-        try {
-            $connection = config('session.connection');
-            $table = (string) config('session.table', 'sessions');
-
-            DB::connection($connection)
-                ->table($table)
-                ->where('user_id', $user->id)
-                ->delete();
-        } catch (Throwable $exception) {
-            Log::warning('Password was reset, but existing database sessions could not be revoked.', [
-                'user_id' => $user->id,
-                'exception' => $exception::class,
-            ]);
-        }
     }
 
     private function cooldownKey(string $email): string

@@ -17,7 +17,7 @@
 
     <div class="top">
       <div>
-        <h1 class="title">Reports & Exports</h1>
+        <h1 class="title ds-page-title">Reports & Exports</h1>
         <p class="subtitle">Generate a quick performance report from the latest student analytics snapshots.</p>
       </div>
       <button class="btn secondary" type="button" onclick="window.print()">Print</button>
@@ -37,7 +37,7 @@
     <div class="card table-wrap">
       <h2>{{ $selectedClass->name ?? 'Class' }} Performance Report</h2>
       <table class="table">
-        <thead><tr><th>Student</th><th>Cluster</th><th>Risk</th><th>Score</th><th>Engagement</th><th>Generated</th></tr></thead>
+        <thead><tr><th>Student</th><th>Performance Segment</th><th>Risk</th><th>Score</th><th>Engagement</th><th>Generated</th></tr></thead>
         <tbody>
         @forelse($snapshots as $snapshot)
           <tr>

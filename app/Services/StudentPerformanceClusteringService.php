@@ -7,25 +7,84 @@ use App\Models\StudentPerformanceCluster;
 use App\Models\StudentPerformanceSnapshot;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Deterministic, rule-based performance segmentation.
+ *
+ * The legacy class/table names still contain "cluster" so existing routes,
+ * historical rows, and public methods do not break. This is not an
+ * unsupervised machine-learning clustering algorithm and must not be presented
+ * as one.
+ */
 class StudentPerformanceClusteringService
 {
     public function refreshForClass(ClassRoom $class): Collection
     {
-        $students = $class->students()->where('role', User::ROLE_USER)->get();
+        $lock = Cache::lock('performance-segmentation:class:' . $class->id, 300);
+        if (! $lock->get()) {
+            throw ValidationException::withMessages([
+                'analytics' => 'Analytics are already being recalculated for this class. Wait a moment and try again.',
+            ]);
+        }
 
-        return $students->map(function (User $student) use ($class) {
-            return $this->refreshForStudent($student, $class);
-        });
+        try {
+            $students = $class->students()
+                ->where('role', User::ROLE_USER)
+                ->where(function ($query): void {
+                    $query->where('users.status', 'active')->orWhereNull('users.status');
+                })
+                ->get();
+
+            return $students->map(function (User $student) use ($class) {
+                return $this->refreshForStudent($student, $class);
+            });
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Read the last saved calculations without mutating data. The old GET pages
+     * called refreshForClass(), which made merely opening analytics write rows.
+     */
+    public function snapshotsForClass(ClassRoom $class): Collection
+    {
+        $studentIds = $class->students()
+            ->where('role', User::ROLE_USER)
+            ->where(function ($query): void {
+                $query->where('users.status', 'active')->orWhereNull('users.status');
+            })
+            ->pluck('users.id');
+
+        if ($studentIds->isEmpty()) {
+            return collect();
+        }
+
+        $reasons = StudentPerformanceCluster::query()
+            ->where('class_id', $class->id)
+            ->whereIn('student_id', $studentIds)
+            ->pluck('cluster_description', 'student_id');
+
+        return StudentPerformanceSnapshot::query()
+            ->with('student:id,name,email')
+            ->where('class_id', $class->id)
+            ->whereIn('student_id', $studentIds)
+            ->orderBy('student_id')
+            ->get()
+            ->each(function (StudentPerformanceSnapshot $snapshot) use ($reasons): void {
+                $snapshot->setAttribute('segment_reason', $reasons[$snapshot->student_id] ?? null);
+            });
     }
 
     public function refreshForStudent(User $student, ?ClassRoom $class = null): StudentPerformanceSnapshot
     {
         $classId = $class?->id;
 
-        $assignmentScores = DB::table('assignment_submissions')
+        $assignmentRows = DB::table('assignment_submissions')
             ->when($classId, function ($q) use ($classId) {
                 $q->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
                   ->where('class_assignments.class_id', $classId);
@@ -33,64 +92,131 @@ class StudentPerformanceClusteringService
             ->where('assignment_submissions.student_id', $student->id)
             ->whereIn('assignment_submissions.status', ['submitted', 'late', 'graded'])
             ->where('assignment_submissions.total_points', '>', 0)
-            ->selectRaw('(assignment_submissions.score / assignment_submissions.total_points) * 100 as percent')
-            ->pluck('percent')
+            ->get([
+                'assignment_submissions.id',
+                'assignment_submissions.class_assignment_id',
+                'assignment_submissions.attempt_no',
+                'assignment_submissions.score',
+                'assignment_submissions.total_points',
+            ])
+            ->groupBy('class_assignment_id')
+            ->map(fn (Collection $attempts) => $attempts
+                ->sortByDesc(fn ($row): string => $this->attemptSortKey($row))
+                ->first());
+        $assignmentScores = $assignmentRows
+            ->map(fn ($row) => ((float) $row->score / max(1.0, (float) $row->total_points)) * 100)
             ->map(fn ($v) => (float) $v);
 
-        $mcqScores = DB::table('challenge_user')
-            ->join('challenges', 'challenges.id', '=', 'challenge_user.challenge_id')
-            ->leftJoin('challenge_questions', 'challenge_questions.challenge_id', '=', 'challenges.id')
-            ->where('challenge_user.user_id', $student->id)
-            ->groupBy('challenge_user.id', 'challenge_user.score')
-            ->selectRaw('CASE WHEN COUNT(challenge_questions.id) > 0 THEN (challenge_user.score / COUNT(challenge_questions.id)) * 100 ELSE 0 END as percent')
-            ->pluck('percent')
+        $assessmentRows = DB::table('assessment_submissions')
+            ->when($classId, function ($q) use ($classId) {
+                $q->join('assessments', 'assessments.id', '=', 'assessment_submissions.assessment_id')
+                    ->where('assessments.class_id', $classId);
+            })
+            ->where('assessment_submissions.student_id', $student->id)
+            ->whereIn('assessment_submissions.status', ['submitted', 'late', 'graded'])
+            ->whereNotNull('assessment_submissions.graded_at')
+            ->where('assessment_submissions.total_points', '>', 0)
+            ->get([
+                'assessment_submissions.id',
+                'assessment_submissions.assessment_id',
+                'assessment_submissions.attempt_no',
+                'assessment_submissions.score',
+                'assessment_submissions.total_points',
+            ])
+            ->groupBy('assessment_id')
+            ->map(fn (Collection $attempts) => $attempts
+                ->sortByDesc(fn ($row): string => $this->attemptSortKey($row))
+                ->first());
+        $assessmentScores = $assessmentRows
+            ->map(fn ($row) => ((float) $row->score / max(1.0, (float) $row->total_points)) * 100)
             ->map(fn ($v) => (float) $v);
 
-        $codingScores = DB::table('coding_submissions')
-            ->where('user_id', $student->id)
-            ->where('voided', false)
-            ->where('tests_total', '>', 0)
-            ->selectRaw('(tests_passed / tests_total) * 100 as percent')
-            ->pluck('percent')
-            ->map(fn ($v) => (float) $v);
+        // Platform challenges have no class foreign key. They belong only in the
+        // learner-wide snapshot; adding them to every class would inflate each
+        // instructor's class metrics with unrelated work.
+        $mcqScores = $classId
+            ? collect()
+            : DB::table('challenge_attempts')
+                ->where('user_id', $student->id)
+                ->where('is_ranked', true)
+                ->whereIn('status', ['submitted', 'expired'])
+                ->where('total_questions', '>', 0)
+                ->selectRaw('(score / total_questions) * 100 as percent')
+                ->pluck('percent')
+                ->map(fn ($v) => (float) $v);
 
-        $scores = $assignmentScores->merge($mcqScores)->merge($codingScores)->filter(fn ($v) => is_numeric($v));
+        $codingScores = $classId
+            ? collect()
+            : DB::table('coding_submissions')
+                ->where('user_id', $student->id)
+                ->where('voided', false)
+                ->where('tests_total', '>', 0)
+                ->selectRaw('(tests_passed / tests_total) * 100 as percent')
+                ->pluck('percent')
+                ->map(fn ($v) => (float) $v);
+
+        $scores = $assignmentScores
+            ->merge($assessmentScores)
+            ->merge($mcqScores)
+            ->merge($codingScores)
+            ->filter(fn ($v) => is_numeric($v));
         $averageScore = $scores->isNotEmpty() ? round($scores->avg(), 2) : 0.0;
 
-        $completedActivities = $assignmentScores->count() + $mcqScores->count() + $codingScores->count();
+        $completedActivities = $assignmentScores->count()
+            + $assessmentScores->count()
+            + $mcqScores->count()
+            + $codingScores->count();
         $missingAssignments = $this->missingAssignments($student, $classId);
         $lateSubmissions = $this->lateSubmissions($student, $classId);
         $antiCheatWarnings = $this->antiCheatWarnings($student, $classId);
         $engagementScore = $this->engagementScore($averageScore, $completedActivities, $missingAssignments, $lateSubmissions, $antiCheatWarnings);
         [$cluster, $risk, $description] = $this->classify($averageScore, $engagementScore, $missingAssignments, $lateSubmissions, $antiCheatWarnings, $completedActivities);
 
-        $snapshot = StudentPerformanceSnapshot::create([
-            'student_id' => $student->id,
-            'class_id' => $classId,
-            'average_score_percent' => $averageScore,
-            'average_time_ratio' => null,
-            'completed_activities' => $completedActivities,
-            'missing_assignments' => $missingAssignments,
-            'late_submissions' => $lateSubmissions,
-            'anti_cheat_warnings' => $antiCheatWarnings,
-            'engagement_score' => $engagementScore,
-            'cluster_label' => $cluster,
-            'risk_level' => $risk,
-            'generated_at' => now(),
-        ]);
+        return DB::transaction(function () use (
+            $student,
+            $classId,
+            $averageScore,
+            $completedActivities,
+            $missingAssignments,
+            $lateSubmissions,
+            $antiCheatWarnings,
+            $engagementScore,
+            $cluster,
+            $risk,
+            $description,
+        ): StudentPerformanceSnapshot {
+            User::query()->whereKey($student->id)->lockForUpdate()->firstOrFail();
 
-        StudentPerformanceCluster::create([
-            'student_id' => $student->id,
-            'class_id' => $classId,
-            'cluster_label' => $cluster,
-            'cluster_description' => $description,
-            'average_score_percent' => $averageScore,
-            'engagement_score' => $engagementScore,
-            'risk_level' => $risk,
-            'assigned_at' => now(),
-        ]);
+            $snapshot = StudentPerformanceSnapshot::updateOrCreate([
+                'student_id' => $student->id,
+                'class_id' => $classId,
+            ], [
+                'average_score_percent' => $averageScore,
+                'average_time_ratio' => null,
+                'completed_activities' => $completedActivities,
+                'missing_assignments' => $missingAssignments,
+                'late_submissions' => $lateSubmissions,
+                'anti_cheat_warnings' => $antiCheatWarnings,
+                'engagement_score' => $engagementScore,
+                'cluster_label' => $cluster,
+                'risk_level' => $risk,
+                'generated_at' => now(),
+            ]);
 
-        return $snapshot;
+            StudentPerformanceCluster::updateOrCreate([
+                'student_id' => $student->id,
+                'class_id' => $classId,
+            ], [
+                'cluster_label' => $cluster,
+                'cluster_description' => $description,
+                'average_score_percent' => $averageScore,
+                'engagement_score' => $engagementScore,
+                'risk_level' => $risk,
+                'assigned_at' => now(),
+            ]);
+
+            return $snapshot;
+        }, 3);
     }
 
     private function missingAssignments(User $student, ?int $classId): int
@@ -102,6 +228,12 @@ class StudentPerformanceClusteringService
         return DB::table('class_assignments')
             ->where('class_id', $classId)
             ->whereIn('status', ['published', 'closed'])
+            ->where(function ($query) {
+                $query->where('status', 'closed')
+                    ->orWhere(function ($due) {
+                        $due->whereNotNull('due_at')->where('due_at', '<', now());
+                    });
+            })
             ->whereNotExists(function ($q) use ($student) {
                 $q->select(DB::raw(1))
                   ->from('assignment_submissions')
@@ -120,7 +252,18 @@ class StudentPerformanceClusteringService
                   ->where('class_assignments.class_id', $classId);
             })
             ->where('assignment_submissions.student_id', $student->id)
-            ->where('assignment_submissions.status', 'late')
+            ->whereIn('assignment_submissions.status', ['submitted', 'late', 'graded'])
+            ->get([
+                'assignment_submissions.id',
+                'assignment_submissions.class_assignment_id',
+                'assignment_submissions.attempt_no',
+                'assignment_submissions.status',
+            ])
+            ->groupBy('class_assignment_id')
+            ->map(fn (Collection $attempts) => $attempts
+                ->sortByDesc(fn ($row): string => $this->attemptSortKey($row))
+                ->first())
+            ->where('status', 'late')
             ->count();
     }
 
@@ -166,5 +309,11 @@ class StudentPerformanceClusteringService
         }
 
         return ['Needs Monitoring', 'medium', 'Student activity is acceptable but should be monitored.'];
+    }
+
+    private function attemptSortKey(object $row): string
+    {
+        return str_pad((string) ((int) $row->attempt_no), 10, '0', STR_PAD_LEFT)
+            . ':' . str_pad((string) ((int) $row->id), 20, '0', STR_PAD_LEFT);
     }
 }

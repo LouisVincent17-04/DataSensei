@@ -22,7 +22,11 @@ class InstructorMasteryController extends Controller
             ->get();
 
         $masteries = StudentIloMastery::with(['student', 'ilo'])
-            ->when($selectedClass, fn ($q) => $q->where('class_id', $selectedClass->id))
+            ->when(
+                $selectedClass,
+                fn ($q) => $q->where('class_id', $selectedClass->id),
+                fn ($q) => $q->whereRaw('1 = 0')
+            )
             ->whereIn('ilo_id', $ilos->pluck('id'))
             ->orderByDesc('mastery_percent')
             ->paginate(20)

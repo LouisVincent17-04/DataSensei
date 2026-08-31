@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
@@ -91,13 +93,30 @@ class PythonSandboxService
             );
         }
 
-        if ($driver === 'docker') {
-            $this->makeWorkspaceDockerReadable($workspacePath);
+        $executionSlot = $this->acquireExecutionSlot($timeout + 10);
+
+        if (!$executionSlot) {
+            return $this->failure(
+                'The Python sandbox is currently at capacity. Please wait a moment and run your code again.',
+                $start
+            );
         }
 
-        $result = $driver === 'docker'
-            ? $this->runWithDocker($workspacePath, $entryRelativePath, $stdin, $timeout)
-            : $this->runLocally($workspacePath, $entryRelativePath, $stdin, $timeout);
+        try {
+            if ($driver === 'docker') {
+                $this->makeWorkspaceDockerReadable($workspacePath);
+            }
+
+            $result = $driver === 'docker'
+                ? $this->runWithDocker($workspacePath, $entryRelativePath, $stdin, $timeout)
+                : $this->runLocally($workspacePath, $entryRelativePath, $stdin, $timeout);
+        } finally {
+            try {
+                $executionSlot->release();
+            } catch (\Throwable) {
+                // The short lock TTL is the final cleanup fallback.
+            }
+        }
 
         $plots = [];
         $stdout = (string) ($result['stdout'] ?? '');
@@ -190,6 +209,7 @@ class PythonSandboxService
     {
         $docker = (string) config('code_execution.python.docker.binary', 'docker');
         $image = (string) config('code_execution.python.docker.image', 'datasensei-python-runner:latest');
+        $containerName = 'datasensei-python-'.str_replace('-', '', (string) Str::uuid());
 
         try {
             $bindSource = $this->dockerBindSource($workspacePath);
@@ -203,10 +223,14 @@ class PythonSandboxService
             ];
         }
 
-        $mount = 'type=bind,source=' . $bindSource . ',target=/input,readonly';
+        // Student files are exposed read-only at /input. The trusted runner copies
+        // them into a fresh tmpfs at /workspace before execution, so generated
+        // files work without allowing code to alter Laravel's persisted workspace.
+        $inputMount = 'type=bind,source='.$bindSource.',target=/input,readonly';
 
         $command = [
             $docker, 'run', '--rm',
+            '--name', $containerName,
             '--network', (string) config('code_execution.python.docker.network', 'none'),
             '--memory', (string) config('code_execution.python.docker.memory', '512m'),
             '--memory-swap', (string) config('code_execution.python.docker.memory_swap', '512m'),
@@ -216,8 +240,8 @@ class PythonSandboxService
             '--ipc', 'none',
             '--stop-timeout', '1',
             '--tmpfs', '/tmp:rw,nosuid,nodev,noexec,size=' . (string) config('code_execution.python.docker.tmpfs_size', '64m') . ',mode=1777',
-            '--tmpfs', '/workspace:rw,nosuid,nodev,noexec,size=' . (string) config('code_execution.python.docker.workspace_tmpfs_size', '32m') . ',mode=1777',
-            '--mount', $mount,
+            '--tmpfs', '/workspace:rw,nosuid,nodev,noexec,size=' . (string) config('code_execution.python.docker.workspace_tmpfs_size', '32m') . ',mode=0770,uid=1000,gid=1000',
+            '--mount', $inputMount,
             '-w', '/workspace',
         ];
 
@@ -258,8 +282,10 @@ class PythonSandboxService
                 'timed_out' => false,
             ];
         } catch (\Illuminate\Process\Exceptions\ProcessTimedOutException) {
+            $this->forceRemoveDockerContainer($docker, $containerName);
             return $this->timedOutResult();
         } catch (\Throwable) {
+            $this->forceRemoveDockerContainer($docker, $containerName);
             return [
                 'stdout' => '',
                 'stderr' => 'Docker sandbox execution failed. Verify that Docker is running and the DataSensei runner image is built.',
@@ -267,6 +293,16 @@ class PythonSandboxService
                 'failed' => true,
                 'timed_out' => false,
             ];
+        }
+    }
+
+    private function forceRemoveDockerContainer(string $docker, string $containerName): void
+    {
+        try {
+            Process::timeout(3)->run([$docker, 'rm', '-f', $containerName]);
+        } catch (\Throwable) {
+            // Docker may already have removed the --rm container. Nothing else
+            // should delay the learner response during timeout cleanup.
         }
     }
 
@@ -314,6 +350,28 @@ class PythonSandboxService
         return null;
     }
 
+    private function acquireExecutionSlot(int $seconds): ?Lock
+    {
+        $slotCount = max(1, min(64, (int) config('code_execution.python.max_concurrent_executions', 8)));
+        $start = random_int(0, $slotCount - 1);
+
+        try {
+            for ($offset = 0; $offset < $slotCount; $offset++) {
+                $slot = ($start + $offset) % $slotCount;
+                $lock = Cache::lock('datasensei:python-execution:slot:'.$slot, max(5, $seconds));
+
+                if ($lock->get()) {
+                    return $lock;
+                }
+            }
+        } catch (\Throwable) {
+            // Fail closed: running unbounded work is less safe than asking the
+            // learner to retry when the lock backend is unavailable.
+        }
+
+        return null;
+    }
+
     private function safeJoin(string $basePath, string $relativePath): string
     {
         $relativePath = $this->normalizeRelativePath($relativePath);
@@ -350,7 +408,13 @@ class PythonSandboxService
 
     private function makeWorkspaceDockerReadable(string $workspacePath): void
     {
+        // The container receives this directory as a read-only bind mount. Keep
+        // permissions narrow while still allowing its unprivileged UID to read it.
         @chmod($workspacePath, 0755);
+
+        foreach (File::directories($workspacePath) as $directory) {
+            @chmod($directory, 0755);
+        }
 
         foreach (File::allFiles($workspacePath) as $file) {
             @chmod($file->getPath(), 0755);

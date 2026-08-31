@@ -29,7 +29,7 @@ class Institution extends Model
     {
         static::creating(function (Institution $institution) {
             if (empty($institution->slug)) {
-                $institution->slug = Str::slug($institution->name);
+                $institution->slug = static::generateUniqueSlug($institution->name);
             }
 
             // ← added
@@ -37,6 +37,29 @@ class Institution extends Model
                 $institution->institution_code = static::generateUniqueCode();
             }
         });
+
+        static::updating(function (Institution $institution) {
+            if ($institution->isDirty('name') && ! $institution->isDirty('slug')) {
+                $institution->slug = static::generateUniqueSlug($institution->name, $institution->id);
+            }
+        });
+    }
+
+    public static function generateUniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($name) ?: 'institution';
+        $slug = $base;
+        $suffix = 2;
+
+        while (static::query()
+            ->where('slug', $slug)
+            ->when($ignoreId, fn ($query) => $query->where('id', '<>', $ignoreId))
+            ->exists()) {
+            $slug = $base . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $slug;
     }
 
     // ← added
@@ -60,6 +83,11 @@ class Institution extends Model
     public function instructorApplications(): HasMany
     {
         return $this->hasMany(InstructorApplication::class);
+    }
+
+    public function classes(): HasMany
+    {
+        return $this->hasMany(ClassRoom::class, 'institution_id');
     }
 
     // ← added
@@ -100,6 +128,6 @@ class Institution extends Model
 
     public function getAdminCountAttribute(): int
     {
-        return $this->users()->where('role', User::ROLE_ADMIN)->count();
+        return $this->users()->where('role', User::ROLE_INSTITUTION_ADMIN)->count();
     }
 }

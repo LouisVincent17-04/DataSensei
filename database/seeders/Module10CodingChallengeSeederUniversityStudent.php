@@ -12,6 +12,9 @@ class Module10CodingChallengeSeederUniversityStudent extends Seeder
 {
     public function run(): void
     {
+        $this->command?->warn('This legacy Module 10 coding seeder is retired: its generated bank is generic Python, not defensible SQL/database practice.');
+        return;
+
         $category = ChallengeCategory::where('slug', 'university-student')->first();
 
         if (! $category) {

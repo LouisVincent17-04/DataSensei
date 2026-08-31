@@ -1,427 +1,667 @@
 #!/usr/bin/env python3
-"""DataSensei educational Python runner.
 
-The Docker container is the primary isolation boundary. This wrapper adds
-resource limits, environment scrubbing, an import/audit policy, safe file
-access, output limits, and plot capture. The host workspace is mounted
-read-only at /input and copied into a size-limited tmpfs at /workspace.
-"""
-
-from __future__ import annotations
-
-import builtins
-import io
+import ast
+import base64
+import inspect
+import json
 import os
 import runpy
+import resource
 import shutil
+import site
 import sys
+import traceback
 from pathlib import Path
-from typing import Any
 
 
-def _env_int(name: str, default: int) -> int:
-    try:
-        return max(1, int(os.environ.get(name, default)))
-    except (TypeError, ValueError):
-        return default
+RUNNER_FILE = Path(__file__).resolve(strict=False)
+WORKSPACE = Path(os.environ.get("DS_WORKSPACE", "/workspace")).resolve(strict=False)
+INPUT_DIR = Path(os.environ.get("DS_INPUT", "/input")).resolve(strict=False)
+OUTPUT_DIR = WORKSPACE / "datasensei_outputs"
+
+os.environ.setdefault("MPLBACKEND", "Agg")
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault("XDG_CACHE_HOME", "/tmp/.cache")
+os.environ.setdefault("PYTHONNOUSERSITE", "1")
+
+Path("/tmp/matplotlib").mkdir(parents=True, exist_ok=True)
+Path("/tmp/.cache").mkdir(parents=True, exist_ok=True)
+WORKSPACE.mkdir(parents=True, exist_ok=True)
 
 
-INPUT_ROOT = Path(os.environ.get("DS_INPUT", "/input")).resolve()
-WORKSPACE = Path(os.environ.get("DS_WORKSPACE", "/workspace")).resolve()
-ENTRY = Path(sys.argv[1] if len(sys.argv) > 1 else "/workspace/main.py").resolve()
-MAX_OUTPUT = _env_int("DS_MAX_OUTPUT_BYTES", 60000)
-MAX_FILE_BYTES = _env_int("DS_MAX_FILE_BYTES", 8 * 1024 * 1024)
-MAX_PLOT_BYTES = _env_int("DS_MAX_PLOT_BYTES", 1_500_000)
-MAX_PLOTS = _env_int("DS_MAX_PLOTS", 4)
-CPU_SECONDS = _env_int("DS_CPU_SECONDS", 8)
-MEMORY_BYTES = _env_int("DS_MEMORY_BYTES", 256 * 1024 * 1024)
+# ------------------------------------------------------------
+# Prepare workspace
+# ------------------------------------------------------------
+def copy_input_workspace_to_runtime_workspace() -> None:
+    """
+    Laravel mounts the real saved IDE files at /input as read-only.
+    Docker mounts /workspace as a fresh tmpfs for every run.
 
-DENIED_IMPORT_ROOTS = {
-    "ctypes", "ensurepip", "fcntl", "ftplib", "http", "importlib",
-    "marshal", "multiprocessing", "os", "pickle", "pty", "resource",
-    "shelve", "signal", "socket", "subprocess", "telnetlib", "urllib",
-    "venv", "webbrowser", "winreg",
-}
-
-
-class LimitedTextWriter(io.TextIOBase):
-    def __init__(self, wrapped: io.TextIOBase, limit: int) -> None:
-        self.wrapped = wrapped
-        self.limit = limit
-        self.written = 0
-        self.truncated = False
-
-    @property
-    def encoding(self) -> str:
-        return getattr(self.wrapped, "encoding", "utf-8") or "utf-8"
-
-    def writable(self) -> bool:
-        return True
-
-    def write(self, value: str) -> int:
-        text = str(value)
-        remaining = self.limit - self.written
-        if remaining <= 0:
-            if not self.truncated:
-                self.wrapped.write("\n[Output truncated by DataSensei sandbox]\n")
-                self.wrapped.flush()
-                self.truncated = True
-            return len(text)
-
-        encoded = text.encode("utf-8", errors="replace")
-        chunk = encoded[:remaining].decode("utf-8", errors="ignore")
-        self.wrapped.write(chunk)
-        self.wrapped.flush()
-        self.written += len(chunk.encode("utf-8"))
-
-        if len(encoded) > remaining and not self.truncated:
-            self.wrapped.write("\n[Output truncated by DataSensei sandbox]\n")
-            self.wrapped.flush()
-            self.truncated = True
-
-        return len(text)
-
-    def flush(self) -> None:
-        self.wrapped.flush()
-
-    def isatty(self) -> bool:
-        return False
-
-
-class SandboxViolation(PermissionError):
-    pass
-
-
-def _inside(path: Path, root: Path) -> bool:
-    try:
-        path.resolve().relative_to(root.resolve())
-        return True
-    except (ValueError, OSError, RuntimeError):
-        return False
-
-
-def _prepare_workspace() -> None:
-    WORKSPACE.mkdir(parents=True, exist_ok=True)
-
-    if INPUT_ROOT == WORKSPACE:
+    Therefore, before executing the student file, we must copy /input into
+    /workspace. Without this, /workspace is empty and the runner throws:
+    Python file not found: /workspace/<file>.py
+    """
+    if not INPUT_DIR.exists() or not INPUT_DIR.is_dir():
         return
 
-    if not INPUT_ROOT.is_dir():
-        raise SandboxViolation("The private input workspace was not mounted.")
+    if INPUT_DIR == WORKSPACE:
+        return
 
-    for source in INPUT_ROOT.rglob("*"):
-        if source.is_symlink():
-            raise SandboxViolation("Symbolic links are not allowed in the private workspace.")
-
-        relative = source.relative_to(INPUT_ROOT)
+    for source in INPUT_DIR.rglob("*"):
+        relative = source.relative_to(INPUT_DIR)
         target = WORKSPACE / relative
 
         if source.is_dir():
             target.mkdir(parents=True, exist_ok=True)
             continue
 
-        if not source.is_file():
-            raise SandboxViolation("Unsupported workspace object detected.")
-
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, target)
-
-
-def _runtime_read_roots() -> tuple[Path, ...]:
-    candidates = {
-        Path(sys.base_prefix),
-        Path(sys.exec_prefix),
-        Path("/usr/lib"),
-        Path("/usr/local/lib"),
-        Path("/lib"),
-        Path("/usr/share/fonts"),
-        Path("/usr/share/matplotlib"),
-        Path("/opt/datasensei"),
-    }
-    return tuple(path.resolve() for path in candidates if path.exists())
+        if source.is_file():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                if target.exists() and source.samefile(target):
+                    continue
+            except Exception:
+                pass
+            shutil.copy2(source, target)
+            try:
+                target.chmod(0o644)
+            except Exception:
+                pass
 
 
-RUNTIME_READ_ROOTS: tuple[Path, ...] = ()
-SPECIAL_READ_FILES = {Path("/proc/cpuinfo"), Path("/proc/meminfo"), Path("/dev/null")}
+copy_input_workspace_to_runtime_workspace()
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _path_from_value(value: object) -> Path | None:
-    if isinstance(value, int):
+# ------------------------------------------------------------
+# Matplotlib setup
+# ------------------------------------------------------------
+try:
+    import matplotlib
+
+    matplotlib.use("Agg", force=True)
+
+    import matplotlib.pyplot as plt
+
+    def datasensei_show(*args, **kwargs):
         return None
-    if isinstance(value, bytes):
-        value = value.decode("utf-8", errors="strict")
-    if isinstance(value, (str, os.PathLike)):
-        raw = os.fspath(value)
-        path = Path(raw).expanduser()
-        if not path.is_absolute():
-            path = WORKSPACE / path
-        return path.resolve()
-    return None
+
+    plt.show = datasensei_show
+
+except Exception:
+    pass
 
 
-def _read_allowed(path: Path) -> bool:
-    if _inside(path, WORKSPACE) or _inside(path, Path("/tmp")):
-        return True
-    if path in SPECIAL_READ_FILES:
-        return True
-    return any(_inside(path, root) for root in RUNTIME_READ_ROOTS)
-
-
-def _write_allowed(path: Path) -> bool:
-    return _inside(path, WORKSPACE) or _inside(path, Path("/tmp"))
-
-
-def _mode_is_write(mode: object) -> bool:
-    if isinstance(mode, int):
-        write_flags = (
-            os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND
-        )
-        return bool(mode & write_flags)
-    return any(flag in str(mode) for flag in ("w", "a", "x", "+"))
-
-
-def _audit(event: str, args: tuple[object, ...]) -> None:
-    blocked_prefixes = (
-        "subprocess.", "socket.", "ctypes.dlopen", "os.system", "os.exec",
-        "os.spawn", "os.fork", "pty.spawn",
-    )
-    if event.startswith(blocked_prefixes):
-        raise SandboxViolation(f"Operation blocked by DataSensei sandbox policy: {event}")
-
-    if event == "open" and args:
-        path = _path_from_value(args[0])
-        mode = args[1] if len(args) > 1 else "r"
-        if path is not None:
-            allowed = _write_allowed(path) if _mode_is_write(mode) else _read_allowed(path)
-            if not allowed:
-                raise SandboxViolation("File access outside the private workspace is blocked.")
-
-    path_events = {
-        "os.remove", "os.unlink", "os.rename", "os.replace", "os.rmdir",
-        "os.mkdir", "os.chmod", "os.chown", "os.link", "os.symlink",
-        "os.truncate", "os.chdir", "os.listdir", "os.scandir",
-    }
-    if event in path_events and args:
-        for value in args[:2]:
-            path = _path_from_value(value)
-            if path is not None and not _write_allowed(path):
-                raise SandboxViolation("Filesystem operations outside the private workspace are blocked.")
-
-
-def _apply_resource_limits() -> None:
+def apply_resource_limits() -> None:
     try:
-        import resource
-
-        resource.setrlimit(resource.RLIMIT_CPU, (CPU_SECONDS, CPU_SECONDS + 1))
-        resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_FILE_BYTES, MAX_FILE_BYTES))
-        resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-
-        if hasattr(resource, "RLIMIT_NPROC"):
-            resource.setrlimit(resource.RLIMIT_NPROC, (32, 32))
-
-        if os.environ.get("DS_USE_RLIMIT_AS") == "1" and hasattr(resource, "RLIMIT_AS"):
-            resource.setrlimit(resource.RLIMIT_AS, (MEMORY_BYTES, MEMORY_BYTES))
+        cpu_seconds = max(1, int(os.environ.get("DS_CPU_SECONDS", "10")))
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds + 1))
     except Exception:
-        # Docker cgroup and tmpfs limits remain active if a platform lacks rlimit.
+        pass
+
+    try:
+        max_file_bytes = max(1_048_576, int(os.environ.get("DS_MAX_FILE_BYTES", "8388608")))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (max_file_bytes, max_file_bytes))
+    except Exception:
+        pass
+
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
+    except Exception:
+        pass
+
+    if os.environ.get("DS_USE_RLIMIT_AS") == "1":
+        try:
+            memory_bytes = max(134_217_728, int(os.environ.get("DS_MEMORY_BYTES", "536870912")))
+            resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+        except Exception:
+            pass
+
+
+apply_resource_limits()
+
+
+# ------------------------------------------------------------
+# Trusted paths
+# ------------------------------------------------------------
+def normalized_path(value: object) -> str:
+    return str(value).replace("\\", "/")
+
+
+def safe_resolve(value: object) -> Path | None:
+    try:
+        return Path(str(value)).resolve(strict=False)
+    except Exception:
+        return None
+
+
+SITE_PACKAGE_PATHS = []
+
+try:
+    SITE_PACKAGE_PATHS.extend(site.getsitepackages())
+except Exception:
+    pass
+
+try:
+    user_site = site.getusersitepackages()
+    if user_site:
+        SITE_PACKAGE_PATHS.append(user_site)
+except Exception:
+    pass
+
+
+TRUSTED_STACK_TOKENS = [
+    "/site-packages/matplotlib/",
+    "/site-packages/mpl_toolkits/",
+    "/site-packages/PIL/",
+    "/site-packages/Pillow/",
+    "/site-packages/numpy/",
+    "/site-packages/pandas/",
+    "/site-packages/dateutil/",
+    "/site-packages/kiwisolver/",
+    "/site-packages/contourpy/",
+    "/site-packages/cycler/",
+    "/site-packages/fontTools/",
+    "/site-packages/packaging/",
+    "/usr/local/lib/python",
+]
+
+
+TRUSTED_DLOPEN_LIBRARY_KEYWORDS = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "PIL",
+    "pillow",
+    "freetype",
+    "png",
+    "zlib",
+    "jpeg",
+    "stdc++",
+    "gcc_s",
+    "openblas",
+    "lapack",
+    "blas",
+]
+
+
+def called_from_trusted_code() -> bool:
+    try:
+        for frame in inspect.stack(context=0):
+            filename = normalized_path(frame.filename)
+
+            try:
+                frame_path = Path(frame.filename).resolve(strict=False)
+                if frame_path == RUNNER_FILE:
+                    continue
+            except Exception:
+                pass
+
+            for token in TRUSTED_STACK_TOKENS:
+                if token in filename:
+                    return True
+
+            for package_path in SITE_PACKAGE_PATHS:
+                if package_path and normalized_path(package_path) in filename:
+                    return True
+
+    except Exception:
+        return False
+
+    return False
+
+
+def path_is_inside(path: Path, root: Path) -> bool:
+    try:
+        path = path.resolve(strict=False)
+        root = root.resolve(strict=False)
+        return path == root or root in path.parents
+    except Exception:
+        return False
+
+
+def file_access_is_allowed(path_value: object, mode_value: object) -> bool:
+    if path_value is None:
+        return True
+
+    if isinstance(path_value, int):
+        return True
+
+    path = safe_resolve(path_value)
+
+    if path is None:
+        return False
+
+    mode = str(mode_value or "r").lower()
+    is_write = any(symbol in mode for symbol in ["w", "a", "+", "x"])
+
+    allowed_write_roots = [
+        WORKSPACE,
+        Path("/tmp").resolve(strict=False),
+    ]
+
+    allowed_read_roots = [
+        WORKSPACE,
+        INPUT_DIR,
+        Path("/tmp").resolve(strict=False),
+        Path("/opt/datasensei").resolve(strict=False),
+        Path("/usr/local/lib").resolve(strict=False),
+        Path("/usr/lib").resolve(strict=False),
+        Path("/lib").resolve(strict=False),
+        Path("/usr/share/fonts").resolve(strict=False),
+        Path("/etc/fonts").resolve(strict=False),
+    ]
+
+    for package_path in SITE_PACKAGE_PATHS:
+        try:
+            allowed_read_roots.append(Path(package_path).resolve(strict=False))
+        except Exception:
+            pass
+
+    if is_write:
+        return any(path_is_inside(path, root) for root in allowed_write_roots)
+
+    return any(path_is_inside(path, root) for root in allowed_read_roots)
+
+
+# ------------------------------------------------------------
+# Sandbox policy
+# ------------------------------------------------------------
+BLOCKED_IMPORT_ROOTS = {
+    "os",
+    "subprocess",
+    "socket",
+    "ctypes",
+    "multiprocessing",
+    "resource",
+    "signal",
+    "pty",
+    "fcntl",
+    "winreg",
+    "importlib",
+    "builtins",
+    "pickle",
+    "marshal",
+    "shelve",
+    "webbrowser",
+    "http",
+    "urllib",
+    "ftplib",
+    "telnetlib",
+    "venv",
+    "ensurepip",
+    "requests",
+    "httpx",
+}
+
+BLOCKED_EVENTS = {
+    "subprocess.Popen",
+    "os.system",
+    "os.spawn",
+    "os.posix_spawn",
+    "os.fork",
+    "os.forkpty",
+    "os.exec",
+    "os.kill",
+    "pty.spawn",
+    "socket.connect",
+    "socket.bind",
+    "socket.listen",
+}
+
+
+def block(event: str) -> None:
+    raise RuntimeError(
+        f"Sandbox policy blocked this operation: "
+        f"Operation blocked by DataSensei sandbox policy: {event}"
+    )
+
+
+def ctypes_dlopen_is_allowed(args: tuple) -> bool:
+    if not called_from_trusted_code():
+        return False
+
+    library_name = ""
+
+    try:
+        if args:
+            library_name = normalized_path(args[0]).lower()
+    except Exception:
+        library_name = ""
+
+    if library_name in ["", "none"]:
+        return True
+
+    if any(keyword.lower() in library_name for keyword in TRUSTED_DLOPEN_LIBRARY_KEYWORDS):
+        return True
+
+    return False
+
+
+def sandbox_audit_hook(event: str, args: tuple) -> None:
+    if event == "import":
+        try:
+            module_name = str(args[0])
+            root_name = module_name.split(".")[0]
+
+            if root_name in BLOCKED_IMPORT_ROOTS and not called_from_trusted_code():
+                block(f"import {root_name}")
+
+        except Exception as exc:
+            if isinstance(exc, RuntimeError):
+                raise
+
+    if event in BLOCKED_EVENTS:
+        if not called_from_trusted_code():
+            block(event)
+
+    if event == "ctypes.dlopen":
+        if ctypes_dlopen_is_allowed(args):
+            return
+
+        block("ctypes.dlopen")
+
+    if event in {"ctypes.dlsym", "ctypes.call_function"}:
+        if not called_from_trusted_code():
+            block(event)
+
+    if event == "open":
+        try:
+            path_value = args[0] if len(args) >= 1 else None
+            mode_value = args[1] if len(args) >= 2 else "r"
+
+            if not file_access_is_allowed(path_value, mode_value):
+                block("open")
+
+        except Exception as exc:
+            if isinstance(exc, RuntimeError):
+                raise
+
+            block("open")
+
+
+sys.addaudithook(sandbox_audit_hook)
+
+
+# ------------------------------------------------------------
+# Source validation and bounded output
+# ------------------------------------------------------------
+FORBIDDEN_CALL_NAMES = {"__import__", "compile", "eval", "exec"}
+FORBIDDEN_ATTRIBUTE_NAMES = {
+    "__bases__",
+    "__builtins__",
+    "__code__",
+    "__globals__",
+    "__loader__",
+    "__mro__",
+    "__spec__",
+    "__subclasses__",
+}
+
+
+class WorkspacePolicyVisitor(ast.NodeVisitor):
+    def __init__(self, source_path: Path) -> None:
+        self.source_path = source_path
+        self.violations: list[str] = []
+
+    def reject(self, node: ast.AST, message: str) -> None:
+        line = getattr(node, "lineno", 1)
+        relative = self.source_path.relative_to(WORKSPACE)
+        self.violations.append(f"{relative}:{line}: {message}")
+
+    def visit_Import(self, node: ast.Import) -> None:
+        for alias in node.names:
+            root_name = alias.name.split(".")[0]
+            if root_name in BLOCKED_IMPORT_ROOTS:
+                self.reject(node, f"import {root_name} is blocked")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        root_name = (node.module or "").split(".")[0]
+        if root_name in BLOCKED_IMPORT_ROOTS:
+            self.reject(node, f"import from {root_name} is blocked")
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALL_NAMES:
+            self.reject(node, f"{node.func.id}() is blocked")
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        if node.attr in FORBIDDEN_ATTRIBUTE_NAMES:
+            self.reject(node, f"unsafe introspection attribute {node.attr} is blocked")
+        if isinstance(node.value, ast.Name) and node.value.id == "sys" and node.attr in {"modules", "path"}:
+            self.reject(node, f"sys.{node.attr} is blocked")
+        self.generic_visit(node)
+
+
+def validate_workspace_sources() -> None:
+    violations: list[str] = []
+
+    for source_path in WORKSPACE.rglob("*.py"):
+        if OUTPUT_DIR in source_path.parents:
+            continue
+
+        try:
+            source = source_path.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=str(source_path))
+        except (OSError, UnicodeError, SyntaxError):
+            # Syntax and encoding errors are reported naturally by Python when the
+            # affected file is executed or imported.
+            continue
+
+        visitor = WorkspacePolicyVisitor(source_path)
+        visitor.visit(tree)
+        violations.extend(visitor.violations)
+
+    if violations:
+        joined = "\n".join(f"- {violation}" for violation in violations[:20])
+        raise RuntimeError(f"Sandbox policy rejected workspace source:\n{joined}")
+
+
+class LimitedTextStream:
+    def __init__(self, stream, max_bytes: int) -> None:
+        self.stream = stream
+        self.remaining = max(0, max_bytes)
+        self.truncated = False
+
+    @property
+    def encoding(self):
+        return getattr(self.stream, "encoding", "utf-8")
+
+    def write(self, value) -> int:
+        text = str(value)
+        encoded = text.encode("utf-8", errors="replace")
+
+        if self.remaining <= 0:
+            if not self.truncated:
+                self.stream.write("\n[Output truncated by DataSensei sandbox]\n")
+                self.truncated = True
+            return len(text)
+
+        chunk = encoded[: self.remaining]
+        self.remaining -= len(chunk)
+        self.stream.write(chunk.decode("utf-8", errors="ignore"))
+
+        if len(chunk) < len(encoded) and not self.truncated:
+            self.stream.write("\n[Output truncated by DataSensei sandbox]\n")
+            self.truncated = True
+
+        return len(text)
+
+    def flush(self) -> None:
+        self.stream.flush()
+
+    def isatty(self) -> bool:
+        return False
+
+    def fileno(self) -> int:
+        return self.stream.fileno()
+
+
+def install_output_limits() -> None:
+    total_bytes = max(65_536, int(os.environ.get("DS_MAX_OUTPUT_BYTES", "8388608")))
+    stdout_bytes = max(32_768, total_bytes * 3 // 4)
+    stderr_bytes = max(32_768, total_bytes - stdout_bytes)
+    sys.stdout = LimitedTextStream(sys.stdout, stdout_bytes)
+    sys.stderr = LimitedTextStream(sys.stderr, stderr_bytes)
+
+
+# ------------------------------------------------------------
+# Output cleanup and plot saving
+# ------------------------------------------------------------
+def clean_previous_outputs() -> None:
+    try:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+        for file in OUTPUT_DIR.iterdir():
+            if file.is_file() and file.name.lower().endswith(
+                (".png", ".jpg", ".jpeg", ".svg", ".pdf", ".json")
+            ):
+                file.unlink(missing_ok=True)
+
+    except Exception:
         pass
 
 
-def _scrub_environment() -> None:
-    safe = {
-        "HOME": "/tmp",
-        "TMPDIR": "/tmp",
-        "MPLBACKEND": "Agg",
-        "MPLCONFIGDIR": "/tmp/matplotlib",
-        "PYTHONIOENCODING": "utf-8",
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "LANG": "C.UTF-8",
-        "LC_ALL": "C.UTF-8",
-    }
-    os.environ.clear()
-    os.environ.update(safe)
-    Path("/tmp/matplotlib").mkdir(parents=True, exist_ok=True)
+def emit_plot_base64(path: Path) -> None:
+    try:
+        max_plot_bytes = int(os.environ.get("DS_MAX_PLOT_BYTES", "1500000"))
+        data = path.read_bytes()
+
+        if len(data) > max_plot_bytes:
+            print("[Plot omitted by sandbox size limit]", file=sys.stderr)
+            return
+
+        encoded = base64.b64encode(data).decode("ascii")
+        print(f"__PLOT_BASE64__:{encoded}:__END_PLOT__")
+
+    except Exception:
+        pass
 
 
-def _install_safe_file_api() -> None:
-    original_open = builtins.open
-    original_io_open = io.open
-    original_os_open = os.open
+def save_matplotlib_figures() -> list[str]:
+    saved_files = []
 
-    def safe_open(file: Any, mode: str = "r", *args: Any, **kwargs: Any):
-        path = _path_from_value(file)
-        if path is None:
-            return original_open(file, mode, *args, **kwargs)
-        allowed = _write_allowed(path) if _mode_is_write(mode) else _read_allowed(path)
-        if not allowed:
-            raise SandboxViolation("File access outside the private workspace is blocked.")
-        return original_open(path, mode, *args, **kwargs)
+    try:
+        import matplotlib
 
-    def safe_io_open(file: Any, mode: str = "r", *args: Any, **kwargs: Any):
-        path = _path_from_value(file)
-        if path is None:
-            return original_io_open(file, mode, *args, **kwargs)
-        allowed = _write_allowed(path) if _mode_is_write(mode) else _read_allowed(path)
-        if not allowed:
-            raise SandboxViolation("File access outside the private workspace is blocked.")
-        return original_io_open(path, mode, *args, **kwargs)
+        matplotlib.use("Agg", force=True)
 
-    def safe_os_open(path_value: Any, flags: int, mode: int = 0o777, *, dir_fd: int | None = None):
-        if dir_fd is not None:
-            raise SandboxViolation("Directory file descriptors are not allowed in the learning sandbox.")
-        path = _path_from_value(path_value)
-        if path is None:
-            raise SandboxViolation("Invalid file path.")
-        allowed = _write_allowed(path) if _mode_is_write(flags) else _read_allowed(path)
-        if not allowed:
-            raise SandboxViolation("File access outside the private workspace is blocked.")
-        return original_os_open(path, flags, mode)
+        import matplotlib.pyplot as plt
 
-    builtins.open = safe_open
-    io.open = safe_io_open
-    os.open = safe_os_open
+        figure_numbers = plt.get_fignums()
+        max_plots = int(os.environ.get("DS_MAX_PLOTS", "4"))
 
-
-def _disable_process_helpers() -> None:
-    def blocked(*_args: object, **_kwargs: object) -> None:
-        raise SandboxViolation("Operating-system process execution is blocked.")
-
-    for name in (
-        "system", "popen", "fork", "forkpty", "kill", "killpg",
-        "execl", "execle", "execlp", "execlpe", "execv", "execve",
-        "execvp", "execvpe", "spawnl", "spawnle", "spawnlp", "spawnlpe",
-        "spawnv", "spawnve", "spawnvp", "spawnvpe",
-    ):
-        if hasattr(os, name):
-            setattr(os, name, blocked)
-
-
-def _patch_matplotlib_show() -> None:
-    plt = sys.modules.get("matplotlib.pyplot")
-    if plt is None or getattr(plt, "_datasensei_patched", False):
-        return
-
-    import base64
-
-    def safe_show(*_args: object, **_kwargs: object) -> None:
-        emitted = 0
-        for figure_number in plt.get_fignums():
-            if emitted >= MAX_PLOTS:
-                print("[Additional plot omitted by sandbox limit]")
-                break
-
+        for index, figure_number in enumerate(figure_numbers[:max_plots], start=1):
             figure = plt.figure(figure_number)
-            figure.set_size_inches(
-                min(figure.get_figwidth(), 12),
-                min(figure.get_figheight(), 8),
-            )
-            buffer = io.BytesIO()
-            figure.savefig(buffer, format="png", bbox_inches="tight", dpi=90)
-            payload = buffer.getvalue()
-            if len(payload) > MAX_PLOT_BYTES:
-                print("[Oversized plot omitted by sandbox limit]")
-                continue
+            output_file = OUTPUT_DIR / f"figure_{index}.png"
 
-            encoded = base64.b64encode(payload).decode("ascii")
-            print(f"__PLOT_BASE64__:{encoded}:__END_PLOT__")
-            emitted += 1
+            figure.savefig(
+                output_file,
+                format="png",
+                dpi=150,
+                bbox_inches="tight",
+            )
+
+            saved_files.append(str(output_file.relative_to(WORKSPACE)))
+            emit_plot_base64(output_file)
 
         plt.close("all")
 
-    plt.show = safe_show
-    plt._datasensei_patched = True
+        metadata_file = OUTPUT_DIR / "outputs.json"
+        metadata_file.write_text(
+            json.dumps({"figures": saved_files}, indent=2),
+            encoding="utf-8",
+        )
+
+    except Exception:
+        pass
+
+    return saved_files
 
 
-def _student_import_caller(globals_dict: object) -> bool:
-    if not isinstance(globals_dict, dict):
-        return False
+# ------------------------------------------------------------
+# Main execution
+# ------------------------------------------------------------
+def resolve_script_argument() -> Path:
+    args = sys.argv[1:]
 
-    caller_file = globals_dict.get("__file__")
-    if not caller_file:
-        return False
+    if not args:
+        return WORKSPACE / "main.py"
 
+    if args[0] in {"python", "python3", "py"}:
+        args = args[1:]
+
+    if not args:
+        return WORKSPACE / "main.py"
+
+    script_path = Path(args[0])
+
+    if not script_path.is_absolute():
+        script_path = WORKSPACE / script_path
+
+    return script_path.resolve(strict=False)
+
+
+def show_available_workspace_files() -> None:
     try:
-        return _inside(Path(str(caller_file)).resolve(), WORKSPACE)
-    except (OSError, RuntimeError, ValueError):
-        return False
+        files = sorted(
+            str(path.relative_to(WORKSPACE))
+            for path in WORKSPACE.rglob("*")
+            if path.is_file()
+        )
 
+        if files:
+            print("\nAvailable files in /workspace:", file=sys.stderr)
+            for file in files[:100]:
+                print(f"- {file}", file=sys.stderr)
 
-def _install_import_hook() -> None:
-    original_import = builtins.__import__
-
-    def safe_import(name: str, globals=None, locals=None, fromlist=(), level=0):
-        root = name.split(".", 1)[0]
-
-        # Block dangerous modules only when the import originates from student
-        # workspace code. Trusted packages such as pandas and matplotlib may
-        # legitimately import os internally, so blocking all callers would break
-        # normal data-science programs.
-        if root in DENIED_IMPORT_ROOTS and _student_import_caller(globals):
-            raise SandboxViolation(
-                f"Import of '{root}' is blocked by the DataSensei sandbox policy."
-            )
-
-        module = original_import(name, globals, locals, fromlist, level)
-        if name == "matplotlib" or name.startswith("matplotlib."):
-            _patch_matplotlib_show()
-        return module
-
-    builtins.__import__ = safe_import
+    except Exception:
+        pass
 
 
 def main() -> int:
-    global RUNTIME_READ_ROOTS
+    script_path = resolve_script_argument()
+
+    if not path_is_inside(script_path, WORKSPACE):
+        print("Sandbox policy blocked a script outside the workspace.", file=sys.stderr)
+        return 126
+
+    if not script_path.exists():
+        print(f"Python file not found: {script_path}", file=sys.stderr)
+        show_available_workspace_files()
+        return 1
+
+    clean_previous_outputs()
+    install_output_limits()
 
     try:
-        _prepare_workspace()
-    except (SandboxViolation, OSError) as exc:
-        print(f"Workspace preparation failed: {exc}", file=sys.stderr)
+        validate_workspace_sources()
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
         return 126
 
-    if not _inside(ENTRY, WORKSPACE):
-        print("Entry file must be inside the private workspace.", file=sys.stderr)
-        return 126
-
-    if not ENTRY.is_file():
-        print("Python entry file was not found.", file=sys.stderr)
-        return 2
-
-    _apply_resource_limits()
-    _scrub_environment()
-    RUNTIME_READ_ROOTS = _runtime_read_roots()
-    _disable_process_helpers()
-    sys.addaudithook(_audit)
-    _install_import_hook()
-    _install_safe_file_api()
-
-    sys.stdout = LimitedTextWriter(sys.__stdout__, MAX_OUTPUT)
-    sys.stderr = LimitedTextWriter(sys.__stderr__, MAX_OUTPUT)
-    sys.setrecursionlimit(min(sys.getrecursionlimit(), 2000))
-
-    os.chdir(WORKSPACE)
-    sys.argv = [str(ENTRY)]
+    exit_code = 0
 
     try:
-        runpy.run_path(str(ENTRY), run_name="__main__")
-        return 0
-    except SandboxViolation as exc:
-        print(f"Sandbox policy blocked this operation: {exc}", file=sys.stderr)
-        return 126
-    except MemoryError:
-        print("Execution stopped because the sandbox memory limit was exceeded.", file=sys.stderr)
-        return 137
+        os.chdir(WORKSPACE)
+        runpy.run_path(str(script_path), run_name="__main__")
+
     except SystemExit as exc:
-        if exc.code is None:
-            return 0
-        if isinstance(exc.code, int):
-            return exc.code
-        print(str(exc.code), file=sys.stderr)
-        return 1
-    except BaseException:
-        import traceback
+        try:
+            exit_code = int(exc.code or 0)
+        except Exception:
+            exit_code = 1
 
+    except BaseException:
         traceback.print_exc()
-        return 1
+        exit_code = 1
+
+    finally:
+        save_matplotlib_figures()
+
+    return exit_code
 
 
 if __name__ == "__main__":

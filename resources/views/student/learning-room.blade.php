@@ -6,9 +6,6 @@
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>DataSensei — {{ $module->title }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <script>
-    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
-  </script>
 <style>
     :root {
       --bg:           #0d1320;
@@ -124,7 +121,7 @@
 
   <header class="page-learning-topbar">
     <div class="page-learning-topbar-left">
-      <button id="mobileMenuBtn" class="page-learning-mobile-btn">
+      <button type="button" id="mobileMenuBtn" class="page-learning-mobile-btn" aria-label="Open lesson navigation">
         <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>

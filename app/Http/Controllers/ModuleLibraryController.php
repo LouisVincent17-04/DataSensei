@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\ClassModuleAssignment;
 use App\Models\ClassRoom;
 use App\Models\ModuleLibraryItem;
+use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ModuleLibraryController extends Controller
 {
@@ -15,7 +17,19 @@ class ModuleLibraryController extends Controller
      */
     public function index()
     {
-        $modules = ModuleLibraryItem::where('is_active', true)
+        $classes = ClassRoom::where('instructor_id', Auth::id())
+            ->where('is_archived', false)
+            ->orderBy('name')
+            ->get();
+        $classIds = $classes->pluck('id');
+
+        $modules = ModuleLibraryItem::query()
+            ->where(function ($query) use ($classIds): void {
+                $query->where('is_active', true)
+                    ->orWhereHas('classAssignments', fn ($assignment) => $assignment
+                        ->whereIn('class_id', $classIds)
+                        ->where('status', 'active'));
+            })
             ->orderBy('sort_order')
             ->orderBy('module_no')
             ->orderBy('version_no')
@@ -32,13 +46,8 @@ class ModuleLibraryController extends Controller
         $totalModuleTitles = $modules->groupBy('module_no')->count();
         $totalModuleVersions = $modules->count();
 
-        $classes = ClassRoom::where('instructor_id', Auth::id())
-            ->where('is_archived', false)
-            ->orderBy('name')
-            ->get();
-
         $assignedIdsByClass = ClassModuleAssignment::query()
-            ->whereIn('class_id', $classes->pluck('id'))
+            ->whereIn('class_id', $classIds)
             ->where('status', 'active')
             ->get(['class_id', 'module_library_item_id'])
             ->groupBy('class_id')
@@ -64,13 +73,28 @@ class ModuleLibraryController extends Controller
      */
     public function show(ModuleLibraryItem $module)
     {
-        abort_unless($module->is_active, 404);
+        $classIds = ClassRoom::query()
+            ->where('instructor_id', Auth::id())
+            ->where('is_archived', false)
+            ->pluck('id');
+
+        $isPinnedToOwnedClass = $module->classAssignments()
+            ->whereIn('class_id', $classIds)
+            ->where('status', 'active')
+            ->exists();
+
+        abort_unless($module->is_active || $isPinnedToOwnedClass, 404);
 
         $contentSections = $this->normalizeLongTextContent($module->content_sections);
         $mcqQuestions = $this->normalizeLongTextContent($module->mcq_questions);
 
         $relatedVersions = ModuleLibraryItem::where('module_no', $module->module_no)
-            ->where('is_active', true)
+            ->where(function ($query) use ($classIds): void {
+                $query->where('is_active', true)
+                    ->orWhereHas('classAssignments', fn ($assignment) => $assignment
+                        ->whereIn('class_id', $classIds)
+                        ->where('status', 'active'));
+            })
             ->orderBy('version_no')
             ->get();
 
@@ -85,15 +109,17 @@ class ModuleLibraryController extends Controller
     /**
      * Assign selected module versions to the chosen class.
      */
-    public function assign(Request $request)
+    public function assign(Request $request, StudentNotificationService $notifications)
     {
         $request->validate([
             'class_id' => ['required', 'integer', 'exists:classes,id'],
-            'selected_modules' => ['required', 'array'],
+            'selected_modules' => ['required', 'array', 'min:1', 'max:100'],
+            'selected_modules.*' => ['required', 'integer', 'distinct', 'exists:module_library_items,id'],
         ]);
 
         $class = ClassRoom::where('id', $request->input('class_id'))
             ->where('instructor_id', Auth::id())
+            ->active()
             ->firstOrFail();
 
         $moduleIds = collect($request->input('selected_modules', []))
@@ -111,35 +137,131 @@ class ModuleLibraryController extends Controller
             ->where('is_active', true)
             ->pluck('id');
 
-        $assigned = 0;
-        $skipped = 0;
+        if ($validIds->count() !== $moduleIds->unique()->count()) {
+            return back()->withErrors([
+                'selected_modules' => 'One or more selected module versions are no longer active. Refresh the page and select again.',
+            ]);
+        }
 
-        foreach ($validIds as $moduleId) {
-            $alreadyAssigned = ClassModuleAssignment::where('class_id', $class->id)
-                ->where('module_library_item_id', $moduleId)
-                ->where('status', 'active')
-                ->exists();
+        [$assigned, $replaced, $skipped, $selectionError, $activatedIds] = DB::transaction(function () use ($class, $validIds): array {
+            ClassRoom::query()
+                ->whereKey($class->id)
+                ->where('instructor_id', Auth::id())
+                ->active()
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            if ($alreadyAssigned) {
-                $skipped++;
-                continue;
+            $lockedModules = ModuleLibraryItem::query()
+                ->whereIn('id', $validIds)
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get(['id', 'module_no']);
+
+            if ($lockedModules->count() !== $validIds->count()) {
+                return [0, 0, 0, 'changed', []];
             }
 
-            ClassModuleAssignment::create([
-                'class_id' => $class->id,
-                'module_library_item_id' => $moduleId,
-                'assigned_by' => Auth::id(),
-                'status' => 'active',
-                'assigned_at' => now(),
-            ]);
+            if ($lockedModules->pluck('module_no')->unique()->count() !== $lockedModules->count()) {
+                return [0, 0, 0, 'duplicate_module', []];
+            }
 
-            $assigned++;
+            $assigned = 0;
+            $replaced = 0;
+            $skipped = 0;
+            $activatedIds = [];
+
+            foreach ($lockedModules as $module) {
+                $versionAssignments = ClassModuleAssignment::query()
+                    ->where('class_id', $class->id)
+                    ->whereHas('moduleLibraryItem', fn ($query) => $query
+                        ->where('module_no', $module->module_no))
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                $existing = $versionAssignments
+                    ->firstWhere('module_library_item_id', $module->id);
+                $otherActiveIds = $versionAssignments
+                    ->where('status', 'active')
+                    ->where('module_library_item_id', '!=', $module->id)
+                    ->pluck('id');
+
+                if ($otherActiveIds->isNotEmpty()) {
+                    ClassModuleAssignment::query()
+                        ->whereIn('id', $otherActiveIds)
+                        ->update(['status' => 'archived']);
+                    $replaced += $otherActiveIds->count();
+                }
+
+                if ($existing?->status === 'active') {
+                    $skipped++;
+                    continue;
+                }
+
+                ClassModuleAssignment::updateOrCreate(
+                    [
+                        'class_id' => $class->id,
+                        'module_library_item_id' => $module->id,
+                    ],
+                    [
+                        'assigned_by' => Auth::id(),
+                        'status' => 'active',
+                        'assigned_at' => now(),
+                    ]
+                );
+                $assigned++;
+                $activatedIds[] = (int) $module->id;
+            }
+
+            return [$assigned, $replaced, $skipped, null, $activatedIds];
+        }, 3);
+
+        if ($selectionError === 'changed') {
+            return back()->withErrors([
+                'selected_modules' => 'A selected module version changed while the assignment was being saved. Refresh the page and try again.',
+            ]);
+        }
+
+        if ($selectionError === 'duplicate_module') {
+            return back()->withErrors([
+                'selected_modules' => 'Select only one version of each module for a class.',
+            ]);
         }
 
         $message = "{$assigned} module version(s) successfully assigned to {$class->name}.";
 
         if ($skipped > 0) {
             $message .= " {$skipped} module(s) were already assigned and were skipped.";
+        }
+
+        if ($replaced > 0) {
+            $message .= " {$replaced} older assigned version(s) were replaced.";
+        }
+
+        if ($activatedIds !== []) {
+            $moduleTitles = ModuleLibraryItem::query()
+                ->whereIn('id', $activatedIds)
+                ->orderBy('module_no')
+                ->pluck('title')
+                ->filter()
+                ->values();
+            $listedTitles = $moduleTitles->take(3)->map(fn ($title) => '“' . $title . '”')->implode(', ');
+            $extraCount = max(0, $moduleTitles->count() - 3);
+            $moduleText = $listedTitles !== '' ? $listedTitles : count($activatedIds) . ' module(s)';
+            if ($extraCount > 0) {
+                $moduleText .= ' and ' . $extraCount . ' more';
+            }
+
+            $notifications->sendToClass(
+                (int) $class->id,
+                'modules_assigned',
+                'New learning modules',
+                $moduleText . ' ' . ($moduleTitles->count() === 1 ? 'is' : 'are') . ' now available in ' . $class->name . '.',
+                route('modules.index'),
+                ['class_id' => $class->id, 'module_ids' => $activatedIds],
+                'modules-assigned:' . $class->id . ':' . sha1(implode(',', $activatedIds) . now()->format('YmdHis'))
+            );
         }
 
         return back()->with('success', $message);

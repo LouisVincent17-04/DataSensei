@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Institution;
+use App\Models\ClassRoom;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class InstitutionManagementController extends Controller
 {
@@ -16,8 +19,11 @@ class InstitutionManagementController extends Controller
     public function index(Request $request)
     {
         $query = Institution::withCount([
+            'users',
+            'classes',
+            'instructorApplications',
             'users as student_count' => fn($q) => $q->where('role', User::ROLE_USER),
-            'users as admin_count'   => fn($q) => $q->where('role', User::ROLE_ADMIN),
+            'users as admin_count'   => fn($q) => $q->where('role', User::ROLE_INSTITUTION_ADMIN),
         ]);
 
         if ($search = $request->input('search')) {
@@ -52,11 +58,11 @@ class InstitutionManagementController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'           => 'required|string|max:255',
-            'email'          => 'required|email|unique:institutions,email',
-            'address'        => 'nullable|string|max:500',
+            'name'           => ['required', 'string', 'max:189', Rule::unique('institutions', 'name')],
+            'email'          => 'required|email|max:189|unique:institutions,email',
+            'address'        => 'nullable|string|max:189',
             'contact_number' => 'nullable|string|max:30',
-            'website'        => 'nullable|url|max:255',
+            'website'        => 'nullable|url|max:189',
             'notes'          => 'nullable|string|max:1000',
             'logo'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'status'         => ['required', Rule::in(['active', 'disabled'])],
@@ -67,17 +73,31 @@ class InstitutionManagementController extends Controller
             $logoPath = $request->file('logo')->store('institutions/logos', 'public');
         }
 
-        Institution::create([
-            'name'           => $data['name'],
-            'slug'           => Str::slug($data['name']),
-            'email'          => $data['email'],
-            'address'        => $data['address'] ?? null,
-            'contact_number' => $data['contact_number'] ?? null,
-            'website'        => $data['website'] ?? null,
-            'notes'          => $data['notes'] ?? null,
-            'logo_path'      => $logoPath,
-            'status'         => $data['status'],
-        ]);
+        if ($logoPath === false) {
+            throw ValidationException::withMessages(['logo' => 'The logo could not be stored. Try again.']);
+        }
+
+        try {
+            DB::transaction(function () use ($data, $logoPath): void {
+                Institution::create([
+                    'name' => trim($data['name']),
+                    'slug' => Institution::generateUniqueSlug(trim($data['name'])),
+                    'email' => strtolower(trim($data['email'])),
+                    'address' => $data['address'] ?? null,
+                    'contact_number' => $data['contact_number'] ?? null,
+                    'website' => $data['website'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                    'logo_path' => $logoPath,
+                    'status' => $data['status'],
+                ]);
+            }, 3);
+        } catch (\Throwable $exception) {
+            if ($logoPath) {
+                Storage::disk('public')->delete($logoPath);
+            }
+
+            throw $exception;
+        }
 
         return redirect()->route('superadmin.institutions.index')
                          ->with('success', 'Institution created successfully.');
@@ -99,34 +119,62 @@ class InstitutionManagementController extends Controller
     public function update(Request $request, Institution $institution)
     {
         $data = $request->validate([
-            'name'           => 'required|string|max:255',
-            'email'          => ['required', 'email', Rule::unique('institutions')->ignore($institution->id)],
-            'address'        => 'nullable|string|max:500',
+            'name'           => ['required', 'string', 'max:189', Rule::unique('institutions', 'name')->ignore($institution->id)],
+            'email'          => ['required', 'email', 'max:189', Rule::unique('institutions')->ignore($institution->id)],
+            'address'        => 'nullable|string|max:189',
             'contact_number' => 'nullable|string|max:30',
-            'website'        => 'nullable|url|max:255',
+            'website'        => 'nullable|url|max:189',
             'notes'          => 'nullable|string|max:1000',
             'logo'           => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'status'         => ['required', Rule::in(['active', 'disabled'])],
         ]);
 
-        if ($request->hasFile('logo')) {
-            $data['logo_path'] = $request->file('logo')->store('institutions/logos', 'public');
+        $newLogoPath = $request->hasFile('logo')
+            ? $request->file('logo')->store('institutions/logos', 'public')
+            : null;
+
+        if ($newLogoPath === false) {
+            throw ValidationException::withMessages(['logo' => 'The logo could not be stored. Try again.']);
         }
 
-        $institution->update([
-            'name'           => $data['name'],
-            'slug'           => Str::slug($data['name']),
-            'email'          => $data['email'],
-            'address'        => $data['address'] ?? null,
-            'contact_number' => $data['contact_number'] ?? null,
-            'website'        => $data['website'] ?? null,
-            'notes'          => $data['notes'] ?? null,
-            'logo_path'      => $data['logo_path'] ?? $institution->logo_path,
-            'status'         => $data['status'],
-        ]);
+        try {
+            $oldLogoPath = DB::transaction(function () use ($institution, $data, $newLogoPath): ?string {
+                $lockedInstitution = Institution::query()
+                    ->whereKey($institution->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $oldLogoPath = $lockedInstitution->logo_path;
+
+                $lockedInstitution->update([
+                    'name' => trim($data['name']),
+                    'slug' => Institution::generateUniqueSlug(trim($data['name']), $lockedInstitution->id),
+                    'email' => strtolower(trim($data['email'])),
+                    'address' => $data['address'] ?? null,
+                    'contact_number' => $data['contact_number'] ?? null,
+                    'website' => $data['website'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                    'logo_path' => $newLogoPath ?? $oldLogoPath,
+                    'status' => $data['status'],
+                ]);
+
+                return $newLogoPath && $oldLogoPath && $oldLogoPath !== $newLogoPath
+                    ? $oldLogoPath
+                    : null;
+            }, 3);
+        } catch (\Throwable $exception) {
+            if ($newLogoPath) {
+                Storage::disk('public')->delete($newLogoPath);
+            }
+
+            throw $exception;
+        }
+
+        if ($oldLogoPath) {
+            Storage::disk('public')->delete($oldLogoPath);
+        }
 
         return redirect()->route('superadmin.institutions.index')
-                         ->with('success', "Institution \"{$institution->name}\" updated successfully.");
+                         ->with('success', 'Institution "'.trim($data['name']).'" updated successfully.');
     }
 
     /**
@@ -134,25 +182,61 @@ class InstitutionManagementController extends Controller
      */
     public function toggleStatus(Institution $institution)
     {
-        $institution->status = $institution->isActive() ? 'disabled' : 'active';
-        $institution->save();
+        $result = DB::transaction(function () use ($institution): array {
+            $lockedInstitution = Institution::query()
+                ->whereKey($institution->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $lockedInstitution->status = $lockedInstitution->isActive() ? 'disabled' : 'active';
+            $lockedInstitution->save();
 
-        $label = $institution->isActive() ? 'enabled' : 'disabled';
-        return back()->with('success', "Institution \"{$institution->name}\" has been {$label}.");
+            return [
+                'name' => $lockedInstitution->name,
+                'active' => $lockedInstitution->isActive(),
+            ];
+        }, 3);
+
+        $label = $result['active'] ? 'enabled' : 'disabled';
+        return back()->with('success', "Institution \"{$result['name']}\" has been {$label}.");
     }
 
-    /**
-     * Permanently delete an institution and orphan its users.
-     */
+    /** Permanently delete an institution only after its dependent records are cleared. */
     public function destroy(Institution $institution)
     {
-        // Detach users (nullify institution_id) before deleting
-        $institution->users()->update(['institution_id' => null]);
+        $result = DB::transaction(function () use ($institution): array {
+            $lockedInstitution = Institution::query()
+                ->whereKey($institution->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $name = $institution->name;
-        $institution->delete();
+            $hasDependencies = $lockedInstitution->users()->exists()
+                || ClassRoom::query()->where('institution_id', $lockedInstitution->id)->exists()
+                || $lockedInstitution->instructorApplications()->exists();
+
+            if ($hasDependencies) {
+                return ['deleted' => false, 'name' => $lockedInstitution->name, 'logo_path' => null];
+            }
+
+            $result = [
+                'deleted' => true,
+                'name' => $lockedInstitution->name,
+                'logo_path' => $lockedInstitution->logo_path,
+            ];
+            $lockedInstitution->delete();
+
+            return $result;
+        }, 3);
+
+        if (! $result['deleted']) {
+            return redirect()->route('superadmin.institutions.index')
+                ->with('error', 'This institution still has members, classes, or instructor applications. Reassign or remove those records before deleting it.');
+        }
+
+        if ($result['logo_path']) {
+            Storage::disk('public')->delete($result['logo_path']);
+        }
 
         return redirect()->route('superadmin.institutions.index')
-                         ->with('success', "Institution \"{$name}\" has been permanently deleted.");
+                         ->with('success', "Institution \"{$result['name']}\" has been permanently deleted.");
     }
 }

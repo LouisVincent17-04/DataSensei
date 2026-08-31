@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Module;
 use App\Models\Lesson;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LessonController extends Controller
@@ -19,6 +18,7 @@ class LessonController extends Controller
     // 2. Show the Learning Room (Lesson UI)
     public function show(Module $module, $lessonId = null)
     {
+        $this->ensureModuleUnlocked($module);
         $module->load(['lessons' => function($q) { $q->orderBy('order_index', 'asc'); }]);
         
         $activeLesson = $lessonId 
@@ -36,37 +36,12 @@ class LessonController extends Controller
         return view('student.learning-room', compact('module', 'activeLesson', 'completedLessonIds', 'progressPct'));
     }
 
-    public function tryCode(Request $request)
-    {
-        $code = $request->input('code', '');
-        $lessonId = $request->input('lesson_id');
-        $returnUrl = route('lesson.show', $lessonId);
-
-        // ── Logic: Is it purely SQL? ──
-        // We check for Python-specific keywords (import, print, def, variable assignments)
-        $hasPython = preg_match('/(import\s+|print\(|def\s+|=|\n\s+:)/i', $code);
-        
-        // If it has NO Python keywords and starts with common SQL commands
-        $isSqlOnly = !$hasPython && preg_match('/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|WITH|PRAGMA)/i', $code);
-
-        if ($isSqlOnly) {
-            // Redirect to SQL Sandbox with the code and return URL in session
-            return redirect()->route('sql-sandbox.index')
-                ->with('pending_sql_code', $code)
-                ->with('datasensei_return_url', $returnUrl);
-        }
-
-        // Otherwise, redirect to Python IDE
-        return redirect()->route('ide.index')
-            ->with('pending_python_code', $code)
-            ->with('datasensei_return_url', $returnUrl);
-    }
-
     // 3. Mark Lesson Complete & Advance
-    public function complete(Request $request, Lesson $lesson)
+    public function complete(Lesson $lesson)
     {
         $user = Auth::user();
         $module = $lesson->module;
+        $this->ensureModuleUnlocked($module);
 
         // 1. Mark this lesson as complete
         $user->lessons()->syncWithoutDetaching([
@@ -106,5 +81,28 @@ class LessonController extends Controller
         }
 
         return redirect()->route('challenges')->with('success', 'Module Completed!');
+    }
+
+    private function ensureModuleUnlocked(Module $module): void
+    {
+        $user = Auth::user();
+
+        if (! $user->modules()->wherePivot('is_unlocked', true)->exists()) {
+            $firstModule = Module::orderBy('order_index')->orderBy('id')->first();
+            if ($firstModule) {
+                $user->modules()->syncWithoutDetaching([
+                    $firstModule->id => ['is_unlocked' => true],
+                ]);
+            }
+        }
+
+        abort_unless(
+            $user->modules()
+                ->where('modules.id', $module->id)
+                ->wherePivot('is_unlocked', true)
+                ->exists(),
+            403,
+            'Complete the preceding module before opening this one.'
+        );
     }
 }

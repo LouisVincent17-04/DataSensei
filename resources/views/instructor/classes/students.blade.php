@@ -105,7 +105,7 @@
     .page-header p  { font-size: .875rem; color: var(--muted); margin-top: 4px; }
 
     /* ── Stats Strip ──────────────────────────────────── */
-    .stats-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    .stats-strip { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
     .strip-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 18px 20px;
@@ -385,10 +385,6 @@
 <body>
   @include('partials.instructor-sidebar')
 
-  @php
-    $tab = request('tab', 'enrolled'); // enrolled | pending
-  @endphp
-
   <div class="main">
     <!-- Topbar -->
     <header class="topbar">
@@ -400,7 +396,7 @@
       </a>
 
       <div class="topbar-title">
-        <h1>{{ $class->name }}</h1>
+        <h1 class="ds-page-title">{{ $class->name }}</h1>
         <span class="class-code-pill">{{ $class->class_code }}</span>
         @if($class->section)
           <span class="class-code-pill">{{ $class->section }}</span>
@@ -408,7 +404,6 @@
       </div>
 
       <form method="GET" action="{{ route('instructor.classes.students', $class) }}" class="topbar-search">
-        <input type="hidden" name="tab" value="{{ $tab }}" />
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
@@ -467,11 +462,7 @@
               {{ $enrolledCount }} / {{ $class->max_students }} seats filled
             </span>
           @endif
-          @if($class->allow_self_enroll)
-            <span class="pill pill-ok">Self-Enrolment On</span>
-          @else
-            <span class="pill pill-dim">Self-Enrolment Off</span>
-          @endif
+          <span class="pill pill-dim">Instructor-managed enrolment</span>
         </div>
       </div>
 
@@ -487,19 +478,6 @@
           <div class="strip-info">
             <div class="strip-value">{{ $enrolledCount }}</div>
             <div class="strip-label">Enrolled Students</div>
-          </div>
-        </div>
-
-        <div class="strip-card">
-          <div class="strip-icon" style="color:var(--accent4)">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M12 8v4l3 3"/>
-            </svg>
-          </div>
-          <div class="strip-info">
-            <div class="strip-value">{{ $pendingCount }}</div>
-            <div class="strip-label">Pending Approval</div>
           </div>
         </div>
 
@@ -569,18 +547,6 @@
         </svg>
         <span><span class="count" id="bulkCount">0</span> students selected</span>
         <div class="bulk-bar-spacer"></div>
-        @if($tab === 'pending')
-          <form method="POST" action="{{ route('instructor.classes.students.approve-bulk', $class) }}" id="bulkApproveForm">
-            @csrf
-            <div id="bulkApproveInputs"></div>
-            <button type="submit" class="btn btn-success btn-sm">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 13l4 4L19 7"/>
-              </svg>
-              Approve Selected
-            </button>
-          </form>
-        @endif
         <form method="POST" action="{{ route('instructor.classes.students.remove-bulk', $class) }}" id="bulkRemoveForm"
               onsubmit="return confirmBulkRemove()">
           @csrf @method('DELETE')
@@ -598,7 +564,6 @@
       <div class="toolbar">
         <form method="GET" action="{{ route('instructor.classes.students', $class) }}"
               style="flex:1; display:flex; gap:12px; flex-wrap:wrap;">
-          <input type="hidden" name="tab" value="{{ $tab }}" />
           <div class="search-box">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -612,15 +577,10 @@
         </form>
 
         <div class="filter-tabs">
-          <a href="{{ route('instructor.classes.students', array_merge(request()->except(['tab','page']), ['class' => $class->id, 'tab' => 'enrolled'])) }}"
-             class="filter-tab {{ $tab === 'enrolled' ? 'active' : '' }}">
+          <a href="{{ route('instructor.classes.students', array_merge(request()->except('page'), ['class' => $class->id])) }}"
+             class="filter-tab active">
             Enrolled
             <span class="tab-count">{{ $enrolledCount }}</span>
-          </a>
-          <a href="{{ route('instructor.classes.students', array_merge(request()->except(['tab','page']), ['class' => $class->id, 'tab' => 'pending'])) }}"
-             class="filter-tab {{ $tab === 'pending' ? 'active' : '' }}">
-            Pending
-            <span class="tab-count {{ $pendingCount > 0 ? 'tab-count-warn' : '' }}">{{ $pendingCount }}</span>
           </a>
         </div>
       </div>
@@ -638,7 +598,7 @@
                 <th class="col-institution">Institution</th>
                 <th class="col-xp">XP</th>
                 <th class="col-joined">
-                  {{ $tab === 'pending' ? 'Requested' : 'Enrolled' }}
+                  Enrolled
                 </th>
                 <th>Status</th>
                 <th class="col-action">Actions</th>
@@ -688,44 +648,21 @@
 
                   <!-- Status -->
                   <td>
-                    @if($tab === 'pending')
-                      <span class="pill pill-warning">
-                        <svg width="8" height="8" fill="currentColor" viewBox="0 0 8 8">
-                          <circle cx="4" cy="4" r="4"/>
-                        </svg>
-                        Pending
-                      </span>
-                    @else
-                      <span class="pill pill-ok">
-                        <svg width="8" height="8" fill="currentColor" viewBox="0 0 8 8">
-                          <circle cx="4" cy="4" r="4"/>
-                        </svg>
-                        Enrolled
-                      </span>
-                    @endif
+                    <span class="pill pill-ok">
+                      <svg width="8" height="8" fill="currentColor" viewBox="0 0 8 8">
+                        <circle cx="4" cy="4" r="4"/>
+                      </svg>
+                      Enrolled
+                    </span>
                   </td>
 
                   <!-- Actions -->
                   <td class="col-action">
                     <div class="action-group">
-                      @if($tab === 'pending')
-                        {{-- Approve --}}
-                        <form method="POST"
-                              action="{{ route('instructor.classes.students.approve', ['class' => $class, 'student' => $student]) }}">
-                          @csrf
-                          <button type="submit" class="btn btn-success btn-sm" title="Approve">
-                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                              <path d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Approve
-                          </button>
-                        </form>
-                      @endif
-
                       {{-- Remove --}}
                       <form method="POST"
                             action="{{ route('instructor.classes.students.remove', ['class' => $class, 'student' => $student]) }}"
-                            onsubmit="return confirm('Remove {{ addslashes($student->name) }} from this class?')">
+                            onsubmit="return confirm('Remove this student from the class?')">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn btn-danger btn-sm" title="Remove">
                           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -759,11 +696,8 @@
             @if(request('search'))
               <h3>No students match "{{ request('search') }}"</h3>
               <p>Try a different name or email address.</p>
-              <a href="{{ route('instructor.classes.students', ['class' => $class, 'tab' => $tab]) }}"
+              <a href="{{ route('instructor.classes.students', ['class' => $class]) }}"
                  class="btn btn-ghost">Clear Search</a>
-            @elseif($tab === 'pending')
-              <h3>No pending requests</h3>
-              <p>Students who request to join this class will appear here for your approval.</p>
             @else
               <h3>No students enrolled yet</h3>
               <p>Share the class code <strong>{{ $class->class_code }}</strong> with your students to get started.</p>
@@ -787,22 +721,13 @@
     const rowChecks   = document.querySelectorAll('.row-check');
     const bulkBar     = document.getElementById('bulkBar');
     const bulkCount   = document.getElementById('bulkCount');
-    const bulkApproveInputs = document.getElementById('bulkApproveInputs');
     const bulkRemoveInputs  = document.getElementById('bulkRemoveInputs');
 
     function syncBulkBar() {
       const checked = [...rowChecks].filter(c => c.checked);
       bulkCount.textContent = checked.length;
 
-      // Sync hidden inputs for both forms
-      if (bulkApproveInputs) {
-        bulkApproveInputs.innerHTML = '';
-        checked.forEach(c => {
-          const inp = document.createElement('input');
-          inp.type = 'hidden'; inp.name = 'student_ids[]'; inp.value = c.value;
-          bulkApproveInputs.appendChild(inp);
-        });
-      }
+      // Sync hidden inputs for the bulk removal form.
       if (bulkRemoveInputs) {
         bulkRemoveInputs.innerHTML = '';
         checked.forEach(c => {

@@ -1,33 +1,76 @@
 @extends('admin.layout')
 
-@section('title', 'Content Management')
-@section('eyebrow', 'Learning Content')
-@section('page_title', 'Content Management')
-@section('page_subtitle', 'Maintain challenge categories and challenge settings without changing existing questions, grading rules, or progression logic.')
+@section('title', 'Platform Content')
+@section('eyebrow', 'Content Manager')
+@section('page_title', 'Platform Content')
+@section('page_subtitle', 'Create, version, publish, and maintain learning modules, MCQ challenges, and assessment-library content.')
 
 @section('content')
-  <section class="panel">
+  <section class="grid cards">
+    <a class="stat" href="{{ route('admin.module-library.index') }}">
+      <div class="stat-header">
+        <span class="label">Learning Modules</span>
+        <span class="stat-icon" aria-hidden="true">M</span>
+      </div>
+      <div class="value">{{ number_format($summary['modules']) }}</div>
+      <div class="sub">{{ number_format($summary['active_modules']) }} published versions</div>
+      <div class="stat-bar"><span></span></div>
+    </a>
+
+    <a class="stat tone-purple" href="{{ route('admin.challenges.index') }}">
+      <div class="stat-header">
+        <span class="label">MCQ Challenges</span>
+        <span class="stat-icon" aria-hidden="true">Q</span>
+      </div>
+      <div class="value">{{ number_format($summary['mcq_challenges']) }}</div>
+      <div class="sub">{{ number_format($summary['active_mcq_challenges']) }} published versions</div>
+      <div class="stat-bar"><span></span></div>
+    </a>
+
+    <a class="stat tone-green" href="{{ route('admin.assessments.index') }}">
+      <div class="stat-header">
+        <span class="label">Assessment Content</span>
+        <span class="stat-icon" aria-hidden="true">A</span>
+      </div>
+      <div class="value">{{ number_format($summary['assessments']) }}</div>
+      <div class="sub">{{ number_format($summary['active_assessments']) }} published versions</div>
+      <div class="stat-bar"><span></span></div>
+    </a>
+  </section>
+
+  <section class="panel" style="margin-top:24px">
     <div class="panel-head">
       <div class="panel-heading">
-        <h2 class="panel-title">Challenge Search</h2>
-        <p class="panel-subtitle">Find coding and multiple-choice challenges by title or description.</p>
+        <h2 class="panel-title">Content Workspaces</h2>
+        <p class="panel-subtitle">Use a dedicated workspace for each content type. Coding challenges remain developer-managed.</p>
       </div>
     </div>
 
-    <form class="toolbar" method="GET" action="{{ route('admin.content.index') }}#challenges">
-      <div class="field">
-        <label for="challenge-search">Challenge Search</label>
-        <input id="challenge-search" class="input" name="challenge_search" value="{{ request('challenge_search') }}" placeholder="Search challenges">
-      </div>
-      <button class="btn" type="submit">Search Challenges</button>
-    </form>
+    <div class="quick-actions">
+      <a class="quick-action" href="{{ route('admin.module-library.create') }}">
+        <strong>Create Learning Module</strong>
+        <span>Add a module version with seeded-compatible content sections and review questions.</span>
+      </a>
+      <a class="quick-action" href="{{ route('admin.challenges.create') }}">
+        <strong>Create MCQ Challenge</strong>
+        <span>Create versioned MCQ content, questions, choices, scoring, and publishing status.</span>
+      </a>
+      <a class="quick-action" href="{{ route('admin.assessments.create') }}">
+        <strong>Create Assessment Content</strong>
+        <span>Create MCQ, fill-in-the-blank, or mixed assessment templates for instructors.</span>
+      </a>
+      <a class="quick-action" href="#challenge-categories">
+        <strong>Manage Difficulty Categories</strong>
+        <span>Maintain the challenge path names, audience labels, descriptions, and order.</span>
+      </a>
+    </div>
   </section>
 
-  <section class="panel section-anchor" id="challenge-categories">
+  <section class="panel section-anchor" id="challenge-categories" style="margin-top:24px">
     <div class="panel-head">
       <div class="panel-heading">
-        <h2 class="panel-title">Challenge Categories</h2>
-        <p class="panel-subtitle">Select a category to edit its identity, audience, description, and display order.</p>
+        <h2 class="panel-title">MCQ Challenge Categories</h2>
+        <p class="panel-subtitle">These categories are shared by the existing seeded MCQ and coding challenge paths.</p>
       </div>
       <span class="badge info">{{ number_format($categories->count()) }} categories</span>
     </div>
@@ -40,16 +83,13 @@
               <strong>{{ $category->name }}</strong>
               <span>{{ $category->slug }}</span>
             </div>
-
             <div class="management-metric">
-              <strong>{{ $category->target_audience ?: 'General audience' }}</strong>
-              Display order {{ number_format((int) $category->order_index) }}
+              <strong>{{ $category->target_audience }}</strong>
+              {{ number_format($category->mcq_challenges_count) }} MCQ challenge versions
             </div>
-
             <div class="summary-status">
-              <span class="badge info">Category</span>
+              <span class="badge info">Order {{ number_format((int) $category->order_index) }}</span>
             </div>
-
             <span class="management-toggle">Edit</span>
           </summary>
 
@@ -63,26 +103,23 @@
                   <label for="category-name-{{ $category->id }}">Name</label>
                   <input id="category-name-{{ $category->id }}" class="input" name="name" value="{{ $category->name }}" required>
                 </div>
-
                 <div class="field">
                   <label for="category-slug-{{ $category->id }}">Slug</label>
                   <input id="category-slug-{{ $category->id }}" class="input" name="slug" value="{{ $category->slug }}" required>
                 </div>
-
                 <div class="field">
-                  <label for="category-audience-{{ $category->id }}">Audience</label>
-                  <input id="category-audience-{{ $category->id }}" class="input" name="target_audience" value="{{ $category->target_audience }}">
+                  <label for="category-audience-{{ $category->id }}">Target Audience</label>
+                  <input id="category-audience-{{ $category->id }}" class="input" name="target_audience" value="{{ $category->target_audience }}" required>
                 </div>
-
                 <div class="field">
-                  <label for="category-order-{{ $category->id }}">Order</label>
-                  <input id="category-order-{{ $category->id }}" class="input" type="number" name="order_index" value="{{ $category->order_index }}" min="0">
+                  <label for="category-order-{{ $category->id }}">Display Order</label>
+                  <input id="category-order-{{ $category->id }}" class="input" type="number" name="order_index" value="{{ $category->order_index }}" min="0" required>
                 </div>
               </div>
 
               <div class="field" style="margin-top:14px">
                 <label for="category-description-{{ $category->id }}">Description</label>
-                <textarea id="category-description-{{ $category->id }}" class="textarea" name="description">{{ $category->description }}</textarea>
+                <textarea id="category-description-{{ $category->id }}" class="textarea" name="description" required>{{ $category->description }}</textarea>
               </div>
 
               <div class="action-row">
@@ -92,102 +129,8 @@
           </div>
         </details>
       @empty
-        <div class="empty-cell">No categories found.</div>
+        <div class="empty-cell">No challenge categories are available.</div>
       @endforelse
     </div>
-  </section>
-
-  <section class="panel section-anchor" id="challenges">
-    <div class="panel-head">
-      <div class="panel-heading">
-        <h2 class="panel-title">Challenges</h2>
-        <p class="panel-subtitle">Select a challenge to update its metadata while preserving its existing questions and grading logic.</p>
-      </div>
-      <span class="badge info">{{ number_format($challenges->total()) }} challenges</span>
-    </div>
-
-    <div class="management-list">
-      @forelse($challenges as $challenge)
-        <details class="management-item">
-          <summary>
-            <div class="management-main">
-              <strong>{{ $challenge->title }}</strong>
-              <span>{{ $challenge->category?->name ?? 'Uncategorized' }}</span>
-            </div>
-
-            <div class="management-metric">
-              <strong>{{ $challenge->is_coding_challenge ? 'Coding Challenge' : 'MCQ Challenge' }}</strong>
-              {{ number_format((int) $challenge->time_limit_seconds) }} sec · {{ number_format((int) $challenge->base_xp) }} XP
-            </div>
-
-            <div class="summary-status">
-              <span class="badge info">{{ $challenge->is_coding_challenge ? 'Coding' : 'MCQ' }}</span>
-              <span class="management-meta">Order {{ number_format((int) $challenge->order_index) }}</span>
-            </div>
-
-            <span class="management-toggle">Edit</span>
-          </summary>
-
-          <div class="management-editor">
-            <form method="POST" action="{{ route('admin.content.challenges.update', $challenge) }}">
-              @csrf
-              @method('PUT')
-
-              <div class="form-grid three">
-                <div class="field">
-                  <label for="challenge-title-{{ $challenge->id }}">Title</label>
-                  <input id="challenge-title-{{ $challenge->id }}" class="input" name="title" value="{{ $challenge->title }}" required>
-                </div>
-
-                <div class="field">
-                  <label for="challenge-category-{{ $challenge->id }}">Category</label>
-                  <select id="challenge-category-{{ $challenge->id }}" class="select" name="challenge_category_id">
-                    @foreach($categories as $category)
-                      <option value="{{ $category->id }}" @selected((int) $challenge->challenge_category_id === (int) $category->id)>{{ $category->name }}</option>
-                    @endforeach
-                  </select>
-                </div>
-
-                <div class="field">
-                  <label for="challenge-time-{{ $challenge->id }}">Time Limit Seconds</label>
-                  <input id="challenge-time-{{ $challenge->id }}" class="input" type="number" name="time_limit_seconds" value="{{ $challenge->time_limit_seconds }}" min="60" required>
-                </div>
-
-                <div class="field">
-                  <label for="challenge-xp-{{ $challenge->id }}">Base XP</label>
-                  <input id="challenge-xp-{{ $challenge->id }}" class="input" type="number" name="base_xp" value="{{ $challenge->base_xp }}" min="0" required>
-                </div>
-
-                <div class="field">
-                  <label for="challenge-order-{{ $challenge->id }}">Order</label>
-                  <input id="challenge-order-{{ $challenge->id }}" class="input" type="number" name="order_index" value="{{ $challenge->order_index }}" min="0">
-                </div>
-
-                <div class="field">
-                  <label for="challenge-type-{{ $challenge->id }}">Type</label>
-                  <select id="challenge-type-{{ $challenge->id }}" class="select" name="is_coding_challenge">
-                    <option value="0" @selected(!$challenge->is_coding_challenge)>MCQ</option>
-                    <option value="1" @selected($challenge->is_coding_challenge)>Coding</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="field" style="margin-top:14px">
-                <label for="challenge-description-{{ $challenge->id }}">Description</label>
-                <textarea id="challenge-description-{{ $challenge->id }}" class="textarea" name="description">{{ $challenge->description }}</textarea>
-              </div>
-
-              <div class="action-row">
-                <button class="btn small" type="submit">Save Challenge</button>
-              </div>
-            </form>
-          </div>
-        </details>
-      @empty
-        <div class="empty-cell">No challenges found.</div>
-      @endforelse
-    </div>
-
-    <div class="pagination">{{ $challenges->links('vendor.pagination.admin', ['fragment' => 'challenges']) }}</div>
   </section>
 @endsection

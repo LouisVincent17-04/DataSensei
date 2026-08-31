@@ -4,14 +4,15 @@
   $classAssignmentId = $classAssignmentId ?? null;
   $assignmentSubmissionId = $assignmentSubmissionId ?? null;
   $assignmentQuestionId = $assignmentQuestionId ?? null;
+  $antiCheatSessionId = $antiCheatSessionId ?? null;
 @endphp
 
 @if(!empty($antiCheatSettings['enabled']))
 <style>
-  .ds-ac-toast{position:fixed;right:22px;bottom:22px;z-index:99999;max-width:390px;border:1px solid rgba(245,158,11,.45);background:rgba(17,28,45,.98);color:#fde68a;border-radius:16px;padding:14px 16px;box-shadow:0 18px 55px rgba(0,0,0,.38);font:600 13px/1.45 Inter,system-ui,sans-serif;display:none}.ds-ac-toast.show{display:block}.ds-ac-toast strong{display:block;color:#fff;margin-bottom:3px}.ds-ac-lock{position:fixed;inset:0;z-index:99998;background:rgba(8,15,28,.94);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:24px}.ds-ac-lock.show{display:flex}.ds-ac-lock-card{max-width:560px;border:1px solid rgba(239,68,68,.45);background:#111c2d;border-radius:24px;padding:28px;text-align:center;box-shadow:0 22px 75px rgba(0,0,0,.45)}.ds-ac-lock-icon{font-size:2.6rem;margin-bottom:12px}.ds-ac-lock-title{font-size:1.45rem;font-weight:900;color:#fff;margin-bottom:10px}.ds-ac-lock-msg{color:#fecaca;line-height:1.65;margin-bottom:18px}.ds-ac-lock-btn{border:1px solid rgba(59,130,246,.45);background:#3b82f6;color:#fff;border-radius:12px;min-height:42px;padding:0 16px;font-weight:900;cursor:pointer}.ds-ac-fullscreen{position:fixed;inset:0;z-index:99997;background:rgba(8,15,28,.94);display:none;align-items:center;justify-content:center;padding:24px}.ds-ac-fullscreen.show{display:flex}.ds-ac-fullscreen-card{max-width:560px;border:1px solid rgba(59,130,246,.45);background:#111c2d;border-radius:24px;padding:28px;text-align:center}.ds-ac-fullscreen-title{font-size:1.35rem;font-weight:900;color:#fff;margin-bottom:8px}.ds-ac-fullscreen-msg{color:#7f93b0;line-height:1.65;margin-bottom:18px}.ds-ac-fullscreen-btn{border:0;background:#3b82f6;color:white;border-radius:12px;min-height:44px;padding:0 18px;font-weight:900;cursor:pointer}
+  .ds-ac-toast{position:relative;inset:auto;z-index:10000;max-width:390px;margin:16px 16px 0 auto;border:1px solid rgba(245,158,11,.45);background:rgba(17,28,45,.98);color:#fde68a;border-radius:16px;padding:14px 16px;box-shadow:0 18px 55px rgba(0,0,0,.38);font:600 13px/1.45 Inter,system-ui,sans-serif;display:none}.ds-ac-toast.show{display:block}.ds-ac-toast strong{display:block;color:#fff;margin-bottom:3px}.ds-ac-lock{position:fixed;inset:0;z-index:99998;background:rgba(8,15,28,.94);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:24px}.ds-ac-lock.show{display:flex}.ds-ac-lock-card{max-width:560px;border:1px solid rgba(239,68,68,.45);background:#111c2d;border-radius:24px;padding:28px;text-align:center;box-shadow:0 22px 75px rgba(0,0,0,.45)}.ds-ac-lock-icon{font-size:2.6rem;margin-bottom:12px}.ds-ac-lock-title{font-size:1.45rem;font-weight:900;color:#fff;margin-bottom:10px}.ds-ac-lock-msg{color:#fecaca;line-height:1.65;margin-bottom:18px}.ds-ac-lock-btn{border:1px solid rgba(59,130,246,.45);background:#3b82f6;color:#fff;border-radius:12px;min-height:42px;padding:0 16px;font-weight:900;cursor:pointer}.ds-ac-fullscreen{position:fixed;inset:0;z-index:99997;background:rgba(8,15,28,.94);display:none;align-items:center;justify-content:center;padding:24px}.ds-ac-fullscreen.show{display:flex}.ds-ac-fullscreen-card{max-width:560px;border:1px solid rgba(59,130,246,.45);background:#111c2d;border-radius:24px;padding:28px;text-align:center}.ds-ac-fullscreen-title{font-size:1.35rem;font-weight:900;color:#fff;margin-bottom:8px}.ds-ac-fullscreen-msg{color:#7f93b0;line-height:1.65;margin-bottom:18px}.ds-ac-fullscreen-btn{border:0;background:#3b82f6;color:white;border-radius:12px;min-height:44px;padding:0 18px;font-weight:900;cursor:pointer}
 </style>
 
-<div class="ds-ac-toast" id="ds-ac-toast"><strong id="ds-ac-toast-title">Anti-cheat warning</strong><span id="ds-ac-toast-msg"></span></div>
+<div class="ds-ac-toast" id="ds-ac-toast" data-ds-global-notification role="alert"><strong id="ds-ac-toast-title">Anti-cheat warning</strong><span id="ds-ac-toast-msg"></span></div>
 <div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><div class="ds-ac-lock-icon">🔒</div><div class="ds-ac-lock-title">Assignment Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This assignment attempt was locked because a restricted action was detected.</div><button type="button" class="ds-ac-lock-btn" onclick="window.location.reload()">Reload Page</button></div></div>
 <div class="ds-ac-fullscreen" id="ds-ac-fullscreen"><div class="ds-ac-fullscreen-card"><div class="ds-ac-fullscreen-title">Fullscreen Required</div><div class="ds-ac-fullscreen-msg">Your instructor requires fullscreen mode for this assignment. Leaving fullscreen may be logged as a violation.</div><button type="button" class="ds-ac-fullscreen-btn" id="ds-ac-fullscreen-btn">Enter Fullscreen</button></div></div>
 
@@ -22,12 +23,11 @@
   const classAssignmentId = @json($classAssignmentId);
   const assignmentSubmissionId = @json($assignmentSubmissionId);
   const baseAssignmentQuestionId = @json($assignmentQuestionId);
+  const sessionKey = @json($antiCheatSessionId);
   const logUrl = @json(route('anti-cheat.events.store'));
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
-  if (!classAssignmentId || !assignmentSubmissionId) return;
-
-  const sessionKey = `ds_ac_assignment_${classAssignmentId}_${assignmentSubmissionId}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  if (!classAssignmentId || !assignmentSubmissionId || !sessionKey) return;
   window.DataSenseiAntiCheat = window.DataSenseiAntiCheat || {};
   window.DataSenseiAntiCheat.sessionId = sessionKey;
   window.DataSenseiAntiCheat.settings = settings;

@@ -17,7 +17,7 @@
 
     <div class="top">
       <div>
-        <h1 class="title">Apply as Instructor</h1>
+        <h1 class="title ds-page-title">Apply as Instructor</h1>
         <p class="subtitle">Enter the institution code given by your institution administrator.</p>
       </div>
     </div>

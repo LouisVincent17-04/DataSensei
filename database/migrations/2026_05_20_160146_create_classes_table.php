@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('subject_code')->nullable(); // e.g. "IT 301"
             $table->integer('max_students')->nullable();
             $table->boolean('is_archived')->default(false);
-            $table->boolean('allow_self_enroll')->default(true);
+            $table->boolean('allow_self_enroll')->default(false);
             $table->timestamps();
         });
 

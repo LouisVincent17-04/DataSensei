@@ -22,7 +22,7 @@ class VerifyPasswordOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email:rfc', 'max:255'],
+            'email' => ['required', 'email:rfc', 'max:191'],
             'otp' => ['required', 'digits:'.(int) config('password_otp.length', 6)],
         ];
     }

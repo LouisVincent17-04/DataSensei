@@ -66,22 +66,6 @@
       letter-spacing:-.01em;
     }
 
-    .topbar-search {
-      width:260px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:8px 12px;
-      border:1px solid var(--border);
-      border-radius:var(--radius-sm);
-      background:var(--surface);
-      transition:border-color .15s ease;
-    }
-
-    .topbar-search:focus-within { border-color:var(--accent); }
-    .topbar-search input { width:100%; border:0; outline:0; background:none; color:var(--text); font-size:.875rem; }
-    .topbar-search input::placeholder { color:var(--dim); }
-
     .topbar-btn {
       width:36px;
       height:36px;
@@ -99,7 +83,6 @@
     }
 
     .topbar-btn:hover { color:var(--text); border-color:var(--border-hover); }
-    .notif-dot { position:absolute; top:-2px; right:-2px; width:8px; height:8px; border:2px solid var(--bg); border-radius:50%; background:var(--accent); }
     .mobile-menu-btn { display:none; }
 
     .content {
@@ -445,7 +428,6 @@
     @media (max-width:700px) {
       .topbar { height:56px; padding:0 16px; gap:10px; }
       .topbar h1 { font-size:1rem; }
-      .topbar-search { display:none; }
       .mobile-menu-btn { display:flex; }
       .content { padding:18px; }
       .grid.cards, .stats-row, .health, .quick-actions, .form-grid, .form-grid.three { grid-template-columns:1fr; }
@@ -482,17 +464,7 @@
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         </button>
 
-        <h1>@yield('page_title', 'Overview')</h1>
-
-        <div class="topbar-search">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Search admin workspace..." aria-label="Search admin workspace">
-        </div>
-
-        <div class="topbar-btn" aria-label="Notifications">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-          <span class="notif-dot"></span>
-        </div>
+        <h1 class="ds-page-title">@yield('page_title', 'Overview')</h1>
 
         <a class="topbar-btn" href="{{ route('profile') }}" aria-label="Open profile">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>

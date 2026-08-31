@@ -1,118 +1,100 @@
 @extends('admin.layout')
 
-@section('title', 'Module Library')
-@section('eyebrow', 'Learning Content')
-@section('page_title', 'Module Library')
-@section('page_subtitle', 'Review and maintain module metadata and availability from a dedicated administrator workspace.')
+@section('title', 'Learning Modules')
+@section('eyebrow', 'Platform Content')
+@section('page_title', 'Learning Modules')
+@section('page_subtitle', 'Create, version, publish, and maintain the module-library content used by students and instructors.')
 
 @section('content')
   <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
-        <h2 class="panel-title">Find a Module</h2>
-        <p class="panel-subtitle">Search by title, module code, version code, or module number.</p>
+        <h2 class="panel-title">Module Library</h2>
+        <p class="panel-subtitle">Search module versions or filter them by publication status.</p>
       </div>
-      <span class="badge info">{{ number_format($modules->total()) }} items</span>
+      <div class="action-row">
+        <span class="badge info">{{ number_format($modules->total()) }} versions</span>
+        <a class="btn small" href="{{ route('admin.module-library.create') }}">Create Module Version</a>
+      </div>
     </div>
 
     <form class="toolbar" method="GET" action="{{ route('admin.module-library.index') }}">
       <div class="field">
-        <label for="module-search">Module Search</label>
-        <input id="module-search" class="input" name="module_search" value="{{ request('module_search') }}" placeholder="Search modules, codes, versions">
+        <label for="module-search">Search</label>
+        <input id="module-search" class="input" name="search" value="{{ $search }}" placeholder="Title, module code, version, or number">
       </div>
-      <button class="btn" type="submit">Search Modules</button>
-      @if(request('module_search'))
+      <div class="field">
+        <label for="module-status">Status</label>
+        <select id="module-status" class="select" name="status">
+          <option value="all" @selected($status === 'all')>All statuses</option>
+          <option value="active" @selected($status === 'active')>Published</option>
+          <option value="inactive" @selected($status === 'inactive')>Inactive</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">Apply Filters</button>
+      @if($search !== '' || $status !== 'all')
         <a class="btn secondary" href="{{ route('admin.module-library.index') }}">Clear</a>
       @endif
     </form>
   </section>
 
-  <section class="panel">
-    <div class="panel-head">
-      <div class="panel-heading">
-        <h2 class="panel-title">Administrator Module Catalog</h2>
-        <p class="panel-subtitle">Expand a module to update its display information, duration, order, and active status.</p>
-      </div>
+  <section class="panel" style="margin-top:24px">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Version</th>
+            <th>Year</th>
+            <th>Content</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($modules as $module)
+            <tr>
+              <td>
+                <strong>{{ $module->title }}</strong>
+                <div class="dim">Module {{ $module->module_no }} · {{ $module->module_code }}</div>
+              </td>
+              <td>
+                <strong>{{ $module->version_name }}</strong>
+                <div class="dim">{{ $module->version_code }} · V{{ $module->version_no }}</div>
+              </td>
+              <td>{{ $module->year_level }}</td>
+              <td>
+                {{ count(is_array($module->content_sections) ? $module->content_sections : []) }} sections<br>
+                <span class="dim">{{ count(is_array($module->mcq_questions) ? $module->mcq_questions : []) }} review questions</span>
+              </td>
+              <td>
+                <span class="badge {{ $module->is_active ? 'active' : 'disabled' }}">
+                  {{ $module->is_active ? 'Published' : 'Inactive' }}
+                </span>
+                @if($module->class_assignments_count > 0)
+                  <div class="dim">Used by {{ $module->class_assignments_count }} class(es)</div>
+                @endif
+              </td>
+              <td>
+                <div class="action-row">
+                  <a class="btn small secondary" href="{{ route('admin.module-library.show', $module) }}">View</a>
+                  <a class="btn small" href="{{ route('admin.module-library.edit', $module) }}">Edit</a>
+                  <form method="POST" action="{{ route('admin.module-library.status', $module) }}">
+                    @csrf
+                    @method('PATCH')
+                    <button class="btn small {{ $module->is_active ? 'secondary' : 'green' }}" type="submit">
+                      {{ $module->is_active ? 'Deactivate' : 'Publish' }}
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          @empty
+            <tr><td colspan="6" class="empty-cell">No module versions match the current filters.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
     </div>
-
-    <div class="management-list">
-      @forelse($modules as $module)
-        <details class="management-item">
-          <summary>
-            <div class="management-main">
-              <strong>{{ $module->title }}</strong>
-              <span>{{ $module->module_code }} · Module {{ $module->module_no }}</span>
-            </div>
-
-            <div class="management-metric">
-              <strong>{{ $module->version_name ?: 'Unnamed Version' }}</strong>
-              {{ $module->version_code }} · {{ $module->year_level ?: 'No year level' }}
-            </div>
-
-            <div class="summary-status">
-              <span class="badge {{ $module->is_active ? 'active' : 'disabled' }}">{{ $module->is_active ? 'Active' : 'Inactive' }}</span>
-              <span class="management-meta">{{ number_format((int) $module->estimated_minutes) }} min</span>
-            </div>
-
-            <span class="management-toggle">Edit</span>
-          </summary>
-
-          <div class="management-editor">
-            <form method="POST" action="{{ route('admin.content.modules.update', $module) }}">
-              @csrf
-              @method('PUT')
-
-              <div class="form-grid three">
-                <div class="field">
-                  <label for="module-title-{{ $module->id }}">Title</label>
-                  <input id="module-title-{{ $module->id }}" class="input" name="title" value="{{ $module->title }}" required>
-                </div>
-
-                <div class="field">
-                  <label for="module-year-{{ $module->id }}">Year Level</label>
-                  <input id="module-year-{{ $module->id }}" class="input" name="year_level" value="{{ $module->year_level }}">
-                </div>
-
-                <div class="field">
-                  <label for="module-version-{{ $module->id }}">Version Name</label>
-                  <input id="module-version-{{ $module->id }}" class="input" name="version_name" value="{{ $module->version_name }}">
-                </div>
-
-                <div class="field">
-                  <label for="module-minutes-{{ $module->id }}">Estimated Minutes</label>
-                  <input id="module-minutes-{{ $module->id }}" class="input" type="number" name="estimated_minutes" value="{{ $module->estimated_minutes }}" min="0">
-                </div>
-
-                <div class="field">
-                  <label for="module-order-{{ $module->id }}">Sort Order</label>
-                  <input id="module-order-{{ $module->id }}" class="input" type="number" name="sort_order" value="{{ $module->sort_order }}" min="0">
-                </div>
-
-                <div class="field">
-                  <label for="module-status-{{ $module->id }}">Status</label>
-                  <select id="module-status-{{ $module->id }}" class="select" name="is_active">
-                    <option value="1" @selected($module->is_active)>Active</option>
-                    <option value="0" @selected(!$module->is_active)>Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="field" style="margin-top:14px">
-                <label for="module-description-{{ $module->id }}">Description</label>
-                <textarea id="module-description-{{ $module->id }}" class="textarea" name="description">{{ $module->description }}</textarea>
-              </div>
-
-              <div class="action-row">
-                <button class="btn small" type="submit">Save Module</button>
-              </div>
-            </form>
-          </div>
-        </details>
-      @empty
-        <div class="empty-cell">No modules found.</div>
-      @endforelse
-    </div>
-
     <div class="pagination">{{ $modules->links('vendor.pagination.admin') }}</div>
   </section>
 @endsection

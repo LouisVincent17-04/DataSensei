@@ -24,6 +24,8 @@ class SuperAdminAnalyticsController extends Controller
 
     public function export(Request $request, string $section): StreamedResponse
     {
+        abort_unless(in_array($section, ['summary', 'students', 'instructors', 'institutions', 'learning', 'anticheat'], true), 404);
+
         $data = $this->analytics->build(
             $request->query('from'),
             $request->query('to')
@@ -34,6 +36,10 @@ class SuperAdminAnalyticsController extends Controller
 
         return response()->streamDownload(function () use ($rows) {
             $handle = fopen('php://output', 'w');
+
+            // Help spreadsheet applications recognize UTF-8 without changing
+            // the contents of any data cell.
+            fwrite($handle, "\xEF\xBB\xBF");
 
             if (empty($rows)) {
                 fputcsv($handle, ['No records found for this analytics section.']);

@@ -375,7 +375,7 @@
 
   <div class="main">
     <header class="topbar">
-      <h1>My Classes</h1>
+      <h1 class="ds-page-title">My Classes</h1>
 
       <form method="GET" action="{{ route('instructor.classes.index') }}" class="topbar-search">
         @if($showArchived)
@@ -600,7 +600,7 @@
                     @endif
                     <div class="dropdown-divider"></div>
                     <form method="POST" action="{{ route('instructor.classes.destroy', $class) }}"
-                          onsubmit="return confirm('Permanently delete {{ addslashes($class->name) }}? This cannot be undone.')">
+                          onsubmit="return confirm('Permanently delete this class? This cannot be undone.')">
                       @csrf @method('DELETE')
                       <button class="dropdown-item danger" type="submit">
                         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
