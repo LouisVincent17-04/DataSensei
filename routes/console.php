@@ -19,3 +19,8 @@ Schedule::call(function (): void {
         })
         ->delete();
 })->dailyAt('02:15')->name('prune-password-reset-otps')->withoutOverlapping();
+
+Schedule::command('ml:prune-temporary-files')
+    ->hourly()
+    ->name('prune-ml-temporary-files')
+    ->withoutOverlapping();

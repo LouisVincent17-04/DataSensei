@@ -50,8 +50,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('failed_jobs');
-        Schema::dropIfExists('job_batches');
-        Schema::dropIfExists('jobs');
+        // Forward-only by design. The queue tables may have been created by
+        // Laravel's base migration or another deployment before this migration
+        // was recorded. Never delete tables whose ownership is ambiguous.
     }
 };

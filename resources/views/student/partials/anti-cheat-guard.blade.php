@@ -5,6 +5,7 @@
   $assignmentSubmissionId = $assignmentSubmissionId ?? null;
   $assignmentQuestionId = $assignmentQuestionId ?? null;
   $antiCheatSessionId = $antiCheatSessionId ?? null;
+  $antiCheatEventContract = \App\Support\AntiCheatEventContract::clientContract();
 @endphp
 
 @if(!empty($antiCheatSettings['enabled']))
@@ -16,9 +17,11 @@
 <div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><div class="ds-ac-lock-icon">🔒</div><div class="ds-ac-lock-title">Assignment Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This assignment attempt was locked because a restricted action was detected.</div><button type="button" class="ds-ac-lock-btn" onclick="window.location.reload()">Reload Page</button></div></div>
 <div class="ds-ac-fullscreen" id="ds-ac-fullscreen"><div class="ds-ac-fullscreen-card"><div class="ds-ac-fullscreen-title">Fullscreen Required</div><div class="ds-ac-fullscreen-msg">Your instructor requires fullscreen mode for this assignment. Leaving fullscreen may be logged as a violation.</div><button type="button" class="ds-ac-fullscreen-btn" id="ds-ac-fullscreen-btn">Enter Fullscreen</button></div></div>
 
+<script src="{{ asset('js/anti-cheat-client.js') }}"></script>
 <script>
 (() => {
   const settings = @json($antiCheatSettings);
+  const eventContract = @json($antiCheatEventContract);
   const assessmentType = 'assignment';
   const classAssignmentId = @json($classAssignmentId);
   const assignmentSubmissionId = @json($assignmentSubmissionId);
@@ -26,8 +29,13 @@
   const sessionKey = @json($antiCheatSessionId);
   const logUrl = @json(route('anti-cheat.events.store'));
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
+  const clientTools = window.DataSenseiAntiCheatClient;
 
   if (!classAssignmentId || !assignmentSubmissionId || !sessionKey) return;
+  if (!clientTools) {
+    console.error('DataSensei anti-cheat client failed to load.');
+    return;
+  }
   window.DataSenseiAntiCheat = window.DataSenseiAntiCheat || {};
   window.DataSenseiAntiCheat.sessionId = sessionKey;
   window.DataSenseiAntiCheat.settings = settings;
@@ -60,38 +68,51 @@
     return baseAssignmentQuestionId;
   }
 
-  async function logEvent(eventType, details = {}) {
-    try {
-      await fetch(logUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': csrf,
-        },
-        body: JSON.stringify({
-          assessment_type: assessmentType,
-          event_type: eventType,
-          attempt_session_id: sessionKey,
-          class_assignment_id: classAssignmentId,
-          assignment_submission_id: assignmentSubmissionId,
-          assignment_question_id: currentAssignmentQuestionId(details.target || null),
-          occurred_at: new Date().toISOString(),
-          details: {
-            ...details,
-            target: undefined,
-            url: window.location.pathname,
-            visibility_state: document.visibilityState,
-            screen_width: window.screen?.width,
-            screen_height: window.screen?.height,
-            avail_width: window.screen?.availWidth,
-            avail_height: window.screen?.availHeight,
-          },
-        }),
-      });
-    } catch (err) {
-      console.warn('Anti-cheat log failed:', err);
+  async function logEvent(eventType, details = {}, eventUuid = null) {
+    if (!eventContract.events?.[eventType]) {
+      const result = { ok: false, status: 0, error: `Unknown anti-cheat event type: ${eventType}` };
+      console.error('Anti-cheat event was not sent:', result);
+      return result;
     }
+
+    const { target = null, ...safeDetails } = details;
+    const payload = {
+      assessment_type: assessmentType,
+      event_type: eventType,
+      event_uuid: eventUuid || clientTools.createEventUuid(),
+      attempt_session_id: sessionKey,
+      class_assignment_id: classAssignmentId,
+      assignment_submission_id: assignmentSubmissionId,
+      assignment_question_id: currentAssignmentQuestionId(target),
+      occurred_at: new Date().toISOString(),
+      details: {
+        ...safeDetails,
+        url: window.location.pathname,
+        visibility_state: document.visibilityState,
+        screen_width: window.screen?.width,
+        screen_height: window.screen?.height,
+        avail_width: window.screen?.availWidth,
+        avail_height: window.screen?.availHeight,
+      },
+    };
+    const result = await clientTools.postJsonWithRetry(logUrl, payload, {
+      headers: { 'X-CSRF-TOKEN': csrf },
+      maxRetries: 1,
+      retryDelayMs: 250,
+      transientStatuses: eventContract.transient_http_statuses,
+    });
+
+    if (!result.ok) {
+      console.error('Anti-cheat event delivery failed:', {
+        eventType,
+        eventUuid: payload.event_uuid,
+        status: result.status,
+        attempts: result.attempts,
+        error: result.error,
+      });
+    }
+
+    return result;
   }
 
   function disableAttemptInputs() {
@@ -119,27 +140,43 @@
     }
   }
 
-  function handleTabViolation(kind) {
-    if (settings.allow_tab_switch) return;
-    tabSwitchCount++;
-    logEvent(kind, { tab_switch_count: tabSwitchCount, max_allowed: settings.max_tab_switches });
-    const remaining = Math.max(0, (settings.max_tab_switches ?? 0) - tabSwitchCount + 1);
-    showToast('Focus warning', `Leaving the assignment window is restricted. Remaining warning(s): ${remaining}`);
+  const focusLossCoordinator = clientTools.createFocusLossCoordinator({
+    windowMs: eventContract.focus_correlation_window_ms,
+    onFocusLoss({ source, eventUuid }) {
+      tabSwitchCount++;
+      logEvent(eventContract.focus_loss_event, {
+        source_event: source,
+        tab_switch_count: tabSwitchCount,
+        max_allowed: settings.max_tab_switches,
+      }, eventUuid);
+      const remaining = Math.max(0, (settings.max_tab_switches ?? 0) - tabSwitchCount + 1);
+      showToast('Focus warning', `Leaving the assignment window is restricted. Remaining warning(s): ${remaining}`);
 
-    if (settings.block_on_tab_limit && tabSwitchCount > (settings.max_tab_switches ?? 0)) {
-      lockAttempt('You exceeded the allowed tab-switch/focus-loss limit for this assignment attempt.');
-    }
+      if (settings.block_on_tab_limit && tabSwitchCount > (settings.max_tab_switches ?? 0)) {
+        lockAttempt('You exceeded the allowed tab-switch/focus-loss limit for this assignment attempt.');
+      }
+    },
+  });
+
+  function handleFocusLoss(source) {
+    if (settings.allow_tab_switch) return;
+    focusLossCoordinator.notify(source);
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') handleTabViolation('visibility_hidden');
+    if (document.visibilityState === 'hidden') {
+      handleFocusLoss('visibility_hidden');
+    } else {
+      focusLossCoordinator.resume();
+    }
   });
 
   window.addEventListener('blur', () => {
     setTimeout(() => {
-      if (!document.hasFocus()) handleTabViolation('window_blur');
+      if (!document.hasFocus()) handleFocusLoss('window_blur');
     }, 250);
   });
+  window.addEventListener('focus', () => focusLossCoordinator.resume());
 
   document.addEventListener('copy', e => {
     const selection = String(window.getSelection?.() || '');

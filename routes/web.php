@@ -173,6 +173,9 @@ Route::middleware(['auth', 'active', 'student'])->group(function () {
         Route::get('/{assessment}', [StudentAssessmentController::class, 'show'])->name('show');
         Route::post('/{assessment}/start', [StudentAssessmentController::class, 'start'])->name('start');
         Route::get('/{assessment}/attempt/{submission}', [StudentAssessmentController::class, 'take'])->name('take');
+        Route::post('/{assessment}/attempt/{submission}/autosave', [StudentAssessmentController::class, 'autosave'])
+            ->middleware('throttle:120,1')
+            ->name('autosave');
         Route::post('/{assessment}/attempt/{submission}/submit', [StudentAssessmentController::class, 'submit'])->name('submit');
         Route::get('/{assessment}/attempt/{submission}/result', [StudentAssessmentController::class, 'result'])->name('result');
     });
@@ -182,6 +185,9 @@ Route::middleware(['auth', 'active', 'student'])->group(function () {
         Route::get('/{assignment}', [StudentAssignmentController::class, 'show'])->name('show');
         Route::post('/{assignment}/start', [StudentAssignmentController::class, 'start'])->name('start');
         Route::get('/{assignment}/attempt/{submission}', [StudentAssignmentController::class, 'take'])->name('take');
+        Route::post('/{assignment}/attempt/{submission}/autosave', [StudentAssignmentController::class, 'autosave'])
+            ->middleware('throttle:120,1')
+            ->name('autosave');
         Route::post('/{assignment}/attempt/{submission}/submit', [StudentAssignmentController::class, 'submit'])->name('submit');
         Route::get('/{assignment}/attempt/{submission}/result', [StudentAssignmentController::class, 'result'])->name('result');
     });

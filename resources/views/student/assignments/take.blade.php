@@ -39,12 +39,24 @@
               @if($question->question_type === 'mcq')
                 @foreach($question->options as $option)
                   <label class="option-row">
-                    <input type="radio" name="answers[{{ $question->id }}]" value="{{ $option->id }}">
+                    <input
+                      type="radio"
+                      name="answers[{{ $question->id }}]"
+                      value="{{ $option->id }}"
+                      @checked((string) old('answers.'.$question->id, $draftAnswers[(string) $question->id] ?? '') === (string) $option->id)
+                    >
                     <span>{{ $option->option_text }}</span>
                   </label>
                 @endforeach
               @else
-                <input class="input" style="margin-top:10px" type="text" name="answers[{{ $question->id }}]" placeholder="Type your answer...">
+                <input
+                  class="input"
+                  style="margin-top:10px"
+                  type="text"
+                  name="answers[{{ $question->id }}]"
+                  value="{{ old('answers.'.$question->id, $draftAnswers[(string) $question->id] ?? '') }}"
+                  placeholder="Type your answer..."
+                >
               @endif
             </div>
           @endforeach
@@ -66,6 +78,12 @@
       'antiCheatSessionId' => $antiCheatSessionId,
   ])
 
+  @include('student.partials.timed-answer-autosave', [
+      'formId' => 'assignmentForm',
+      'autosaveUrl' => route('student.assignments.autosave', [$assignment, $submission]),
+      'draftVersion' => $draftVersion,
+  ])
+
   @if($remainingSeconds !== null)
     <script>
       (() => {
@@ -84,6 +102,7 @@
           if (submitted) return;
           submitted = true;
           timer.textContent = '00:00';
+          form.dispatchEvent(new Event('datasensei:final-submit'));
           HTMLFormElement.prototype.submit.call(form);
         };
         render();

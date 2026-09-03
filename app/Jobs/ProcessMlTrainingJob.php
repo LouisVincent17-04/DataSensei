@@ -44,25 +44,30 @@ class ProcessMlTrainingJob implements ShouldQueue, ShouldBeUnique
     public function handle(HybridMlRunnerService $runner, ModelStorageService $storage, CompetencyMonitoringService $competencies): void
     {
         $training = TrainingJob::query()->with('datasetVersion')->find($this->trainingJobId);
-        if (! $training || $training->status === 'completed' || $training->status === 'cancelled') {
+        if (! $training || $training->isTerminal()) {
             return;
         }
-        if (! $training->datasetVersion) {
-            throw new RuntimeException('The dataset version linked to this training job is missing.');
-        }
 
-        $datasetPath = storage_path('app/'.$training->datasetVersion->storage_path);
+        $attempt = max(1, $this->attempts());
         $training->update([
-            'status' => 'running',
+            'status' => TrainingJob::STATUS_RUNNING,
             'progress' => max(1, (int) $training->progress),
             'stage' => 'Starting the trusted training environment',
+            'attempt_number' => $attempt,
+            'next_retry_at' => null,
             'started_at' => $training->started_at ?: now(),
+            'finished_at' => null,
             'error_message' => null,
         ]);
 
         $temporaryDirectory = null;
         $started = microtime(true);
         try {
+            if (! $training->datasetVersion) {
+                throw new RuntimeException('The dataset version linked to this training job is missing.');
+            }
+
+            $datasetPath = storage_path('app/'.$training->datasetVersion->storage_path);
             $execution = $runner->train(
                 $datasetPath,
                 (array) $training->configuration,
@@ -97,12 +102,15 @@ class ProcessMlTrainingJob implements ShouldQueue, ShouldBeUnique
             }
         } catch (Throwable $exception) {
             $message = trim($exception->getMessage());
+            $willRetry = $attempt < $this->tries;
             TrainingJob::query()->whereKey($training->id)->update([
-                'status' => 'failed',
-                'stage' => $this->attempts() < $this->tries ? 'Training failed; a retry may be attempted' : 'Training failed',
+                'status' => $willRetry ? TrainingJob::STATUS_RETRYING : TrainingJob::STATUS_FAILED,
+                'stage' => $willRetry ? 'Training will retry automatically' : 'Training failed',
+                'attempt_number' => $attempt,
+                'next_retry_at' => $willRetry ? now()->addSeconds($this->retryDelaySeconds($attempt)) : null,
                 'error_message' => substr($message !== '' ? $message : 'The training worker failed.', 0, 1200),
                 'duration_ms' => (int) round((microtime(true) - $started) * 1000),
-                'finished_at' => now(),
+                'finished_at' => $willRetry ? null : now(),
                 'updated_at' => now(),
             ]);
             throw $exception;
@@ -116,12 +124,26 @@ class ProcessMlTrainingJob implements ShouldQueue, ShouldBeUnique
     public function failed(?Throwable $exception): void
     {
         $message = trim((string) ($exception?->getMessage() ?? ''));
-        TrainingJob::query()->whereKey($this->trainingJobId)->update([
-            'status' => 'failed',
-            'stage' => 'Training failed',
-            'error_message' => substr($message !== '' ? $message : 'The queue worker could not complete the training job.', 0, 1200),
-            'finished_at' => now(),
-            'updated_at' => now(),
-        ]);
+        TrainingJob::query()
+            ->whereKey($this->trainingJobId)
+            ->whereNotIn('status', [TrainingJob::STATUS_COMPLETED, TrainingJob::STATUS_CANCELLED])
+            ->update([
+                'status' => TrainingJob::STATUS_FAILED,
+                'stage' => 'Training failed',
+                'attempt_number' => max(1, $this->attempts()),
+                'next_retry_at' => null,
+                'error_message' => substr($message !== '' ? $message : 'The queue worker could not complete the training job.', 0, 1200),
+                'finished_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function retryDelaySeconds(int $attempt): int
+    {
+        $delays = $this->backoff();
+        $index = max(0, $attempt - 1);
+        $lastDelay = $delays === [] ? 1 : $delays[array_key_last($delays)];
+
+        return max(1, (int) ($delays[$index] ?? $lastDelay));
     }
 }

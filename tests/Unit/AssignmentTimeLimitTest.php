@@ -38,6 +38,9 @@ class AssignmentTimeLimitTest extends TestCase
 
         $submission->started_at = $now->copy()->subMinutes(5)->addSecond();
         $this->assertSame(1, $this->remainingSeconds($assignment, $submission));
+
+        $submission->started_at = $now->copy()->subMinutes(5)->subSecond();
+        $this->assertSame(0, $this->remainingSeconds($assignment, $submission));
     }
 
     public function test_untimed_assignment_has_no_server_deadline(): void
@@ -65,6 +68,12 @@ class AssignmentTimeLimitTest extends TestCase
         $method = new ReflectionMethod(StudentAssessmentController::class, 'remainingSeconds');
         $method->setAccessible(true);
 
+        $this->assertSame(0, $method->invoke(new StudentAssessmentController(), $assessment, $submission));
+
+        $submission->started_at = $now->copy()->subMinutes(5)->addSecond();
+        $this->assertSame(1, $method->invoke(new StudentAssessmentController(), $assessment, $submission));
+
+        $submission->started_at = $now->copy()->subMinutes(5)->subSecond();
         $this->assertSame(0, $method->invoke(new StudentAssessmentController(), $assessment, $submission));
     }
 

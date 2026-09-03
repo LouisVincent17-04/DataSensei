@@ -90,7 +90,6 @@ class InstructorAssessmentController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
             $this->authorizeTos($lockedTos);
-            $lockedTos->load('rows.ilo');
 
             $class = ClassRoom::query()
                 ->whereKey($validated['class_id'])
@@ -98,6 +97,14 @@ class InstructorAssessmentController extends Controller
                 ->where('is_archived', false)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if (! $lockedTos->canBeUsedForClass((int) $class->id)) {
+                throw ValidationException::withMessages([
+                    'class_id' => 'This class-specific TOS can only be used with the class it was created for.',
+                ]);
+            }
+
+            $lockedTos->load('rows.ilo');
 
             $totalItems = (int) $lockedTos->rows->sum('item_count');
             $targetItems = max(1, (int) ($lockedTos->total_items ?: $totalItems));

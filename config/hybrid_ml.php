@@ -19,6 +19,7 @@ return [
     'preview_rows' => (int) env('ML_PREVIEW_ROWS', 20),
     'max_versions_per_model' => (int) env('ML_MAX_VERSIONS', 0), // 0 means unlimited.
     'max_prediction_history' => (int) env('ML_MAX_PREDICTION_HISTORY', 100),
+    'temporary_file_retention_hours' => (int) env('ML_TEMP_RETENTION_HOURS', 24),
     'allowed_test_sizes' => [0.10, 0.20, 0.25, 0.30],
     'allowed_random_states' => [7, 21, 42, 100, 2026],
     'cross_validation_folds' => [0, 3, 5, 10],

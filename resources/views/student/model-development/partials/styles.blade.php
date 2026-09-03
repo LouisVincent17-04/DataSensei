@@ -12,4 +12,5 @@
 @media(max-width:1180px){.ml-roadmap-layout{grid-template-columns:minmax(225px,255px) minmax(0,1fr)}.ml-success-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.ml-roadmap-layout{grid-template-columns:1fr}.ml-roadmap-column{position:static}.ml-roadmap-panel{padding:14px}.ml-roadmap-list{display:grid;grid-template-columns:1fr;gap:7px}.ml-roadmap-item{padding:0}.ml-roadmap-item::after{display:none}.ml-roadmap-action{height:100%}}
 @media(max-width:620px){.ml-roadmap-list{grid-template-columns:1fr}.ml-selection-summary,.ml-success-metrics{grid-template-columns:1fr}.ml-summary-row.full{grid-column:auto}.ml-step-navigation{align-items:stretch;flex-direction:column}.ml-step-navigation .ml-btn,.ml-step-navigation .ml-actions,.ml-step-navigation .ml-actions .ml-btn{width:100%}.ml-roadmap-copy small{font-size:.7rem}}
+.ml-status-dot.retrying{background:var(--ml-yellow)}
 </style>

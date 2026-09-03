@@ -22,6 +22,10 @@ class AssessmentSubmission extends Model
         'submitted_at',
         'graded_at',
         'feedback',
+        'draft_answers',
+        'draft_version',
+        'draft_saved_at',
+        'timed_out_at',
     ];
 
     protected $casts = [
@@ -31,6 +35,10 @@ class AssessmentSubmission extends Model
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
         'graded_at' => 'datetime',
+        'draft_answers' => 'array',
+        'draft_version' => 'integer',
+        'draft_saved_at' => 'datetime',
+        'timed_out_at' => 'datetime',
     ];
 
     public function assessment(): BelongsTo

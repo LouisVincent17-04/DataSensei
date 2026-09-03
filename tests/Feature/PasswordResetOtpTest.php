@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Mail\PasswordResetOtpMail;
 use App\Models\PasswordResetOtp;
 use App\Models\User;
+use App\Support\PasswordOtpConfiguration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PasswordResetOtpTest extends TestCase
@@ -74,14 +76,16 @@ class PasswordResetOtpTest extends TestCase
         ]);
 
         $response->assertRedirect(route('password.otp.verify.form'));
-        $response->assertSessionHas('status', 'If the email exists, a six-digit verification code has been sent.');
+        $response->assertSessionHas('status', 'If the email exists, a 6-digit verification code has been sent.');
         $this->assertDatabaseCount('password_reset_otps', 0);
         Mail::assertNothingQueued();
     }
 
-    public function test_known_user_receives_a_hashed_six_digit_otp(): void
+    #[DataProvider('supportedOtpLengths')]
+    public function test_known_user_receives_a_hashed_otp_with_the_configured_length(int $length): void
     {
         Mail::fake();
+        config()->set('password_otp.length', $length);
         $user = $this->createUser();
 
         $this->post(route('password.otp.send'), ['email' => $user->email])
@@ -89,14 +93,33 @@ class PasswordResetOtpTest extends TestCase
 
         $record = PasswordResetOtp::query()->firstOrFail();
 
-        $this->assertNotSame('000000', $record->otp_hash);
+        $this->assertNotSame(str_repeat('0', $length), $record->otp_hash);
         $this->assertTrue($record->expires_at->isFuture());
 
-        Mail::assertQueued(PasswordResetOtpMail::class, function (PasswordResetOtpMail $mail) use ($record): bool {
+        Mail::assertQueued(PasswordResetOtpMail::class, function (PasswordResetOtpMail $mail) use ($record, $length): bool {
             return $mail->otpRecordId === $record->id
-                && preg_match('/^\d{6}$/', $mail->otp) === 1
+                && preg_match('/^\d{'.$length.'}$/', $mail->otp) === 1
                 && Hash::check($mail->otp, $record->otp_hash);
         });
+    }
+
+    #[DataProvider('supportedOtpLengths')]
+    public function test_verification_form_and_validation_use_the_same_configured_length(int $length): void
+    {
+        config()->set('password_otp.length', $length);
+
+        $this->withSession(['password_reset.email' => 'test@example.com'])
+            ->get(route('password.otp.verify.form'))
+            ->assertOk()
+            ->assertSee('maxlength="'.$length.'"', false)
+            ->assertSee('placeholder="'.str_repeat('0', $length).'"', false);
+
+        $this->withSession(['password_reset.email' => 'test@example.com'])
+            ->post(route('password.otp.verify'), [
+                'email' => 'test@example.com',
+                'otp' => str_repeat('1', $length - 1),
+            ])
+            ->assertSessionHasErrors('otp');
     }
 
     public function test_new_otp_invalidates_previous_otp(): void
@@ -190,6 +213,16 @@ class PasswordResetOtpTest extends TestCase
         $this->assertNotNull(PasswordResetOtp::query()->firstOrFail()->fresh()->consumed_at);
     }
 
+    public function test_unsupported_otp_length_is_rejected_instead_of_being_silently_ignored(): void
+    {
+        config()->set('password_otp.length', 12);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('PASSWORD_OTP_LENGTH');
+
+        PasswordOtpConfiguration::length();
+    }
+
     private function createUser(): User
     {
         return User::create([
@@ -199,5 +232,14 @@ class PasswordResetOtpTest extends TestCase
             'role' => User::ROLE_USER,
             'status' => 'active',
         ]);
+    }
+
+    public static function supportedOtpLengths(): array
+    {
+        return [
+            'minimum supported length' => [4],
+            'default length' => [6],
+            'maximum supported length' => [9],
+        ];
     }
 }

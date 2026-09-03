@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 class HybridMlRunnerService
 {
@@ -24,42 +25,53 @@ class HybridMlRunnerService
         }
 
         $temporary = storage_path('app/ml/tmp/train-'.Str::uuid());
-        $output = $temporary.DIRECTORY_SEPARATOR.'output';
-        File::ensureDirectoryExists($output, 0777, true);
-        @chmod($temporary, 0777);
-        @chmod($output, 0777);
-        $configPath = $temporary.DIRECTORY_SEPARATOR.'config.json';
-        File::put($configPath, json_encode($configuration, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR));
-        @chmod($configPath, 0644);
+        $handedOff = false;
 
-        $process = $this->trainingProcess($datasetPath, $configPath, $output);
-        $this->runAndMonitor(
-            $process,
-            $output,
-            max(30, (int) config('hybrid_ml.training_timeout_seconds', 600)),
-            $progressCallback
-        );
+        try {
+            $output = $temporary.DIRECTORY_SEPARATOR.'output';
+            File::ensureDirectoryExists($output, 0777, true);
+            @chmod($temporary, 0777);
+            @chmod($output, 0777);
+            $configPath = $temporary.DIRECTORY_SEPARATOR.'config.json';
+            File::put($configPath, json_encode($configuration, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR));
+            @chmod($configPath, 0644);
 
-        $resultPath = $output.DIRECTORY_SEPARATOR.'result.json';
-        if (! is_file($resultPath)) {
-            $error = $this->readError($output, $process);
-            File::deleteDirectory($temporary);
-            throw new RuntimeException($error);
+            $process = $this->trainingProcess($datasetPath, $configPath, $output);
+            $this->runAndMonitor(
+                $process,
+                $output,
+                max(30, (int) config('hybrid_ml.training_timeout_seconds', 600)),
+                $progressCallback
+            );
+
+            $resultPath = $output.DIRECTORY_SEPARATOR.'result.json';
+            if (! is_file($resultPath)) {
+                throw new RuntimeException($this->readError($output, $process));
+            }
+
+            $result = json_decode(File::get($resultPath), true, 512, JSON_THROW_ON_ERROR);
+            if (! is_array($result) || ($result['ok'] ?? false) !== true || ! is_file($output.DIRECTORY_SEPARATOR.'model.joblib')) {
+                $error = is_array($result) ? (string) ($result['message'] ?? '') : '';
+                throw new RuntimeException($error !== '' ? $error : 'The training runner did not produce a valid model artifact.');
+            }
+
+            // A successful run transfers ownership of this directory to the
+            // queue job, which removes it after the artifacts are persisted.
+            $handedOff = true;
+
+            return [
+                'result' => $result,
+                'output_directory' => $output,
+                'stdout' => $process->getOutput(),
+                'stderr' => $process->getErrorOutput(),
+            ];
+        } finally {
+            // Process start, timeout, progress callback, malformed JSON, and
+            // artifact-validation failures all leave through this path.
+            if (! $handedOff && is_dir($temporary)) {
+                File::deleteDirectory($temporary);
+            }
         }
-
-        $result = json_decode(File::get($resultPath), true, 512, JSON_THROW_ON_ERROR);
-        if (! is_array($result) || ($result['ok'] ?? false) !== true || ! is_file($output.DIRECTORY_SEPARATOR.'model.joblib')) {
-            $error = is_array($result) ? (string) ($result['message'] ?? '') : '';
-            File::deleteDirectory($temporary);
-            throw new RuntimeException($error !== '' ? $error : 'The training runner did not produce a valid model artifact.');
-        }
-
-        return [
-            'result' => $result,
-            'output_directory' => $output,
-            'stdout' => $process->getOutput(),
-            'stderr' => $process->getErrorOutput(),
-        ];
     }
 
     /** @param array<string,mixed> $inputValues @return array<string,mixed> */
@@ -101,7 +113,7 @@ class HybridMlRunnerService
         }
     }
 
-    private function trainingProcess(string $datasetPath, string $configPath, string $outputPath): Process
+    protected function trainingProcess(string $datasetPath, string $configPath, string $outputPath): Process
     {
         return $this->makeProcess(
             'train',
@@ -217,6 +229,11 @@ class HybridMlRunnerService
         } catch (ProcessTimedOutException $exception) {
             $process->stop(1, 9);
             throw new RuntimeException('The machine-learning process exceeded its time limit.', 0, $exception);
+        } catch (Throwable $exception) {
+            if ($process->isRunning()) {
+                $process->stop(1, 9);
+            }
+            throw $exception;
         }
 
         if (! $process->isSuccessful()) {

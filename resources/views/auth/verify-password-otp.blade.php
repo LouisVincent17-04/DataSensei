@@ -2,7 +2,7 @@
 
 @section('content')
   <h1 class="heading">Verify your email</h1>
-  <p class="subheading">Enter the six-digit code sent to <strong>{{ $maskedEmail }}</strong>. The code expires after {{ config('password_otp.expires_minutes', 5) }} minutes and can be used only once.</p>
+  <p class="subheading">Enter the {{ $otpLength }}-digit code sent to <strong>{{ $maskedEmail }}</strong>. The code expires after {{ config('password_otp.expires_minutes', 5) }} minutes and can be used only once.</p>
 
   @if ($errors->has('otp'))
     <div class="alert alert-danger">{{ $errors->first('otp') }}</div>
@@ -22,9 +22,10 @@
         value=""
         inputmode="numeric"
         pattern="[0-9]*"
-        maxlength="{{ config('password_otp.length', 6) }}"
+        minlength="{{ $otpLength }}"
+        maxlength="{{ $otpLength }}"
         autocomplete="one-time-code"
-        placeholder="000000"
+        placeholder="{{ str_repeat('0', $otpLength) }}"
         required
         autofocus
       >

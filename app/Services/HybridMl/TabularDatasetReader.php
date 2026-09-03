@@ -36,60 +36,62 @@ class TabularDatasetReader
     public function readCsv(string $path): array
     {
         $normalizedPath = $this->normalizeUtf8File($path);
-        $delimiter = $this->detectDelimiter($normalizedPath);
-        $csv = new SplFileObject($normalizedPath, 'r');
-        $csv->setFlags(SplFileObject::READ_CSV | SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE);
-        $csv->setCsvControl($delimiter);
+        try {
+            $delimiter = $this->detectDelimiter($normalizedPath);
+            $csv = new SplFileObject($normalizedPath, 'r');
+            $csv->setFlags(SplFileObject::READ_CSV | SplFileObject::SKIP_EMPTY | SplFileObject::DROP_NEW_LINE);
+            $csv->setCsvControl($delimiter);
 
-        $headers = null;
-        $rows = [];
-        $formulaCellsSanitized = 0;
-        $maxRows = max(20, (int) config('hybrid_ml.max_rows', 50000));
-        $maxColumns = max(2, (int) config('hybrid_ml.max_columns', 200));
+            $headers = null;
+            $rows = [];
+            $formulaCellsSanitized = 0;
+            $maxRows = max(20, (int) config('hybrid_ml.max_rows', 50000));
+            $maxColumns = max(2, (int) config('hybrid_ml.max_columns', 200));
 
-        foreach ($csv as $record) {
-            if (! is_array($record) || $this->rowIsEmpty($record)) {
-                continue;
+            foreach ($csv as $record) {
+                if (! is_array($record) || $this->rowIsEmpty($record)) {
+                    continue;
+                }
+
+                if ($headers === null) {
+                    $headers = $this->normalizeHeaders($record, $maxColumns);
+                    continue;
+                }
+
+                if (count($record) > count($headers) && ! $this->rowIsEmpty(array_slice($record, count($headers)))) {
+                    throw ValidationException::withMessages([
+                        'dataset_file' => 'A CSV row contains more values than the header row.',
+                    ]);
+                }
+
+                $record = array_pad(array_slice($record, 0, count($headers)), count($headers), null);
+                $row = [];
+                foreach ($headers as $index => $header) {
+                    $value = $this->normalizeCell($record[$index] ?? null, $formulaCellsSanitized);
+                    $row[$header] = $value;
+                }
+
+                if (! $this->rowIsEmpty(array_values($row))) {
+                    $rows[] = $row;
+                }
+
+                if (count($rows) > $maxRows) {
+                    throw ValidationException::withMessages([
+                        'dataset_file' => "The dataset may contain at most {$maxRows} data rows.",
+                    ]);
+                }
             }
 
-            if ($headers === null) {
-                $headers = $this->normalizeHeaders($record, $maxColumns);
-                continue;
-            }
-
-            if (count($record) > count($headers) && ! $this->rowIsEmpty(array_slice($record, count($headers)))) {
-                throw ValidationException::withMessages([
-                    'dataset_file' => 'A CSV row contains more values than the header row.',
-                ]);
-            }
-
-            $record = array_pad(array_slice($record, 0, count($headers)), count($headers), null);
-            $row = [];
-            foreach ($headers as $index => $header) {
-                $value = $this->normalizeCell($record[$index] ?? null, $formulaCellsSanitized);
-                $row[$header] = $value;
-            }
-
-            if (! $this->rowIsEmpty(array_values($row))) {
-                $rows[] = $row;
-            }
-
-            if (count($rows) > $maxRows) {
-                throw ValidationException::withMessages([
-                    'dataset_file' => "The dataset may contain at most {$maxRows} data rows.",
-                ]);
+            return $this->finalize($headers, $rows, [
+                'format' => 'csv',
+                'delimiter' => $delimiter === "\t" ? 'tab' : $delimiter,
+                'formula_cells_sanitized' => $formulaCellsSanitized,
+            ]);
+        } finally {
+            if ($normalizedPath !== $path && is_file($normalizedPath)) {
+                @unlink($normalizedPath);
             }
         }
-
-        if ($normalizedPath !== $path && is_file($normalizedPath)) {
-            @unlink($normalizedPath);
-        }
-
-        return $this->finalize($headers, $rows, [
-            'format' => 'csv',
-            'delimiter' => $delimiter === "\t" ? 'tab' : $delimiter,
-            'formula_cells_sanitized' => $formulaCellsSanitized,
-        ]);
     }
 
     /**
@@ -403,7 +405,11 @@ class TabularDatasetReader
             $converted = @iconv($encoding, 'UTF-8//IGNORE', $contents);
             if (is_string($converted) && preg_match('//u', $converted) === 1) {
                 $temporary = tempnam(sys_get_temp_dir(), 'datasensei_csv_');
-                if ($temporary === false || file_put_contents($temporary, $converted) === false) {
+                if ($temporary === false) {
+                    break;
+                }
+                if (file_put_contents($temporary, $converted) === false) {
+                    @unlink($temporary);
                     break;
                 }
                 return $temporary;

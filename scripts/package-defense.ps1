@@ -4,6 +4,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$packager = Join-Path $PSScriptRoot "package-release.py"
 
 if ([string]::IsNullOrWhiteSpace($OutputPath)) {
     $OutputPath = Join-Path $projectRoot "DataSensei-defense-clean.zip"
@@ -15,101 +16,51 @@ if (Test-Path -LiteralPath $OutputPath) {
     throw "Refusing to overwrite an existing archive: $OutputPath"
 }
 
-$temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("datasensei-defense-" + [guid]::NewGuid().ToString("N"))
-$stage = Join-Path $temporaryRoot "DataSensei"
-New-Item -ItemType Directory -Path $stage -Force | Out-Null
-
-function Copy-ProjectFile {
-    param([string]$RelativePath)
-
-    $source = Join-Path $projectRoot $RelativePath
-    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
-        return
-    }
-
-    $destination = Join-Path $stage $RelativePath
-    $parent = Split-Path -Parent $destination
-    New-Item -ItemType Directory -Path $parent -Force | Out-Null
-    Copy-Item -LiteralPath $source -Destination $destination
+$node = Get-Command "node" -ErrorAction SilentlyContinue
+$npm = Get-Command "npm.cmd" -ErrorAction SilentlyContinue
+if (-not $npm) {
+    $npm = Get-Command "npm" -ErrorAction SilentlyContinue
+}
+if (-not $node -or -not $npm) {
+    throw "Node.js 22.12.x and npm 10.x are required to build the frontend assets."
 }
 
+$nodeVersion = (& $node.Source --version).Trim()
+$npmVersion = (& $npm.Source --version).Trim()
+if ($nodeVersion -notmatch '^v22\.12\.\d+$') {
+    throw "Expected Node.js 22.12.x from .nvmrc, but found $nodeVersion."
+}
+if ($npmVersion -notmatch '^10\.\d+\.\d+$') {
+    throw "Expected npm 10.x, but found $npmVersion."
+}
+
+Push-Location $projectRoot
 try {
-    # Explicit root allow-list: secrets and old audit/debug files are not copied.
-    @(
-        ".editorconfig",
-        ".env.example",
-        ".gitattributes",
-        ".gitignore",
-        "artisan",
-        "composer.json",
-        "composer.lock",
-        "package.json",
-        "package-lock.json",
-        "phpunit.xml",
-        "README.md",
-        "vite.config.js",
-        "start-datasensei.bat",
-        "start-default-worker.bat",
-        "start-ml-worker.bat",
-        "start-scheduler.bat",
-        "start-defense.bat"
-    ) | ForEach-Object { Copy-ProjectFile $_ }
-
-    # Application source folders. Generated dependencies/build output are
-    # intentionally absent from this list and are rebuilt on the target PC.
-    @(
-        "app", "bootstrap", "config", "database", "deploy", "docker", "docs",
-        "public", "resources", "routes", "scripts", "tests"
-    ) | ForEach-Object {
-        $root = Join-Path $projectRoot $_
-        if (-not (Test-Path -LiteralPath $root -PathType Container)) {
-            return
-        }
-
-        Get-ChildItem -LiteralPath $root -Recurse -File -Force | ForEach-Object {
-            $relative = $_.FullName.Substring($projectRoot.Length) -replace '^[\\/]+', ''
-            $normalized = $relative.Replace("\", "/")
-
-            if ($normalized -like "public/build/*" -or
-                $normalized -eq "public/hot" -or
-                $normalized -eq "public/toput" -or
-                $normalized -like "public/storage/*" -or
-                ($normalized -like "bootstrap/cache/*" -and $normalized -ne "bootstrap/cache/.gitignore")) {
-                return
-            }
-
-            Copy-ProjectFile $relative
-        }
+    & $npm.Source ci
+    if ($LASTEXITCODE -ne 0) {
+        throw "npm ci failed. Install the pinned Node.js version from .nvmrc and retry."
     }
 
-    # Only immutable, bundled ML assets are distributable. Student uploads,
-    # IDE workspaces, sandbox databases, logs, sessions, and cached views never
-    # enter the archive.
-    $systemMlRoot = Join-Path $projectRoot "storage/app/ml/system"
-    if (Test-Path -LiteralPath $systemMlRoot -PathType Container) {
-        Get-ChildItem -LiteralPath $systemMlRoot -Recurse -File -Force | ForEach-Object {
-            $relative = $_.FullName.Substring($projectRoot.Length) -replace '^[\\/]+', ''
-            Copy-ProjectFile $relative
-        }
+    & $npm.Source run build
+    if ($LASTEXITCODE -ne 0) {
+        throw "The Vite production build failed."
     }
-
-    Get-ChildItem -LiteralPath (Join-Path $projectRoot "storage") -Recurse -File -Filter ".gitignore" -ErrorAction SilentlyContinue |
-        Where-Object {
-            $relative = $_.FullName.Substring($projectRoot.Length).Replace("\", "/")
-            $relative -notlike "*/workspaces/*" -and
-            $relative -notlike "*/sandbox/*" -and
-            $relative -notlike "*/ml/users/*"
-        } | ForEach-Object {
-            $relative = $_.FullName.Substring($projectRoot.Length) -replace '^[\\/]+', ''
-            Copy-ProjectFile $relative
-        }
-
-    Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $OutputPath -CompressionLevel Optimal
-    Write-Host "Created clean defense package: $OutputPath"
-    Write-Host "Excluded: .env, Git history, dependencies, build output, user workspaces, sandbox databases, uploads, sessions, cache, and logs."
+} finally {
+    Pop-Location
 }
-finally {
-    if (Test-Path -LiteralPath $temporaryRoot) {
-        Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
+
+$pythonLauncher = Get-Command "py" -ErrorAction SilentlyContinue
+if ($pythonLauncher) {
+    & $pythonLauncher.Source -3 $packager --output $OutputPath --include-built-assets
+} else {
+    $pythonLauncher = Get-Command "python" -ErrorAction SilentlyContinue
+    if (-not $pythonLauncher) {
+        throw "Python 3 is required to create and verify a clean release archive."
     }
+
+    & $pythonLauncher.Source $packager --output $OutputPath --include-built-assets
+}
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Release packaging failed. No archive was published."
 }

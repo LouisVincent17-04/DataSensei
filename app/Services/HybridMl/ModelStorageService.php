@@ -146,7 +146,7 @@ class ModelStorageService
 
                 $job->update([
                     'ml_model_id' => $model->id,
-                    'status' => 'completed',
+                    'status' => TrainingJob::STATUS_COMPLETED,
                     'progress' => 100,
                     'stage' => 'Training completed',
                     'result' => [
@@ -157,6 +157,7 @@ class ModelStorageService
                         'metrics' => $result['metrics'] ?? [],
                     ],
                     'error_message' => null,
+                    'next_retry_at' => null,
                     'duration_ms' => (int) ($result['training_time_ms'] ?? $job->duration_ms ?? 0),
                     'finished_at' => now(),
                 ]);

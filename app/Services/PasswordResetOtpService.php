@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\PasswordResetOtpMail;
 use App\Models\PasswordResetOtp;
 use App\Models\User;
+use App\Support\PasswordOtpConfiguration;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -264,6 +265,11 @@ class PasswordResetOtpService
         return strtolower(trim($email));
     }
 
+    public function otpLength(): int
+    {
+        return PasswordOtpConfiguration::length();
+    }
+
     private function findActiveUser(string $email): ?User
     {
         return User::query()
@@ -276,7 +282,10 @@ class PasswordResetOtpService
 
     private function generateOtp(): string
     {
-        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $length = $this->otpLength();
+        $maximum = (10 ** $length) - 1;
+
+        return str_pad((string) random_int(0, $maximum), $length, '0', STR_PAD_LEFT);
     }
 
     private function cooldownKey(string $email): string

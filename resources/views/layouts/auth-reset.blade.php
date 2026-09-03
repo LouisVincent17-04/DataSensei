@@ -152,7 +152,7 @@
       <h1 class="hero-title">Return to learning<br>with a <em>verified</em><br>password reset</h1>
       <p class="hero-copy">DataSensei uses a short-lived, one-time email code to verify your identity before allowing a password change.</p>
       <div class="security-list">
-        <div class="security-item"><span class="security-icon">01</span><span>Six-digit code sent only to the registered email</span></div>
+        <div class="security-item"><span class="security-icon">01</span><span>{{ \App\Support\PasswordOtpConfiguration::length() }}-digit code sent only to the registered email</span></div>
         <div class="security-item"><span class="security-icon">02</span><span>Code expires automatically after five minutes</span></div>
         <div class="security-item"><span class="security-icon">03</span><span>Previous and used codes are immediately invalidated</span></div>
       </div>

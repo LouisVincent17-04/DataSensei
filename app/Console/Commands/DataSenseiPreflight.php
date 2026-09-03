@@ -31,6 +31,7 @@ class DataSenseiPreflight extends Command
         $databaseReady = $this->checkDatabase();
         if ($databaseReady) {
             $this->checkMigrations();
+            $this->checkHybridMlReferentialIntegrity();
             $this->checkQueues();
         }
         $this->checkStorage();
@@ -146,15 +147,130 @@ class DataSenseiPreflight extends Command
         }
     }
 
+    private function checkHybridMlReferentialIntegrity(): void
+    {
+        if (! Schema::hasTable('ml_models') || ! Schema::hasTable('model_versions')) {
+            return;
+        }
+        if (! $this->columnExists('ml_models', 'current_version_id') || ! $this->columnExists('model_versions', 'ml_model_id')) {
+            $this->recordFailure('Hybrid ML model-version relationship columns are missing. Run: php artisan migrate');
+            return;
+        }
+
+        try {
+            $invalidReferences = DB::table('ml_models as model')
+                ->leftJoin('model_versions as version', 'version.id', '=', 'model.current_version_id')
+                ->whereNotNull('model.current_version_id')
+                ->where(function ($query): void {
+                    $query->whereNull('version.id')
+                        ->orWhereColumn('version.ml_model_id', '!=', 'model.id');
+                })
+                ->count();
+
+            if ($invalidReferences > 0) {
+                $this->recordFailure("Hybrid ML contains {$invalidReferences} invalid current-version reference(s).");
+                return;
+            }
+
+            if (DB::connection()->getDriverName() === 'mysql') {
+                $constraint = DB::selectOne(
+                    <<<'SQL'
+                        SELECT 1 AS constraint_exists
+                        FROM information_schema.TABLE_CONSTRAINTS
+                        WHERE CONSTRAINT_SCHEMA = DATABASE()
+                          AND TABLE_NAME = ?
+                          AND CONSTRAINT_NAME = ?
+                          AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                        LIMIT 1
+                    SQL,
+                    ['ml_models', 'mm_current_version_fk'],
+                );
+                if ($constraint === null) {
+                    $this->recordFailure('Hybrid ML current-version foreign key mm_current_version_fk is missing.');
+                    return;
+                }
+            }
+
+            $this->pass('Hybrid ML current-version references and foreign-key constraint are valid.');
+        } catch (Throwable $exception) {
+            $this->recordFailure('Hybrid ML referential integrity could not be verified: '.$this->safeMessage($exception));
+        }
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return Schema::hasColumn($table, $column);
+        }
+
+        $result = DB::selectOne(
+            <<<'SQL'
+                SELECT COUNT(*) AS aggregate
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = ?
+                  AND COLUMN_NAME = ?
+            SQL,
+            [$table, $column],
+        );
+
+        return (int) ($result->aggregate ?? 0) > 0;
+    }
+
     private function checkStorage(): void
     {
-        foreach ([storage_path(), storage_path('framework'), bootstrap_path('cache')] as $path) {
+        foreach ([storage_path(), storage_path('framework'), base_path('bootstrap/cache')] as $path) {
             if (is_dir($path) && is_writable($path)) {
                 $this->pass('Writable runtime directory: ' . basename($path));
             } else {
                 $this->recordFailure('Runtime directory is missing or not writable: ' . $path);
             }
         }
+
+        $publicTarget = storage_path('app/public');
+        $publicLink = public_path('storage');
+        $resolvedTarget = realpath($publicTarget);
+        $resolvedLink = realpath($publicLink);
+
+        if ($resolvedTarget === false || ! is_dir($publicTarget)) {
+            $this->recordFailure('Public storage target is missing: storage/app/public');
+            return;
+        }
+
+        if ($resolvedLink === false || $this->normalizedPath($resolvedLink) !== $this->normalizedPath($resolvedTarget)) {
+            $this->recordFailure('public/storage is not linked to storage/app/public. Remove any ordinary public/storage directory, then run: php artisan storage:link');
+            return;
+        }
+
+        $targetProbe = null;
+        try {
+            $probeName = '.datasensei-storage-probe-'.bin2hex(random_bytes(8));
+            $targetProbe = $publicTarget.DIRECTORY_SEPARATOR.$probeName;
+            $linkedProbe = $publicLink.DIRECTORY_SEPARATOR.$probeName;
+            $probeContents = bin2hex(random_bytes(16));
+
+            if (file_put_contents($targetProbe, $probeContents, LOCK_EX) === false) {
+                $this->recordFailure('The public storage target is not writable.');
+                return;
+            }
+            if (! is_readable($linkedProbe) || ! hash_equals($probeContents, (string) file_get_contents($linkedProbe))) {
+                $this->recordFailure('The public storage link exists but files cannot be read through it.');
+                return;
+            }
+
+            $this->pass('public/storage resolves to storage/app/public and passed a write/read probe.');
+        } catch (Throwable $exception) {
+            $this->recordFailure('The public storage link could not be tested: '.$this->safeMessage($exception));
+        } finally {
+            if ($targetProbe !== null && is_file($targetProbe)) {
+                @unlink($targetProbe);
+            }
+        }
+    }
+
+    private function normalizedPath(string $path): string
+    {
+        return strtolower(rtrim(str_replace('\\', '/', $path), '/'));
     }
 
     private function checkHybridMlAssets(): void

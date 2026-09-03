@@ -246,7 +246,7 @@ class StudentModelDevelopmentController extends Controller
                 'model_name' => trim($input['model_name']),
                 'problem_type' => $configuration['problem_type'],
                 'algorithm_key' => $configuration['algorithm_key'],
-                'status' => 'queued',
+                'status' => TrainingJob::STATUS_QUEUED,
                 'progress' => 0,
                 'stage' => 'Waiting for the machine-learning worker',
                 'configuration' => $configuration,
@@ -274,6 +274,8 @@ class StudentModelDevelopmentController extends Controller
             'status' => $trainingJob->status,
             'progress' => $trainingJob->progress,
             'stage' => $trainingJob->stage,
+            'attempt_number' => $trainingJob->attempt_number,
+            'next_retry_at' => optional($trainingJob->next_retry_at)->toIso8601String(),
             'error' => $trainingJob->error_message,
             'model_url' => $trainingJob->ml_model_id ? route('student.model-development.models.show', $trainingJob->ml_model_id) : null,
             'evaluation_url' => $trainingJob->ml_model_id

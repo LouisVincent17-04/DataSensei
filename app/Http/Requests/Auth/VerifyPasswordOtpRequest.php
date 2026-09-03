@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\PasswordOtpConfiguration;
 use Illuminate\Foundation\Http\FormRequest;
 
 class VerifyPasswordOtpRequest extends FormRequest
@@ -23,14 +24,14 @@ class VerifyPasswordOtpRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email:rfc', 'max:191'],
-            'otp' => ['required', 'digits:'.(int) config('password_otp.length', 6)],
+            'otp' => ['required', 'digits:'.PasswordOtpConfiguration::length()],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'otp.digits' => 'Enter the complete six-digit verification code.',
+            'otp.digits' => 'Enter the complete '.PasswordOtpConfiguration::length().'-digit verification code.',
         ];
     }
 }

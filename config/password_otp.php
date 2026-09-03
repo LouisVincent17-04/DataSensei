@@ -7,7 +7,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'length' => 6,
+    'length' => (int) env('PASSWORD_OTP_LENGTH', 6),
     'expires_minutes' => (int) env('PASSWORD_OTP_EXPIRES_MINUTES', 5),
     'cooldown_seconds' => (int) env('PASSWORD_OTP_COOLDOWN_SECONDS', 60),
     'max_verification_attempts' => (int) env('PASSWORD_OTP_MAX_VERIFY_ATTEMPTS', 5),

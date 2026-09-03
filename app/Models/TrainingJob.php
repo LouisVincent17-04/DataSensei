@@ -7,11 +7,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TrainingJob extends Model
 {
+    public const STATUS_QUEUED = 'queued';
+    public const STATUS_RUNNING = 'running';
+    public const STATUS_RETRYING = 'retrying';
+    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_FAILED = 'failed';
+    public const STATUS_CANCELLED = 'cancelled';
+
+    public const TERMINAL_STATUSES = [
+        self::STATUS_COMPLETED,
+        self::STATUS_FAILED,
+        self::STATUS_CANCELLED,
+    ];
+
     protected $fillable = [
         'user_id', 'class_id', 'dataset_id', 'user_dataset_id', 'dataset_version_id',
         'ml_model_id', 'uuid', 'model_name', 'problem_type', 'algorithm_key', 'status',
         'progress', 'stage', 'configuration', 'result', 'error_message', 'duration_ms',
-        'started_at', 'finished_at',
+        'attempt_number', 'next_retry_at', 'started_at', 'finished_at',
     ];
 
     protected function casts(): array
@@ -27,6 +40,8 @@ class TrainingJob extends Model
             'configuration' => 'array',
             'result' => 'array',
             'duration_ms' => 'integer',
+            'attempt_number' => 'integer',
+            'next_retry_at' => 'datetime',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];
@@ -64,6 +79,6 @@ class TrainingJob extends Model
 
     public function isTerminal(): bool
     {
-        return in_array($this->status, ['completed', 'failed', 'cancelled'], true);
+        return in_array($this->status, self::TERMINAL_STATUSES, true);
     }
 }

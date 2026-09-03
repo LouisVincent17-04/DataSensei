@@ -1,0 +1,31 @@
+name: Release safety
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-source-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - name: Install target-platform frontend dependencies
+        run: npm ci
+      - name: Build production frontend assets
+        run: npm run build
+      - name: Run release packaging regression tests
+        run: python -m unittest discover -s tests/Security -p 'test_*.py' -v
+      - name: Build and independently verify the deployable archive
+        run: |
+          python scripts/package-release.py --output "$RUNNER_TEMP/DataSensei-clean.zip" --include-built-assets
+          python scripts/package-release.py --verify-only "$RUNNER_TEMP/DataSensei-clean.zip"

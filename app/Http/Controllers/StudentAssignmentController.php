@@ -273,6 +273,8 @@ class StudentAssignmentController extends Controller
         $assignment->load(['classRoom', 'libraryItem.questions.options']);
         abort_unless($assignment->libraryItem, 422, 'This assignment no longer has a question source.');
         $remainingSeconds = $this->remainingSeconds($assignment, $submission);
+        $draftAnswers = is_array($submission->draft_answers) ? $submission->draft_answers : [];
+        $draftVersion = (int) ($submission->draft_version ?? 0);
 
         $antiCheatSettings = app(AntiCheatPolicyService::class)
             ->settingsForAssignment(Auth::user(), $assignment);
@@ -282,8 +284,100 @@ class StudentAssignmentController extends Controller
             'submission',
             'antiCheatSettings',
             'antiCheatSessionId',
-            'remainingSeconds'
+            'remainingSeconds',
+            'draftAnswers',
+            'draftVersion'
         ));
+    }
+
+    public function autosave(Request $request, ClassAssignment $assignment, AssignmentSubmission $submission)
+    {
+        $this->authorizeStudentSubmission($assignment, $submission);
+
+        $validated = $request->validate([
+            'answers' => ['nullable', 'array', 'max:500'],
+            'answers.*' => ['nullable', 'string', 'max:30000'],
+            'client_version' => ['required', 'integer', 'min:1', 'max:9223372036854775807'],
+        ]);
+
+        $result = DB::transaction(function () use ($assignment, $submission, $validated): array {
+            $lockedSubmission = AssignmentSubmission::query()
+                ->whereKey($submission->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless(
+                (int) $lockedSubmission->class_assignment_id === (int) $assignment->id
+                && (int) $lockedSubmission->student_id === (int) Auth::id(),
+                403
+            );
+
+            if ($lockedSubmission->status !== 'in_progress') {
+                return [
+                    'saved' => false,
+                    'completed' => true,
+                    'current_version' => (int) ($lockedSubmission->draft_version ?? 0),
+                ];
+            }
+
+            $lockedAssignment = ClassAssignment::query()
+                ->whereKey($assignment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_unless(
+                in_array($lockedAssignment->status, ['published', 'closed'], true),
+                403,
+                'This assignment is not available.'
+            );
+
+            $lockedAssignment->load('libraryItem.questions');
+            abort_unless(
+                $lockedAssignment->libraryItem,
+                422,
+                'This assignment no longer has a question source.'
+            );
+
+            if ($this->remainingSeconds($lockedAssignment, $lockedSubmission) === 0) {
+                return [
+                    'saved' => false,
+                    'expired' => true,
+                    'current_version' => (int) ($lockedSubmission->draft_version ?? 0),
+                ];
+            }
+
+            $clientVersion = (int) $validated['client_version'];
+            $currentVersion = (int) ($lockedSubmission->draft_version ?? 0);
+            if ($clientVersion <= $currentVersion) {
+                return [
+                    'saved' => false,
+                    'stale' => true,
+                    'current_version' => $currentVersion,
+                    'saved_at' => optional($lockedSubmission->draft_saved_at)->toIso8601String(),
+                ];
+            }
+
+            $savedAt = now();
+            $lockedSubmission->update([
+                'draft_answers' => $this->filterKnownAnswers(
+                    $lockedAssignment,
+                    $validated['answers'] ?? []
+                ),
+                'draft_version' => $clientVersion,
+                'draft_saved_at' => $savedAt,
+            ]);
+
+            return [
+                'saved' => true,
+                'current_version' => $clientVersion,
+                'saved_at' => $savedAt->toIso8601String(),
+            ];
+        }, 3);
+
+        $status = ($result['expired'] ?? false) || ($result['completed'] ?? false)
+            ? 409
+            : 200;
+
+        return response()->json($result, $status);
     }
 
     public function submit(Request $request, ClassAssignment $assignment, AssignmentSubmission $submission, GamificationService $gamification, StudentNotificationService $notifications)
@@ -337,10 +431,20 @@ class StudentAssignmentController extends Controller
             ]);
             abort_unless($lockedAssignment->libraryItem, 422, 'This assignment no longer has a question source.');
 
-            // The server clock is authoritative. Do not accept answers after
-            // the configured deadline, even if a client-side timer is paused,
-            // edited, or prevented from submitting automatically.
+            // The server clock is authoritative for timeout status. A timed-out
+            // attempt still grades its current/saved answers so expiry cannot
+            // erase learner work; the separate timed_out_at field records it.
             $timedOut = $this->remainingSeconds($lockedAssignment, $lockedSubmission) === 0;
+
+            $submittedAnswers = array_replace(
+                $this->filterKnownAnswers(
+                    $lockedAssignment,
+                    is_array($lockedSubmission->draft_answers)
+                        ? $lockedSubmission->draft_answers
+                        : []
+                ),
+                $this->filterKnownAnswers($lockedAssignment, $answers)
+            );
 
             if (! $timedOut) {
                 $blockedReason = app(AntiCheatPolicyService::class)->assignmentSubmissionBlocked(
@@ -356,7 +460,6 @@ class StudentAssignmentController extends Controller
             }
 
             $totalPoints = (int) $lockedAssignment->libraryItem->questions->sum('points');
-            $submittedAnswers = $timedOut ? [] : $answers;
             $score = 0;
 
             foreach ($lockedAssignment->libraryItem->questions as $question) {
@@ -381,12 +484,17 @@ class StudentAssignmentController extends Controller
 
             $isLate = $lockedAssignment->due_at && now()->greaterThan($lockedAssignment->due_at);
 
+            $completedAt = now();
             $lockedSubmission->update([
                 'status' => $isLate ? 'late' : 'graded',
                 'score' => $score,
                 'total_points' => $totalPoints,
-                'submitted_at' => now(),
-                'graded_at' => now(),
+                'submitted_at' => $completedAt,
+                'graded_at' => $completedAt,
+                'draft_answers' => $submittedAnswers,
+                'draft_version' => ((int) ($lockedSubmission->draft_version ?? 0)) + 1,
+                'draft_saved_at' => $completedAt,
+                'timed_out_at' => $timedOut ? $completedAt : null,
             ]);
 
             return [
@@ -420,7 +528,7 @@ class StudentAssignmentController extends Controller
         );
 
         $message = $timedOut
-            ? 'Time expired. The assignment was submitted automatically.'
+            ? 'Time expired. Your saved answers were submitted and graded.'
             : 'Assignment submitted successfully.';
 
         if (!empty($achievements)) {
@@ -594,5 +702,25 @@ class StudentAssignmentController extends Controller
             ->addMinutes($timeLimitMinutes);
 
         return max(0, (int) ceil(now()->diffInSeconds($expiresAt, false)));
+    }
+
+    private function filterKnownAnswers(ClassAssignment $assignment, array $answers): array
+    {
+        $allowedQuestionIds = $assignment->libraryItem->questions
+            ->pluck('id')
+            ->mapWithKeys(fn ($id) => [(string) $id => true])
+            ->all();
+        $filtered = [];
+
+        foreach ($answers as $questionId => $answer) {
+            $normalizedId = (string) $questionId;
+            if (! isset($allowedQuestionIds[$normalizedId])) {
+                continue;
+            }
+
+            $filtered[$normalizedId] = $answer === null ? '' : (string) $answer;
+        }
+
+        return $filtered;
     }
 }

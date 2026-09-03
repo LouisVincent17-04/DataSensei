@@ -1,4 +1,5 @@
 *.log
+*.py[cod]
 .DS_Store
 .env
 .env.backup
@@ -9,6 +10,8 @@
 /.idea
 /.nova
 /.phpunit.cache
+/.mypy_cache
+/.pytest_cache
 /.vscode
 /.zed
 /auth.json
@@ -20,6 +23,7 @@
 /storage/pail
 /storage/app/workspaces
 /storage/app/sandbox
+/storage/app/data-toolkit/workspaces
 /storage/app/ml/users
 /storage/app/public/institutions/logos/*
 /storage/framework/cache/data/*
@@ -27,6 +31,8 @@
 /storage/framework/views/*
 /storage/logs/*
 /vendor
+/DataSensei-*.zip
+__pycache__/
 Homestead.json
 Homestead.yaml
 Thumbs.db

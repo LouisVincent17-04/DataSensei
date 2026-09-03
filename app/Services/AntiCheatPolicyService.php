@@ -8,6 +8,7 @@ use App\Models\AssignmentSubmission;
 use App\Models\Challenge;
 use App\Models\ClassAssignment;
 use App\Models\User;
+use App\Support\AntiCheatEventContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -158,17 +159,15 @@ class AntiCheatPolicyService
 
     private function blockedReason(Builder $query, array $policy): ?string
     {
-        if (!($policy['allow_tab_switch'] ?? true) && ($policy['block_on_tab_limit'] ?? true)) {
-            $tabEvents = (clone $query)
-                ->whereIn('event_type', ['tab_switch', 'visibility_hidden', 'window_blur'])
-                ->count();
+        if (! ($policy['allow_tab_switch'] ?? true) && ($policy['block_on_tab_limit'] ?? true)) {
+            $tabEvents = $this->logicalFocusLossCount(clone $query);
 
             if ($tabEvents > (int) ($policy['max_tab_switches'] ?? 0)) {
                 return 'Your assignment attempt was locked because it exceeded the allowed tab-switch/focus-loss limit.';
             }
         }
 
-        if (($policy['block_dual_monitor'] ?? false)) {
+        if ($policy['block_dual_monitor'] ?? false) {
             $dualMonitorDetected = (clone $query)
                 ->where('event_type', 'dual_monitor_detected')
                 ->exists();
@@ -195,6 +194,44 @@ class AntiCheatPolicyService
         }
 
         return null;
+    }
+
+    private function logicalFocusLossCount(Builder $query): int
+    {
+        $events = $query
+            ->whereIn('event_type', AntiCheatEventContract::focusEventTypes())
+            ->orderByRaw('COALESCE(occurred_at, created_at)')
+            ->orderBy('id')
+            ->get(['id', 'event_uuid', 'occurred_at', 'created_at']);
+
+        $count = 0;
+        $lastTimestamp = null;
+        $seenEventUuids = [];
+
+        foreach ($events as $event) {
+            $eventUuid = trim((string) $event->event_uuid);
+            if ($eventUuid !== '') {
+                if (isset($seenEventUuids[$eventUuid])) {
+                    continue;
+                }
+
+                $seenEventUuids[$eventUuid] = true;
+            }
+
+            $occurredAt = $event->occurred_at ?? $event->created_at;
+            $timestamp = $occurredAt?->getTimestamp();
+            if ($lastTimestamp !== null
+                && $timestamp !== null
+                && $timestamp >= $lastTimestamp
+                && $timestamp - $lastTimestamp < AntiCheatEventContract::FOCUS_CORRELATION_WINDOW_SECONDS) {
+                continue;
+            }
+
+            $count++;
+            $lastTimestamp = $timestamp;
+        }
+
+        return $count;
     }
 
     private function mergeOverride(array $base, array $override): array

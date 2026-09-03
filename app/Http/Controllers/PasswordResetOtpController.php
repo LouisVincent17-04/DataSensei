@@ -28,10 +28,11 @@ class PasswordResetOtpController extends Controller
             'password_reset.email' => $email,
             'password_reset.cooldown_until' => now()->addSeconds(max(0, $cooldown))->timestamp,
         ]);
+        $otpLength = $service->otpLength();
 
         return redirect()
             ->route('password.otp.verify.form')
-            ->with('status', 'If the email exists, a six-digit verification code has been sent.');
+            ->with('status', "If the email exists, a {$otpLength}-digit verification code has been sent.");
     }
 
     public function showVerifyForm(Request $request, PasswordResetOtpService $service): RedirectResponse|View
@@ -46,6 +47,7 @@ class PasswordResetOtpController extends Controller
             'email' => $email,
             'maskedEmail' => $this->maskEmail($email),
             'cooldownRemaining' => $service->cooldownRemaining($email),
+            'otpLength' => $service->otpLength(),
         ]);
     }
 

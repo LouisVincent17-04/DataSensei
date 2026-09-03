@@ -122,8 +122,100 @@ class StudentAssessmentController extends Controller
 
         $assessment->load(['classRoom', 'questions.options']);
         $remainingSeconds = $this->remainingSeconds($assessment, $submission);
+        $draftAnswers = is_array($submission->draft_answers) ? $submission->draft_answers : [];
+        $draftVersion = (int) ($submission->draft_version ?? 0);
 
-        return view('student.assessments.take', compact('assessment', 'submission', 'remainingSeconds'));
+        return view('student.assessments.take', compact(
+            'assessment',
+            'submission',
+            'remainingSeconds',
+            'draftAnswers',
+            'draftVersion'
+        ));
+    }
+
+    public function autosave(Request $request, Assessment $assessment, AssessmentSubmission $submission)
+    {
+        $this->authorizeSubmission($assessment, $submission);
+
+        $validated = $request->validate([
+            'answers' => ['nullable', 'array', 'max:500'],
+            'answers.*' => ['nullable', 'string', 'max:30000'],
+            'client_version' => ['required', 'integer', 'min:1', 'max:9223372036854775807'],
+        ]);
+
+        $result = DB::transaction(function () use ($assessment, $submission, $validated): array {
+            $lockedSubmission = AssessmentSubmission::query()
+                ->whereKey($submission->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless(
+                (int) $lockedSubmission->assessment_id === (int) $assessment->id
+                && (int) $lockedSubmission->student_id === (int) Auth::id(),
+                403
+            );
+
+            if ($lockedSubmission->status !== 'in_progress') {
+                return [
+                    'saved' => false,
+                    'completed' => true,
+                    'current_version' => (int) ($lockedSubmission->draft_version ?? 0),
+                ];
+            }
+
+            $lockedAssessment = Assessment::query()
+                ->whereKey($assessment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_unless(
+                in_array($lockedAssessment->status, ['published', 'closed'], true),
+                403,
+                'This assessment is not available.'
+            );
+
+            $lockedAssessment->load('questions');
+            if ($this->remainingSeconds($lockedAssessment, $lockedSubmission) === 0) {
+                return [
+                    'saved' => false,
+                    'expired' => true,
+                    'current_version' => (int) ($lockedSubmission->draft_version ?? 0),
+                ];
+            }
+
+            $clientVersion = (int) $validated['client_version'];
+            $currentVersion = (int) ($lockedSubmission->draft_version ?? 0);
+            if ($clientVersion <= $currentVersion) {
+                return [
+                    'saved' => false,
+                    'stale' => true,
+                    'current_version' => $currentVersion,
+                    'saved_at' => optional($lockedSubmission->draft_saved_at)->toIso8601String(),
+                ];
+            }
+
+            $savedAt = now();
+            $lockedSubmission->update([
+                'draft_answers' => $this->filterKnownAnswers(
+                    $lockedAssessment,
+                    $validated['answers'] ?? []
+                ),
+                'draft_version' => $clientVersion,
+                'draft_saved_at' => $savedAt,
+            ]);
+
+            return [
+                'saved' => true,
+                'current_version' => $clientVersion,
+                'saved_at' => $savedAt->toIso8601String(),
+            ];
+        }, 3);
+
+        $status = ($result['expired'] ?? false) || ($result['completed'] ?? false)
+            ? 409
+            : 200;
+
+        return response()->json($result, $status);
     }
 
     public function submit(Request $request, Assessment $assessment, AssessmentSubmission $submission, AssessmentDiagnosticService $diagnostics, IloMasteryService $iloMastery, StudentNotificationService $notifications)
@@ -174,11 +266,20 @@ class StudentAssessmentController extends Controller
             // JavaScript cannot extend the assessment by delaying submission.
             $timedOut = $this->remainingSeconds($lockedAssessment, $lockedSubmission) === 0;
 
+            $submittedAnswers = array_replace(
+                $this->filterKnownAnswers(
+                    $lockedAssessment,
+                    is_array($lockedSubmission->draft_answers)
+                        ? $lockedSubmission->draft_answers
+                        : []
+                ),
+                $this->filterKnownAnswers($lockedAssessment, $answers)
+            );
+
             if (! $timedOut) {
-                $this->validateRequiredAnswers($lockedAssessment, $answers);
+                $this->validateRequiredAnswers($lockedAssessment, $submittedAnswers);
             }
 
-            $submittedAnswers = $timedOut ? [] : $answers;
             $score = 0.0;
             $requiresManualReview = false;
 
@@ -207,12 +308,17 @@ class StudentAssessmentController extends Controller
             $isLate = $lockedAssessment->due_at && now()->greaterThan($lockedAssessment->due_at);
             $status = $isLate ? 'late' : ($requiresManualReview ? 'submitted' : 'graded');
 
+            $completedAt = now();
             $lockedSubmission->update([
                 'status' => $status,
                 'score' => $score,
                 'total_points' => $lockedAssessment->total_points,
-                'submitted_at' => now(),
-                'graded_at' => $requiresManualReview ? null : now(),
+                'submitted_at' => $completedAt,
+                'graded_at' => $requiresManualReview ? null : $completedAt,
+                'draft_answers' => $submittedAnswers,
+                'draft_version' => ((int) ($lockedSubmission->draft_version ?? 0)) + 1,
+                'draft_saved_at' => $completedAt,
+                'timed_out_at' => $timedOut ? $completedAt : null,
             ]);
 
             return [
@@ -248,7 +354,7 @@ class StudentAssessmentController extends Controller
         return redirect()
             ->route('student.assessments.result', [$assessment, $submission])
             ->with('success', $timedOut
-                ? 'Time expired. The assessment was submitted automatically.'
+                ? 'Time expired. Your saved answers were submitted and graded.'
                 : ($submission->graded_at
                     ? 'Assessment submitted and graded.'
                     : 'Assessment submitted. Essay items are waiting for instructor review.'));
@@ -394,5 +500,25 @@ class StudentAssessmentController extends Controller
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    private function filterKnownAnswers(Assessment $assessment, array $answers): array
+    {
+        $allowedQuestionIds = $assessment->questions
+            ->pluck('id')
+            ->mapWithKeys(fn ($id) => [(string) $id => true])
+            ->all();
+        $filtered = [];
+
+        foreach ($answers as $questionId => $answer) {
+            $normalizedId = (string) $questionId;
+            if (! isset($allowedQuestionIds[$normalizedId])) {
+                continue;
+            }
+
+            $filtered[$normalizedId] = $answer === null ? '' : (string) $answer;
+        }
+
+        return $filtered;
     }
 }

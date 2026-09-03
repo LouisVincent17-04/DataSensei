@@ -39,6 +39,11 @@ class TableOfSpecification extends Model
             : 'Module ' . $this->module_no;
     }
 
+    public function canBeUsedForClass(int $classId): bool
+    {
+        return $this->class_id === null || $this->class_id === $classId;
+    }
+
     public function classRoom(): BelongsTo
     {
         return $this->belongsTo(ClassRoom::class, 'class_id');

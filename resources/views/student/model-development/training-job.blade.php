@@ -93,6 +93,12 @@
                         </span>
                     </div>
 
+                    <p class="ml-help" id="retry-details" style="display:{{ $job->status === 'retrying' ? 'block' : 'none' }};margin-top:8px">
+                        @if($job->status === 'retrying')
+                            Attempt {{ $job->attempt_number }} did not complete. The next attempt is scheduled {{ optional($job->next_retry_at)->diffForHumans() }}.
+                        @endif
+                    </p>
+
                     <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;margin-top:18px">
                         <strong id="progress-label">{{ $job->progress }}% complete</strong>
                         <span class="ml-help" id="worker-stage">Worker status: {{ $job->stage }}</span>
@@ -180,6 +186,8 @@
         evaluation_url: @json($job->ml_model_id ? route('student.model-development.models.show', ['model' => $job->ml_model_id, 'step' => 'evaluate']) : null),
         metrics: @json($metrics),
         duration_seconds: @json($durationSeconds),
+        attempt_number: Number(@json($job->attempt_number)),
+        next_retry_at: @json(optional($job->next_retry_at)->toIso8601String()),
     };
 
     const formatLabel = key => String(key).replaceAll('_', ' ').replace(/\b\w/g, character => character.toUpperCase());
@@ -250,6 +258,19 @@
         document.getElementById('worker-stage').textContent = `Worker status: ${data.stage || status}`;
         document.getElementById('status-text').textContent = status.charAt(0).toUpperCase() + status.slice(1);
         document.querySelector('#status-badge .ml-status-dot').className = `ml-status-dot ${status}`;
+        const retryDetails = document.getElementById('retry-details');
+        if (status === 'retrying') {
+            const attempt = Math.max(1, Number(data.attempt_number) || 1);
+            const retryAt = data.next_retry_at ? new Date(data.next_retry_at) : null;
+            const scheduled = retryAt && !Number.isNaN(retryAt.getTime())
+                ? ` at ${retryAt.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}`
+                : ' shortly';
+            retryDetails.textContent = `Attempt ${attempt} did not complete. The next attempt is scheduled${scheduled}.`;
+            retryDetails.style.display = 'block';
+        } else {
+            retryDetails.textContent = '';
+            retryDetails.style.display = 'none';
+        }
         renderStages(progress, status);
 
         const errorBox = document.getElementById('error-box');

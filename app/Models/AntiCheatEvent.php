@@ -17,6 +17,7 @@ class AntiCheatEvent extends Model
         'event_type',
         'severity',
         'attempt_session_id',
+        'event_uuid',
         'details',
         'occurred_at',
     ];

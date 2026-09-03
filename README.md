@@ -8,6 +8,7 @@ This README is intentionally written as a defense-day checklist.
 
 - PHP 8.2 or newer
 - Composer
+- Node.js 22.12.x and npm 10.x (the pinned version is in `.nvmrc`)
 - MySQL 5.5.19 or newer within the existing 5.5-compatible deployment
 - Docker Desktop when demonstrating the isolated Python runner or Hybrid ML training
 - A modern web browser
@@ -24,11 +25,19 @@ Do not share your `.env` file. It contains machine-specific configuration and ma
 
 ```text
 composer install
+node --version
+npm --version
+npm ci
+npm run build
 php artisan key:generate
 php artisan migrate
 php artisan db:seed
 php artisan storage:link
 ```
+
+Never copy `node_modules` from another computer or include it in a release. `npm ci` installs the correct native Rollup/esbuild packages for the current operating system. The release script includes only the versioned files produced in `public/build`.
+
+`public/storage` must not be a normal directory in the source or release. If an old copy exists, remove that directory without deleting `storage/app/public`, then run `php artisan storage:link`. The preflight verifies both the resolved target and an actual write/read probe.
 
 4. If you will demonstrate Python or Machine Learning, build the Docker runner once:
 
@@ -112,7 +121,7 @@ The preflight prints the connected database server version so the defense machin
 
 ### Timed assignments
 
-Assignment time is enforced on the server from the saved attempt start time. Refreshing the browser does not reset it. The page shows the same countdown and auto-submits when it reaches zero. Once the server deadline has passed, submitted answers are ignored and the timed-out attempt is graded from an empty answer set.
+Assignment and TOS-assessment time is enforced on the server from the saved attempt start time. Refreshing the browser does not reset it. Answers are versioned and auto-saved on the server while the attempt is active, then restored after refresh. At the exact deadline, new snapshots stop, the form auto-submits, and the latest saved/current answers are graded instead of being replaced with an empty answer set. `timed_out_at` records expiry separately from the existing grading and late-submission status.
 
 ### ILO mastery
 
@@ -140,9 +149,25 @@ On Windows PowerShell:
 powershell -ExecutionPolicy Bypass -File scripts/package-defense.ps1
 ```
 
-The script creates `DataSensei-defense-clean.zip`. It intentionally leaves out `.env`, Git history, dependencies, generated build output, user IDE workspaces, SQL sandbox databases, uploads, user ML artifacts, sessions, cache, and logs. It keeps the immutable bundled ML system assets.
+The wrapper runs `npm ci` and `npm run build` on the current computer, then calls `scripts/package-release.py` to create `DataSensei-defense-clean.zip`. The allow-list leaves out `.env`, Git history, `node_modules`, `vendor`, user IDE workspaces, SQL sandbox databases, uploads, user ML artifacts, sessions, cache, and logs. It includes only Vite's versioned `public/build` output, keeps the immutable bundled ML system assets, writes `RELEASE_MANIFEST.sha256`, scans for high-confidence secrets, and verifies every ZIP member before publishing the archive.
 
 The script refuses to overwrite an existing ZIP; rename or remove the old archive first if you intentionally want a new one.
+
+Linux/macOS or direct Python usage:
+
+```text
+node --version
+npm ci
+npm run build
+python3 scripts/package-release.py --output DataSensei-release-clean.zip --include-built-assets
+python3 scripts/package-release.py --verify-only DataSensei-release-clean.zip
+```
+
+Never distribute a ZIP made directly from the working folder. If an earlier archive contained `.env`, sessions, logs, uploads, workspaces, or sandbox databases, treat it as compromised: stop sharing it, rotate the database and SMTP credentials, generate a new `APP_KEY`, invalidate active sessions, review the exposed logs/files, and create a new archive only with the clean packager. Changing the repository cannot revoke credentials that have already escaped.
+
+## Forward-only migration safety
+
+`2026_08_01_000002_create_hybrid_ml_module_tables.php`, `2026_08_01_000003_create_queue_tables_for_ml_training.php`, and `2026_08_30_000001_preserve_timed_submission_answers.php` are intentionally forward-only. They conditionally adopt tables or columns that may pre-date their migration records, so a rollback cannot prove ownership and must not delete them. Back up the database before deployment and restore a verified backup if these changes must be reversed; do not use `migrate:rollback` as a data-removal mechanism for these migrations.
 
 ## Quick defense flow
 

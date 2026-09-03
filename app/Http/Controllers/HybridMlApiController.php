@@ -133,7 +133,7 @@ class HybridMlApiController extends Controller
             'model_name' => trim($input['model_name']),
             'problem_type' => $config['problem_type'],
             'algorithm_key' => $config['algorithm_key'],
-            'status' => 'queued',
+            'status' => TrainingJob::STATUS_QUEUED,
             'progress' => 0,
             'stage' => 'Waiting for the machine-learning worker',
             'configuration' => $config,

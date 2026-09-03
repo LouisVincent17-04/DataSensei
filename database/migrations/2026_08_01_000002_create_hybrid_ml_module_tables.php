@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -189,13 +191,21 @@ return new class extends Migration
 
         // Add the circular current-version reference only after both tables exist.
         // A deliberately short name avoids MySQL 5.5/InnoDB constraint collisions.
-        try {
-            Schema::table('ml_models', function (Blueprint $table): void {
-                $table->foreign('current_version_id', 'mm_current_version_fk')
-                    ->references('id')->on('model_versions')->onDelete('set null');
-            });
-        } catch (Throwable) {
-            // Safe when rerunning after a partially completed migration.
+        if (! $this->currentVersionForeignKeyExists()) {
+            try {
+                Schema::table('ml_models', function (Blueprint $table): void {
+                    $table->foreign('current_version_id', 'mm_current_version_fk')
+                        ->references('id')->on('model_versions')->onDelete('set null');
+                });
+            } catch (QueryException $exception) {
+                // A concurrent/partial migration may have created this exact
+                // constraint after the pre-check. Only that confirmed duplicate
+                // is safe to ignore; permission, type, engine, and SQL failures
+                // must stop the migration.
+                if (! $this->isDuplicateConstraintFailure($exception) || ! $this->currentVersionForeignKeyExists()) {
+                    throw $exception;
+                }
+            }
         }
 
         if (! Schema::hasTable('benchmark_models')) {
@@ -286,17 +296,43 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::disableForeignKeyConstraints();
-        Schema::dropIfExists('algorithm_configs');
-        Schema::dropIfExists('quality_reports');
-        Schema::dropIfExists('prediction_logs');
-        Schema::dropIfExists('benchmark_models');
-        Schema::dropIfExists('model_versions');
-        Schema::dropIfExists('training_jobs');
-        Schema::dropIfExists('ml_models');
-        Schema::dropIfExists('dataset_versions');
-        Schema::dropIfExists('user_datasets');
-        Schema::dropIfExists('datasets');
-        Schema::enableForeignKeyConstraints();
+        // Forward-only by design. up() conditionally adopts tables that may
+        // pre-date this migration, so ownership cannot be proven during a
+        // rollback. Dropping them here could destroy unrelated production data.
+        // Restore a verified database backup to reverse this module safely.
+    }
+
+    private function currentVersionForeignKeyExists(): bool
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return false;
+        }
+
+        return DB::selectOne(
+            <<<'SQL'
+                SELECT 1 AS constraint_exists
+                FROM information_schema.TABLE_CONSTRAINTS
+                WHERE CONSTRAINT_SCHEMA = DATABASE()
+                  AND TABLE_NAME = ?
+                  AND CONSTRAINT_NAME = ?
+                  AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                LIMIT 1
+            SQL,
+            ['ml_models', 'mm_current_version_fk'],
+        ) !== null;
+    }
+
+    private function isDuplicateConstraintFailure(QueryException $exception): bool
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return false;
+        }
+
+        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+        $message = strtolower($exception->getMessage());
+
+        return $driverCode === 1826
+            || ($driverCode === 1005 && str_contains($message, 'errno: 121'))
+            || str_contains($message, 'duplicate foreign key constraint name');
     }
 };
