@@ -16,7 +16,7 @@
   <main class="content">
     <div class="hero">
       <div>
-        <div class="eyebrow">Analytics</div>
+        <div class="eyebrow"></div>
         <h1 class="ds-page-title">My Progress</h1>
         <p class="muted">See your learning activity, scores, completed work, rank progress, and suggested next steps.</p>
       </div>

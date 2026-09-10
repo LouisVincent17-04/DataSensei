@@ -424,7 +424,6 @@
         {{-- ── PAGE HEADER ── --}}
         <div class="top-row">
           <div>
-            <div class="page-kicker">Assignments</div>
             <h1 class="page-title ds-page-title">My Assignments</h1>
             <p class="page-subtitle">View activities from your classes, continue unfinished work, and open completed results.</p>
           </div>

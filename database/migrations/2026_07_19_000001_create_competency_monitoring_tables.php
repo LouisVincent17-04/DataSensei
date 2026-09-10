@@ -159,11 +159,15 @@ return new class extends Migration
         ];
 
         foreach ($competencies as $competency) {
+            $existingCreatedAt = DB::table('competencies')
+                ->where('key', $competency['key'])
+                ->value('created_at');
+
             DB::table('competencies')->updateOrInsert(
                 ['key' => $competency['key']],
                 array_merge($competency, [
                     'updated_at' => $now,
-                    'created_at' => DB::raw('COALESCE(created_at, CURRENT_TIMESTAMP)'),
+                    'created_at' => $existingCreatedAt ?? $now,
                 ])
             );
         }

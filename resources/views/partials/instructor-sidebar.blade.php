@@ -39,7 +39,6 @@
         <path d="M12 12a4 4 0 100-8 4 4 0 000 8z"/>
       </svg>
       Classes
-      <span class="badge">Live</span>
     </a>
   </nav>
 
@@ -60,7 +59,6 @@
         <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
       </svg>
       Challenge Pool
-      <span class="badge">University</span>
     </a>
 
     <a href="{{ $safeRoute('instructor.assessments.index', '#') }}"
@@ -69,7 +67,6 @@
         <path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>
       </svg>
       Assessments
-      <span class="badge">Form</span>
     </a>
 
     <a href="{{ $safeRoute('instructor.assignments.index', '#') }}"
@@ -90,7 +87,6 @@
         <path d="M4 5h16M4 12h16M4 19h16"/>
       </svg>
       Table of Specifications
-      <span class="badge">TOS</span>
     </a>
 
 
@@ -101,7 +97,6 @@
         <path d="M9 12l2 2 4-5"/>
       </svg>
       Anti-Cheat
-      <span class="badge badge-warn">Assignments</span>
     </a>
 
 
@@ -122,7 +117,6 @@
         <path d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/>
       </svg>
       Submissions
-      <span class="badge">Review</span>
     </a>
   </nav>
 
@@ -153,7 +147,6 @@
         <path d="M2 21h20"/>
       </svg>
       Skills Competency Matrix
-      <span class="badge">Compare</span>
     </a>
 
     <a href="{{ $safeRoute('instructor.mastery.index', '#') }}"
@@ -171,7 +164,6 @@
         <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
       </svg>
       At-Risk Alerts
-      <span class="badge badge-warn">!</span>
     </a>
 
     <a href="{{ $safeRoute('instructor.reports.index', '#') }}"

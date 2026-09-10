@@ -7,30 +7,39 @@
 @include('partials.brand-head')
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #080c14;
-    --panel: #0d1320;
-    --surface: #111827;
-    --surface-2: #1a2232;
-    --border: rgba(255,255,255,0.07);
+    /* --- original palette, untouched --- */
+    --bg:          #080c14;
+    --panel:       #0d1320;
+    --surface:     #111827;
+    --surface-2:   #1a2232;
+    --border:      rgba(255,255,255,0.07);
     --border-active: rgba(99,179,237,0.5);
-    --accent: #63b3ed;
-    --green: #68d391;
-    --amber: #f6ad55;
-    --text-1: #f0f4ff;
-    --text-2: #8a99b3;
-    --text-3: #4a5568;
-    --danger: #fc8181;
-    --success: #68d391;
-    --radius: 12px;
-    --radius-sm: 7px;
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-body: 'DM Sans', system-ui, sans-serif;
+    --accent:      #63b3ed;
+    --green:       #68d391;
+    --amber:       #f6ad55;
+    --text-1:      #f0f4ff;
+    --text-2:      #8a99b3;
+    --text-3:      #4a5568;
+    --danger:      #fc8181;
+    --success:     #68d391;
+
+    --sunken:      #060a11;
+    --accent-lo:   #3182ce;
+    --accent-dk:   #2c5282;
+    --line:        rgba(255,255,255,0.07);
+    --line-2:      rgba(255,255,255,0.11);
+
+    --radius:      6px;
+    --radius-sm:   4px;
+
+    --font-body:   'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-mono:   'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   }
 
   html, body {
@@ -38,214 +47,326 @@
     font-family: var(--font-body);
     background: var(--bg);
     color: var(--text-1);
-    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  #bg-canvas {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-  }
+  body { overflow: hidden; }
+
+  ::selection { background: rgba(99,179,237,0.25); }
+
+  /* ── shell ──────────────────────────────────────────── */
 
   .shell {
-    position: relative;
-    z-index: 1;
     display: grid;
-    grid-template-columns: 1fr 480px;
+    grid-template-columns: minmax(0, 1fr) 460px;
     height: 100vh;
     overflow: hidden;
   }
 
+  /* ── left ───────────────────────────────────────────── */
+
   .left {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding: 48px 56px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .left-logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .logo-mark {
-    width: 36px;
-    height: 36px;
-    background: var(--accent);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .logo-mark svg { width: 20px; height: 20px; }
-
-  .logo-name {
-    font-family: var(--font-display);
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-1);
-    letter-spacing: -0.3px;
-  }
-
-  .left-hero {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 32px 0;
-  }
-
-  .hero-eyebrow {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .hero-eyebrow::before {
-    content: '';
-    display: block;
-    width: 20px;
-    height: 1px;
-    background: var(--accent);
-  }
-
-  .hero-title {
-    font-family: var(--font-display);
-    font-size: clamp(36px, 4vw, 54px);
-    font-weight: 300;
-    line-height: 1.1;
-    color: var(--text-1);
-    letter-spacing: -1.5px;
-    margin-bottom: 20px;
-  }
-
-  .hero-title em {
-    font-style: italic;
-    color: var(--accent);
-  }
-
-  .hero-sub {
-    font-size: 15px;
-    line-height: 1.65;
-    color: var(--text-2);
-    max-width: 420px;
-    margin-bottom: 40px;
-    font-weight: 300;
-  }
-
-  .stats-row {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .stat-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: 40px;
-    font-size: 13px;
-    color: var(--text-2);
-    transition: border-color 0.3s;
-  }
-
-  .stat-pill:hover { border-color: rgba(255,255,255,0.15); }
-
-  .stat-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 6px var(--green);
-    animation: pulse 2s infinite;
-  }
-
-  .stat-dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-  .stat-dot.blue { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .token-strip {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    margin-bottom: 32px;
-  }
-
-  .token {
-    padding: 4px 10px;
-    border-radius: 5px;
-    font-size: 11.5px;
-    font-family: 'Courier New', monospace;
-    font-weight: 400;
-    letter-spacing: 0.2px;
-    opacity: 0;
-    animation: tokenIn 0.4s ease forwards;
-  }
-
-  .token.t-keyword { background: rgba(99,179,237,0.15); color: #90cdf4; border: 0.5px solid rgba(99,179,237,0.3); }
-  .token.t-string  { background: rgba(104,211,145,0.12); color: #9ae6b4; border: 0.5px solid rgba(104,211,145,0.25); }
-  .token.t-num     { background: rgba(246,173,85,0.12);  color: #fbd38d; border: 0.5px solid rgba(246,173,85,0.25); }
-  .token.t-op      { background: rgba(255,255,255,0.06); color: #a0aec0; border: 0.5px solid rgba(255,255,255,0.1); }
-  .token.t-func    { background: rgba(183,148,246,0.12); color: #d6bcfa; border: 0.5px solid rgba(183,148,246,0.25); }
-
-  @keyframes tokenIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .left-bottom {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .left-bottom blockquote {
-    font-size: 13px;
-    font-weight: 300;
-    font-style: italic;
-    color: var(--text-3);
-    line-height: 1.6;
-    border-left: 1.5px solid var(--text-3);
-    padding-left: 12px;
-  }
-
-  .right {
-    background: var(--panel);
-    border-left: 0.5px solid var(--border);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    align-items: stretch;
-    justify-items: center;
-    padding: 40px 48px;
-    position: relative;
+    padding: 48px 64px;
     overflow-y: auto;
   }
 
-  .form-card {
-    grid-row: 2;
-    align-self: center;
+  .left-inner { width: 100%; max-width: 620px; }
+
+  .brand-row { margin-bottom: 44px; }
+
+  .hero-title {
+    font-size: clamp(26px, 2.5vw, 34px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.022em;
+    color: var(--text-1);
+  }
+
+  .hero-sub {
+    margin-top: 12px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--text-2);
+    max-width: 50ch;
+  }
+
+  /* ── miniature workspace preview ────────────────────── */
+
+  .preview {
+    margin-top: 32px;
+    max-width: 560px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius);
+    background: var(--panel);
+    overflow: hidden;
+  }
+
+  .pv-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pv-head h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.008em;
+    color: var(--text-1);
+  }
+
+  .pv-mod {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    padding-right: 12px;
+    border-right: 1px solid var(--line-2);
+    white-space: nowrap;
+  }
+
+  .pv-steps {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    white-space: nowrap;
+  }
+
+  .pv-steps small {
+    font-size: 11px;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pv-bar {
+    width: 74px;
+    height: 3px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .pv-bar span { display: block; height: 100%; width: 58%; background: var(--accent); }
+
+  .pv-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pv-msg { display: flex; gap: 10px; }
+
+  .pv-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--line-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+
+  .pv-avatar.bot {
+    background: rgba(99,179,237,0.12);
+    border-color: rgba(99,179,237,0.32);
+    color: var(--accent);
+  }
+
+  .pv-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: 4px;
+  }
+
+  .pv-name span { font-weight: 400; color: var(--text-3); }
+
+  .pv-body {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-2);
+    max-width: 54ch;
+  }
+
+  .pv-body + .pv-body { margin-top: 8px; }
+
+  .pv-body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-1);
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .pv-snippet {
+    margin: 8px 0;
+    padding: 9px 11px;
+    background: var(--sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--text-2);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .pv-snippet .c-str { color: var(--green); }
+  .pv-snippet .c-fn  { color: #b9c6de; }
+
+  .pv-msg .pv-table { margin-top: 9px; }
+
+  /* typing indicator + caret */
+
+  .pv-dots {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+  }
+
+  .pv-dots i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-3);
+    animation: pvDot 1.3s ease-in-out infinite;
+  }
+
+  .pv-dots i:nth-child(2) { animation-delay: 0.16s; }
+  .pv-dots i:nth-child(3) { animation-delay: 0.32s; }
+
+  @keyframes pvDot {
+    0%, 60%, 100% { opacity: 0.28; }
+    30% { opacity: 0.9; }
+  }
+
+  .pv-caret {
+    display: inline-block;
+    width: 6px;
+    height: 12px;
+    margin-left: 2px;
+    vertical-align: -1px;
+    background: var(--accent);
+    opacity: 0.85;
+    animation: pvCaret 1s step-end infinite;
+  }
+
+  @keyframes pvCaret {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 0; }
+  }
+
+  .pv-reveal {
+    opacity: 0;
+    transform: translateY(3px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+
+  .pv-reveal.shown { opacity: 1; transform: none; }
+
+  .pv-table {
     width: 100%;
-    max-width: 360px;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-2);
+  }
+
+  .pv-table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-3);
+    padding: 4px 12px 5px 0;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .pv-table td {
+    padding: 4px 12px 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pv-table tr:last-child td { border-bottom: none; }
+
+  .pv-checks {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 11px;
+    font-size: 11.5px;
+    color: var(--text-2);
+  }
+
+  .pv-checks svg { width: 12px; height: 12px; color: var(--green); flex-shrink: 0; }
+
+  .pv-system {
+    margin-top: 0;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(104,211,145,0.045);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+  }
+
+  .pv-composer {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 14px;
+    background: var(--surface);
+  }
+
+  .pv-input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-sm);
+    background: var(--sunken);
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .pv-send {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: #06121f;
+    flex-shrink: 0;
+  }
+
+  .pv-send svg { width: 12px; height: 12px; }
+
+  /* ── right ──────────────────────────────────────────── */
+
+  .right {
+    background: var(--panel);
+    border-left: 1px solid var(--line-2);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    justify-items: center;
+    padding: 44px 48px;
+    overflow-y: auto;
   }
 
   .right #ds-global-notification-stack {
@@ -257,175 +378,216 @@
     margin: 0 0 16px auto !important;
   }
 
+  .form-card {
+    grid-row: 2;
+    align-self: center;
+    width: 100%;
+    max-width: 372px;
+  }
+
+  /* ── tabs ───────────────────────────────────────────── */
+
   .tabs {
+    position: relative;
     display: flex;
-    gap: 0;
-    background: var(--surface);
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 24px;
+    gap: 26px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
   }
 
   .tab-btn {
-    flex: 1;
-    padding: 9px 0;
+    padding: 0 0 12px;
     border: none;
-    background: transparent;
-    color: var(--text-2);
+    background: none;
+    color: var(--text-3);
     font-family: var(--font-body);
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    border-radius: 7px;
-    transition: all 0.2s;
-    letter-spacing: 0.1px;
+    transition: color 0.18s ease;
   }
 
-  .tab-btn.active {
-    background: var(--surface-2);
+  .tab-btn:hover { color: var(--text-2); }
+  .tab-btn.active { color: var(--text-1); }
+
+  .tab-btn:focus-visible {
+    outline: none;
     color: var(--text-1);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    box-shadow: 0 0 0 3px rgba(99,179,237,0.18);
+    border-radius: 2px;
   }
+
+  .tab-underline {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), width 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── alerts ─────────────────────────────────────────── */
 
   .alert {
     border-radius: var(--radius-sm);
-    padding: 11px 12px;
+    padding: 11px 13px;
     font-size: 12.5px;
-    line-height: 1.5;
+    line-height: 1.55;
     margin-bottom: 18px;
+    border-left: 2px solid;
   }
 
   .alert-success {
-    background: rgba(104,211,145,0.1);
-    border: 0.5px solid rgba(104,211,145,0.35);
-    color: var(--success);
+    background: rgba(104,211,145,0.07);
+    border-color: var(--success);
+    color: #a5e5bf;
   }
 
   .alert-danger {
-    background: rgba(252,129,129,0.1);
-    border: 0.5px solid rgba(252,129,129,0.35);
-    color: var(--danger);
+    background: rgba(252,129,129,0.07);
+    border-color: var(--danger);
+    color: #f5b0b0;
   }
 
+  /* ── form ───────────────────────────────────────────── */
+
   .form-heading {
-    font-family: var(--font-display);
-    font-size: 28px;
+    font-size: 21px;
     font-weight: 600;
-    letter-spacing: -0.8px;
+    letter-spacing: -0.018em;
     color: var(--text-1);
     margin-bottom: 6px;
-    line-height: 1.15;
   }
 
   .form-sub {
     font-size: 13.5px;
     color: var(--text-2);
-    margin-bottom: 28px;
-    font-weight: 300;
-    line-height: 1.5;
+    margin-bottom: 26px;
+    line-height: 1.55;
   }
 
-  .field { margin-bottom: 14px; }
+  .field { margin-bottom: 17px; }
+
+  .field-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 7px;
+  }
 
   .field-label {
-    display: block;
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 500;
     color: var(--text-2);
-    margin-bottom: 6px;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
   }
 
-  .field-wrap {
-    position: relative;
-  }
-
-  .field-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 16px;
-    height: 16px;
-    color: var(--text-3);
-    pointer-events: none;
-    transition: color 0.2s;
-  }
+  .field-wrap { position: relative; }
 
   .field-input {
     width: 100%;
     background: var(--surface);
-    border: 0.5px solid var(--border);
+    border: 1px solid var(--line-2);
     border-radius: var(--radius-sm);
-    padding: 11px 12px 11px 38px;
+    padding: 11px 13px;
     font-family: var(--font-body);
     font-size: 14px;
     color: var(--text-1);
     outline: none;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
     -webkit-appearance: none;
   }
 
   .field-input::placeholder { color: var(--text-3); font-size: 13.5px; }
 
+  .field-input:hover { border-color: rgba(255,255,255,0.16); }
+
   .field-input:focus {
     border-color: var(--border-active);
-    background: var(--surface-2);
+    box-shadow: 0 0 0 3px rgba(99,179,237,0.10);
   }
-
-  .field-input:focus ~ .field-icon,
-  .field-wrap:focus-within .field-icon { color: var(--accent); }
 
   .pwd-toggle {
     position: absolute;
-    right: 11px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
     color: var(--text-3);
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    transition: color 0.2s;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 4px 5px;
+    border-radius: 3px;
+    transition: color 0.16s ease;
   }
 
-  .pwd-toggle:hover { color: var(--text-2); }
+  .pwd-toggle:hover { color: var(--text-1); }
+
+  .pwd-toggle:focus-visible {
+    outline: none;
+    color: var(--text-1);
+    box-shadow: 0 0 0 2px rgba(99,179,237,0.3);
+  }
+
+  .caps-note {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-top: 7px;
+    font-size: 11.5px;
+    color: var(--amber);
+  }
+
+  .caps-note.visible { display: flex; }
+
+  .caps-note i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
+  }
 
   .form-extras {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 22px;
-    margin-top: 2px;
+    gap: 12px;
+    margin: 20px 0 22px;
   }
 
   .check-label {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     cursor: pointer;
     font-size: 13px;
     color: var(--text-2);
     user-select: none;
+    transition: color 0.16s ease;
   }
 
+  .check-label:hover { color: var(--text-1); }
+
   .check-box {
-    width: 15px;
-    height: 15px;
-    border: 0.5px solid var(--text-3);
-    border-radius: 4px;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
     background: var(--surface);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
+    transition: background 0.16s ease, border-color 0.16s ease;
     flex-shrink: 0;
   }
 
-  .check-label input[type="checkbox"] { display: none; }
+  .check-label input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
 
   .check-label input:checked + .check-box {
     background: var(--accent);
@@ -436,132 +598,136 @@
     content: '';
     display: block;
     width: 8px;
-    height: 5px;
-    border-left: 1.5px solid #fff;
-    border-bottom: 1.5px solid #fff;
+    height: 4px;
+    border-left: 2px solid #06121f;
+    border-bottom: 2px solid #06121f;
     transform: rotate(-45deg) translateY(-1px);
+  }
+
+  .check-label input:focus-visible + .check-box {
+    box-shadow: 0 0 0 3px rgba(99,179,237,0.18);
   }
 
   .forgot-link {
     font-size: 13px;
-    color: var(--accent);
+    color: var(--text-2);
     text-decoration: none;
-    opacity: 0.8;
-    transition: opacity 0.2s;
+    white-space: nowrap;
+    transition: color 0.16s ease;
   }
 
-  .forgot-link:hover { opacity: 1; }
+  .forgot-link:hover { color: var(--accent); }
 
   .cta-btn {
     width: 100%;
-    padding: 13px;
+    padding: 12px;
     background: var(--accent);
-    border: none;
+    border: 1px solid var(--accent);
     border-radius: var(--radius-sm);
     font-family: var(--font-body);
-    font-size: 14.5px;
-    font-weight: 500;
-    color: #04111f;
+    font-size: 14px;
+    font-weight: 600;
+    color: #06121f;
     cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-    letter-spacing: 0.1px;
+    transition: background 0.16s ease, border-color 0.16s ease;
   }
 
-  .cta-btn::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0);
-    transition: background 0.2s;
+  .cta-btn:hover { background: #7cc1f0; border-color: #7cc1f0; }
+  .cta-btn:active { background: var(--accent-lo); border-color: var(--accent-lo); }
+
+  .cta-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(99,179,237,0.25); }
+
+  .cta-btn:disabled {
+    background: var(--surface-2);
+    border-color: var(--line-2);
+    color: var(--text-3);
+    cursor: default;
   }
 
-  .cta-btn:hover::after { background: rgba(255,255,255,0.08); }
-  .cta-btn:active { transform: scale(0.985); }
-
-  .strength-wrap {
-    margin-top: 7px;
-    display: none;
-  }
-
+  .strength-wrap { margin-top: 10px; display: none; }
   .strength-wrap.visible { display: block; }
 
-  .strength-bars {
-    display: flex;
-    gap: 3px;
-    margin-bottom: 4px;
-  }
+  .strength-bars { display: flex; gap: 4px; margin-bottom: 6px; }
 
   .strength-bar {
     flex: 1;
     height: 3px;
     border-radius: 2px;
     background: var(--surface-2);
-    transition: background 0.3s;
+    transition: background 0.25s ease;
   }
 
-  .strength-label {
-    font-size: 11px;
-    color: var(--text-3);
-  }
+  .strength-label { font-size: 11.5px; font-weight: 500; color: var(--text-3); }
 
   .field-error {
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--danger);
-    margin-top: 5px;
+    margin-top: 6px;
     display: none;
   }
 
-  .field.has-error .field-input {
-    border-color: rgba(252,129,129,0.5);
-  }
+  .field.has-error .field-input { border-color: rgba(252,129,129,0.55); }
+  .field.has-error .field-error { display: block; }
 
-  .field.has-error .field-error {
-    display: block;
-  }
-
-  .form-panel {
+  .client-error {
+    font-size: 12px;
+    color: var(--danger);
+    margin-top: 6px;
     display: none;
   }
 
-  .form-panel.active {
-    display: block;
-  }
+  .field.client-invalid .field-input { border-color: rgba(252,129,129,0.55); }
+  .field.client-invalid .client-error { display: block; }
 
-  .terms-text {
-    font-size: 11.5px;
+  .form-panel { display: none; }
+  .form-panel.active { display: block; }
+
+  .note-text {
+    font-size: 12.5px;
     color: var(--text-3);
-    line-height: 1.5;
-    margin-top: 16px;
-    text-align: center;
+    line-height: 1.6;
+    margin-top: 18px;
   }
 
-  .terms-text a,
-  .terms-link {
-    color: var(--accent);
+  .switch-row {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-2);
+  }
+
+  .note-text a,
+  .link-btn {
+    color: var(--text-1);
     text-decoration: none;
-    opacity: 0.85;
+    border-bottom: 1px solid var(--border-active);
+    padding-bottom: 1px;
+    transition: color 0.16s ease, border-color 0.16s ease;
   }
 
-  .terms-link {
+  .link-btn {
     appearance: none;
-    border: 0;
-    padding: 0;
+    border-top: 0; border-left: 0; border-right: 0;
+    padding: 0 0 1px;
     background: transparent;
     font: inherit;
     cursor: pointer;
   }
 
-  .terms-text a:hover,
-  .terms-link:hover {
-    opacity: 1;
+  .note-text a:hover,
+  .link-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── responsive ─────────────────────────────────────── */
+
+  @media (max-width: 1180px) {
+    .shell { grid-template-columns: minmax(0, 1fr) 420px; }
+    .left { padding: 44px 44px; }
+    .right { padding: 40px 38px; }
   }
 
-  @media (max-width: 900px) {
-    html, body {
-      overflow-y: auto;
-    }
+  @media (max-width: 980px) {
+    body { overflow-y: auto; }
 
     .shell {
       grid-template-columns: 1fr;
@@ -570,32 +736,30 @@
     }
 
     .left {
-      display: none;
+      padding: 40px 40px 36px;
+      border-bottom: 1px solid var(--line-2);
     }
+
+    .brand-row { margin-bottom: 32px; }
+    .preview { display: none; }
 
     .right {
-      min-height: 100vh;
       border-left: none;
-      padding: 32px 22px;
+      padding: 36px 40px 48px;
+      justify-items: start;
     }
+
+    .form-card { max-width: 420px; }
   }
 
-  .form-card {
-    animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  @media (max-width: 560px) {
+    .left { padding: 30px 22px 28px; }
+    .right { padding: 30px 22px 40px; }
+    .form-extras { flex-wrap: wrap; gap: 10px; }
   }
 
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .left-hero {
-    animation: fadeIn 0.7s ease 0.1s both;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
 </style>
 </head>
@@ -609,42 +773,82 @@
         request()->is('register');
 @endphp
 
-<canvas id="bg-canvas"></canvas>
-
 <div class="shell">
   <div class="left">
-    <div class="left-logo">
-      @include('partials.brand-logo', [
-        'variant' => 'auth',
-        'size' => 'large',
-        'subtext' => 'Data Science Learning Platform',
-      ])
-    </div>
+    <div class="left-inner">
+      <div class="brand-row">
+        @include('partials.brand-logo', [
+          'variant' => 'auth',
+          'size' => 'large',
+          'subtext' => 'Data Science Learning Platform',
+        ])
+      </div>
 
-    <div class="left-hero">
-      <div class="hero-eyebrow">AI-Powered Learning</div>
-
-      <h1 class="hero-title">
-        Master data science<br>with an <em>intelligent</em><br>feedback engine
-      </h1>
+      <h1 class="hero-title">Data Science, learned by doing.</h1>
 
       <p class="hero-sub">
-        Write code, get AI-driven insights in real time, and learn data science concepts through structured, adaptive curriculum.
+        Write code, work with real datasets, complete lessons and assessments,
+        and review feedback as you learn.
       </p>
 
-      <div class="token-strip" id="token-strip"></div>
+      <div class="preview" aria-hidden="true">
+        <div class="pv-head">
+          <span class="pv-mod">Module 6</span>
+          <h2>Handling missing values with pandas</h2>
+          <span class="pv-steps">
+            <span class="pv-bar"><span></span></span>
+            <small>7 / 12</small>
+          </span>
+        </div>
 
-      <div class="stats-row">
-        <div class="stat-pill"><span class="stat-dot"></span>Live compiler</div>
-        <div class="stat-pill"><span class="stat-dot blue"></span>NLP feedback</div>
-        <div class="stat-pill"><span class="stat-dot amber"></span>Adaptive paths</div>
+        <div class="pv-checks pv-system">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3 8.4 L6.4 11.6 L13 4.8"/>
+          </svg>
+          Cell ran in 0.42s &middot; 2 of 2 checks passed
+        </div>
+
+        <div class="pv-thread">
+          <div class="pv-msg">
+            <div class="pv-avatar">JC</div>
+            <div>
+              <div class="pv-name">Juan <span>&middot; 2:14 PM</span></div>
+              <p class="pv-body">My checks pass, but the mean of the column changed after this line:</p>
+              <div class="pv-snippet">df[<span class="c-str">"lot_frontage"</span>].<span class="c-fn">fillna</span>(median)</div>
+              <p class="pv-body">Did I fill it the wrong way?</p>
+            </div>
+          </div>
+
+          <div class="pv-msg" id="pv-reply">
+            <div class="pv-avatar bot">DS</div>
+            <div>
+              <div class="pv-name">DataSensei Assistant</div>
+              <div class="pv-dots" data-dots hidden><i></i><i></i><i></i></div>
+              <p class="pv-body" data-type>No, that shift is expected. You replaced 259 missing values with the median, so the mean moves a little while the median stays where it was:</p>
+              <table class="pv-table pv-reveal" data-reveal>
+                <thead>
+                  <tr><th>lot_frontage</th><th>before</th><th>after</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>mean</td><td>70.05</td><td>69.86</td></tr>
+                  <tr><td>median</td><td>69.00</td><td>69.00</td></tr>
+                  <tr><td>missing</td><td>259</td><td>0</td></tr>
+                </tbody>
+              </table>
+              <p class="pv-body" data-type>Filling with <code>mean()</code> instead would pull the column toward the outliers. Step 8 asks you to compare both.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-composer">
+          <span class="pv-input">Ask about this lesson</span>
+          <span class="pv-send">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 7h9M7.5 3.2 11.4 7l-3.9 3.8"/>
+            </svg>
+          </span>
+        </div>
       </div>
-    </div>
-
-    <div class="left-bottom">
-      <blockquote>
-        "The goal is to turn data into information,<br>and information into insight." — Carly Fiorina
-      </blockquote>
     </div>
   </div>
 
@@ -653,6 +857,7 @@
       <div class="tabs">
         <button class="tab-btn {{ !$isRegisterTab ? 'active' : '' }}" onclick="switchTab('login')" type="button">Sign in</button>
         <button class="tab-btn {{ $isRegisterTab ? 'active' : '' }}" onclick="switchTab('register')" type="button">Create account</button>
+        <span class="tab-underline" id="tab-underline"></span>
       </div>
 
       @if (session('status') || request()->boolean('expired'))
@@ -677,16 +882,14 @@
         <form method="POST" action="{{ Route::has('login') ? route('login') : url('/login') }}">
           @csrf
 
-          <h2 class="form-heading">Welcome back</h2>
-          <p class="form-sub">Continue your data science journey.</p>
+          <h2 class="form-heading">Sign in</h2>
+          <p class="form-sub">Use your institution account to continue.</p>
 
           <div class="field @error('email') has-error @enderror" id="f-email-login">
-            <label class="field-label" for="login-email">Email</label>
+            <div class="field-top">
+              <label class="field-label" for="login-email">Email</label>
+            </div>
             <div class="field-wrap">
-              <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-                <rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/>
-                <path d="M1.5 5.5 L8 9.5 L14.5 5.5"/>
-              </svg>
               <input
                 class="field-input"
                 type="email"
@@ -697,37 +900,36 @@
                 required
                 autofocus
                 autocomplete="username"
+                data-validate="email"
               >
             </div>
+            <div class="client-error"></div>
             @error('email')
               <div class="field-error" style="display:block;">{{ $message }}</div>
             @enderror
           </div>
 
           <div class="field @error('password') has-error @enderror" id="f-pwd-login">
-            <label class="field-label" for="login-pwd">Password</label>
+            <div class="field-top">
+              <label class="field-label" for="login-pwd">Password</label>
+            </div>
             <div class="field-wrap">
-              <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-                <rect x="2.5" y="7" width="11" height="7.5" rx="1.5"/>
-                <path d="M5 7V5a3 3 0 016 0v2"/>
-              </svg>
               <input
                 class="field-input"
                 type="password"
                 name="password"
                 id="login-pwd"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 required
                 autocomplete="current-password"
-                style="padding-right: 40px;"
+                style="padding-right: 58px;"
+                data-validate="required"
+                data-caps="caps-login"
               >
-              <button class="pwd-toggle" onclick="togglePwd('login-pwd', this)" type="button" aria-label="Toggle password">
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
-                  <ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/>
-                  <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
-                </svg>
-              </button>
+              <button class="pwd-toggle" onclick="togglePwd('login-pwd', this)" type="button" aria-label="Show password">Show</button>
             </div>
+            <div class="caps-note" id="caps-login"><i></i>Caps Lock is on</div>
+            <div class="client-error"></div>
             @error('password')
               <div class="field-error" style="display:block;">{{ $message }}</div>
             @enderror
@@ -747,11 +949,11 @@
             @endif
           </div>
 
-          <button type="submit" class="cta-btn" id="login-btn">Sign in to DataSensei</button>
+          <button type="submit" class="cta-btn" id="login-btn">Sign in</button>
         </form>
 
-        <p class="terms-text" style="margin-top:18px;">
-          Don't have an account? <button class="terms-link" type="button" onclick="switchTab('register')">Create one free</button>
+        <p class="note-text switch-row">
+          Don't have an account? <button class="link-btn" type="button" onclick="switchTab('register')">Create one</button>
         </p>
       </div>
 
@@ -759,18 +961,16 @@
         <form method="POST" action="{{ Route::has('register') ? route('register') : url('/register') }}">
           @csrf
 
-          <h2 class="form-heading">Start learning</h2>
+          <h2 class="form-heading">Create account</h2>
           <p class="form-sub">
-            Create your learner account first. You can apply to an institution after logging in.
+            Create your learner account first. You can apply to an institution after signing in.
           </p>
 
           <div class="field @error('name') has-error @enderror" id="f-name-reg">
-            <label class="field-label" for="reg-name">Full name</label>
+            <div class="field-top">
+              <label class="field-label" for="reg-name">Full name</label>
+            </div>
             <div class="field-wrap">
-              <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-                <circle cx="8" cy="5" r="3"/>
-                <path d="M1.5 14.5c0-3.31 2.91-6 6.5-6s6.5 2.69 6.5 6"/>
-              </svg>
               <input
                 class="field-input"
                 type="text"
@@ -780,20 +980,20 @@
                 placeholder="Juan dela Cruz"
                 required
                 autocomplete="name"
+                data-validate="required"
               >
             </div>
+            <div class="client-error"></div>
             @error('name')
               <div class="field-error" style="display:block;">{{ $message }}</div>
             @enderror
           </div>
 
           <div class="field @error('email') has-error @enderror" id="f-email-reg">
-            <label class="field-label" for="reg-email">Email</label>
+            <div class="field-top">
+              <label class="field-label" for="reg-email">Email</label>
+            </div>
             <div class="field-wrap">
-              <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-                <rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/>
-                <path d="M1.5 5.5 L8 9.5 L14.5 5.5"/>
-              </svg>
               <input
                 class="field-input"
                 type="email"
@@ -803,20 +1003,20 @@
                 placeholder="you@university.edu"
                 required
                 autocomplete="email"
+                data-validate="email"
               >
             </div>
+            <div class="client-error"></div>
             @error('email')
               <div class="field-error" style="display:block;">{{ $message }}</div>
             @enderror
           </div>
 
           <div class="field @error('password') has-error @enderror" id="f-pwd-reg">
-            <label class="field-label" for="reg-pwd">Password</label>
+            <div class="field-top">
+              <label class="field-label" for="reg-pwd">Password</label>
+            </div>
             <div class="field-wrap">
-              <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-                <rect x="2.5" y="7" width="11" height="7.5" rx="1.5"/>
-                <path d="M5 7V5a3 3 0 016 0v2"/>
-              </svg>
               <input
                 class="field-input"
                 type="password"
@@ -825,16 +1025,13 @@
                 placeholder="8+ chars with upper/lowercase, number, symbol"
                 required
                 autocomplete="new-password"
-                style="padding-right: 40px;"
+                style="padding-right: 58px;"
                 oninput="checkStrength(this.value)"
+                data-caps="caps-reg"
               >
-              <button class="pwd-toggle" onclick="togglePwd('reg-pwd', this)" type="button" aria-label="Toggle password">
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
-                  <ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/>
-                  <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
-                </svg>
-              </button>
+              <button class="pwd-toggle" onclick="togglePwd('reg-pwd', this)" type="button" aria-label="Show password">Show</button>
             </div>
+            <div class="caps-note" id="caps-reg"><i></i>Caps Lock is on</div>
 
             <div class="strength-wrap" id="strength-wrap">
               <div class="strength-bars">
@@ -852,12 +1049,10 @@
           </div>
 
           <div class="field @error('password_confirmation') has-error @enderror" id="f-pwd-conf-reg">
-            <label class="field-label" for="reg-pwd-conf">Confirm Password</label>
+            <div class="field-top">
+              <label class="field-label" for="reg-pwd-conf">Confirm password</label>
+            </div>
             <div class="field-wrap">
-              <svg class="field-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
-                <rect x="2.5" y="7" width="11" height="7.5" rx="1.5"/>
-                <path d="M5 7V5a3 3 0 016 0v2"/>
-              </svg>
               <input
                 class="field-input"
                 type="password"
@@ -866,29 +1061,28 @@
                 placeholder="Type password again"
                 required
                 autocomplete="new-password"
-                style="padding-right: 40px;"
+                style="padding-right: 58px;"
+                data-match="reg-pwd"
+                data-caps="caps-conf"
               >
-              <button class="pwd-toggle" onclick="togglePwd('reg-pwd-conf', this)" type="button" aria-label="Toggle password">
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3">
-                  <ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/>
-                  <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
-                </svg>
-              </button>
+              <button class="pwd-toggle" onclick="togglePwd('reg-pwd-conf', this)" type="button" aria-label="Show password">Show</button>
             </div>
+            <div class="caps-note" id="caps-conf"><i></i>Caps Lock is on</div>
+            <div class="client-error"></div>
             @error('password_confirmation')
               <div class="field-error" style="display:block;">{{ $message }}</div>
             @enderror
           </div>
 
-          <button type="submit" class="cta-btn" id="reg-btn" style="margin-top: 4px;">Create account</button>
+          <button type="submit" class="cta-btn" id="reg-btn" style="margin-top: 22px;">Create account</button>
         </form>
 
-        <p class="terms-text">
+        <p class="note-text">
           Create an account only if you are authorized to use DataSensei. Your institution may apply its own terms and privacy policy.
         </p>
 
-        <p class="terms-text" style="margin-top:10px;">
-          Already have an account? <button class="terms-link" type="button" onclick="switchTab('login')">Sign in</button>
+        <p class="note-text switch-row">
+          Already have an account? <button class="link-btn" type="button" onclick="switchTab('login')">Sign in</button>
         </p>
       </div>
     </div>
@@ -896,174 +1090,111 @@
 </div>
 
 <script>
+/* ── assistant preview: typing effect ───────────────── */
+
 (function(){
-  const canvas = document.getElementById('bg-canvas');
-  const ctx = canvas?.getContext('2d');
-  if (!canvas || !ctx) return;
+  const reply = document.getElementById('pv-reply');
+  if (!reply) return;
 
-  let W = 0;
-  let H = 0;
-  let particles = [];
-  let animationFrameId = null;
-  let lastFrameAt = 0;
-  let running = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dots = reply.querySelector('[data-dots]');
+  const typed = Array.from(reply.querySelectorAll('[data-type]'));
+  const reveals = Array.from(reply.querySelectorAll('[data-reveal]'));
 
-  function resize(){
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
-    W = window.innerWidth;
-    H = window.innerHeight;
-    canvas.width = Math.round(W * pixelRatio);
-    canvas.height = Math.round(H * pixelRatio);
-    canvas.style.width = W + 'px';
-    canvas.style.height = H + 'px';
-    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  const showEverything = () => {
+    if (dots) dots.hidden = true;
+    reveals.forEach(el => el.classList.add('shown'));
+  };
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // The preview is hidden on small screens, so there is nothing to animate.
+  if (reducedMotion || reply.offsetParent === null) {
+    showEverything();
+    return;
   }
 
-  function createParticles(){
-    particles = [];
-    const count = Math.min(85, Math.max(24, Math.floor((W * H) / 30000)));
+  // Keep the original markup so the message survives with JavaScript disabled.
+  const originals = typed.map(el => {
+    const fragment = document.createDocumentFragment();
+    while (el.firstChild) fragment.appendChild(el.firstChild);
+    el.dataset.pending = 'true';
+    el.style.visibility = 'hidden';
+    return fragment;
+  });
 
-    for(let i = 0; i < count; i++){
-      particles.push({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        r: Math.random() * 1.2 + 0.3,
-        vx: (Math.random() - 0.5) * 0.15,
-        vy: (Math.random() - 0.5) * 0.15,
-        alpha: Math.random() * 0.4 + 0.1
-      });
-    }
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  function typeNodes(target, source, speed){
+    const nodes = Array.from(source.childNodes);
+
+    return nodes.reduce((chain, node) => chain.then(() => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent;
+        const holder = document.createTextNode('');
+        target.appendChild(holder);
+
+        return text.split('').reduce((inner, character) => inner.then(() => {
+          holder.textContent += character;
+          return wait(character === ' ' ? speed * 0.5 : speed);
+        }), Promise.resolve());
+      }
+
+      const clone = node.cloneNode(false);
+      target.appendChild(clone);
+      return typeNodes(clone, node, speed);
+    }), Promise.resolve());
   }
 
-  function draw(timestamp){
-    if (!running) {
-      animationFrameId = null;
-      return;
+  async function run(){
+    if (dots) {
+      dots.hidden = false;
+      await wait(900);
+      dots.hidden = true;
     }
 
-    animationFrameId = requestAnimationFrame(draw);
+    for (let i = 0; i < typed.length; i++) {
+      const element = typed[i];
+      const holder = document.createElement('span');
+      const caret = document.createElement('span');
+      caret.className = 'pv-caret';
 
-    // Thirty frames per second is visually smooth for the background and
-    // leaves more CPU time for form handling and the login redirect.
-    if (timestamp - lastFrameAt < 33) return;
-    lastFrameAt = timestamp;
+      element.style.visibility = '';
+      element.appendChild(holder);
+      element.appendChild(caret);
 
-    ctx.clearRect(0, 0, W, H);
+      await typeNodes(holder, originals[i], 17);
+      await wait(260);
+      caret.remove();
+      delete element.dataset.pending;
 
-    for(let i = 0; i < particles.length; i++){
-      for(let j = i + 1; j < particles.length; j++){
-        const p = particles[i];
-        const q = particles[j];
-        const dx = p.x - q.x;
-        const dy = p.y - q.y;
-        const distanceSquared = dx * dx + dy * dy;
-
-        if(distanceSquared < 10000){
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = `rgba(99,179,237,${(1 - distanceSquared / 10000) * 0.06})`;
-          ctx.lineWidth = 0.5;
-          ctx.stroke();
-        }
+      if (i === 0) {
+        reveals.forEach(el => el.classList.add('shown'));
+        await wait(420);
       }
     }
-
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(99,179,237,${p.alpha})`;
-      ctx.fill();
-
-      p.x += p.vx;
-      p.y += p.vy;
-
-      if(p.x < 0 || p.x > W) p.vx *= -1;
-      if(p.y < 0 || p.y > H) p.vy *= -1;
-    });
   }
 
-  function start(){
-    if (!running) running = true;
-    if (animationFrameId === null) animationFrameId = requestAnimationFrame(draw);
-  }
-
-  function stop(){
-    running = false;
-    if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-
-  window.addEventListener('resize', () => {
-    resize();
-    createParticles();
-  }, { passive: true });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stop();
-    else if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) start();
-  });
-
-  resize();
-  createParticles();
-  if (running) start();
-
-  window.DataSenseiBackground = { start, stop };
+  run().catch(showEverything);
 })();
 
-const tokens = [
-  { text: 'import', cls: 't-keyword' },
-  { text: 'pandas', cls: 't-func' },
-  { text: 'as', cls: 't-keyword' },
-  { text: 'pd', cls: 't-op' },
-  { text: 'df', cls: 't-op' },
-  { text: '=', cls: 't-op' },
-  { text: 'pd.read_csv', cls: 't-func' },
-  { text: '("data.csv")', cls: 't-string' },
-  { text: 'df.shape', cls: 't-func' },
-  { text: '(', cls: 't-op' },
-  { text: '1458', cls: 't-num' },
-  { text: ',', cls: 't-op' },
-  { text: '81', cls: 't-num' },
-  { text: ')', cls: 't-op' },
-  { text: 'accuracy', cls: 't-keyword' },
-  { text: ':', cls: 't-op' },
-  { text: '0.943', cls: 't-num' },
-  { text: 'fit(', cls: 't-func' },
-  { text: 'X_train', cls: 't-op' },
-  { text: ')', cls: 't-op' },
-];
+/* ── tab underline ──────────────────────────────────── */
 
-function renderTokens(){
-  const strip = document.getElementById('token-strip');
+function moveUnderline(){
+  const underline = document.getElementById('tab-underline');
+  const active = document.querySelector('.tab-btn.active');
 
-  if (!strip) return;
+  if (!underline || !active) return;
 
-  strip.innerHTML = '';
-
-  tokens.forEach((t, i) => {
-    const el = document.createElement('span');
-    el.className = `token ${t.cls}`;
-    el.textContent = t.text;
-    el.style.animationDelay = `${i * 0.06}s`;
-    strip.appendChild(el);
-  });
+  underline.style.width = active.offsetWidth + 'px';
+  underline.style.transform = `translateX(${active.offsetLeft}px)`;
 }
 
-renderTokens();
+window.addEventListener('resize', moveUnderline, { passive: true });
+window.addEventListener('load', moveUnderline);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveUnderline);
+moveUnderline();
 
-
-document.querySelectorAll('.form-panel form').forEach(form => {
-  form.addEventListener('submit', () => {
-    window.DataSenseiBackground?.stop();
-
-    const button = form.querySelector('button[type="submit"]');
-    if (!button) return;
-
-    button.disabled = true;
-    button.textContent = button.id === 'reg-btn' ? 'Creating account…' : 'Signing in…';
-  });
-});
+/* ── tabs ───────────────────────────────────────────── */
 
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach((button, index) => {
@@ -1076,21 +1207,108 @@ function switchTab(tab){
 
   document.getElementById(`panel-${tab}`).classList.add('active');
 
+  moveUnderline();
+
   document.title = tab === 'login'
     ? 'DataSensei — Sign In'
     : 'DataSensei — Create Account';
+
+  const firstInput = document.querySelector(`#panel-${tab} .field-input`);
+  if (firstInput) firstInput.focus({ preventScroll: true });
 }
+
+/* ── show / hide password ───────────────────────────── */
 
 function togglePwd(id, btn){
   const input = document.getElementById(id);
   const isText = input.type === 'text';
 
   input.type = isText ? 'password' : 'text';
-
-  btn.innerHTML = isText
-    ? `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="7.5" cy="7.5" rx="5.5" ry="3.5"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/></svg>`
-    : `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 1.5l12 12M6.2 6.4a1.5 1.5 0 002.1 2.1M3 5C1.8 6 1.2 7 1.2 7.5S3.5 11 7.5 11M12 10c1.2-1 1.8-2 1.8-2.5S11 4 7.5 4"/></svg>`;
+  btn.textContent = isText ? 'Show' : 'Hide';
+  btn.setAttribute('aria-label', isText ? 'Show password' : 'Hide password');
 }
+
+/* ── caps lock indicator ────────────────────────────── */
+
+document.querySelectorAll('[data-caps]').forEach(input => {
+  const note = document.getElementById(input.dataset.caps);
+  if (!note) return;
+
+  const update = event => {
+    const on = typeof event.getModifierState === 'function' && event.getModifierState('CapsLock');
+    note.classList.toggle('visible', !!on);
+  };
+
+  input.addEventListener('keydown', update);
+  input.addEventListener('keyup', update);
+  input.addEventListener('blur', () => note.classList.remove('visible'));
+});
+
+/* ── inline hints (display only — server validation is unchanged) ── */
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function setHint(input, message){
+  const field = input.closest('.field');
+  const box = field && field.querySelector('.client-error');
+  if (!field || !box) return;
+
+  if (message) {
+    box.textContent = message;
+    field.classList.add('client-invalid');
+  } else {
+    box.textContent = '';
+    field.classList.remove('client-invalid');
+  }
+}
+
+document.querySelectorAll('[data-validate]').forEach(input => {
+  input.addEventListener('blur', () => {
+    const value = input.value.trim();
+
+    if (!value) {
+      setHint(input, 'This field is required.');
+      return;
+    }
+
+    if (input.dataset.validate === 'email' && !emailPattern.test(value)) {
+      setHint(input, 'Enter a valid email address.');
+      return;
+    }
+
+    setHint(input, '');
+  });
+
+  input.addEventListener('input', () => setHint(input, ''));
+});
+
+document.querySelectorAll('[data-match]').forEach(input => {
+  const source = document.getElementById(input.dataset.match);
+  if (!source) return;
+
+  const compare = () => {
+    if (!input.value) return setHint(input, '');
+    setHint(input, input.value === source.value ? '' : 'Passwords do not match.');
+  };
+
+  input.addEventListener('input', compare);
+  input.addEventListener('blur', compare);
+  source.addEventListener('input', () => { if (input.value) compare(); });
+});
+
+/* ── submit state ───────────────────────────────────── */
+
+document.querySelectorAll('.form-panel form').forEach(form => {
+  form.addEventListener('submit', () => {
+    const button = form.querySelector('button[type="submit"]');
+    if (!button) return;
+
+    button.disabled = true;
+    button.textContent = button.id === 'reg-btn' ? 'Creating account…' : 'Signing in…';
+  });
+});
+
+/* ── password strength ──────────────────────────────── */
 
 function checkStrength(value){
   const wrap = document.getElementById('strength-wrap');

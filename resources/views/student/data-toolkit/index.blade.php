@@ -16,7 +16,7 @@
   <main class="content">
     <div class="page">
       <header class="hero">
-        <div class="eyebrow">Exploratory Data Analysis</div>
+        <div class="eyebrow"></div>
         <h1 class="ds-page-title">Follow one clear path through your data.</h1>
         <p>DataSensei will guide you from a simple objective to a complete EDA summary. Each page shows only what you need for the current step.</p>
       </header>

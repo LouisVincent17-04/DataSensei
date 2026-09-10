@@ -67,6 +67,6 @@ class ClassAssignment extends Model
 
     public function getIsDueAttribute(): bool
     {
-        return $this->due_at && now()->greaterThan($this->due_at);
+        return $this->due_at !== null && now()->greaterThan($this->due_at);
     }
 }

@@ -9,6 +9,7 @@ use App\Services\AssessmentDiagnosticService;
 use App\Services\GamificationService;
 use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
+use App\Support\AuthSessionFingerprint;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,6 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         config()->set('database.default', 'sqlite');
         config()->set('database.connections.sqlite.database', ':memory:');
         config()->set('session.driver', 'array');
-        $this->withoutMiddleware();
         $this->createTables();
 
         $this->student = User::create([
@@ -92,7 +92,7 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         $this->app->instance(IloMasteryService::class, $mastery);
         $this->app->instance(StudentNotificationService::class, $notifications);
 
-        $this->actingAs($this->student)->withSession([])->post(
+        $this->studentClient()->post(
             route('student.assessments.submit', [$assessmentId, $submissionId]),
             ['answers' => [$questionId => (string) $correctOptionId]]
         )->assertRedirect(route('student.assessments.result', [$assessmentId, $submissionId]));
@@ -127,7 +127,7 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         $this->app->instance(GamificationService::class, $gamification);
         $this->app->instance(StudentNotificationService::class, $notifications);
 
-        $this->actingAs($this->student)->withSession([])->post(
+        $this->studentClient()->post(
             route('student.assignments.submit', [$assignmentId, $submissionId]),
             ['answers' => [$questionId => (string) $correctOptionId]]
         )->assertRedirect(route('student.assignments.result', [$assignmentId, $submissionId]));
@@ -153,12 +153,12 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
             $this->createAssessmentAttempt($deadline->copy()->subMinutes(5));
 
         $route = route('student.assessments.autosave', [$assessmentId, $submissionId]);
-        $this->actingAs($this->student)->withSession([])->post($route, [
+        $this->studentClient()->post($route, [
             'answers' => [$questionId => (string) $correctOptionId],
             'client_version' => 1,
         ])->assertOk()->assertJson(['saved' => true, 'current_version' => 1]);
 
-        $this->actingAs($this->student)->withSession([])->post($route, [
+        $this->studentClient()->post($route, [
             'answers' => [$questionId => '999999'],
             'client_version' => 1,
         ])->assertOk()->assertJson(['saved' => false, 'stale' => true]);
@@ -167,7 +167,7 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         $this->assertSame((string) $correctOptionId, $submission->draft_answers[(string) $questionId]);
 
         Carbon::setTestNow($deadline);
-        $this->actingAs($this->student)->withSession([])->post($route, [
+        $this->studentClient()->post($route, [
             'answers' => [$questionId => '999999'],
             'client_version' => 2,
         ])->assertStatus(409)->assertJson(['saved' => false, 'expired' => true]);
@@ -175,6 +175,13 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         $submission = AssessmentSubmission::findOrFail($submissionId);
         $this->assertSame(1, $submission->draft_version);
         $this->assertSame((string) $correctOptionId, $submission->draft_answers[(string) $questionId]);
+    }
+
+    private function studentClient()
+    {
+        return $this->actingAs($this->student)->withSession([
+            AuthSessionFingerprint::SESSION_KEY => AuthSessionFingerprint::for($this->student),
+        ]);
     }
 
     private function createAssessmentAttempt(Carbon $startedAt): array

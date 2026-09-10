@@ -381,6 +381,10 @@
         .rb-bullet::before { content: '›'; color: var(--accent); flex-shrink: 0; font-weight: 700; }
         .rb-code { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 9px; margin: 5px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #93c5fd; white-space: pre-wrap; word-break: break-word; overflow-x: auto; }
         .rb-line { font-size: 0.76rem; color: var(--muted); line-height: 1.55; padding: 1px 0; }
+        .rb-line + .rb-line { margin-top: 4px; }
+        .rb-line .rb-key { color: var(--text); font-weight: 600; }
+        .rb-line .rb-key.ok  { color: var(--accent3); }
+        .rb-line .rb-key.err { color: var(--warn); }
         .rb-typing .rb-bubble { padding: 11px 13px; }
         .rb-dots { display: flex; gap: 4px; align-items: center; height: 13px; }
         .rb-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: rbDot 1.2s ease-in-out infinite; }
@@ -581,6 +585,7 @@
 // Calls POST /api/code-review with { code, language: 'sqlite' }
 // Returns JSON { ok, message }
 const REVIEW_URL = @json(route('api.code-review'));
+const REVIEW_CLIENT_TIMEOUT_MS = {{ (int) config('code_execution.ollama.client_timeout_ms', 14000) }};
 
 const ReviewBot = (() => {
   let _open     = false;
@@ -588,6 +593,7 @@ const ReviewBot = (() => {
   let _lastCode = '';
   let _lastLang = 'sqlite';
   let _lastRunOutput = '';
+  let _activeController = null;
   const _history = [];
 
   const $toggle = () => document.getElementById('rb-toggle');
@@ -686,6 +692,24 @@ const ReviewBot = (() => {
     _addWelcome();
   }
 
+  function _boundedRunOutput(output) {
+    const value = String(output || '');
+    const limit = 12000;
+    if (value.length <= limit) return value;
+    return `${value.slice(0, 7000)}\n\n[output shortened]\n\n${value.slice(-4500)}`;
+  }
+
+  function _localFallback(runOutput, isChat = false) {
+    const output = String(runOutput || '');
+    const hasError = /syntax error|no such (?:table|column)|constraint failed|ambiguous column|query failed|\[security\]|unsupported/i.test(output);
+    if (hasError) {
+      return 'Status: Has Issues\nFeedback: The SQL Sandbox reported an execution error. The detailed reviewer was unavailable, but the original database error remains valid.\nSteps to Fix:\n- Read the reported error and identify the affected statement.\n- Check the table name, column names, clause order, and database constraints.\n- Correct the underlying cause and run the query again.';
+    }
+    return isChat
+      ? 'Status: Not Reviewed\nFeedback: The AI reviewer could not be reached from this page. Your current query and result are still loaded, so you can ask again in a moment.'
+      : 'Status: Not Reviewed\nFeedback: Your query ran and reported no error. The AI reviewer could not be reached from this page, so it was not reviewed. Check that the result matches the rows and columns you intended.';
+  }
+
   /* ── Core: send SQL for review ── */
   async function _sendReview(code, lang) {
     const typingId = _addTyping();
@@ -696,13 +720,9 @@ const ReviewBot = (() => {
       form.append('mode',     'review');
       form.append('code',     code);
       form.append('language', lang || 'sqlite');
-      form.append('run_output', _lastRunOutput || '');
+      form.append('run_output', _boundedRunOutput(_lastRunOutput));
 
-      const res  = await fetch(REVIEW_URL, {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-        body: form,
-      });
+      const res  = await _postReview(form);
       const data = await _readJsonResponse(res);
       _removeTyping(typingId);
 
@@ -716,7 +736,9 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The SQL review request failed.')}</div>`);
+      const msg = _localFallback(_lastRunOutput, false);
+      _addBot(_formatReview(msg));
+      _history.push({ role: 'assistant', content: msg });
     } finally {
       _setBusy(false);
     }
@@ -733,29 +755,81 @@ const ReviewBot = (() => {
       form.append('code',     _lastCode);
       form.append('language', _lastLang);
       form.append('question', messages[messages.length - 1].content);
-      form.append('run_output', _lastRunOutput || '');
+      form.append('run_output', _boundedRunOutput(_lastRunOutput));
       form.append('previous_context', _history.map(h => h.content).slice(-4).join('\n---\n'));
+      form.append('stream', '1');
 
-      const res  = await fetch(REVIEW_URL, {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-        body: form,
+      let finalMessage = '';
+      const res = await _postReview(form, async response => {
+        await _readEventStream(response, event => {
+          if (event.event === 'done') finalMessage = event.data.message || '';
+        });
       });
-      const data = await _readJsonResponse(res);
       _removeTyping(typingId);
 
-      if (!res.ok || !data.ok) {
-        throw new Error(data.message || `Follow-up request failed with HTTP ${res.status}.`);
-      }
+      if (!res.ok || !finalMessage) throw new Error(`Follow-up request failed with HTTP ${res.status}.`);
 
-      const msg  = data.message || 'No response.';
+      const msg  = finalMessage;
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The follow-up request failed.')}</div>`);
+      const msg = _localFallback(_lastRunOutput, true);
+      _addBot(_formatReview(msg));
+      _history.push({ role: 'assistant', content: msg });
     } finally {
       _setBusy(false);
+    }
+  }
+
+  async function _postReview(form, streamHandler = null) {
+    if (_activeController) _activeController.abort();
+    const controller = new AbortController();
+    _activeController = controller;
+    const timer = setTimeout(() => controller.abort(), REVIEW_CLIENT_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(REVIEW_URL, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+        body: form,
+        signal: controller.signal,
+      });
+      if (streamHandler) await streamHandler(response);
+      return response;
+    } finally {
+      clearTimeout(timer);
+      if (_activeController === controller) _activeController = null;
+    }
+  }
+
+  async function _readEventStream(response, onEvent) {
+    if (!response.ok || !response.body) {
+      const data = await _readJsonResponse(response);
+      throw new Error(data.message || `Request failed with HTTP ${response.status}.`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const chunks = buffer.split('\n\n');
+      buffer = chunks.pop() || '';
+      for (const chunk of chunks) {
+        let event = 'message';
+        const dataLines = [];
+        for (const line of chunk.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+        }
+        if (!dataLines.length) continue;
+        let data;
+        try { data = JSON.parse(dataLines.join('\n')); } catch (_) { continue; }
+        onEvent({ event, data });
+      }
+      if (done) break;
     }
   }
 
@@ -824,28 +898,35 @@ const ReviewBot = (() => {
   /* ── Review formatter ── */
   function _formatReview(raw) {
     if (!raw || !raw.trim()) return '<div class="rb-line" style="color:var(--dim)">(No response)</div>';
-    const SECTION = /^(Status|Issues?|Fix|Suggestion|Suggestions|Warning|Warnings|Notes?|Summary|Result|Performance|Optimization)s?:/i;
-    const segs = raw.split(/(```[a-z]*\n?)/);
-    let html = '', inCode = false, codeAcc = '';
-    for (const seg of segs) {
-      if (/^```/.test(seg)) { if (inCode) { html += `<div class="rb-code">${escH(codeAcc.trimEnd())}</div>`; codeAcc = ''; } inCode = !inCode; continue; }
-      if (inCode) { codeAcc += seg; continue; }
-      for (const line of seg.split('\n')) {
+    // Headings introduce a list; a labelled sentence stays readable prose.
+    const HEADING = /^(Issues?|Suggestions?|Warnings?|Notes?|Steps to (?:Fix|Check)|Check On Your Own|Checked|Verified|Summary|Performance|Optimization)\s*:\s*$/i;
+    const LABEL   = /^(Status|Feedback|Explanation|Error|Location|Result)\s*:\s*(.*)$/i;
+    // Tone comes from the verdict itself, never from a word inside the sentence.
+    const VERDICT_OK  = /^(correct|clean|no issues|passed?|ok)\b/i;
+    const VERDICT_ERR = /^(has issues|incorrect|failed?|error)\b/i;
+    const proseOnly = raw.replace(/```[\s\S]*?```/g, '').replace(/`/g, '');
+    let html = '';
+    for (const line of proseOnly.split('\n')) {
         const t = line.trim(); if (!t) continue;
-        if (SECTION.test(t)) {
-          const cls = /correct|clean|good|pass|ok/i.test(t) ? 'rb-section ok' : /error|issue|fail|wrong/i.test(t) ? 'rb-section err' : 'rb-section';
-          html += `<div class="${cls}">${escH(t)}</div>`;
+        const label = t.match(LABEL);
+        if (HEADING.test(t)) {
+          html += `<div class="rb-section">${escH(t.replace(/\s*:\s*$/, ''))}</div>`;
+        } else if (label) {
+          const key = label[1];
+          const value = label[2].trim();
+          let tone = '';
+          if (/^status$/i.test(key)) {
+            tone = VERDICT_OK.test(value) ? ' ok' : VERDICT_ERR.test(value) ? ' err' : '';
+          }
+          html += `<div class="rb-line"><span class="rb-key${tone}">${escH(key)}:</span> ${escH(value)}</div>`;
         } else if (/^[-•*]\s/.test(t)) {
           html += `<div class="rb-bullet">${escH(t.replace(/^[-•*]\s+/, ''))}</div>`;
         } else if (/^\d+\.\s/.test(t)) {
           html += `<div class="rb-bullet">${escH(t.replace(/^\d+\.\s+/, ''))}</div>`;
         } else {
-          const lineHtml = escH(t).replace(/`([^`]+)`/g, '<code style="font-family:JetBrains Mono,monospace;font-size:0.68rem;background:var(--surface3);padding:1px 4px;border-radius:3px;color:#93c5fd">$1</code>');
-          html += `<div class="rb-line">${lineHtml}</div>`;
+          html += `<div class="rb-line">${escH(t)}</div>`;
         }
-      }
     }
-    if (inCode && codeAcc.trim()) html += `<div class="rb-code">${escH(codeAcc.trimEnd())}</div>`;
     return html || '<div class="rb-line" style="color:var(--dim)">(Empty response)</div>';
   }
 

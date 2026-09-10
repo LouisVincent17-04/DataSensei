@@ -273,6 +273,7 @@ class InstructorAssessmentController extends Controller
 
             $questions = AssessmentQuestion::query()
                 ->where('assessment_id', $lockedAssessment->id)
+                ->where('authoring_touched', false)
                 ->where('question_type', 'unconfigured')
                 ->where(function ($query) {
                     $query->whereNull('question_text')->orWhere('question_text', '');
@@ -475,6 +476,7 @@ class InstructorAssessmentController extends Controller
                     'image_path' => $imagePath,
                     'points' => $validated['points'],
                     'is_required' => $request->boolean('is_required'),
+                    'authoring_touched' => true,
                     'correct_answer' => in_array($type, ['true_false', 'fill_blank', 'short_answer'], true)
                         ? (trim((string) ($validated['correct_answer'] ?? '')) ?: null)
                         : null,

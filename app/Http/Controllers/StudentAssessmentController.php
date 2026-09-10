@@ -46,8 +46,23 @@ class StudentAssessmentController extends Controller
         $this->authorizeAssessment($assessment, allowCompletedHistory: true);
         $assessment->load(['classRoom', 'questions', 'submissions' => fn ($q) => $q->where('student_id', Auth::id())->latest('attempt_no')]);
         $latestSubmission = $assessment->submissions->first();
+        $completedAttempts = $assessment->submissions
+            ->whereIn('status', ['submitted', 'late', 'graded'])
+            ->count();
+        $maxAttempts = max(1, (int) $assessment->max_attempts);
+        $attemptsRemaining = max(0, $maxAttempts - $completedAttempts);
+        $canContinueAttempt = $latestSubmission?->status === 'in_progress';
+        $canStartNewAttempt = $assessment->status === 'published' && $attemptsRemaining > 0;
 
-        return view('student.assessments.show', compact('assessment', 'latestSubmission'));
+        return view('student.assessments.show', compact(
+            'assessment',
+            'latestSubmission',
+            'completedAttempts',
+            'maxAttempts',
+            'attemptsRemaining',
+            'canContinueAttempt',
+            'canStartNewAttempt'
+        ));
     }
 
     public function start(Assessment $assessment)

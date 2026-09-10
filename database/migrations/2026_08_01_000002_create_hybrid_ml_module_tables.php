@@ -191,7 +191,8 @@ return new class extends Migration
 
         // Add the circular current-version reference only after both tables exist.
         // A deliberately short name avoids MySQL 5.5/InnoDB constraint collisions.
-        if (! $this->currentVersionForeignKeyExists()) {
+        if (DB::connection()->getDriverName() === 'mysql'
+            && ! $this->currentVersionForeignKeyExists()) {
             try {
                 Schema::table('ml_models', function (Blueprint $table): void {
                     $table->foreign('current_version_id', 'mm_current_version_fk')

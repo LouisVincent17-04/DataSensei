@@ -241,7 +241,7 @@
   <main class="main">
     <div class="header">
       <div>
-        <div class="eyebrow">Progress</div>
+        <div class="eyebrow"></div>
         <h1 class="title ds-page-title">Achievements & Missions</h1>
         <p class="subtitle">See what you have unlocked, check active missions, and follow your XP progress.</p>
       </div>

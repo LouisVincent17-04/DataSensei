@@ -29,6 +29,7 @@ class AssessmentQuestion extends Model
         'image_path',
         'points',
         'is_required',
+        'authoring_touched',
         'correct_answer',
         'answer_explanation',
         'rubric_text',
@@ -43,6 +44,7 @@ class AssessmentQuestion extends Model
         'item_number' => 'integer',
         'points' => 'integer',
         'is_required' => 'boolean',
+        'authoring_touched' => 'boolean',
     ];
 
     public function assessment(): BelongsTo
@@ -122,7 +124,8 @@ class AssessmentQuestion extends Model
 
     public function hasDraftContent(): bool
     {
-        return $this->question_type !== 'unconfigured'
+        return (bool) ($this->authoring_touched ?? false)
+            || $this->question_type !== 'unconfigured'
             || trim((string) $this->question_text) !== ''
             || trim((string) $this->correct_answer) !== ''
             || trim((string) $this->answer_explanation) !== ''

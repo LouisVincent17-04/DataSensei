@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\TableOfSpecification;
 use App\Models\User;
+use App\Support\AuthSessionFingerprint;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -18,8 +19,15 @@ class InstructorAssessmentClassBindingTest extends TestCase
         config()->set('database.default', 'sqlite');
         config()->set('database.connections.sqlite.database', ':memory:');
         config()->set('session.driver', 'array');
-        $this->withoutMiddleware();
         $this->createTables();
+
+        DB::table('institutions')->insert([
+            'id' => 1,
+            'name' => 'TOS Test Institution',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     protected function tearDown(): void
@@ -30,6 +38,7 @@ class InstructorAssessmentClassBindingTest extends TestCase
             'table_of_specifications',
             'classes',
             'users',
+            'institutions',
         ] as $table) {
             Schema::dropIfExists($table);
         }
@@ -45,6 +54,7 @@ class InstructorAssessmentClassBindingTest extends TestCase
             'password' => 'TestPassword!123',
             'role' => User::ROLE_INSTRUCTOR,
             'status' => 'active',
+            'institution_id' => 1,
         ]);
         $sourceClassId = $this->createClass($instructor->id, 'Source Class', 'SOURCE1');
         $otherClassId = $this->createClass($instructor->id, 'Other Class', 'OTHER01');
@@ -60,6 +70,9 @@ class InstructorAssessmentClassBindingTest extends TestCase
         $returnUrl = route('instructor.assessments.create', $tos);
 
         $response = $this->actingAs($instructor)
+            ->withSession([
+                AuthSessionFingerprint::SESSION_KEY => AuthSessionFingerprint::for($instructor),
+            ])
             ->from($returnUrl)
             ->post(route('instructor.assessments.store', $tos), [
                 'class_id' => $otherClassId,
@@ -84,6 +97,7 @@ class InstructorAssessmentClassBindingTest extends TestCase
     {
         return DB::table('classes')->insertGetId([
             'instructor_id' => $instructorId,
+            'institution_id' => 1,
             'name' => $name,
             'class_code' => $code,
             'is_archived' => false,
@@ -94,6 +108,12 @@ class InstructorAssessmentClassBindingTest extends TestCase
 
     private function createTables(): void
     {
+        Schema::create('institutions', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('status')->default('active');
+            $table->timestamps();
+        });
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
@@ -101,12 +121,14 @@ class InstructorAssessmentClassBindingTest extends TestCase
             $table->string('password');
             $table->tinyInteger('role');
             $table->string('status')->default('active');
+            $table->unsignedBigInteger('institution_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
         Schema::create('classes', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('instructor_id');
+            $table->unsignedBigInteger('institution_id')->nullable();
             $table->string('name');
             $table->string('class_code', 8);
             $table->boolean('is_archived')->default(false);

@@ -23,8 +23,12 @@ class CodingSubmission extends Model
     ];
 
     protected $casts = [
+        'tests_passed' => 'integer',
+        'tests_total' => 'integer',
+        'xp_earned' => 'integer',
+        'time_taken_seconds' => 'integer',
         'test_results' => 'array',
-        'voided'       => 'boolean',
+        'voided' => 'boolean',
     ];
 
     public function user(): BelongsTo

@@ -48,6 +48,19 @@ class AssessmentQuestionAuthoringTest extends TestCase
         $this->assertContains('Add at least two choices.', $question->authoringErrors());
     }
 
+    public function test_points_or_required_only_changes_count_as_an_in_progress_draft(): void
+    {
+        $question = $this->question([
+            'authoring_touched' => true,
+            'points' => 7,
+            'is_required' => false,
+        ]);
+
+        $this->assertTrue($question->hasDraftContent());
+        $this->assertSame('in_progress', $question->authoring_status);
+        $this->assertFalse($question->isAuthoringComplete());
+    }
+
     public function test_true_false_and_essay_require_their_type_specific_answers(): void
     {
         $trueFalse = $this->question([

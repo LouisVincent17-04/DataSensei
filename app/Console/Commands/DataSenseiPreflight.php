@@ -31,6 +31,7 @@ class DataSenseiPreflight extends Command
         $databaseReady = $this->checkDatabase();
         if ($databaseReady) {
             $this->checkMigrations();
+            $this->checkQuizMakerSchema();
             $this->checkHybridMlReferentialIntegrity();
             $this->checkQueues();
         }
@@ -114,6 +115,106 @@ class DataSenseiPreflight extends Command
         } catch (Throwable $exception) {
             $this->recordFailure('Migration status could not be read: ' . $this->safeMessage($exception));
         }
+    }
+
+    private function checkQuizMakerSchema(): void
+    {
+        $requiredSchema = [
+            'table_of_specifications' => [
+                'id',
+                'total_items',
+            ],
+            'table_of_specification_rows' => [
+                'table_of_specification_id',
+                'item_count',
+                'default_points',
+            ],
+            'assessments' => [
+                'table_of_specification_id',
+                'class_id',
+                'status',
+                'draft_last_item',
+                'draft_saved_at',
+                'total_items',
+                'total_points',
+                'max_attempts',
+            ],
+            'assessment_questions' => [
+                'assessment_id',
+                'item_number',
+                'question_type',
+                'points',
+                'is_required',
+                'authoring_touched',
+                'correct_answer',
+                'answer_explanation',
+                'rubric_text',
+            ],
+            'assessment_question_options' => [
+                'assessment_question_id',
+                'option_text',
+                'is_correct',
+                'order_index',
+            ],
+            'assessment_submissions' => [
+                'assessment_id',
+                'student_id',
+                'attempt_no',
+                'status',
+                'score',
+                'total_points',
+                'draft_answers',
+                'draft_version',
+                'draft_saved_at',
+                'timed_out_at',
+            ],
+            'assessment_answers' => [
+                'assessment_submission_id',
+                'assessment_question_id',
+                'selected_option_id',
+                'answer_text',
+                'is_correct',
+                'points_awarded',
+                'instructor_feedback',
+            ],
+            'student_assessment_diagnostics' => [
+                'student_id',
+                'assessment_id',
+                'mastery_percent',
+                'manual_review_pending',
+            ],
+        ];
+
+        $missing = [];
+        try {
+            foreach ($requiredSchema as $table => $columns) {
+                if (! Schema::hasTable($table)) {
+                    $missing[] = $table;
+                    continue;
+                }
+
+                foreach ($columns as $column) {
+                    if (! $this->columnExists($table, $column)) {
+                        $missing[] = $table.'.'.$column;
+                    }
+                }
+            }
+        } catch (Throwable $exception) {
+            $this->recordFailure(
+                'Quiz Maker schema could not be verified: '.$this->safeMessage($exception)
+            );
+            return;
+        }
+
+        if ($missing !== []) {
+            $this->recordFailure(
+                'Quiz Maker schema is incomplete: '.implode(', ', $missing)
+                .'. Run: php artisan migrate'
+            );
+            return;
+        }
+
+        $this->pass('Quiz Maker database schema is complete.');
     }
 
     private function checkQueues(): void

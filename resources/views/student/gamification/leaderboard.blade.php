@@ -15,7 +15,7 @@
   <main class="main">
     <div class="header">
       <div>
-        <div class="eyebrow">Gamification</div>
+        <div class="eyebrow"></div>
         <h1 class="title ds-page-title">Leaderboard</h1>
         <p class="subtitle">Rankings are based on XP, streaks, and unlocked achievements.</p>
       </div>

@@ -180,7 +180,7 @@
     <div class="page-modules-main">
 
       <header class="page-modules-topbar">
-        <h1>Modules</h1>
+        <h1></h1>
         <div class="page-modules-search">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="search" placeholder="Search by title or description" id="searchInput" autocomplete="off" aria-label="Search modules" />

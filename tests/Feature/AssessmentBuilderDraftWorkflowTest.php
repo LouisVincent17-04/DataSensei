@@ -156,6 +156,51 @@ class AssessmentBuilderDraftWorkflowTest extends TestCase
         $this->assertSame(3, $this->secondQuestion->fresh()->points);
     }
 
+    public function test_quick_setup_preserves_a_points_or_required_only_draft(): void
+    {
+        $this->instructorClient()->patch(
+            route('instructor.assessments.questions.update', [$this->assessment, $this->firstQuestion]),
+            [
+                'intent' => 'draft',
+                'question_type' => 'unconfigured',
+                'question_text' => '',
+                'points' => 7,
+            ]
+        )->assertRedirect(route('instructor.assessments.builder', [
+            'assessment' => $this->assessment,
+            'item' => 1,
+        ]));
+
+        $draft = $this->firstQuestion->fresh();
+        $this->assertTrue($draft->authoring_touched);
+        $this->assertSame('in_progress', $draft->authoring_status);
+        $this->assertSame('unconfigured', $draft->question_type);
+        $this->assertSame(7, $draft->points);
+        $this->assertFalse($draft->is_required);
+
+        $this->instructorClient()->patch(
+            route('instructor.assessments.questions.quick-setup', $this->assessment),
+            [
+                'current_question_id' => $this->firstQuestion->id,
+                'scope' => 'all_unstarted',
+                'question_type' => 'true_false',
+                'points' => 3,
+            ]
+        )->assertRedirect(route('instructor.assessments.builder', [
+            'assessment' => $this->assessment,
+            'item' => 1,
+        ]));
+
+        $draft = $this->firstQuestion->fresh();
+        $notStarted = $this->secondQuestion->fresh();
+
+        $this->assertSame('unconfigured', $draft->question_type);
+        $this->assertSame(7, $draft->points);
+        $this->assertFalse($draft->is_required);
+        $this->assertSame('true_false', $notStarted->question_type);
+        $this->assertSame(3, $notStarted->points);
+    }
+
     private function instructorClient()
     {
         return $this->actingAs($this->instructor)->withSession([
@@ -230,6 +275,7 @@ class AssessmentBuilderDraftWorkflowTest extends TestCase
             $table->string('image_path')->nullable();
             $table->unsignedInteger('points')->default(1);
             $table->boolean('is_required')->default(true);
+            $table->boolean('authoring_touched')->default(false);
             $table->text('correct_answer')->nullable();
             $table->text('answer_explanation')->nullable();
             $table->longText('rubric_text')->nullable();

@@ -257,12 +257,17 @@
     .rb-bullet::before { content: '›'; color: var(--accent); flex-shrink: 0; font-weight: 700; }
     .rb-code { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 9px; margin: 5px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #93c5fd; white-space: pre-wrap; word-break: break-word; overflow-x: auto; }
     .rb-line { font-size: 0.76rem; color: var(--muted); line-height: 1.55; padding: 1px 0; }
+    .rb-line + .rb-line { margin-top: 4px; }
+    .rb-line .rb-key { color: var(--text); font-weight: 600; }
+    .rb-line .rb-key.ok  { color: var(--accent3); }
+    .rb-line .rb-key.err { color: var(--warn); }
     /* Typing indicator */
     .rb-typing .rb-bubble { padding: 11px 13px; }
     .rb-dots { display: flex; gap: 4px; align-items: center; height: 13px; }
     .rb-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: rbDot 1.2s ease-in-out infinite; }
     .rb-dots span:nth-child(2) { animation-delay: 0.2s; }
     .rb-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .rb-wait { margin-top: 6px; font-size: 0.68rem; color: var(--dim); }
     @keyframes rbDot { 0%,80%,100%{transform:scale(0.7);opacity:0.4} 40%{transform:scale(1.1);opacity:1} }
 
     /* Input area */
@@ -463,7 +468,7 @@
 // ── ReviewBot ─────────────────────────────────────────────────────────────────
 // Laravel endpoint handled by CodeReviewController.
 const REVIEW_URL = @json(route('api.code-review'));
-const REVIEW_CLIENT_TIMEOUT_MS = {{ ((int) config('code_execution.ollama.timeout_seconds', 40) + 5) * 1000 }};
+const REVIEW_CLIENT_TIMEOUT_MS = {{ (int) config('code_execution.ollama.client_timeout_ms', 14000) }};
 
 const ReviewBot = (() => {
   let _open     = false;
@@ -471,6 +476,7 @@ const ReviewBot = (() => {
   let _lastCode = '';
   let _lastLang = 'python';
   let _lastRunOutput = '';
+  const _typingTimers = {};
   let _activeController = null;
   // Accumulate review context for multi-turn follow-ups
   const _history = [];
@@ -582,6 +588,26 @@ const ReviewBot = (() => {
     _addWelcome();
   }
 
+  function _boundedRunOutput(value) {
+    const text = String(value || '').trim();
+    const limit = 12000;
+    if (text.length <= limit) return text;
+    return text.slice(0, 2000) + '\n[... earlier terminal output omitted ...]\n' + text.slice(-(limit - 2050));
+  }
+
+  function _localFallback(runOutput, isChat = false) {
+    const failed = /\bExit code:\s*(?!0\b)-?\d+/i.test(runOutput || '')
+      || /\b(?:SyntaxError|IndentationError|NameError|TypeError|ValueError|ImportError|ModuleNotFoundError|ZeroDivisionError|IndexError|KeyError|AttributeError|Exception)\b/i.test(runOutput || '');
+
+    if (failed) {
+      return 'Status: Has Issues\nFeedback: Your program stopped with an error. The AI reviewer could not be reached, so here is where to look.\nSteps to Fix:\n- Read the final traceback message.\n- Inspect the reported line and the values used there.\n- Correct the cause and run the program again.';
+    }
+
+    return isChat
+      ? 'Status: Not Reviewed\nFeedback: The AI reviewer could not be reached from this page. Your last run is still loaded, so you can ask again in a moment.'
+      : 'Status: Not Reviewed\nFeedback: Your program ran and reported no execution error. The AI reviewer could not be reached from this page, so it was not reviewed. Nothing is wrong with your run.\nCheck On Your Own:\n- Compare the result with the expected output.\n- Test invalid and boundary inputs.\n- Review conditions, loops, function results, and edge cases.';
+  }
+
   /* ── Core: send code for review ── */
   async function _sendReview(code, lang) {
     const typingId = _addTyping();
@@ -592,7 +618,7 @@ const ReviewBot = (() => {
       form.append('mode',     'review');
       form.append('code',     code);
       form.append('language', lang || 'python');
-      form.append('run_output', _lastRunOutput || '');
+      form.append('run_output', _boundedRunOutput(_lastRunOutput));
 
       const { data } = await _postReview(form);
       _removeTyping(typingId);
@@ -602,7 +628,9 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The code review request failed.')}</div>`);
+      const msg = _localFallback(_lastRunOutput, false);
+      _addBot(_formatReview(msg));
+      _history.push({ role: 'assistant', content: msg });
     } finally {
       _setBusy(false);
     }
@@ -621,7 +649,7 @@ const ReviewBot = (() => {
       form.append('code',     _lastCode);
       form.append('language', _lastLang);
       form.append('question', question);
-      form.append('run_output', _lastRunOutput || '');
+      form.append('run_output', _boundedRunOutput(_lastRunOutput));
       form.append('previous_context', _history.slice(0, -1).slice(-4).map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n---\n'));
       form.append('stream', '1');
 
@@ -667,7 +695,9 @@ const ReviewBot = (() => {
     } catch (err) {
       _removeTyping(typingId);
       if (liveMessage) liveMessage.remove();
-      _addBot(`<div class="rb-line" style="color:var(--warn)">${escH(err.message || 'The follow-up request failed.')}</div>`);
+      const msg = _localFallback(_lastRunOutput, true);
+      _addBot(_formatReview(msg));
+      _history.push({ role: 'assistant', content: msg });
     } finally {
       _setBusy(false);
     }
@@ -795,14 +825,30 @@ const ReviewBot = (() => {
 
   function _addTyping() {
     const id  = 'rb-typing-' + Date.now();
-    const el  = _buildMsg('rb-bot rb-typing', '<div class="rb-dots"><span></span><span></span><span></span></div>');
+    const el  = _buildMsg('rb-bot rb-typing', '<div class="rb-dots"><span></span><span></span><span></span></div><div class="rb-wait" hidden></div>');
     el.id     = id;
     $msgs().appendChild(el);
     _scroll();
+
+    // A local model can take a few seconds. Show that it is still working so a
+    // slow review never looks like a dead panel.
+    const startedAt = Date.now();
+    const note = el.querySelector('.rb-wait');
+    _typingTimers[id] = setInterval(() => {
+      const seconds = Math.round((Date.now() - startedAt) / 1000);
+      if (seconds < 4) return;
+      note.hidden = false;
+      note.textContent = `Still reviewing… ${seconds}s`;
+    }, 1000);
+
     return id;
   }
 
   function _removeTyping(id) {
+    if (_typingTimers[id]) {
+      clearInterval(_typingTimers[id]);
+      delete _typingTimers[id];
+    }
     const el = document.getElementById(id);
     if (el) el.remove();
   }
@@ -836,28 +882,38 @@ const ReviewBot = (() => {
   /* ── Review formatter ── */
   function _formatReview(raw) {
     if (!raw || !raw.trim()) return '<div class="rb-line" style="color:var(--dim)">(No response)</div>';
-    const SECTION = /^(Status|Feedback|Issues?|Fix|Suggestion|Suggestions|Warning|Warnings|Notes?|Summary|Result)s?:/i;
-    const segs = raw.split(/(```[a-z]*\n?)/);
-    let html = '', inCode = false, codeAcc = '';
-    for (const seg of segs) {
-      if (/^```/.test(seg)) { if (inCode) { html += `<div class="rb-code">${escH(codeAcc.trimEnd())}</div>`; codeAcc = ''; } inCode = !inCode; continue; }
-      if (inCode) { codeAcc += seg; continue; }
-      for (const line of seg.split('\n')) {
+    raw = raw.replace(/```[\s\S]*?```/g, '').replace(/`/g, '');
+    // Headings introduce a list; everything else is a labelled sentence and must
+    // stay readable prose instead of becoming a shouting section header.
+    const HEADING = /^(Issues?|Suggestions?|Warnings?|Notes?|Steps to (?:Fix|Check)|Check On Your Own|Checked|Verified|Summary)\s*:\s*$/i;
+    const LABEL   = /^(Status|Feedback|Explanation|Error|Location|Result)\s*:\s*(.*)$/i;
+    // Tone comes from the verdict itself, never from a word inside the sentence.
+    const VERDICT_OK  = /^(correct|clean|no issues|passed?|ok)\b/i;
+    const VERDICT_ERR = /^(has issues|incorrect|failed?|error)\b/i;
+    let html = '';
+    {
+      for (const line of raw.split('\n')) {
         const t = line.trim(); if (!t) continue;
-        if (SECTION.test(t)) {
-          const cls = /correct|clean|good|pass/i.test(t) ? 'rb-section ok' : /error|issue|fail|wrong/i.test(t) ? 'rb-section err' : 'rb-section';
-          html += `<div class="${cls}">${escH(t)}</div>`;
+        const label = t.match(LABEL);
+        if (HEADING.test(t)) {
+          html += `<div class="rb-section">${escH(t.replace(/\s*:\s*$/, ''))}</div>`;
+        } else if (label) {
+          const key = label[1];
+          const value = label[2].trim();
+          let tone = '';
+          if (/^status$/i.test(key)) {
+            tone = VERDICT_OK.test(value) ? ' ok' : VERDICT_ERR.test(value) ? ' err' : '';
+          }
+          html += `<div class="rb-line"><span class="rb-key${tone}">${escH(key)}:</span> ${escH(value)}</div>`;
         } else if (/^[-•*]\s/.test(t)) {
           html += `<div class="rb-bullet">${escH(t.replace(/^[-•*]\s+/, ''))}</div>`;
         } else if (/^\d+\.\s/.test(t)) {
           html += `<div class="rb-bullet">${escH(t.replace(/^\d+\.\s+/, ''))}</div>`;
         } else {
-          const lineHtml = escH(t).replace(/`([^`]+)`/g, '<code style="font-family:JetBrains Mono,monospace;font-size:0.68rem;background:var(--surface3);padding:1px 4px;border-radius:3px;color:#93c5fd">$1</code>');
-          html += `<div class="rb-line">${lineHtml}</div>`;
+          html += `<div class="rb-line">${escH(t)}</div>`;
         }
       }
     }
-    if (inCode && codeAcc.trim()) html += `<div class="rb-code">${escH(codeAcc.trimEnd())}</div>`;
     return html || '<div class="rb-line" style="color:var(--dim)">(Empty response)</div>';
   }
 

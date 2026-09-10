@@ -1,5 +1,20 @@
 <?php
 
+/*
+ * A local Ollama model on CPU needs several seconds for the first request after
+ * the model is unloaded (weights load + prompt eval + generation). Clamping the
+ * budget to a few seconds made every cold start fall back to the offline
+ * message, so the deadline is configurable and the browser waits slightly
+ * longer than the server it is waiting on.
+ */
+$ollamaTimeout = min(60, max(5, (int) env('OLLAMA_TIMEOUT', 30)));
+
+/*
+ * Auto-review fires on every Run, so it must never hold the panel for a minute.
+ * A follow-up question the student chose to ask may take the longer budget.
+ */
+$reviewTimeout = min($ollamaTimeout, max(5, (int) env('OLLAMA_REVIEW_TIMEOUT', 20)));
+
 return [
     'python' => [
         /* Docker is the secure default in every environment. */
@@ -38,22 +53,40 @@ return [
         ],
     ],
 
+    /*
+     * Straight-line beginner Python that ran cleanly is reviewed on this server
+     * with no model call, which keeps the common lesson case instant.
+     */
+    'review' => [
+        'fast_path' => (bool) env('CODE_REVIEW_FAST_PATH', true),
+        'max_lines' => (int) env('CODE_REVIEW_FAST_PATH_MAX_LINES', 40),
+        'max_chars' => (int) env('CODE_REVIEW_FAST_PATH_MAX_CHARS', 1500),
+    ],
+
     'ollama' => [
         'url' => env('OLLAMA_URL', 'http://127.0.0.1:11434/api/generate'),
         'model' => env('OLLAMA_MODEL', 'qwen2.5-coder:1.5b-instruct'),
-        /* Stay below PHP's common 60-second limit so failures remain graceful. */
-        'timeout_seconds' => min(45, max(5, (int) env('OLLAMA_TIMEOUT', 40))),
-        'connect_timeout_seconds' => min(5, max(1, (int) env('OLLAMA_CONNECT_TIMEOUT', 2))),
+        'timeout_seconds' => $ollamaTimeout,
+        'review_timeout_seconds' => $reviewTimeout,
+        'connect_timeout_seconds' => min(10, max(1, (int) env('OLLAMA_CONNECT_TIMEOUT', 3))),
+        /* The browser must outlast the server, or it aborts a review that was
+           about to arrive and reports a timeout that never happened. */
+        'client_timeout_ms' => max(
+            ($ollamaTimeout + 5) * 1000,
+            (int) env('OLLAMA_CLIENT_TIMEOUT_MS', 0)
+        ),
         'keep_alive' => env('OLLAMA_KEEP_ALIVE', '30m'),
         /* One local model should not be saturated by accidental parallel work. */
         'max_concurrent_requests' => min(2, max(1, (int) env('OLLAMA_MAX_CONCURRENT', 1))),
         'num_ctx' => min(8192, max(2048, (int) env('OLLAMA_NUM_CTX', 4096))),
-        'review_num_predict' => min(512, max(96, (int) env('OLLAMA_REVIEW_NUM_PREDICT', 220))),
+        'review_num_predict' => min(512, max(96, (int) env('OLLAMA_REVIEW_NUM_PREDICT', 180))),
         'chat_num_predict' => min(768, max(128, (int) env('OLLAMA_CHAT_NUM_PREDICT', 320))),
         'max_code_chars' => 6000,
         'max_run_output_chars' => 1800,
+        /* Accept the sandbox's bounded stderr, then compact it before prompting. */
+        'max_raw_run_output_chars' => 65000,
         'max_history_chars' => 1800,
         'max_response_chars' => min(12000, max(1000, (int) env('OLLAMA_MAX_RESPONSE_CHARS', 6000))),
-        'slow_request_ms' => 10000,
+        'slow_request_ms' => min(30000, $ollamaTimeout * 1000),
     ],
 ];

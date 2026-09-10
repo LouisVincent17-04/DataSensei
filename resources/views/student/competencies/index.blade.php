@@ -24,7 +24,7 @@
   <main class="main">
     <header class="top">
       <div>
-        <div class="eyebrow">Competency Dashboard</div>
+        <div class="eyebrow"></div>
         <h1 class="ds-page-title">My Skills Competency Matrix</h1>
         <p class="subtitle">See how your evidence from assessments, assignments, challenges, coding exercises, Python IDE work, and statistical activities compares with your class.</p>
       </div>

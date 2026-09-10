@@ -63,14 +63,18 @@ return new class extends Migration
                         ? 'performance_snapshot_student_class_uq'
                         : 'performance_cluster_student_class_uq'
                 );
-
-                $blueprint->foreign('class_id', $table === 'student_performance_snapshots'
-                    ? 'performance_snapshot_class_fk'
-                    : 'performance_cluster_class_fk')
-                    ->references('id')
-                    ->on('classes')
-                    ->nullOnDelete();
             });
+
+            if (DB::connection()->getDriverName() === 'mysql') {
+                Schema::table($table, function (Blueprint $blueprint) use ($table): void {
+                    $blueprint->foreign('class_id', $table === 'student_performance_snapshots'
+                        ? 'performance_snapshot_class_fk'
+                        : 'performance_cluster_class_fk')
+                        ->references('id')
+                        ->on('classes')
+                        ->nullOnDelete();
+                });
+            }
         }
     }
 
@@ -82,9 +86,11 @@ return new class extends Migration
             }
 
             Schema::table($table, function (Blueprint $blueprint) use ($table): void {
-                $blueprint->dropForeign($table === 'student_performance_snapshots'
-                    ? 'performance_snapshot_class_fk'
-                    : 'performance_cluster_class_fk');
+                if (DB::connection()->getDriverName() === 'mysql') {
+                    $blueprint->dropForeign($table === 'student_performance_snapshots'
+                        ? 'performance_snapshot_class_fk'
+                        : 'performance_cluster_class_fk');
+                }
                 $blueprint->dropUnique($table === 'student_performance_snapshots'
                     ? 'performance_snapshot_student_class_uq'
                     : 'performance_cluster_student_class_uq');

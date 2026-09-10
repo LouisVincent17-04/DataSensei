@@ -2,11 +2,16 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     private function tableExists(string $table): bool
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return Schema::hasTable($table);
+        }
+
         $result = DB::selectOne(
             'SELECT COUNT(*) AS aggregate
              FROM information_schema.TABLES
@@ -20,6 +25,10 @@ return new class extends Migration
 
     private function columnExists(string $table, string $column): bool
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return Schema::hasColumn($table, $column);
+        }
+
         $result = DB::selectOne(
             'SELECT COUNT(*) AS aggregate
              FROM information_schema.COLUMNS

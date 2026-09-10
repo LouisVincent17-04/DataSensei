@@ -19,7 +19,7 @@
       <div class="wrap">
         <div class="top-row">
           <div>
-            <div class="page-kicker">Assignments</div>
+            <div class="page-kicker"></div>
             <h1 class="page-title ds-page-title">Assignments</h1>
             <p class="page-subtitle">Create class assignments, publish them to students, and review submission activity.</p>
           </div>

@@ -180,7 +180,7 @@
 
   <div class="page-profile-main">
     <header class="page-profile-topbar">
-      <h1 class="ds-page-title">Account Settings</h1>
+      <h1 class="ds-page-title"></h1>
     </header>
 
     <main class="page-profile-content">

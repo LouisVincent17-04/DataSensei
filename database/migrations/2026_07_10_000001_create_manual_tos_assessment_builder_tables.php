@@ -16,6 +16,10 @@ return new class extends Migration
      */
     private function columnExists(string $table, string $column): bool
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return Schema::hasColumn($table, $column);
+        }
+
         $result = DB::selectOne(
             'SELECT COUNT(*) AS aggregate
              FROM information_schema.COLUMNS
@@ -30,6 +34,10 @@ return new class extends Migration
 
     private function tableExists(string $table): bool
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return Schema::hasTable($table);
+        }
+
         $result = DB::selectOne(
             'SELECT COUNT(*) AS aggregate
              FROM information_schema.TABLES
@@ -105,6 +113,7 @@ return new class extends Migration
                 $table->string('image_path', 191)->nullable();
                 $table->unsignedInteger('points')->default(1);
                 $table->boolean('is_required')->default(true);
+                $table->boolean('authoring_touched')->default(false);
                 $table->text('correct_answer')->nullable();
                 $table->text('answer_explanation')->nullable();
                 $table->longText('rubric_text')->nullable();

@@ -14,7 +14,7 @@
 <div class="layout">
   @include('partials.sidebar')
   <div class="main">
-    <header class="topbar"><h1>Notification Center</h1></header>
+    <header class="topbar"><h1></h1></header>
     <main class="content">
       @if(session('success'))<div class="flash" role="status">{{ session('success') }}</div>@endif
 

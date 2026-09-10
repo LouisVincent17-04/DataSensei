@@ -663,7 +663,7 @@
       <div class="wrap">
         <div class="top-row">
           <div>
-            <div class="page-kicker">Assignments</div>
+            <div class="page-kicker"></div>
             <h1 class="page-title ds-page-title">My Submissions</h1>
             <p class="page-subtitle">
               Review your assignment attempts, scores, status, and instructor feedback.

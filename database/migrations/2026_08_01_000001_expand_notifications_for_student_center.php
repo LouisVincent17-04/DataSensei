@@ -114,6 +114,10 @@ return new class extends Migration
 
     private function columnExists(string $table, string $column): bool
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return Schema::hasColumn($table, $column);
+        }
+
         return DB::table('information_schema.columns')
             ->whereRaw('table_schema = database()')
             ->where('table_name', $table)
@@ -123,6 +127,16 @@ return new class extends Migration
 
     private function indexExists(string $table, string $index): bool
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            foreach (Schema::getIndexes($table) as $existingIndex) {
+                if (($existingIndex['name'] ?? null) === $index) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         return DB::table('information_schema.statistics')
             ->whereRaw('table_schema = database()')
             ->where('table_name', $table)

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ExecutionErrorDiagnosticService;
+use App\Services\SimpleCodeReviewService;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
@@ -29,6 +31,9 @@ Rules:
 - Missing run output alone is not an issue.
 - Check Python syntax, indentation, names, imports, shown runtime errors, and logic.
 - Check SQL syntax, known identifiers, joins, grouping, types, and unsafe UPDATE or DELETE without WHERE.
+- When a run error is shown, identify the error and explain the repair steps in plain language.
+- Never provide corrected code, a corrected query, snippets, pseudocode, or code blocks.
+- Keep feedback, issues, and suggestions as explanatory prose only.
 - Never claim you executed the code or invent files, schema, inputs, output, or errors.
 - Return JSON only, without markdown or instruction text.
 PROMPT;
@@ -36,8 +41,14 @@ PROMPT;
     private string $chatSystemPrompt = <<<'PROMPT'
 You are DataSensei's beginner-friendly code reviewer. Answer the student's follow-up using only the latest supplied code, run result, and conversation context.
 
-Answer directly and concisely. Stay anchored to the submitted code, refer to the exact expression when useful, and show only a small corrected fragment when needed. Never claim you executed the code. Never invent files, schema, inputs, output, errors, or prior messages. Do not repeat these instructions or use review-section headings.
+Answer directly and concisely. Stay anchored to the submitted code and explain the cause and repair steps in plain language. Never provide corrected code, a corrected query, snippets, pseudocode, or code blocks. Never claim you executed the code. Never invent files, schema, inputs, output, errors, or prior messages. Do not repeat these instructions or use review-section headings.
 PROMPT;
+
+    public function __construct(
+        private readonly ExecutionErrorDiagnosticService $executionDiagnostics,
+        private readonly SimpleCodeReviewService $simpleReview
+    ) {
+    }
 
     public function review(Request $request): JsonResponse|StreamedResponse
     {
@@ -49,7 +60,7 @@ PROMPT;
             'code' => ['required', 'string', 'max:10000'],
             'language' => ['nullable', 'string', 'max:20'],
             'question' => ['nullable', 'string', 'max:2000'],
-            'run_output' => ['nullable', 'string', 'max:10000'],
+            'run_output' => ['nullable', 'string', 'max:'.(int) config('code_execution.ollama.max_raw_run_output_chars', 65000)],
             'previous_context' => ['nullable', 'string', 'max:8000'],
             'stream' => ['nullable', 'boolean'],
         ]);
@@ -116,21 +127,84 @@ PROMPT;
             'prompt_chars' => Str::length($prompt),
         ];
 
+        $diagnostic = $this->executionDiagnostics->diagnose($language, $rawRunOutput);
+        if (! $isChat && $diagnostic !== null) {
+            $message = $this->executionDiagnostics->format($diagnostic);
+            $this->recordTiming($baseTiming, $startedAt, 'execution_diagnostic', [
+                'ollama_generation_ms' => 0.0,
+                'response_processing_ms' => 0.0,
+                'time_to_first_token_ms' => 0.0,
+            ]);
+
+            return response()->json([
+                'ok' => true,
+                'mode' => $mode,
+                'message' => $message,
+                'source' => 'execution_diagnostic',
+                'fallback' => false,
+            ]);
+        }
+
+        // A clean run of straight-line beginner code is judged here, in
+        // milliseconds, instead of waiting on the model for every Run.
+        if (! $isChat) {
+            $simpleReview = $this->simpleReview->review($language, $rawCode, $rawRunOutput);
+
+            if ($simpleReview !== null) {
+                $this->recordTiming($baseTiming, $startedAt, 'simple_review', [
+                    'ollama_generation_ms' => 0.0,
+                    'response_processing_ms' => 0.0,
+                    'time_to_first_token_ms' => 0.0,
+                ]);
+
+                return response()->json([
+                    'ok' => true,
+                    'mode' => $mode,
+                    'message' => $simpleReview,
+                    'source' => 'simple_review',
+                    'fallback' => false,
+                ]);
+            }
+        }
+
+        if ($isChat && $this->questionRequestsCode($question)) {
+            $message = 'Status: Guidance Only'."\n"
+                .'Feedback: I can explain the issue and the steps needed to correct it, but I cannot provide code or a completed query.';
+            $this->recordTiming($baseTiming, $startedAt, 'code_generation_rejected', [
+                'ollama_generation_ms' => 0.0,
+                'response_processing_ms' => 0.0,
+                'time_to_first_token_ms' => 0.0,
+            ]);
+
+            return response()->json([
+                'ok' => true,
+                'mode' => $mode,
+                'message' => $message,
+                'source' => 'policy',
+                'fallback' => false,
+            ]);
+        }
+
+        // Built per failure, so the panel names the real cause (service down,
+        // model missing, timeout) instead of always blaming the deadline.
+        $fallbackFor = fn (string $outcome): string => $this->executionDiagnostics->fallback(
+            $language,
+            $rawRunOutput,
+            $isChat,
+            $outcome
+        );
+
         $lockStartedAt = hrtime(true);
         $lockResult = $this->acquireRequestLocks($request);
         $baseTiming['slot_wait_ms'] = $this->elapsedMilliseconds($lockStartedAt);
 
         if ($lockResult['locks'] === null) {
-            $duplicate = $lockResult['reason'] === 'duplicate';
-
-            return $this->jsonFailure(
-                $duplicate
-                    ? 'An AI review is already running for you. Please wait for it to finish.'
-                    : 'The code feedback service is busy. Please try again in a moment.',
-                429,
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
-                $duplicate ? 'duplicate_rejected' : 'capacity_rejected'
+                $lockResult['reason'] === 'duplicate' ? 'duplicate_fallback' : 'capacity_fallback'
             );
         }
 
@@ -138,21 +212,21 @@ PROMPT;
         $locks = $lockResult['locks'];
 
         if ($shouldStream) {
-            return $this->streamChatResponse($payload, $locks, $baseTiming, $startedAt);
+            return $this->streamChatResponse($payload, $locks, $baseTiming, $startedAt, $fallbackFor);
         }
 
         $ollamaStartedAt = hrtime(true);
 
         try {
-            $response = $this->sendOllamaRequest($payload, false);
+            $response = $this->sendOllamaRequest($payload, false, $isChat);
         } catch (Throwable $exception) {
             $this->releaseLocks($locks);
             $failure = $this->exceptionFailure($exception);
             $this->logServiceFailure($baseTiming, $failure['outcome'], $exception::class, $exception->getMessage());
 
-            return $this->jsonFailure(
-                $failure['message'],
-                $failure['status'],
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 $failure['outcome'],
@@ -168,9 +242,9 @@ PROMPT;
             $failure = $this->responseFailure($response);
             $this->logServiceFailure($baseTiming, $failure['outcome'], 'http_'.$response->status(), $failure['detail']);
 
-            return $this->jsonFailure(
-                $failure['message'],
-                $failure['status'],
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 $failure['outcome'],
@@ -182,9 +256,9 @@ PROMPT;
         $body = json_decode($response->body(), true);
 
         if (! is_array($body)) {
-            return $this->jsonFailure(
-                'The code feedback service returned a malformed response. Please try again.',
-                502,
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 'malformed_response',
@@ -200,9 +274,9 @@ PROMPT;
             $failure = $this->failureForDetail(500, $embeddedError);
             $this->logServiceFailure($baseTiming, $failure['outcome'], 'ollama_error', $embeddedError);
 
-            return $this->jsonFailure(
-                $failure['message'],
-                $failure['status'],
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 $failure['outcome'],
@@ -214,9 +288,9 @@ PROMPT;
         }
 
         if (($body['done'] ?? null) !== true) {
-            return $this->jsonFailure(
-                'The code feedback generation ended before a complete response was produced. Please try again.',
-                502,
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 'incomplete_response',
@@ -230,9 +304,9 @@ PROMPT;
         $rawMessage = trim((string) ($body['response'] ?? ''));
 
         if ($rawMessage === '') {
-            return $this->jsonFailure(
-                'The code feedback model returned an empty response. Please try again.',
-                502,
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 'empty_response',
@@ -245,9 +319,9 @@ PROMPT;
 
         $maxResponseChars = (int) config('code_execution.ollama.max_response_chars', 6000);
         if (Str::length($rawMessage) > $maxResponseChars) {
-            return $this->jsonFailure(
-                'The AI response exceeded the IDE display limit and was not shown as complete. Ask a more focused question and try again.',
-                502,
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 'response_too_large',
@@ -264,9 +338,9 @@ PROMPT;
             $review = $this->decodeReview($rawMessage);
 
             if ($review === null) {
-                return $this->jsonFailure(
-                    'The code feedback model returned an invalid review. Please run the review again.',
-                    502,
+                return $this->jsonFallback(
+                    $mode,
+                    $fallbackFor,
                     $baseTiming,
                     $startedAt,
                     'invalid_review',
@@ -281,9 +355,9 @@ PROMPT;
         }
 
         if ($message === '') {
-            return $this->jsonFailure(
-                'The code feedback model did not return a usable response. Please try again.',
-                502,
+            return $this->jsonFallback(
+                $mode,
+                $fallbackFor,
                 $baseTiming,
                 $startedAt,
                 'empty_processed_response',
@@ -342,12 +416,12 @@ PROMPT;
         return $payload;
     }
 
-    private function sendOllamaRequest(array $payload, bool $stream): Response
+    private function sendOllamaRequest(array $payload, bool $stream, bool $isChat = true): Response
     {
         $request = Http::acceptJson()
             ->asJson()
-            ->connectTimeout((int) config('code_execution.ollama.connect_timeout_seconds', 2))
-            ->timeout((int) config('code_execution.ollama.timeout_seconds', 40));
+            ->connectTimeout((int) config('code_execution.ollama.connect_timeout_seconds', 3))
+            ->timeout($this->deadlineSeconds($isChat));
 
         if ($stream) {
             $request = $request->withOptions(['stream' => true]);
@@ -360,11 +434,26 @@ PROMPT;
     }
 
     /**
+     * Auto-review runs on every Run and must feel immediate, so it gets a
+     * tighter budget than a follow-up question the student chose to ask.
+     */
+    private function deadlineSeconds(bool $isChat): int
+    {
+        $chat = max(5, (int) config('code_execution.ollama.timeout_seconds', 30));
+
+        if ($isChat) {
+            return $chat;
+        }
+
+        return max(5, min($chat, (int) config('code_execution.ollama.review_timeout_seconds', 20)));
+    }
+
+    /**
      * @return array{locks: ?array<int, Lock>, reason: ?string}
      */
     private function acquireRequestLocks(Request $request): array
     {
-        $timeout = (int) config('code_execution.ollama.timeout_seconds', 40);
+        $timeout = (int) config('code_execution.ollama.timeout_seconds', 30);
         $ttl = max(15, $timeout + 15);
         $reviewer = $request->user()?->getAuthIdentifier();
         $reviewerKey = $reviewer !== null
@@ -417,9 +506,15 @@ PROMPT;
     }
 
     /** @param array<int, Lock> $locks */
-    private function streamChatResponse(array $payload, array $locks, array $baseTiming, int $startedAt): StreamedResponse
+    private function streamChatResponse(
+        array $payload,
+        array $locks,
+        array $baseTiming,
+        int $startedAt,
+        callable $fallbackFor
+    ): StreamedResponse
     {
-        return response()->stream(function () use ($payload, $locks, $baseTiming, $startedAt): void {
+        return response()->stream(function () use ($payload, $locks, $baseTiming, $startedAt, $fallbackFor): void {
             $outcome = 'stream_failed';
             $ollamaStartedAt = null;
             $ollamaWallMs = 0.0;
@@ -437,7 +532,7 @@ PROMPT;
                     $failure = $this->responseFailure($response);
                     $outcome = $failure['outcome'];
                     $this->logServiceFailure($baseTiming, $outcome, 'http_'.$response->status(), $failure['detail']);
-                    $this->emitStreamEvent('error', ['message' => $failure['message']]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
 
                     return;
                 }
@@ -453,7 +548,7 @@ PROMPT;
                 $generationTimedOut = false;
                 $streamError = '';
                 $maxResponseChars = (int) config('code_execution.ollama.max_response_chars', 6000);
-                $generationTimeoutMs = (int) config('code_execution.ollama.timeout_seconds', 40) * 1000;
+                $generationTimeoutMs = $this->deadlineSeconds(true) * 1000;
 
                 $consumeFrame = function (string $line) use (
                     &$rawMessage,
@@ -498,7 +593,8 @@ PROMPT;
                             return;
                         }
 
-                        $this->emitStreamEvent('delta', ['text' => $delta]);
+                        // Keep streamed model text server-side until it has
+                        // passed the no-code response sanitizer.
                     }
 
                     if (($frame['done'] ?? false) === true) {
@@ -551,9 +647,7 @@ PROMPT;
 
                 if ($generationTimedOut) {
                     $outcome = 'timeout';
-                    $this->emitStreamEvent('error', [
-                        'message' => 'The code feedback request took too long and was stopped. Try a shorter question or run it again.',
-                    ]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
 
                     return;
                 }
@@ -562,34 +656,28 @@ PROMPT;
                     $failure = $this->failureForDetail(500, $streamError);
                     $outcome = $failure['outcome'];
                     $this->logServiceFailure($baseTiming, $outcome, 'ollama_stream_error', $streamError);
-                    $this->emitStreamEvent('error', ['message' => $failure['message']]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
 
                     return;
                 }
 
                 if ($tooLarge) {
                     $outcome = 'response_too_large';
-                    $this->emitStreamEvent('error', [
-                        'message' => 'The AI response exceeded the IDE display limit and was not shown as complete. Ask a more focused question and try again.',
-                    ]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
 
                     return;
                 }
 
                 if ($malformed || ! $sawDone) {
                     $outcome = $malformed ? 'malformed_stream' : 'incomplete_stream';
-                    $this->emitStreamEvent('error', [
-                        'message' => 'The AI response stream ended before a complete response was produced. Please try again.',
-                    ]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
 
                     return;
                 }
 
                 if (trim($rawMessage) === '') {
                     $outcome = 'empty_response';
-                    $this->emitStreamEvent('error', [
-                        'message' => 'The code feedback model returned an empty response. Please try again.',
-                    ]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
 
                     return;
                 }
@@ -600,9 +688,7 @@ PROMPT;
 
                 if ($message === '') {
                     $outcome = 'empty_processed_response';
-                    $this->emitStreamEvent('error', [
-                        'message' => 'The code feedback model did not return a usable response. Please try again.',
-                    ]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
 
                     return;
                 }
@@ -620,7 +706,7 @@ PROMPT;
                 $this->logServiceFailure($baseTiming, $outcome, $exception::class, $exception->getMessage());
 
                 if (! connection_aborted()) {
-                    $this->emitStreamEvent('error', ['message' => $failure['message']]);
+                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
                 }
             } finally {
                 $this->releaseLocks($locks);
@@ -762,18 +848,32 @@ PROMPT;
         $cleaned = preg_replace('/\s*```$/', '', $cleaned) ?? $cleaned;
         $decoded = json_decode($cleaned, true);
 
+        // A small local model often wraps the object in a sentence. Recover the
+        // outermost JSON object rather than discarding a usable review.
+        if (! is_array($decoded)) {
+            $start = strpos($cleaned, '{');
+            $end = strrpos($cleaned, '}');
+
+            if ($start !== false && $end !== false && $end > $start) {
+                $decoded = json_decode(substr($cleaned, $start, $end - $start + 1), true);
+            }
+        }
+
         if (! is_array($decoded)) {
             return null;
         }
 
-        $allowedStatuses = ['Correct', 'Has Issues', 'Needs More Context'];
-        $status = trim((string) ($decoded['status'] ?? ''));
+        $status = $this->normalizeStatus((string) ($decoded['status'] ?? ''));
         $feedback = $this->cleanText($decoded['feedback'] ?? '');
         $issues = $this->cleanList($decoded['issues'] ?? []);
         $suggestions = $this->cleanList($decoded['suggestions'] ?? []);
 
-        if (! in_array($status, $allowedStatuses, true)) {
-            return null;
+        if ($status === null) {
+            if ($feedback === '' && $issues === []) {
+                return null;
+            }
+
+            $status = $issues !== [] ? 'Has Issues' : 'Correct';
         }
 
         if ($status === 'Correct') {
@@ -783,8 +883,14 @@ PROMPT;
                 : 'The submitted code has no clear syntax or logic issue.';
         }
 
+        // An issue list that the sanitizer emptied still deserves the written
+        // explanation; only a completely silent review is unusable.
         if ($status === 'Has Issues' && $issues === []) {
-            return null;
+            if ($feedback === '') {
+                return null;
+            }
+
+            $status = 'Needs More Context';
         }
 
         if ($status === 'Needs More Context' && $feedback === '') {
@@ -792,6 +898,28 @@ PROMPT;
         }
 
         return compact('status', 'feedback', 'issues', 'suggestions');
+    }
+
+    /**
+     * Accept the wording variations small models produce ("correct.", "HAS
+     * ISSUES", "incorrect") instead of failing the whole review on casing.
+     */
+    private function normalizeStatus(string $status): ?string
+    {
+        $normalized = strtolower(trim($status));
+        $normalized = trim(preg_replace('/[^a-z ]+/', ' ', $normalized) ?? $normalized);
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? $normalized;
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return match (true) {
+            in_array($normalized, ['correct', 'ok', 'okay', 'valid', 'no issues', 'pass', 'passed'], true) => 'Correct',
+            in_array($normalized, ['has issues', 'issues', 'incorrect', 'error', 'errors', 'fail', 'failed', 'invalid'], true) => 'Has Issues',
+            in_array($normalized, ['needs more context', 'more context', 'needs context', 'unclear', 'insufficient context'], true) => 'Needs More Context',
+            default => null,
+        };
     }
 
     private function cleanList(mixed $items): array
@@ -822,6 +950,8 @@ PROMPT;
     private function cleanText(mixed $value): string
     {
         $text = trim((string) $value);
+        $text = preg_replace('/```.*?```/s', '', $text) ?? $text;
+        $text = str_replace('`', '', $text);
         $text = preg_replace('/\s+/', ' ', $text) ?? $text;
         $lower = strtolower($text);
 
@@ -836,6 +966,10 @@ PROMPT;
             if (str_contains($lower, $blockedFragment)) {
                 return '';
             }
+        }
+
+        if ($this->looksLikeCodeLine($text)) {
+            return '';
         }
 
         return $text;
@@ -870,7 +1004,9 @@ PROMPT;
 
     private function cleanChatResponse(string $rawMessage): string
     {
-        $lines = preg_split('/\R/', trim($rawMessage)) ?: [];
+        $withoutCodeBlocks = preg_replace('/```.*?```/s', '', trim($rawMessage)) ?? '';
+        $withoutCodeBlocks = str_replace('`', '', $withoutCodeBlocks);
+        $lines = preg_split('/\R/', $withoutCodeBlocks) ?: [];
         $cleaned = [];
 
         foreach ($lines as $line) {
@@ -881,6 +1017,7 @@ PROMPT;
                 str_starts_with($lower, 'rules:')
                 || str_starts_with($lower, 'system:')
                 || str_starts_with($lower, 'instructions:')
+                || $this->looksLikeCodeLine($trimmed)
             ) {
                 continue;
             }
@@ -889,6 +1026,27 @@ PROMPT;
         }
 
         return trim(implode("\n", $cleaned));
+    }
+
+    private function looksLikeCodeLine(string $line): bool
+    {
+        $line = trim($line);
+        if ($line === '') {
+            return false;
+        }
+
+        return preg_match(
+            '/^(?:def|class|for|while|if|elif|else|try|except|finally|with|import|from|return|print|select|insert|update|delete|create|alter|drop|pragma)\b|^[A-Za-z_][A-Za-z0-9_.]*\s*=\s*[^=]|\b[A-Za-z_][A-Za-z0-9_.]*\s*\([^)]*\)|\bSELECT\b.+\bFROM\b|\bINSERT\s+INTO\b|\bUPDATE\b.+\bSET\b|\bDELETE\s+FROM\b/i',
+            $line
+        ) === 1;
+    }
+
+    private function questionRequestsCode(string $question): bool
+    {
+        return preg_match(
+            '/\b(?:generate|write|create|give|produce|make|implement|build)\b.{0,50}\b(?:code|function|class|script|program|solution|example|snippet|query|sql)\b/i',
+            $question
+        ) === 1;
     }
 
     /** @return array{message: string, status: int, outcome: string} */
@@ -1041,9 +1199,9 @@ PROMPT;
         return $metrics;
     }
 
-    private function jsonFailure(
-        string $message,
-        int $status,
+    private function jsonFallback(
+        string $mode,
+        callable $fallbackFor,
         array $baseTiming,
         int $startedAt,
         string $outcome,
@@ -1052,9 +1210,13 @@ PROMPT;
         $this->recordTiming($baseTiming, $startedAt, $outcome, $extraTiming);
 
         return response()->json([
-            'ok' => false,
-            'message' => $message,
-        ], $status);
+            'ok' => true,
+            'mode' => $mode,
+            'message' => $fallbackFor($outcome),
+            'outcome' => $outcome,
+            'source' => 'deterministic_fallback',
+            'fallback' => true,
+        ]);
     }
 
     private function recordTiming(

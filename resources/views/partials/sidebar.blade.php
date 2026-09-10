@@ -37,7 +37,6 @@
         <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
       </svg>
       Modules
-      <span class="badge">8</span>
     </a>
 
     <a href="{{ route('student.assessments.index') }}"
@@ -46,7 +45,6 @@
         <path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>
       </svg>
       Assessments
-      <span class="badge">Exam</span>
     </a>
 
     <a href="{{ route('student.assignments.index') }}"
@@ -67,7 +65,6 @@
         <path d="M5 5H3v2a4 4 0 004 4M19 5h2v2a4 4 0 01-4 4"/>
       </svg>
       Achievements
-      <span class="badge">XP</span>
     </a>
 
     <a href="{{ route('student.leaderboard.index') }}"
@@ -87,7 +84,6 @@
         <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
       </svg>
       Advanced Suggestions
-      <span class="badge">Next</span>
     </a>
 
     <a href="{{ route('ide.index') }}"
@@ -114,7 +110,6 @@
         <path d="M2 21h20"/>
       </svg>
       Skills Competencies
-      <span class="badge">Matrix</span>
     </a>
   </nav>
 
@@ -128,7 +123,6 @@
         <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
       </svg>
       Challenges
-      <span class="badge">3</span>
     </a>
 
   <a href="{{ route('challenges.coding') }}"
@@ -139,7 +133,6 @@
       <line x1="2" y1="20" x2="22" y2="20"></line>
     </svg>
     Coding Challenges
-    <span class="badge">3</span>
   </a>
 
 
@@ -163,7 +156,6 @@
         <path d="M16 15v-5"/>
       </svg>
       EDA & Data Toolkit
-      <span class="badge">EDA</span>
   </a>
 
 
@@ -174,7 +166,6 @@
         <path d="M19.4 15a1.7 1.7 0 00.34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 00-1.88-.34 1.7 1.7 0 00-1.04 1.56V20h-3v-.08A1.7 1.7 0 0010.66 18.36a1.7 1.7 0 00-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 007 14.7a1.7 1.7 0 00-1.56-1.04H5.36v-3h.08A1.7 1.7 0 007 9.62a1.7 1.7 0 00-.34-1.88l-.06-.06 2.12-2.12.06.06A1.7 1.7 0 0010.66 6a1.7 1.7 0 001.04-1.56V4.36h3v.08A1.7 1.7 0 0015.74 6a1.7 1.7 0 001.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 00-.34 1.88 1.7 1.7 0 001.56 1.04h.08v3h-.08A1.7 1.7 0 0019.4 15z"></path>
       </svg>
       Model Development
-      <span class="badge">ML</span>
   </a>
 
     <a href="{{ route('student.submissions.index') }}"

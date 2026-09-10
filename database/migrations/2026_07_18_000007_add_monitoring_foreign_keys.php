@@ -146,6 +146,13 @@ return new class extends Migration
         string $referencedColumn,
         string $constraintName
     ): void {
+        // SQLite cannot append a named foreign key with ALTER TABLE. Fresh
+        // SQLite test schemas already receive their constraints when their
+        // tables are created, so only MySQL needs this repair operation.
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         if ($this->matchingForeignKeyExists($table, $column, $referencedTable, $referencedColumn)) {
             return;
         }
