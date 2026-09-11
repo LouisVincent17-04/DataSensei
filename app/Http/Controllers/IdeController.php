@@ -313,13 +313,21 @@ class IdeController extends Controller
                 $workspacePath,
                 $entryRelativePath,
                 $validated['content'] ?? (string) ($runningNode->content ?? ''),
-                $validated['stdin'] ?? ''
+                $validated['stdin'] ?? '',
+                ['interactive_input' => true]
             );
         } finally {
             File::deleteDirectory($workspacePath);
         }
 
         DB::transaction(function () use ($snapshot, $runningNode, $result): void {
+            // Waiting for the learner is an intermediate IDE state, not a
+            // failed execution. Only the completed or genuinely failed run is
+            // stored in history and used by learning analytics.
+            if (($result['input_required'] ?? false) === true) {
+                return;
+            }
+
             $workspace = IdeWorkspace::query()
                 ->whereKey($snapshot['workspace_id'])
                 ->where('user_id', Auth::id())
@@ -368,6 +376,11 @@ class IdeController extends Controller
             'exit_code' => $result['exit_code'] ?? 1,
             'execution_time_ms' => $result['execution_time_ms'] ?? 0,
             'plots' => $result['plots'] ?? [],
+            'input_required' => (bool) ($result['input_required'] ?? false),
+            'input_prompt' => $result['input_prompt'] ?? null,
+            // null means this runner build does not report the count, so the
+            // browser must not treat it as "nothing was read".
+            'inputs_consumed' => isset($result['inputs_consumed']) ? (int) $result['inputs_consumed'] : null,
         ]);
     }
 

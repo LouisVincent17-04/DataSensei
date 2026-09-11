@@ -161,7 +161,10 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .pv-msg { display: flex; gap: 10px; }
+  .pv-msg { display: flex; gap: 10px; transition: opacity 0.35s ease; }
+
+  /* Brief dim between loops, so the restart reads as a new answer. */
+  .pv-msg.is-resetting { opacity: 0.2; }
 
   .pv-avatar {
     width: 24px;
@@ -807,12 +810,12 @@
           </svg>
           Cell ran in 0.42s &middot; 2 of 2 checks passed
         </div>
-
+        <?php date_default_timezone_set('Asia/Manila'); ?>
         <div class="pv-thread">
           <div class="pv-msg">
-            <div class="pv-avatar">JC</div>
+            <div class="pv-avatar">LT</div>
             <div>
-              <div class="pv-name">Juan <span>&middot; 2:14 PM</span></div>
+              <div class="pv-name">Louis Tajanlangit <span>&middot; {{date('h:i A')}}</span></div>
               <p class="pv-body">My checks pass, but the mean of the column changed after this line:</p>
               <div class="pv-snippet">df[<span class="c-str">"lot_frontage"</span>].<span class="c-fn">fillna</span>(median)</div>
               <p class="pv-body">Did I fill it the wrong way?</p>
@@ -1117,10 +1120,20 @@
   const originals = typed.map(el => {
     const fragment = document.createDocumentFragment();
     while (el.firstChild) fragment.appendChild(el.firstChild);
-    el.dataset.pending = 'true';
     el.style.visibility = 'hidden';
     return fragment;
   });
+
+  // If anything ever throws mid-loop, put the finished answer back on screen.
+  const restoreAnswer = () => {
+    typed.forEach((element, index) => {
+      element.textContent = '';
+      element.appendChild(originals[index].cloneNode(true));
+      element.style.visibility = '';
+    });
+
+    showEverything();
+  };
 
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -1145,7 +1158,8 @@
     }), Promise.resolve());
   }
 
-  async function run(){
+  // Type the whole answer once, from empty to finished.
+  async function typeAnswer(){
     if (dots) {
       dots.hidden = false;
       await wait(900);
@@ -1165,7 +1179,6 @@
       await typeNodes(holder, originals[i], 17);
       await wait(260);
       caret.remove();
-      delete element.dataset.pending;
 
       if (i === 0) {
         reveals.forEach(el => el.classList.add('shown'));
@@ -1174,7 +1187,59 @@
     }
   }
 
-  run().catch(showEverything);
+  // Clear the answer back to its starting state for the next pass. The captured
+  // fragments are only ever read, never moved, so they stay reusable forever.
+  function clearAnswer(){
+    typed.forEach(element => {
+      element.textContent = '';
+      element.style.visibility = 'hidden';
+    });
+
+    reveals.forEach(el => el.classList.remove('shown'));
+  }
+
+  // Never animate into a background tab; wait until the page is looked at again.
+  function whenVisible(){
+    if (! document.hidden) return Promise.resolve();
+
+    return new Promise(resolve => {
+      const onChange = () => {
+        if (document.hidden) return;
+        document.removeEventListener('visibilitychange', onChange);
+        resolve();
+      };
+
+      document.addEventListener('visibilitychange', onChange);
+    });
+  }
+
+  const HOLD_FINISHED_MS = 3200; // long enough to read the finished answer
+  const BLANK_PAUSE_MS = 620;    // beat between clearing and typing again
+
+  async function loop(){
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      await whenVisible();
+
+      // Skip a pass entirely while the preview is off-screen (narrow layouts).
+      if (reply.offsetParent === null) {
+        await wait(1000);
+        continue;
+      }
+
+      await typeAnswer();
+      await wait(HOLD_FINISHED_MS);
+
+      reply.classList.add('is-resetting');
+      await wait(320);
+      clearAnswer();
+      reply.classList.remove('is-resetting');
+      await wait(BLANK_PAUSE_MS);
+    }
+  }
+
+  clearAnswer();
+  loop().catch(restoreAnswer);
 })();
 
 /* ── tab underline ──────────────────────────────────── */

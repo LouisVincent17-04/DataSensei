@@ -2,6 +2,7 @@
 
 import ast
 import base64
+import builtins
 import inspect
 import json
 import os
@@ -18,6 +19,8 @@ RUNNER_FILE = Path(__file__).resolve(strict=False)
 WORKSPACE = Path(os.environ.get("DS_WORKSPACE", "/workspace")).resolve(strict=False)
 INPUT_DIR = Path(os.environ.get("DS_INPUT", "/input")).resolve(strict=False)
 OUTPUT_DIR = WORKSPACE / "datasensei_outputs"
+INPUT_REQUIRED_MARKER = "__DATASENSEI_INPUT_REQUIRED__:"
+INPUTS_CONSUMED_MARKER = "__DATASENSEI_INPUTS_CONSUMED__:"
 
 os.environ.setdefault("MPLBACKEND", "Agg")
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
@@ -248,6 +251,8 @@ def file_access_is_allowed(path_value: object, mode_value: object) -> bool:
         Path("/usr/local/lib").resolve(strict=False),
         Path("/usr/lib").resolve(strict=False),
         Path("/lib").resolve(strict=False),
+        (Path(sys.base_prefix) / "lib").resolve(strict=False),
+        (Path(sys.base_prefix) / "Lib").resolve(strict=False),
         Path("/usr/share/fonts").resolve(strict=False),
         Path("/etc/fonts").resolve(strict=False),
     ]
@@ -507,6 +512,69 @@ def install_output_limits() -> None:
     sys.stderr = LimitedTextStream(sys.stderr, stderr_bytes)
 
 
+class DataSenseiInputRequired(EOFError):
+    """Signals that the IDE must collect one more value from the learner."""
+
+    def __init__(self, prompt: str) -> None:
+        super().__init__("DataSensei is waiting for program input.")
+        self.prompt = prompt
+
+
+# How many input() calls were satisfied from stdin before the program asked
+# for one more. The IDE compares this with the number of answers it sent: if
+# the program consumed fewer, stdin is not reaching the sandbox and replaying
+# would loop forever.
+_inputs_consumed = 0
+
+
+def inputs_consumed() -> int:
+    return _inputs_consumed
+
+
+def install_interactive_input_bridge() -> None:
+    """
+    Preserve normal input() behavior outside the IDE. For IDE runs, report an
+    unmet prompt to Laravel without exposing a learner-facing EOF traceback.
+    The browser can then collect one value and replay the isolated program with
+    every answer supplied so far.
+    """
+    if os.environ.get("DS_INTERACTIVE_INPUT") != "1":
+        return
+
+    def datasensei_input(prompt="") -> str:
+        global _inputs_consumed
+        prompt_text = str(prompt)
+
+        if prompt_text:
+            sys.stdout.write(prompt_text)
+            sys.stdout.flush()
+
+        try:
+            line = sys.stdin.readline()
+        except (OSError, ValueError):
+            # A closed or detached stdin is indistinguishable from "no answer
+            # yet" for the learner, so report it the same way.
+            line = ""
+
+        if line == "":
+            raise DataSenseiInputRequired(prompt_text)
+
+        _inputs_consumed += 1
+
+        return line.rstrip("\r\n")
+
+    builtins.input = datasensei_input
+
+
+def emit_input_required(prompt: str) -> None:
+    encoded_prompt = base64.b64encode(prompt.encode("utf-8")).decode("ascii")
+    # Start on a fresh line even when student code wrote an unterminated warning
+    # to stderr immediately before asking for input.
+    print(f"\n{INPUT_REQUIRED_MARKER}{encoded_prompt}", file=sys.stderr, flush=True)
+    # Separate line, so the prompt marker keeps its existing payload format.
+    print(f"{INPUTS_CONSUMED_MARKER}{inputs_consumed()}", file=sys.stderr, flush=True)
+
+
 # ------------------------------------------------------------
 # Output cleanup and plot saving
 # ------------------------------------------------------------
@@ -635,6 +703,7 @@ def main() -> int:
 
     clean_previous_outputs()
     install_output_limits()
+    install_interactive_input_bridge()
 
     try:
         validate_workspace_sources()
@@ -653,6 +722,10 @@ def main() -> int:
             exit_code = int(exc.code or 0)
         except Exception:
             exit_code = 1
+
+    except DataSenseiInputRequired as exc:
+        emit_input_required(exc.prompt)
+        exit_code = 75
 
     except BaseException:
         traceback.print_exc()

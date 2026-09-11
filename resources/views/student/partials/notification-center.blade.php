@@ -102,6 +102,21 @@
     login: @json(route('login', ['expired' => 1])),
   };
 
+  const redirectExpiredSession = (destination = null) => {
+    if (window.DataSenseiSession?.redirectToLogin) {
+      window.DataSenseiSession.redirectToLogin(true, destination);
+      return;
+    }
+
+    window.__dataSenseiSessionEnding = true;
+    try {
+      window.dispatchEvent(new CustomEvent('datasensei:session-ending', {
+        detail: {expired: true},
+      }));
+    } catch (_) {}
+    window.location.replace(destination || endpoints.login);
+  };
+
   const iconFor = (category) => {
     const paths = {
       assignment: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
@@ -169,7 +184,7 @@
         const payload = await response.json();
         if (payload?.login_url) loginUrl = payload.login_url;
       } catch (_) {}
-      window.location.replace(loginUrl);
+      redirectExpiredSession(loginUrl);
       throw new Error('Session expired');
     }
 

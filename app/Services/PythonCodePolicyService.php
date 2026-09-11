@@ -6,7 +6,16 @@ final class PythonCodePolicyService
 {
     /**
      * Defence-in-depth policy for code submitted to the educational runner.
-     * Container isolation remains the primary security boundary.
+     * Container isolation remains the primary security boundary: the sandbox has
+     * no network, a read-only root filesystem, dropped capabilities, a non-root
+     * user, and memory, CPU, process and output limits.
+     *
+     * Because that boundary does the real work, this layer blocks only what has
+     * no place in a lesson — process spawning, raw sockets, interpreter
+     * internals — and deliberately allows the standard library a Python course
+     * actually teaches: os.path, pathlib, file handling, csv, json, pickle,
+     * datetime, collections, itertools, typing, dataclasses, asyncio, threading,
+     * unittest, and the installed scientific stack.
      *
      * @return array<int, string>
      */
@@ -23,19 +32,34 @@ final class PythonCodePolicyService
         }
 
         $checks = [
-            '/^\s*(?:from|import)\s+(?:os|subprocess|socket|ctypes|multiprocessing|resource|signal|pty|fcntl|winreg|importlib|builtins|pickle|marshal|shelve|webbrowser|http|urllib|ftplib|telnetlib|venv|ensurepip)\b/im'
-                => 'Imports that can access the operating system, processes, network, dynamic loaders, or unsafe serialization are blocked.',
-            '/\b(?:__import__|eval|exec|compile)\s*\(/i'
-                => 'Dynamic code execution functions are blocked in the Python IDE.',
-            '/\b(?:os\s*\.\s*(?:system|popen|spawn\w*|exec\w*|fork|kill)|subprocess\s*\.)/i'
-                => 'Operating-system process execution is blocked.',
-            '/\b(?:socket\s*\.|requests\s*\.|urllib\s*\.|httpx\s*\.)/i'
-                => 'Outbound network access is blocked.',
-            '/\b(?:sys\s*\.\s*modules|sys\s*\.\s*path|os\s*\.\s*environ|os\s*\.\s*getenv)\b/i'
-                => 'Runtime internals and environment variables are not available to student code.',
-            '/\b__(?:subclasses|globals|builtins|loader|spec|code|mro|bases)__\b/i'
+            /*
+             * Modules whose entire purpose is leaving the sandbox. "os" is NOT
+             * here: os.path, os.listdir and os.makedirs are ordinary lesson
+             * material, and the dangerous os calls are blocked by name below.
+             */
+            '/^\s*(?:from|import)\s+(?:subprocess|socket|ssl|ctypes|cffi|multiprocessing|pty|fcntl|termios|winreg|msvcrt|importlib|webbrowser|http|urllib|requests|httpx|ftplib|smtplib|poplib|imaplib|telnetlib|xmlrpc|venv|ensurepip|pip|setuptools|distutils)\b/im'
+                => 'Imports for process control, networking, dynamic loading, or package installation are blocked in the learning sandbox.',
+
+            '/\b(?:os\s*\.\s*(?:system|popen|spawn\w*|exec\w*|fork\w*|kill|killpg|abort|setuid|setgid|chroot|chown|chmod)|subprocess\s*\.)/i'
+                => 'Operating-system process execution and ownership changes are blocked.',
+
+            '/\b(?:socket\s*\.\s*socket|requests\s*\.\s*(?:get|post|put|delete|patch|head|request|Session)|urllib\s*\.\s*request|httpx\s*\.\s*(?:get|post|Client))/i'
+                => 'Outbound network access is blocked; the sandbox runs with no network.',
+
+            '/\b(?:sys\s*\.\s*(?:modules|path|settrace|setrecursionlimit|_getframe|exit_hook)|gc\s*\.\s*get_objects)\b/i'
+                => 'Interpreter internals are not available to student code.',
+
+            '/\b__(?:subclasses|globals|builtins|loader|spec|code|mro|bases|reduce|reduce_ex)__\b/i'
                 => 'Unsafe Python introspection is blocked.',
+
+            '/\b__import__\s*\(/i'
+                => 'Dynamic module loading through __import__ is blocked. Use a normal import statement.',
         ];
+
+        if (! $this->allowsDynamicExecution()) {
+            $checks['/\b(?:eval|exec|compile)\s*\(/i']
+                = 'eval, exec and compile are disabled by default. An administrator can enable them with PYTHON_ALLOW_DYNAMIC_EXECUTION=true.';
+        }
 
         foreach ($checks as $pattern => $message) {
             if (preg_match($pattern, $code) === 1) {
@@ -53,6 +77,11 @@ final class PythonCodePolicyService
         if ($violations !== []) {
             throw new \DomainException(implode(' ', $violations));
         }
+    }
+
+    private function allowsDynamicExecution(): bool
+    {
+        return (bool) config('code_execution.python.policy.allow_dynamic_execution', false);
     }
 
     private function isUtf8(string $value): bool

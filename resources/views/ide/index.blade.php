@@ -120,6 +120,14 @@
     .term-error  { color: #f87171; white-space: pre-wrap; word-break: break-all; }
     .term-info   { color: var(--muted); font-style: italic; }
     .term-success { color: var(--accent3); }
+    .term-stream { color: #c5d0e0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .term-stream-input { color: var(--accent3); font-weight: 600; }
+    /* Typed straight into the transcript, like a real console line. */
+    .term-input-field { background: transparent; border: none; outline: none; padding: 0; margin: 0; color: var(--accent3); font-family: inherit; font-size: inherit; font-weight: 600; caret-color: var(--accent3); min-width: 10ch; }
+    .term-input-caret { color: var(--accent3); animation: termCaret 1.05s step-end infinite; }
+    @keyframes termCaret { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+    .tb-btn.run.is-stopping { background: #dc2626; border-color: #dc2626; }
+    .tb-btn.run.is-stopping:hover { background: #b91c1c; border-color: #b91c1c; }
     .statusbar { height: 22px; background: var(--accent); display: flex; align-items: center; padding: 0 12px; gap: 12px; font-size: 0.7rem; color: rgba(255,255,255,0.85); flex-shrink: 0; user-select: none; }
     .statusbar-right { margin-left: auto; display: flex; gap: 12px; }
     .ctx-menu { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; min-width: 160px; z-index: 9999; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
@@ -335,7 +343,7 @@
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save
       </button>
-      <button class="tb-btn run" id="btn-run" onclick="IDE.run()" title="Run (Ctrl+Enter)">
+      <button class="tb-btn run" id="btn-run" onclick="IDE.runOrStop()" title="Run (Ctrl+Enter) — click again to stop">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         Run
       </button>
@@ -410,9 +418,9 @@
 
 <div class="modal-bg" id="program-input-modal">
   <div class="modal">
-    <h3>Input Required</h3>
-    <p class="subtitle" id="input-modal-subtitle">Your program is paused and waiting for input.</p>
-    <div class="modal-input-group"><label id="input-modal-label">Program input</label><textarea id="dynamic-single-input" maxlength="10000" placeholder="Enter one input value per line..." autocomplete="off" spellcheck="false"></textarea></div>
+    <h3>Program Input</h3>
+    <p class="subtitle" id="input-modal-subtitle">Enter the value requested by your Python program.</p>
+    <div class="modal-input-group"><label id="input-modal-label" for="dynamic-single-input">Program input:</label><input type="text" id="dynamic-single-input" maxlength="10000" placeholder="Type your answer and press Enter" autocomplete="off" spellcheck="false" /></div>
     <div class="modal-actions"><button class="modal-btn" onclick="IDE.cancelInput()">Cancel Run</button><button class="modal-btn primary" onclick="IDE.submitInput()">Submit</button></div>
   </div>
 </div>
@@ -464,6 +472,7 @@
 {{-- ═══════════════════════════════════════════════════
      🤖 REVIEW BOT JS MODULE (global — before IDE IIFE)
 ═══════════════════════════════════════════════════ --}}
+<script src="{{ asset('js/python-ide-input.js') }}"></script>
 <script>
 // ── ReviewBot ─────────────────────────────────────────────────────────────────
 // Laravel endpoint handled by CodeReviewController.
@@ -936,6 +945,8 @@ const IDE = (() => {
   let openTabs = []; let activeTab = null; let cm = null; let treeData = [...TREE_DATA]; let cmChanging = false;
   let draggedNodeId = null;
   let runInProgress = false;
+  let runStopRequested = false;
+  let runAbortController = null;
 
   function byId(id) { return document.getElementById(id); }
   function setText(id, value) { const node = byId(id); if (node) node.textContent = value ?? ''; }
@@ -1156,6 +1167,108 @@ const IDE = (() => {
     }
   }
 
+  /* ── editor: Python-aware completion and IDE key bindings ─────────── */
+
+  const PY_KEYWORDS = ['False','None','True','and','as','assert','async','await','break','class','continue','def','del','elif','else','except','finally','for','from','global','if','import','in','is','lambda','match','case','nonlocal','not','or','pass','raise','return','try','while','with','yield'];
+
+  const PY_BUILTINS = ['abs','all','any','bin','bool','bytearray','bytes','callable','chr','classmethod','complex','dict','dir','divmod','enumerate','filter','float','format','frozenset','getattr','hasattr','hash','help','hex','id','input','int','isinstance','issubclass','iter','len','list','map','max','min','next','object','oct','open','ord','pow','print','property','range','repr','reversed','round','set','setattr','slice','sorted','staticmethod','str','sum','super','tuple','type','vars','zip','self','ArithmeticError','AssertionError','AttributeError','Exception','FileNotFoundError','IndexError','KeyError','KeyboardInterrupt','NameError','NotImplementedError','OverflowError','RuntimeError','StopIteration','TypeError','ValueError','ZeroDivisionError'];
+
+  /** Completion pool: language words plus every identifier already in the file. */
+  function pythonHint(editor) {
+    const cursor = editor.getCursor();
+    const token = editor.getTokenAt(cursor);
+    const start = /[\w$]/.test(token.string) ? token.start : cursor.ch;
+    const typed = editor.getRange({ line: cursor.line, ch: start }, cursor);
+    const needle = typed.toLowerCase();
+
+    const fileWords = new Set();
+    const identifier = /[A-Za-z_][A-Za-z0-9_]*/g;
+    let match;
+
+    while ((match = identifier.exec(editor.getValue())) !== null) {
+      fileWords.add(match[0]);
+    }
+
+    const list = Array.from(new Set([...PY_KEYWORDS, ...PY_BUILTINS, ...fileWords]))
+      .filter(word => word !== typed && word.toLowerCase().startsWith(needle))
+      .sort((a, b) => a.length - b.length || a.localeCompare(b))
+      .slice(0, 40);
+
+    return { list, from: CodeMirror.Pos(cursor.line, start), to: cursor };
+  }
+
+  function duplicateLine(editor) {
+    const cursor = editor.getCursor();
+    const line = editor.getLine(cursor.line);
+    editor.replaceRange('\n' + line, { line: cursor.line, ch: line.length });
+    editor.setCursor({ line: cursor.line + 1, ch: cursor.ch });
+  }
+
+  function moveLines(editor, direction) {
+    const from = editor.getCursor('from');
+    const to = editor.getCursor('to');
+    const target = direction < 0 ? from.line - 1 : to.line + 1;
+
+    if (target < 0 || target > editor.lastLine()) return;
+
+    const moved = editor.getLine(target);
+    const block = [];
+
+    for (let line = from.line; line <= to.line; line++) block.push(editor.getLine(line));
+
+    const rewritten = direction < 0 ? [...block, moved] : [moved, ...block];
+    const startLine = Math.min(from.line, target);
+    const endLine = Math.max(to.line, target);
+
+    editor.replaceRange(
+      rewritten.join('\n'),
+      { line: startLine, ch: 0 },
+      { line: endLine, ch: editor.getLine(endLine).length }
+    );
+
+    editor.setSelection(
+      { line: from.line + direction, ch: from.ch },
+      { line: to.line + direction, ch: to.ch }
+    );
+  }
+
+  function gotoLine(editor) {
+    const answer = window.prompt('Go to line');
+    const line = parseInt(answer, 10);
+
+    if (!Number.isFinite(line) || line < 1) return;
+
+    const target = Math.min(line, editor.lineCount()) - 1;
+    editor.setCursor({ line: target, ch: 0 });
+    editor.scrollIntoView({ line: target, ch: 0 }, 120);
+    editor.focus();
+  }
+
+  function pythonEditorKeys() {
+    return {
+      'Ctrl-/': 'toggleComment', 'Cmd-/': 'toggleComment',
+      'Ctrl-Space': 'autocomplete',
+      'Ctrl-S': () => save(), 'Cmd-S': () => save(),
+      'Ctrl-Enter': () => run(), 'Cmd-Enter': () => run(),
+      'Ctrl-F': 'findPersistent', 'Cmd-F': 'findPersistent',
+      'Ctrl-H': 'replace', 'Cmd-Alt-F': 'replace',
+      'Shift-Ctrl-H': 'replaceAll', 'Shift-Cmd-Alt-F': 'replaceAll',
+      'Ctrl-G': 'findNext', 'Shift-Ctrl-G': 'findPrev',
+      'Ctrl-L': editor => gotoLine(editor), 'Cmd-L': editor => gotoLine(editor),
+      'Ctrl-D': editor => duplicateLine(editor), 'Cmd-D': editor => duplicateLine(editor),
+      'Alt-Up': editor => moveLines(editor, -1),
+      'Alt-Down': editor => moveLines(editor, 1),
+      'Shift-Ctrl-K': 'deleteLine', 'Shift-Cmd-K': 'deleteLine',
+      // PyCharm inserts spaces at the caret; only a selection is block-indented.
+      'Tab': editor => {
+        if (editor.somethingSelected()) { editor.execCommand('indentMore'); return; }
+        editor.replaceSelection(' '.repeat(editor.getOption('indentUnit')), 'end');
+      },
+      'Shift-Tab': editor => editor.execCommand('indentLess'),
+      'Esc': () => { if (runInProgress) stopRun(); },
+    };
+  }
+
   function initCM() {
     if (typeof window.CodeMirror !== 'function') {
       setStatus('Editor unavailable');
@@ -1167,9 +1280,25 @@ const IDE = (() => {
     cm = CodeMirror(document.getElementById('cm-host'), {
       mode: 'python', theme: 'dracula', lineNumbers: true, lineWrapping: false, tabSize: 4, indentUnit: 4, smartIndent: true,
       autoCloseBrackets: true, matchBrackets: true, styleActiveLine: true, foldGutter: true, gutters: ['CodeMirror-linenumbers','CodeMirror-foldgutter'],
-      extraKeys: { 'Ctrl-/':'toggleComment', 'Cmd-/':'toggleComment', 'Ctrl-Space':'autocomplete', 'Tab':(cm)=>cm.execCommand('indentMore'), 'Shift-Tab':(cm)=>cm.execCommand('indentLess'), 'Ctrl-S':()=>save(), 'Cmd-S':()=>save(), 'Ctrl-Enter':()=>run(), 'Cmd-Enter':()=>run() },
-      hintOptions: { hint: CodeMirror.hint.anyword },
+      extraKeys: pythonEditorKeys(),
+      hintOptions: { hint: pythonHint, completeSingle: false },
     });
+
+    // Suggest as you type, the way a desktop IDE does, but never inside a
+    // string or comment and never after a single character.
+    cm.on('inputRead', (editor, change) => {
+      if (change.origin !== '+input' || editor.state.completionActive) return;
+      if (!/^[A-Za-z_]$/.test(change.text[0] || '')) return;
+
+      const cursor = editor.getCursor();
+      const token = editor.getTokenAt(cursor);
+
+      if (token.type === 'string' || token.type === 'comment') return;
+      if (token.string.trim().length < 2) return;
+
+      editor.showHint({ hint: pythonHint, completeSingle: false });
+    });
+
     cm.on('change', () => { if (cmChanging) return; if (activeTab !== null) { const tab = openTabs.find(t => t.id === activeTab); if (tab && !tab.modified) { tab.modified = true; renderTabBar(); } } });
     cm.on('cursorActivity', () => { const cur = cm.getCursor(); setText('status-pos', `Ln ${cur.line + 1}, Col ${cur.ch + 1}`); });
     return true;
@@ -1212,19 +1341,141 @@ const IDE = (() => {
   function flashSave(msg) { const el = byId('save-indicator'); if (!el) return; el.textContent = msg; el.style.display = 'inline'; el.className = 'save-flash'; setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 2000); }
 
   let currentInputResolve = null;
-  function askUserForInput(promptText) { return new Promise((resolve) => { const modal = document.getElementById('program-input-modal'); const label = document.getElementById('input-modal-label'); const input = document.getElementById('dynamic-single-input'); label.textContent = promptText; input.value = ""; modal.classList.add('open'); setTimeout(() => input.focus(), 50); currentInputResolve = resolve; }); }
+
+  // Kept for the legacy modal path; the run loop now reads from the terminal.
+  function askUserForInput(promptText) { return new Promise((resolve) => { const modal = document.getElementById('program-input-modal'); const label = document.getElementById('input-modal-label'); const input = document.getElementById('dynamic-single-input'); label.textContent = promptText; input.value = ''; modal.classList.add('open'); setTimeout(() => input.focus(), 50); currentInputResolve = resolve; }); }
+
+  /**
+   * Read one value the way a terminal does: the caret sits at the end of the
+   * program's own prompt, the learner types inline, and Enter commits it.
+   * Resolves with null when the run is stopped (Stop button, Esc or Ctrl+C).
+   */
+  function termReadLine(stream) {
+    return new Promise((resolve) => {
+      const field = document.createElement('input');
+      field.type = 'text';
+      field.className = 'term-input-field';
+      field.autocomplete = 'off';
+      field.spellcheck = false;
+      field.setAttribute('aria-label', 'Program input');
+      field.size = 12;
+
+      const caret = document.createElement('span');
+      caret.className = 'term-input-caret';
+      caret.textContent = '\u2588';
+
+      stream.appendChild(field);
+      stream.appendChild(caret);
+
+      const body = document.getElementById('terminal-body');
+      body.scrollTop = body.scrollHeight;
+      field.focus();
+
+      let settled = false;
+
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        currentInputResolve = null;
+
+        caret.remove();
+        const echo = document.createElement('span');
+        echo.className = 'term-stream-input';
+        echo.textContent = (value === null ? '^C' : value) + '\n';
+        stream.replaceChild(echo, field);
+        body.scrollTop = body.scrollHeight;
+
+        resolve(value);
+      };
+
+      field.addEventListener('input', () => {
+        field.size = Math.max(12, field.value.length + 2);
+      });
+
+      field.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          finish(field.value);
+          return;
+        }
+
+        if (event.key === 'Escape' || (event.ctrlKey && event.key.toLowerCase() === 'c' && !field.value)) {
+          event.preventDefault();
+          finish(null);
+        }
+      });
+
+      // Clicking anywhere in the terminal returns focus to the waiting line.
+      body.addEventListener('click', () => { if (!settled) field.focus(); }, { once: false });
+
+      currentInputResolve = finish;
+    });
+  }
   function submitInput() { const val = document.getElementById('dynamic-single-input').value; document.getElementById('program-input-modal').classList.remove('open'); if (currentInputResolve) { currentInputResolve(val); currentInputResolve = null; } }
   function cancelInput() { document.getElementById('program-input-modal').classList.remove('open'); if (currentInputResolve) { currentInputResolve(null); currentInputResolve = null; } }
   document.getElementById('dynamic-single-input').addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); submitInput(); }
+    if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); submitInput(); }
   });
+
+  function createTerminalStream() {
+    const body = document.getElementById('terminal-body');
+    const stream = document.createElement('div');
+    stream.className = 'term-stream';
+    body.appendChild(stream);
+    body.scrollTop = body.scrollHeight;
+    return stream;
+  }
+
+  function termStreamWrite(stream, type, text) {
+    if (!stream || text === null || text === undefined || text === '') return;
+    const span = document.createElement('span');
+    span.className = type === 'input' ? 'term-stream-input' : 'term-stream-output';
+    span.textContent = String(text);
+    stream.appendChild(span);
+    const body = document.getElementById('terminal-body');
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function setRunButton(state) {
+    const runBtn = document.getElementById('btn-run');
+    if (!runBtn) return;
+
+    const icons = {
+      run: '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run',
+      stop: '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg> Stop',
+    };
+
+    runBtn.disabled = false;
+    runBtn.classList.toggle('is-stopping', state !== 'run');
+    runBtn.innerHTML = state === 'run' ? icons.run : icons.stop;
+    runBtn.title = state === 'run' ? 'Run (Ctrl+Enter)' : 'Stop the running program (Esc)';
+  }
+
+  // One button, two jobs - the way an IDE does it.
+  function runOrStop() {
+    if (runInProgress) {
+      stopRun();
+      return;
+    }
+
+    run();
+  }
+
+  function stopRun() {
+    if (!runInProgress) return;
+
+    runStopRequested = true;
+
+    // Release a line the program is waiting on, then drop the request itself.
+    if (currentInputResolve) currentInputResolve(null);
+    if (runAbortController) runAbortController.abort();
+  }
 
   async function run() {
     if (runInProgress || activeTab === null || !cm) return;
     runInProgress = true;
-    const runBtn = document.getElementById('btn-run');
-    runBtn.disabled = true;
-    runBtn.innerHTML = '<div class="spinner"></div> Preparing…';
+    runStopRequested = false;
+    setRunButton('stop');
 
     try {
       if (!await save()) return;
@@ -1232,20 +1483,95 @@ const IDE = (() => {
       if (!tab) return;
 
       const code = tab.content || "";
-      let stdin = '';
-      if (/\binput\s*\(/.test(code)) {
-        stdin = await askUserForInput('Program input (one value per line; Ctrl+Enter to continue)');
-        if (stdin === null) { setStatus('Run canceled'); return; }
+      const inputBridge = window.DataSenseiPythonInput;
+      if (!inputBridge) {
+        throw new Error('The Python input helper could not be loaded. Refresh the page and try again.');
       }
 
-      runBtn.innerHTML = '<div class="spinner"></div> Running…';
       const panel = document.getElementById('bottom-panel'); if (panel.classList.contains('collapsed')) toggleTerminal();
       termPrint('prompt', `$ python3 ${tab.name}`); setStatus('Running…');
+      const terminalStream = createTerminalStream();
+      const inputValues = [];
+      let previousOutput = '';
+      let res = null;
 
-      const res = await api(`${NODES_URL}/${encodeURIComponent(tab.id)}/run`, 'POST', { stdin, content: tab.content });
-      if (res.output) termPrint('output', res.output); if (res.error) termPrint('error', res.error);
+      while (true) {
+        const stdin = inputBridge.buildStdin(inputValues);
+        runAbortController = new AbortController();
+
+        try {
+          res = await api(
+            `${NODES_URL}/${encodeURIComponent(tab.id)}/run`,
+            'POST',
+            { stdin, content: tab.content },
+            { signal: runAbortController.signal }
+          );
+        } catch (error) {
+          if (runStopRequested || error.name === 'AbortError') {
+            termPrint('info', 'Run stopped.');
+            setStatus('Stopped');
+            return;
+          }
+
+          throw error;
+        } finally {
+          runAbortController = null;
+        }
+
+        const currentOutput = String(res.output || '');
+        termStreamWrite(terminalStream, 'output', inputBridge.outputDelta(previousOutput, currentOutput));
+        previousOutput = currentOutput;
+
+        if (!res.input_required) break;
+
+        // The sandbox reports how many answers it actually read. Zero, after we
+        // sent some, is the one unambiguous sign that stdin is not reaching the
+        // program; anything else (including a runner that reports no count at
+        // all) is left alone so a working run is never stopped.
+        if (inputBridge.progressStalled(res.inputs_consumed, inputValues.length)) {
+          termPrint('error', 'Stopped: the sandbox received none of the values you typed. Rebuild the runner image with "docker build -t datasensei-python-runner:latest docker/python-runner" and try again.');
+          setStatus('Input not delivered');
+          return;
+        }
+
+        if (inputValues.length >= inputBridge.MAX_INTERACTIVE_INPUTS) {
+          termPrint('error', `Run stopped after ${inputBridge.MAX_INTERACTIVE_INPUTS} input prompts. Check whether the program is asking for input forever.`);
+          setStatus('Too many input prompts');
+          return;
+        }
+
+        // stdout already carries the prompt the program printed, trailing space
+        // and all. Compare both sides without trailing whitespace, or a prompt
+        // ending in a space looks unprinted and gets written a second time.
+        const promptText = inputBridge.promptLabel(res.input_prompt);
+        const comparablePrompt = promptText.replace(/\s+$/, '');
+        const comparableOutput = currentOutput.replace(/\s+$/, '');
+        if (comparablePrompt !== '' && !comparableOutput.endsWith(comparablePrompt)) {
+          termStreamWrite(terminalStream, 'output', promptText);
+        }
+
+        setStatus('Waiting for program input…');
+        const value = await termReadLine(terminalStream);
+
+        if (value === null) {
+          termPrint('info', runStopRequested ? 'Run stopped.' : 'Run canceled.');
+          setStatus(runStopRequested ? 'Stopped' : 'Run canceled');
+          return;
+        }
+
+        if (!inputBridge.canAppend(inputValues, value)) {
+          termPrint('error', `Run stopped because program input exceeds the ${inputBridge.MAX_STDIN_BYTES.toLocaleString()}-byte limit.`);
+          setStatus('Input is too large');
+          return;
+        }
+
+        inputValues.push(value);
+        setStatus('Running…');
+      }
+
+      if (res.error) termPrint('error', res.error);
       if (res.plots && res.plots.length > 0) res.plots.forEach(b64 => termPrintImage(b64));
-      if (!res.output && !res.error && (!res.plots || res.plots.length === 0)) termPrint('info', '(No output)');
+      if (!terminalStream.textContent && !res.error && (!res.plots || res.plots.length === 0)) termPrint('info', '(No output)');
       termPrint('info', `Exit: ${res.exit_code}  Time: ${res.execution_time_ms}ms`);
       setStatus(res.exit_code === 0 ? 'Finished' : `Error (exit ${res.exit_code})`);
 
@@ -1260,8 +1586,10 @@ const IDE = (() => {
     } catch(e) { termPrint('error', 'Request failed: ' + e.message); setStatus('Run failed');
     } finally {
       runInProgress = false;
-      runBtn.disabled = false;
-      runBtn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run`;
+      runStopRequested = false;
+      runAbortController = null;
+      currentInputResolve = null;
+      setRunButton('run');
     }
   }
 
@@ -1522,9 +1850,10 @@ plt.show()
   function focusSearch() { if (cm) cm.execCommand('find'); }
 
   // 🚀 UPDATED API HELPER TO CATCH COLLISIONS 🚀
-  async function api(url, method, body) {
+  async function api(url, method, body, extra = {}) {
       const opts = { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } };
       if (method !== 'GET' && body !== undefined) opts.body = JSON.stringify(body);
+      if (extra.signal) opts.signal = extra.signal;
 
       const res = await fetch(url, opts);
       let json = {};
@@ -1549,7 +1878,7 @@ plt.show()
   function findNode(nodes, id) { for (const n of nodes) { if (n.id === id) return n; if (n.children) { const found = findNode(n.children, id); if (found) return found; } } return null; }
   function escHtml(str) { return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  return { init, save, run, submitInput, cancelInput, promptCreate, promptRename, closeModal, confirmModal, clearTerminal, toggleTerminal, togglePanel, collapseAll, focusSearch, insertPythonSample };
+  return { init, save, run, runOrStop, stopRun, submitInput, cancelInput, promptCreate, promptRename, closeModal, confirmModal, clearTerminal, toggleTerminal, togglePanel, collapseAll, focusSearch, insertPythonSample };
 })();
 
 window.addEventListener('DOMContentLoaded', IDE.init);

@@ -2,17 +2,10 @@
 
 /*
  * A local Ollama model on CPU needs several seconds for the first request after
- * the model is unloaded (weights load + prompt eval + generation). Clamping the
- * budget to a few seconds made every cold start fall back to the offline
- * message, so the deadline is configurable and the browser waits slightly
- * longer than the server it is waiting on.
+ * the model is unloaded (weights load + prompt eval + generation), but a review
+ * fires on every Run and must never hold the panel for a minute.
  */
 $ollamaTimeout = min(60, max(5, (int) env('OLLAMA_TIMEOUT', 30)));
-
-/*
- * Auto-review fires on every Run, so it must never hold the panel for a minute.
- * A follow-up question the student chose to ask may take the longer budget.
- */
 $reviewTimeout = min($ollamaTimeout, max(5, (int) env('OLLAMA_REVIEW_TIMEOUT', 20)));
 
 return [
@@ -28,6 +21,14 @@ return [
         'max_plot_bytes' => (int) env('PYTHON_SANDBOX_MAX_PLOT_BYTES', 1500000),
         'max_plots' => (int) env('PYTHON_SANDBOX_MAX_PLOTS', 4),
         'max_generated_file_bytes' => (int) env('PYTHON_SANDBOX_MAX_FILE_BYTES', 8 * 1024 * 1024),
+
+        /*
+         * Source-level policy. The container is the real boundary; this layer
+         * only keeps lessons away from process and network APIs.
+         */
+        'policy' => [
+            'allow_dynamic_execution' => (bool) env('PYTHON_ALLOW_DYNAMIC_EXECUTION', false),
+        ],
 
         'local' => [
             'binary' => env('PYTHON_BINARY', 'auto'),

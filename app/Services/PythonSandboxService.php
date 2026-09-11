@@ -10,6 +10,10 @@ use Illuminate\Support\Str;
 
 class PythonSandboxService
 {
+    private const INPUT_REQUIRED_MARKER = '__DATASENSEI_INPUT_REQUIRED__:';
+
+    private const INPUTS_CONSUMED_MARKER = '__DATASENSEI_INPUTS_CONSUMED__:';
+
     public function __construct(private readonly PythonCodePolicyService $policy)
     {
     }
@@ -72,6 +76,7 @@ class PythonSandboxService
         $start = microtime(true);
         $driver = strtolower((string) config('code_execution.python.driver', 'docker'));
         $timeout = max(1, min(60, (int) ($options['timeout'] ?? config('code_execution.python.timeout_seconds', 10))));
+        $interactiveInput = (bool) ($options['interactive_input'] ?? false);
         $entryPath = $this->safeJoin($workspacePath, $entryRelativePath);
 
         if (strlen(File::get($entryPath)) > (int) config('code_execution.python.max_code_bytes', 50000) + 20000) {
@@ -108,8 +113,8 @@ class PythonSandboxService
             }
 
             $result = $driver === 'docker'
-                ? $this->runWithDocker($workspacePath, $entryRelativePath, $stdin, $timeout)
-                : $this->runLocally($workspacePath, $entryRelativePath, $stdin, $timeout);
+                ? $this->runWithDocker($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput)
+                : $this->runLocally($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput);
         } finally {
             try {
                 $executionSlot->release();
@@ -142,24 +147,30 @@ class PythonSandboxService
         ) ?? $stdout;
 
         $stdout = $this->truncate($stdout, (int) config('code_execution.python.max_stdout_bytes', 60000));
-        $stderr = $this->truncate((string) ($result['stderr'] ?? ''), (int) config('code_execution.python.max_stderr_bytes', 60000));
+        $inputRequest = $this->extractInputRequest((string) ($result['stderr'] ?? ''), (int) ($result['exit_code'] ?? 1));
+        $stderr = $this->truncate($inputRequest['stderr'], (int) config('code_execution.python.max_stderr_bytes', 60000));
 
         if (($result['timed_out'] ?? false) === true) {
             $stderr = trim($stderr . "\nExecution stopped after {$timeout} seconds. The program may contain an infinite loop or a task that is too expensive for the learning sandbox.");
         }
 
         return [
-            'stdout' => trim($stdout),
+            // Only trailing newlines are dropped. Leading indentation and a
+            // prompt's trailing space are part of what the program printed.
+            'stdout' => preg_replace('/\R+$/', '', $stdout) ?? $stdout,
             'stderr' => trim($stderr),
             'exit_code' => (int) ($result['exit_code'] ?? 1),
             'failed' => (bool) ($result['failed'] ?? true),
             'timed_out' => (bool) ($result['timed_out'] ?? false),
             'execution_time_ms' => (int) round((microtime(true) - $start) * 1000),
             'plots' => $plots,
+            'input_required' => $inputRequest['required'],
+            'input_prompt' => $inputRequest['prompt'],
+            'inputs_consumed' => $inputRequest['consumed'],
         ];
     }
 
-    private function runLocally(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout): array
+    private function runLocally(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactiveInput): array
     {
         $python = $this->resolveLocalPython();
         $runner = (string) config('code_execution.python.local.runner');
@@ -174,7 +185,7 @@ class PythonSandboxService
             ];
         }
 
-        $environment = $this->runnerEnvironment($workspacePath, $workspacePath, $timeout);
+        $environment = $this->runnerEnvironment($workspacePath, $workspacePath, $timeout, $interactiveInput);
         $environment['DS_USE_RLIMIT_AS'] = '1';
         $entry = $this->safeJoin($workspacePath, $entryRelativePath);
 
@@ -205,7 +216,7 @@ class PythonSandboxService
         }
     }
 
-    private function runWithDocker(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout): array
+    private function runWithDocker(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactiveInput): array
     {
         $docker = (string) config('code_execution.python.docker.binary', 'docker');
         $image = (string) config('code_execution.python.docker.image', 'datasensei-python-runner:latest');
@@ -230,6 +241,11 @@ class PythonSandboxService
 
         $command = [
             $docker, 'run', '--rm',
+            // Without --interactive the container's stdin is /dev/null, so every
+            // input() call reached EOF no matter what the learner typed and the
+            // IDE asked for the same value forever. No --tty: the runner needs a
+            // plain pipe, not a terminal.
+            '--interactive',
             '--name', $containerName,
             '--network', (string) config('code_execution.python.docker.network', 'none'),
             '--memory', (string) config('code_execution.python.docker.memory', '512m'),
@@ -262,7 +278,7 @@ class PythonSandboxService
             $command[] = '--read-only';
         }
 
-        foreach ($this->runnerEnvironment('/workspace', '/input', $timeout) as $key => $value) {
+        foreach ($this->runnerEnvironment('/workspace', '/input', $timeout, $interactiveInput) as $key => $value) {
             array_push($command, '-e', $key . '=' . $value);
         }
 
@@ -306,14 +322,51 @@ class PythonSandboxService
         }
     }
 
+    /** @return array{stderr:string, required:bool, prompt:?string, consumed:?int} */
+    private function extractInputRequest(string $stderr, int $exitCode): array
+    {
+        $prompt = null;
+        $consumed = null;
+        $remainingLines = [];
+        $lines = preg_split('/\R/u', $stderr) ?: [];
+
+        foreach ($lines as $line) {
+            if (str_starts_with($line, self::INPUT_REQUIRED_MARKER)) {
+                $encodedPrompt = substr($line, strlen(self::INPUT_REQUIRED_MARKER));
+                $decodedPrompt = base64_decode($encodedPrompt, true);
+
+                if ($decodedPrompt !== false) {
+                    $prompt = $decodedPrompt;
+                    continue;
+                }
+            }
+
+            if (str_starts_with($line, self::INPUTS_CONSUMED_MARKER)) {
+                $consumed = (int) substr($line, strlen(self::INPUTS_CONSUMED_MARKER));
+                continue;
+            }
+
+            $remainingLines[] = $line;
+        }
+
+        $required = $exitCode === 75 && $prompt !== null;
+
+        return [
+            'stderr' => trim(implode("\n", $remainingLines)),
+            'required' => $required,
+            'prompt' => $required ? $prompt : null,
+            'consumed' => $consumed === null ? null : max(0, $consumed),
+        ];
+    }
+
     /** @return array<string, string> */
-    private function runnerEnvironment(string $workspacePath, string $inputPath, int $timeout): array
+    private function runnerEnvironment(string $workspacePath, string $inputPath, int $timeout, bool $interactiveInput = false): array
     {
         $maxOutput = (int) config('code_execution.python.max_stdout_bytes', 60000)
             + (int) config('code_execution.python.max_stderr_bytes', 60000)
             + ((int) config('code_execution.python.max_plot_bytes', 1500000) * (int) config('code_execution.python.max_plots', 4) * 2);
 
-        return [
+        $environment = [
             'DS_WORKSPACE' => $workspacePath,
             'DS_INPUT' => $inputPath,
             'DS_CPU_SECONDS' => (string) max(1, $timeout),
@@ -323,6 +376,12 @@ class PythonSandboxService
             'DS_MAX_PLOTS' => (string) config('code_execution.python.max_plots', 4),
             'DS_MEMORY_BYTES' => (string) $this->memoryStringToBytes((string) config('code_execution.python.docker.memory', '512m')),
         ];
+
+        if ($interactiveInput) {
+            $environment['DS_INTERACTIVE_INPUT'] = '1';
+        }
+
+        return $environment;
     }
 
     private function resolveLocalPython(): ?string

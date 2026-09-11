@@ -381,10 +381,6 @@
         .rb-bullet::before { content: '›'; color: var(--accent); flex-shrink: 0; font-weight: 700; }
         .rb-code { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 9px; margin: 5px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #93c5fd; white-space: pre-wrap; word-break: break-word; overflow-x: auto; }
         .rb-line { font-size: 0.76rem; color: var(--muted); line-height: 1.55; padding: 1px 0; }
-        .rb-line + .rb-line { margin-top: 4px; }
-        .rb-line .rb-key { color: var(--text); font-weight: 600; }
-        .rb-line .rb-key.ok  { color: var(--accent3); }
-        .rb-line .rb-key.err { color: var(--warn); }
         .rb-typing .rb-bubble { padding: 11px 13px; }
         .rb-dots { display: flex; gap: 4px; align-items: center; height: 13px; }
         .rb-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: rbDot 1.2s ease-in-out infinite; }
@@ -586,6 +582,35 @@
 // Returns JSON { ok, message }
 const REVIEW_URL = @json(route('api.code-review'));
 const REVIEW_CLIENT_TIMEOUT_MS = {{ (int) config('code_execution.ollama.client_timeout_ms', 14000) }};
+const EXPIRED_LOGIN_URL = @json(route('login', ['expired' => 1]));
+
+function redirectExpiredSession(destination = null) {
+  if (window.DataSenseiSession?.redirectToLogin) {
+    window.DataSenseiSession.redirectToLogin(true, destination);
+    return;
+  }
+
+  window.__dataSenseiSessionEnding = true;
+  try {
+    window.dispatchEvent(new CustomEvent('datasensei:session-ending', {
+      detail: { expired: true },
+    }));
+  } catch (_) {}
+  window.location.replace(destination || EXPIRED_LOGIN_URL);
+}
+
+async function redirectWhenSessionExpired(response) {
+  if (response.status !== 401 && response.status !== 419) return false;
+
+  let destination = null;
+  try {
+    const payload = await response.clone().json();
+    destination = payload?.login_url || null;
+  } catch (_) {}
+
+  redirectExpiredSession(destination);
+  return true;
+}
 
 const ReviewBot = (() => {
   let _open     = false;
@@ -706,8 +731,8 @@ const ReviewBot = (() => {
       return 'Status: Has Issues\nFeedback: The SQL Sandbox reported an execution error. The detailed reviewer was unavailable, but the original database error remains valid.\nSteps to Fix:\n- Read the reported error and identify the affected statement.\n- Check the table name, column names, clause order, and database constraints.\n- Correct the underlying cause and run the query again.';
     }
     return isChat
-      ? 'Status: Not Reviewed\nFeedback: The AI reviewer could not be reached from this page. Your current query and result are still loaded, so you can ask again in a moment.'
-      : 'Status: Not Reviewed\nFeedback: Your query ran and reported no error. The AI reviewer could not be reached from this page, so it was not reviewed. Check that the result matches the rows and columns you intended.';
+      ? 'Status: Review Limited\nFeedback: The detailed reviewer was unavailable within the response deadline. Review the current query and result, then ask a narrower question or try again.'
+      : 'Status: Review Limited\nFeedback: The query completed, but the detailed reviewer was unavailable within the response deadline. Check that the result matches the intended rows and columns.';
   }
 
   /* ── Core: send SQL for review ── */
@@ -736,6 +761,7 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
+      if (err?.sessionExpired) return;
       const msg = _localFallback(_lastRunOutput, false);
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
@@ -774,6 +800,7 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
+      if (err?.sessionExpired) return;
       const msg = _localFallback(_lastRunOutput, true);
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
@@ -791,10 +818,19 @@ const ReviewBot = (() => {
     try {
       const response = await fetch(REVIEW_URL, {
         method: 'POST',
-        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+        headers: {
+          'Accept': streamHandler ? 'application/json, text/event-stream' : 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
         body: form,
         signal: controller.signal,
       });
+      if (await redirectWhenSessionExpired(response)) {
+        const error = new Error('Your session expired. Redirecting to sign in.');
+        error.sessionExpired = true;
+        throw error;
+      }
       if (streamHandler) await streamHandler(response);
       return response;
     } finally {
@@ -898,27 +934,14 @@ const ReviewBot = (() => {
   /* ── Review formatter ── */
   function _formatReview(raw) {
     if (!raw || !raw.trim()) return '<div class="rb-line" style="color:var(--dim)">(No response)</div>';
-    // Headings introduce a list; a labelled sentence stays readable prose.
-    const HEADING = /^(Issues?|Suggestions?|Warnings?|Notes?|Steps to (?:Fix|Check)|Check On Your Own|Checked|Verified|Summary|Performance|Optimization)\s*:\s*$/i;
-    const LABEL   = /^(Status|Feedback|Explanation|Error|Location|Result)\s*:\s*(.*)$/i;
-    // Tone comes from the verdict itself, never from a word inside the sentence.
-    const VERDICT_OK  = /^(correct|clean|no issues|passed?|ok)\b/i;
-    const VERDICT_ERR = /^(has issues|incorrect|failed?|error)\b/i;
+    const SECTION = /^(Status|Issues?|Fix|Suggestion|Suggestions|Warning|Warnings|Notes?|Summary|Result|Performance|Optimization)s?:/i;
     const proseOnly = raw.replace(/```[\s\S]*?```/g, '').replace(/`/g, '');
     let html = '';
     for (const line of proseOnly.split('\n')) {
         const t = line.trim(); if (!t) continue;
-        const label = t.match(LABEL);
-        if (HEADING.test(t)) {
-          html += `<div class="rb-section">${escH(t.replace(/\s*:\s*$/, ''))}</div>`;
-        } else if (label) {
-          const key = label[1];
-          const value = label[2].trim();
-          let tone = '';
-          if (/^status$/i.test(key)) {
-            tone = VERDICT_OK.test(value) ? ' ok' : VERDICT_ERR.test(value) ? ' err' : '';
-          }
-          html += `<div class="rb-line"><span class="rb-key${tone}">${escH(key)}:</span> ${escH(value)}</div>`;
+        if (SECTION.test(t)) {
+          const cls = /correct|clean|good|pass|ok/i.test(t) ? 'rb-section ok' : /error|issue|fail|wrong/i.test(t) ? 'rb-section err' : 'rb-section';
+          html += `<div class="${cls}">${escH(t)}</div>`;
         } else if (/^[-•*]\s/.test(t)) {
           html += `<div class="rb-bullet">${escH(t.replace(/^[-•*]\s+/, ''))}</div>`;
         } else if (/^\d+\.\s/.test(t)) {
@@ -1288,6 +1311,14 @@ WHERE id = 2;`
         };
 
         const res = await fetch(url, mergedOptions);
+
+        if (await redirectWhenSessionExpired(res)) {
+            return {
+                ok: false,
+                status: res.status,
+                data: { status: 'error', message: 'Your session expired. Redirecting to sign in.' },
+            };
+        }
 
         const contentType = res.headers.get('content-type') || '';
         const isJson      = contentType.includes('application/json');
