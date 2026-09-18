@@ -76,7 +76,13 @@ return [
             ($ollamaTimeout + 5) * 1000,
             (int) env('OLLAMA_CLIENT_TIMEOUT_MS', 0)
         ),
-        'keep_alive' => env('OLLAMA_KEEP_ALIVE', '30m'),
+        /* -1 keeps the model in memory until Ollama stops. A duration such as
+           "30m" unloads it after that much idle time, and the next review then
+           waits several seconds while the model loads again. */
+        'keep_alive' => env('OLLAMA_KEEP_ALIVE', '-1'),
+        /* Load the model when the IDE or SQL Sandbox opens, every few minutes
+           while it stays open, and from the scheduler. */
+        'warmup' => (bool) env('OLLAMA_WARMUP', true),
         /* One local model should not be saturated by accidental parallel work. */
         'max_concurrent_requests' => min(2, max(1, (int) env('OLLAMA_MAX_CONCURRENT', 1))),
         'num_ctx' => min(8192, max(2048, (int) env('OLLAMA_NUM_CTX', 4096))),
@@ -89,5 +95,17 @@ return [
         'max_history_chars' => 1800,
         'max_response_chars' => min(12000, max(1000, (int) env('OLLAMA_MAX_RESPONSE_CHARS', 6000))),
         'slow_request_ms' => min(30000, $ollamaTimeout * 1000),
+
+        /*
+         * When the model needs longer than the timeouts above, the review keeps
+         * running in a background "code-review:process" command and the page
+         * polls for the answer. 0 = no time limit for that background call.
+         */
+        'background_continuation' => (bool) env('OLLAMA_BACKGROUND_CONTINUATION', true),
+        'background_timeout_seconds' => max(0, (int) env('OLLAMA_BACKGROUND_TIMEOUT', 0)),
+        /* A background review that shows no result after this long is reported as stopped. */
+        'background_stale_after_seconds' => max(60, (int) env('OLLAMA_BACKGROUND_STALE_AFTER', 1800)),
+        'background_retention_seconds' => 7200,
+        'background_poll_interval_ms' => 2000,
     ],
 ];

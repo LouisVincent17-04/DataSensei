@@ -36,6 +36,8 @@ class CodeReviewOptimizationTest extends TestCase
             'code_execution.ollama.max_history_chars' => 1800,
             'code_execution.ollama.max_response_chars' => 6000,
             'code_execution.ollama.review_timeout_seconds' => 8,
+            /* Background continuation has its own tests (BackgroundCodeReviewTest). */
+            'code_execution.ollama.background_continuation' => false,
             /* Exercised on its own below; the model-path tests opt out. */
             'code_execution.review.fast_path' => false,
             'code_execution.review.max_lines' => 40,

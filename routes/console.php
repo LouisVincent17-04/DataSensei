@@ -24,3 +24,10 @@ Schedule::command('ml:prune-temporary-files')
     ->hourly()
     ->name('prune-ml-temporary-files')
     ->withoutOverlapping();
+
+// Keeps the AI reviewer model loaded (and reloads it after Ollama restarts).
+Schedule::command('code-review:warm --timeout=120')
+    ->everyFiveMinutes()
+    ->name('warm-code-review-model')
+    ->withoutOverlapping()
+    ->runInBackground();

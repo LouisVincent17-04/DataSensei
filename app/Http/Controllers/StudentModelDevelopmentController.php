@@ -12,6 +12,7 @@ use App\Models\UserDataset;
 use App\Services\HybridMl\AlgorithmCatalogService;
 use App\Services\HybridMl\BenchmarkComparisonService;
 use App\Services\HybridMl\MlAccessService;
+use App\Services\HybridMl\MlWorkerSupervisor;
 use App\Services\HybridMl\ModelStorageService;
 use App\Services\HybridMl\PredictionService;
 use App\Services\HybridMl\PredefinedDatasetRecommendationService;
@@ -28,18 +29,30 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 class StudentModelDevelopmentController extends Controller
 {
     public function index(SystemDatasetLibrary $library): View
     {
         $user = Auth::user();
+        $systemDatasets = $library->all();
+        $trainingJobs = TrainingJob::query()->where('user_id', $user->id)->with(['dataset', 'userDataset', 'model'])->latest()->limit(15)->get();
+        $models = MlModel::query()->where('user_id', $user->id)->with(['currentVersion', 'dataset', 'userDataset'])->latest()->limit(20)->get();
+
+        // Beginners get one obvious starting point: the smallest built-in dataset with a recommended setup.
+        $starterDataset = $systemDatasets
+            ->filter(fn (MlDataset $dataset): bool => ! empty(data_get($dataset->metadata, 'recommended_setup')))
+            ->sortBy('row_count')
+            ->first();
 
         return view('student.model-development.index', [
-            'systemDatasets' => $library->all(),
+            'systemDatasets' => $systemDatasets,
+            'starterDataset' => $starterDataset,
+            'activeTrainingJob' => $trainingJobs->first(fn (TrainingJob $job): bool => ! $job->isTerminal()),
             'userDatasets' => UserDataset::query()->where('user_id', $user->id)->latest()->limit(30)->get(),
-            'models' => MlModel::query()->where('user_id', $user->id)->with(['currentVersion', 'dataset', 'userDataset'])->latest()->limit(20)->get(),
-            'trainingJobs' => TrainingJob::query()->where('user_id', $user->id)->with(['dataset', 'userDataset', 'model'])->latest()->limit(15)->get(),
+            'models' => $models,
+            'trainingJobs' => $trainingJobs,
             'classes' => $user->classesAsStudent()->active()->orderBy('name')->get(['classes.id', 'classes.name', 'classes.section']),
             'maxUploadKilobytes' => (int) config('hybrid_ml.max_upload_kilobytes', 10240),
         ]);
@@ -184,6 +197,7 @@ class StudentModelDevelopmentController extends Controller
             'dataset' => $dataset,
             'datasetVersion' => $version,
             'profile' => $profile,
+            'rowCount' => (int) ($profile['row_count'] ?? $dataset->row_count ?? 0),
             'problemType' => $problemType,
             'recommendation' => $recommendation,
             'algorithmsByProblem' => $algorithmsByProblem,
@@ -253,23 +267,33 @@ class StudentModelDevelopmentController extends Controller
             ]);
         }, 3);
 
-        ProcessMlTrainingJob::dispatch($job->id)->afterCommit();
+        ProcessMlTrainingJob::dispatch($job->id, $job->uuid)->afterCommit();
+
+        // Start a worker if none is running, so the job does not wait at 0%.
+        app(MlWorkerSupervisor::class)->ensureWorkerFor($job);
+
         return redirect()->route('student.model-development.training.show', $job)
             ->with('success', 'Training was queued. This page will update as the model is processed.');
     }
 
-    public function showTrainingJob(TrainingJob $trainingJob, MlAccessService $access): View
+    public function showTrainingJob(TrainingJob $trainingJob, MlAccessService $access, MlWorkerSupervisor $workers): View
     {
         abort_unless($access->canViewTrainingJob(Auth::user(), $trainingJob), 403);
         $trainingJob->load(['dataset', 'userDataset', 'model.currentVersion']);
-        return view('student.model-development.training-job', ['job' => $trainingJob]);
+        return view('student.model-development.training-job', [
+            'job' => $trainingJob,
+            'worker' => $workers->ensureWorkerFor($trainingJob),
+        ]);
     }
 
-    public function trainingStatus(TrainingJob $trainingJob, MlAccessService $access): JsonResponse
+    public function trainingStatus(TrainingJob $trainingJob, MlAccessService $access, MlWorkerSupervisor $workers): JsonResponse
     {
         abort_unless($access->canViewTrainingJob(Auth::user(), $trainingJob), 403);
         $trainingJob->refresh();
+        $worker = $workers->ensureWorkerFor($trainingJob);
         return response()->json([
+            'worker_state' => $worker['state'],
+            'worker_message' => $worker['message'],
             'id' => $trainingJob->id,
             'status' => $trainingJob->status,
             'progress' => $trainingJob->progress,
@@ -354,8 +378,25 @@ class StudentModelDevelopmentController extends Controller
     {
         abort_unless($access->canViewModel($request->user(), $model), 403);
         $version = $model->currentVersion()->firstOrFail();
-        $input = $request->validate(['input_values' => ['required', 'array']]);
-        $result = $predictions->predict($version, (int) $request->user()->id, (array) $input['input_values']);
+        $input = $request->validate(
+            ['input_values' => ['required', 'array']],
+            ['input_values.required' => 'Enter at least one value before generating a prediction.']
+        );
+
+        try {
+            $result = $predictions->predict($version, (int) $request->user()->id, (array) $input['input_values']);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            // Runner or artifact problems should not show a server error page to a student.
+            report($exception);
+
+            return redirect()
+                ->route('student.model-development.models.show', ['model' => $model, 'step' => 'predict'])
+                ->withInput()
+                ->withErrors(['prediction' => 'The prediction could not be completed right now. Check your values and try again. If it keeps failing, ask your instructor to confirm the machine-learning worker is running.']);
+        }
+
         return redirect()
             ->route('student.model-development.models.show', ['model' => $model, 'step' => 'save'])
             ->with('prediction_result', $result)

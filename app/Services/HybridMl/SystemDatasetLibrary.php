@@ -4,7 +4,6 @@ namespace App\Services\HybridMl;
 
 use App\Models\MlDataset;
 use App\Models\QualityReport;
-use Illuminate\Support\Facades\Storage;
 
 class SystemDatasetLibrary
 {
@@ -20,7 +19,8 @@ class SystemDatasetLibrary
     public function preview(MlDataset $dataset, ?int $limit = null): array
     {
         $limit ??= max(5, (int) config('hybrid_ml.preview_rows', 20));
-        $path = Storage::disk('local')->path($dataset->storage_path);
+        // Same base directory the download route and training job use (storage/app/...).
+        $path = storage_path('app/'.ltrim((string) $dataset->storage_path, '/\\'));
         if (! is_file($path)) {
             return [];
         }

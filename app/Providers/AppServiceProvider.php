@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Services\HybridMl\MlWorkerSupervisor;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -48,6 +51,13 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureAuthenticationRateLimiters();
         $this->configurePasswordOtpRateLimiters();
+
+        // Lets the training page know a machine-learning worker is alive.
+        Queue::looping(function (Looping $event): void {
+            if ($event->connectionName === (string) config('hybrid_ml.queue_connection', 'machine_learning')) {
+                $this->app->make(MlWorkerSupervisor::class)->recordHeartbeat();
+            }
+        });
     }
 
     private function configureAuthenticationRateLimiters(): void
@@ -78,6 +88,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('code-review', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('code-review:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('code-review-status', fn (Request $request): Limit => Limit::perMinute(90)
+            ->by('code-review-status:'.($request->user()?->id ?? $request->ip())));
 
         RateLimiter::for('model-development-training', fn (Request $request): Limit => Limit::perMinute(6)
             ->by('model-development-training:'.($request->user()?->id ?? $request->ip())));

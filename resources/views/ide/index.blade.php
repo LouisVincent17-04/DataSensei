@@ -157,6 +157,23 @@
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
     @keyframes fadeOut { 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
     .save-flash { animation: fadeOut 1.8s ease forwards; }
+    /* The save confirmation lives inside the Save button, so it never adds a row. */
+    .tb-btn.save { min-width: 74px; justify-content: center; }
+    .tb-btn.run { min-width: 66px; justify-content: center; }
+    .tb-btn.save.is-saved { color: var(--accent3); border-color: rgba(16,185,129,0.45); background: rgba(16,185,129,0.1); }
+    .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    /* The IDE fills the whole window. Page notifications float over it instead of
+       pushing the editor down and back up again. */
+    .app > #ds-global-notification-stack {
+      position: fixed !important;
+      top: calc(var(--topbar-h) + 10px) !important;
+      right: 16px !important;
+      bottom: auto !important;
+      left: auto !important;
+      margin: 0 !important;
+      width: min(380px, calc(100vw - 32px));
+      z-index: 1200;
+    }
 
     /* ═══════════════════════════════════════════════════
        🤖 AI REVIEW CHATBOT WIDGET
@@ -341,7 +358,7 @@
       </select>
       <button class="tb-btn save" id="btn-save" onclick="IDE.save()" title="Save (Ctrl+S)">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save
+        <span id="btn-save-label">Save</span>
       </button>
       <button class="tb-btn run" id="btn-run" onclick="IDE.runOrStop()" title="Run (Ctrl+Enter) — click again to stop">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -356,7 +373,7 @@
     </div>
   </div>
 
-  <span id="save-indicator" data-ds-global-notification role="status" style="font-size:0.7rem;color:var(--accent3);display:none"></span>
+  <span id="save-indicator" class="sr-only" role="status" aria-live="polite"></span>
 
   <div class="workspace">
     <div class="activity-bar">
@@ -478,6 +495,31 @@
 // Laravel endpoint handled by CodeReviewController.
 const REVIEW_URL = @json(route('api.code-review'));
 const REVIEW_CLIENT_TIMEOUT_MS = {{ (int) config('code_execution.ollama.client_timeout_ms', 14000) }};
+const REVIEW_POLL_MS = {{ max(1000, (int) config('code_execution.ollama.background_poll_interval_ms', 2000)) }};
+
+// Load the AI reviewer model while the page is open so the first review after
+// a pause does not wait for the model to load. Background request: it does not
+// count as activity for the idle sign-out.
+(() => {
+  const warmUrl = @json(route('api.code-review.warm'));
+  let lastWarm = 0;
+  const warm = () => {
+    if (document.visibilityState !== 'visible' || Date.now() - lastWarm < 60000) return;
+    lastWarm = Date.now();
+    fetch(warmUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-DataSensei-Background': '1',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+    }).catch(() => {});
+  };
+  warm();
+  setInterval(warm, 4 * 60 * 1000);
+  document.addEventListener('visibilitychange', warm);
+})();
 
 const ReviewBot = (() => {
   let _open     = false;
@@ -487,6 +529,10 @@ const ReviewBot = (() => {
   let _lastRunOutput = '';
   const _typingTimers = {};
   let _activeController = null;
+  // A review that outlived the request keeps going on the server; this token
+  // lets a newer Run replace it without waiting.
+  let _backgroundWait = null;
+  let _generation = 0;
   // Accumulate review context for multi-turn follow-ups
   const _history = [];
 
@@ -524,7 +570,10 @@ const ReviewBot = (() => {
   /* ── Called by IDE.run() automatically ── */
   function autoReview(code, lang, filename, runOutput = '') {
     if (!code || !code.trim()) return;
-    if (_busy) {
+    if (_busy && _backgroundWait) {
+      // The earlier review is only waiting on the server. The new run replaces it.
+      _backgroundWait.cancel();
+    } else if (_busy) {
       _open_panel();
       _addBot('<div class="rb-line" style="color:var(--warn2)">An AI review is already running. Please wait for it to finish before requesting another review.</div>');
       return;
@@ -617,8 +666,87 @@ const ReviewBot = (() => {
       : 'Status: Not Reviewed\nFeedback: Your program ran and reported no execution error. The AI reviewer could not be reached from this page, so it was not reviewed. Nothing is wrong with your run.\nCheck On Your Own:\n- Compare the result with the expected output.\n- Test invalid and boundary inputs.\n- Review conditions, loops, function results, and edge cases.';
   }
 
+  function _formatElapsed(totalSeconds) {
+    const seconds = Math.max(0, Math.round(totalSeconds));
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ${String(seconds % 60).padStart(2, '0')}s`;
+  }
+
+  /* ── Wait for a review that continues on the server ── */
+  function _cancellableSleep(ms, wait) {
+    return new Promise(resolve => {
+      const timer = setTimeout(resolve, ms);
+      wait.onCancel = () => { clearTimeout(timer); resolve(); };
+    });
+  }
+
+  async function _awaitBackground(pending, typingId) {
+    const wait = { cancelled: false, onCancel: null };
+    wait.cancel = () => {
+      wait.cancelled = true;
+      // Turn the waiting bubble into a short note right away, in its own place.
+      if (_typingTimers[typingId]) {
+        clearInterval(_typingTimers[typingId]);
+        delete _typingTimers[typingId];
+      }
+      const bubble = document.getElementById(typingId);
+      if (bubble) {
+        bubble.removeAttribute('id');
+        bubble.classList.remove('rb-typing');
+        bubble.querySelector('.rb-bubble').innerHTML = '<div class="rb-line" style="color:var(--dim)">This review was replaced by your newer run.</div>';
+      }
+      if (wait.onCancel) wait.onCancel();
+    };
+    _backgroundWait = wait;
+
+    const typing = document.getElementById(typingId);
+    if (typing) typing.dataset.longWait = '1';
+
+    let failures = 0;
+    try {
+      while (true) {
+        await _cancellableSleep(REVIEW_POLL_MS, wait);
+        if (wait.cancelled) {
+          const error = new Error('Replaced by a newer run.');
+          error.superseded = true;
+          throw error;
+        }
+
+        let response;
+        let data = {};
+        try {
+          response = await fetch(pending.status_url, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-DataSensei-Background': '1' },
+            cache: 'no-store',
+          });
+          data = await _readJsonResponse(response);
+        } catch (networkError) {
+          failures++;
+          if (failures >= 6) throw networkError;
+          continue;
+        }
+
+        if (response.status === 404 || data.status === 'missing') {
+          throw new Error(data.message || 'The background review is no longer available.');
+        }
+        if (!response.ok) {
+          failures++;
+          if (failures >= 6) throw new Error(`Review status failed with HTTP ${response.status}.`);
+          continue;
+        }
+
+        failures = 0;
+        if (data.status === 'done') return data.message || '';
+      }
+    } finally {
+      if (_backgroundWait === wait) _backgroundWait = null;
+    }
+  }
+
   /* ── Core: send code for review ── */
   async function _sendReview(code, lang) {
+    const generation = ++_generation;
     const typingId = _addTyping();
     _setBusy(true);
 
@@ -630,27 +758,32 @@ const ReviewBot = (() => {
       form.append('run_output', _boundedRunOutput(_lastRunOutput));
 
       const { data } = await _postReview(form);
+      const msg = data.pending
+        ? await _awaitBackground(data, typingId)
+        : (data.message || '');
       _removeTyping(typingId);
 
-      const msg = data.message || '';
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
+      if (err && err.superseded) return;
       const msg = _localFallback(_lastRunOutput, false);
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
     } finally {
-      _setBusy(false);
+      if (generation === _generation) _setBusy(false);
     }
   }
 
   /* ── Core: send follow-up ── */
   async function _callAI(question) {
+    const generation = ++_generation;
     const typingId = _addTyping();
     _setBusy(true);
     let liveMessage = null;
     let streamedText = '';
+    let pending = null;
 
     try {
       const form = new FormData();
@@ -680,15 +813,21 @@ const ReviewBot = (() => {
           } else if (event === 'done') {
             completed = true;
             finalMessage = payload.message || streamedText;
+          } else if (event === 'pending' && payload.status_url) {
+            pending = payload;
           } else if (event === 'error') {
             throw new Error(payload.message || 'The AI response stream failed.');
           }
         },
       });
 
-      const msg = result.streamed
-        ? (completed ? finalMessage : '')
-        : (result.data.message || '');
+      if (!result.streamed && result.data.pending) pending = result.data;
+
+      const msg = pending
+        ? await _awaitBackground(pending, typingId)
+        : (result.streamed
+          ? (completed ? finalMessage : '')
+          : (result.data.message || ''));
 
       if (!msg) {
         throw new Error('The AI response ended before it was complete.');
@@ -704,11 +843,12 @@ const ReviewBot = (() => {
     } catch (err) {
       _removeTyping(typingId);
       if (liveMessage) liveMessage.remove();
+      if (err && err.superseded) return;
       const msg = _localFallback(_lastRunOutput, true);
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
     } finally {
-      _setBusy(false);
+      if (generation === _generation) _setBusy(false);
     }
   }
 
@@ -847,7 +987,9 @@ const ReviewBot = (() => {
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       if (seconds < 4) return;
       note.hidden = false;
-      note.textContent = `Still reviewing… ${seconds}s`;
+      note.textContent = el.dataset.longWait === '1'
+        ? `Still reviewing… ${_formatElapsed(seconds)}. This is taking longer than usual, but the review keeps going and will appear here. You can keep coding.`
+        : `Still reviewing… ${_formatElapsed(seconds)}`;
     }, 1000);
 
     return id;
@@ -1338,7 +1480,23 @@ const IDE = (() => {
   function switchTab(id) { syncActiveTabContent(); activeTab = id; renderTabBar(); loadTabContent(id); const tab = openTabs.find(t => t.id === id); if (tab) { setText('breadcrumb-file', tab.name); updateStatusLang(tab.name); } }
   function closeTab(id) { syncActiveTabContent(); const idx = openTabs.findIndex(t => t.id === id); if (idx < 0) return; const closingTab = openTabs[idx]; if (closingTab.modified && !confirm(`Close "${closingTab.name}" without saving your changes?`)) return; openTabs.splice(idx, 1); if (activeTab === id) { if (openTabs.length === 0) { activeTab = null; document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; setText('breadcrumb-file', ''); setDisplay('breadcrumb-sep', 'none'); } else { const next = openTabs[Math.min(idx, openTabs.length - 1)]; switchTab(next.id); return; } } renderTabBar(); }
   async function save() { if (activeTab === null) return false; syncActiveTabContent(); const tab = openTabs.find(t => t.id === activeTab); if (!tab) return false; setStatus('Saving…'); try { await api(`${NODES_URL}/${encodeURIComponent(tab.id)}/save`, 'PATCH', { content: tab.content }); tab.modified = false; renderTabBar(); flashSave('Saved'); setStatus('Saved'); return true; } catch(e) { termPrint('error', 'Save failed: ' + e.message); setStatus('Save failed'); return false; } }
-  function flashSave(msg) { const el = byId('save-indicator'); if (!el) return; el.textContent = msg; el.style.display = 'inline'; el.className = 'save-flash'; setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 2000); }
+  let saveFlashTimer = null;
+  function flashSave(msg) {
+    // Confirm inside the Save button (fixed width) so the layout never moves.
+    const live = byId('save-indicator');
+    const button = byId('btn-save');
+    const label = byId('btn-save-label');
+    if (live) live.textContent = msg;
+    if (!button || !label) return;
+    clearTimeout(saveFlashTimer);
+    button.classList.add('is-saved');
+    label.textContent = msg;
+    saveFlashTimer = setTimeout(() => {
+      button.classList.remove('is-saved');
+      label.textContent = 'Save';
+      if (live) live.textContent = '';
+    }, 1600);
+  }
 
   let currentInputResolve = null;
 

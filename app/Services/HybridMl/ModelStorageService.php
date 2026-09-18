@@ -126,6 +126,7 @@ class ModelStorageService
                         'educational' => $educational,
                         'feature_importance' => $result['feature_importance'] ?? [],
                         'prediction_schema' => $result['prediction_schema'] ?? [],
+                        'training_summary' => (array) ($result['training_summary'] ?? []),
                     ],
                     'training_time_ms' => (int) ($result['training_time_ms'] ?? $job->duration_ms ?? 0),
                     'python_version' => $result['python_version'] ?? null,

@@ -250,6 +250,13 @@ Route::middleware(['auth', 'active', 'student'])->group(function () {
     Route::post('/api/code-review', [CodeReviewController::class, 'review'])
         ->middleware('throttle:code-review')
         ->name('api.code-review');
+    Route::post('/api/code-review/warm', [CodeReviewController::class, 'warm'])
+        ->middleware('throttle:code-review-status')
+        ->name('api.code-review.warm');
+    Route::get('/api/code-review/{review}/status', [CodeReviewController::class, 'status'])
+        ->whereUuid('review')
+        ->middleware('throttle:code-review-status')
+        ->name('api.code-review.status');
 });
 
 Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')->group(function () {

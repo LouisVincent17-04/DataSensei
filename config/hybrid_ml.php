@@ -5,6 +5,9 @@ return [
     'runner_driver' => env('ML_RUNNER_DRIVER', 'docker'),
     'local_python_binary' => env('ML_LOCAL_PYTHON', 'python'),
     'queue_name' => env('ML_QUEUE_NAME', 'machine-learning'),
+    // Start a short-lived worker automatically when a job is queued and no
+    // start-ml-worker.bat window is running. It exits when the queue is empty.
+    'auto_start_worker' => (bool) env('ML_AUTO_START_WORKER', true),
     'runner_image' => env('ML_RUNNER_IMAGE', env('PYTHON_SANDBOX_DOCKER_IMAGE', 'datasensei-python-runner:latest')),
     'docker_binary' => env('ML_DOCKER_BINARY', 'docker'),
     'training_timeout_seconds' => (int) env('ML_TRAINING_TIMEOUT', 600),

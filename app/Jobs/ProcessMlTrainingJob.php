@@ -25,15 +25,22 @@ class ProcessMlTrainingJob implements ShouldQueue, ShouldBeUnique
     public int $timeout = 900;
     public int $uniqueFor = 1200;
 
-    public function __construct(public readonly int $trainingJobId)
-    {
+    public function __construct(
+        public readonly int $trainingJobId,
+        public readonly ?string $trainingUuid = null,
+    ) {
         $this->onConnection((string) config('hybrid_ml.queue_connection', 'database'));
         $this->onQueue((string) config('hybrid_ml.queue_name', 'machine-learning'));
     }
 
     public function uniqueId(): string
     {
-        return 'hybrid-ml-training-'.$this->trainingJobId;
+        // The UUID keeps the lock unique even after the database is reset and
+        // ids start again from 1; an id-only lock could silently skip a dispatch.
+        $uuid = $this->trainingUuid
+            ?? (string) TrainingJob::query()->whereKey($this->trainingJobId)->value('uuid');
+
+        return 'hybrid-ml-training-'.$this->trainingJobId.'-'.$uuid;
     }
 
     public function backoff(): array

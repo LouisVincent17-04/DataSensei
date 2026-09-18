@@ -21,6 +21,8 @@ class EnforceIdleSessionTimeout
      */
     private const BACKGROUND_ROUTE_NAMES = [
         'student.notifications.count',
+        'api.code-review.warm',
+        'api.code-review.status',
     ];
 
     public function handle(Request $request, Closure $next): Response

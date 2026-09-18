@@ -4,7 +4,6 @@ namespace App\Services\HybridMl;
 
 use App\Models\ModelVersion;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
@@ -77,7 +76,9 @@ class HybridMlRunnerService
     /** @param array<string,mixed> $inputValues @return array<string,mixed> */
     public function predict(ModelVersion $version, array $inputValues): array
     {
-        $artifact = Storage::disk('local')->path($version->artifact_path);
+        // Artifacts are written with storage_path('app/...') by ModelStorageService and the system seeder.
+        // Laravel 12's "local" disk is rooted at storage/app/private, so it must not be used here.
+        $artifact = storage_path('app/'.ltrim((string) $version->artifact_path, '/\\'));
         if (! is_file($artifact)) {
             throw new RuntimeException('The selected model artifact is missing.');
         }

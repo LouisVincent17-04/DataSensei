@@ -17,6 +17,36 @@
         'step' => 2,
     ]);
     $summary = (array) ($quality?->summary ?? []);
+    $rowTotal = (int) $dataset->row_count;
+    $missingPercent = (float) ($summary['missing_percent'] ?? 0);
+    $duplicatePercent = (float) ($summary['duplicate_percent'] ?? 0);
+    $mixedColumns = count((array) ($summary['mixed_type_columns'] ?? []));
+    $numericColumnCount = count((array) ($profile['numeric_columns'] ?? []));
+    $suggestedTarget = $dataset->target_column ?: ($profile['suggested_target'] ?? null);
+
+    // Plain-language readiness checklist so beginners know what DataSensei will handle for them.
+    $readiness = [
+        $rowTotal >= 100
+            ? ['ok', number_format($rowTotal).' rows – enough examples to learn from and test on.']
+            : ['warn', 'Only '.number_format($rowTotal).' rows. Results can change a lot between runs, so keep the model simple.'],
+        $missingPercent <= 0
+            ? ['ok', 'No empty cells.']
+            : ($missingPercent <= 5
+                ? ['ok', number_format($missingPercent, 1).'% of cells are empty. They will be filled in automatically.']
+                : ['warn', number_format($missingPercent, 1).'% of cells are empty. They will be filled in, but results depend on how.']),
+        $duplicatePercent <= 0
+            ? ['ok', 'No duplicate rows.']
+            : ['warn', number_format($duplicatePercent, 1).'% of rows are duplicates. Keep "Remove duplicate rows" switched on.'],
+        $mixedColumns === 0
+            ? ['ok', 'Every column holds one consistent type of value.']
+            : ['warn', $mixedColumns.' column(s) mix numbers and text. Consider leaving them out as features.'],
+        $numericColumnCount >= 2
+            ? ['ok', $numericColumnCount.' number columns – clustering is also possible.']
+            : ['warn', 'Fewer than two number columns, so clustering is not available.'],
+        $suggestedTarget
+            ? ['ok', 'Suggested target: '.$suggestedTarget.'. You can change it in Step 2.']
+            : ['warn', 'No obvious target column. You will choose one in Step 2, or pick clustering.'],
+    ];
 @endphp
 
 <div class="ml-layout">
@@ -24,11 +54,13 @@
     <main class="ml-main">
         <header class="ml-head">
             <div>
-                <span class="ml-badge {{ $datasetType === 'system' ? 'good' : '' }}">
-                    {{ $datasetType === 'system' ? 'Built-in dataset · Read-only' : 'Uploaded dataset · Private' }}
-                </span>
-                <h1 class="ml-title ds-page-title" style="margin-top:10px">{{ $dataset->name }}</h1>
+                <h1 class="ml-title ds-page-title">{{ $dataset->name }}</h1>
                 <p class="ml-subtitle">{{ $dataset->description ?? 'Review the structure, quality, and sample records before using this dataset.' }}</p>
+                <div class="ml-subtitle-row">
+                    <span class="ml-badge {{ $datasetType === 'system' ? 'good' : '' }}">
+                        {{ $datasetType === 'system' ? 'Built-in dataset · Read-only' : 'Uploaded dataset · Private' }}
+                    </span>
+                </div>
             </div>
             <div class="ml-actions">
                 <a class="ml-btn secondary" href="{{ route('student.model-development.index') }}">Choose Another Dataset</a>
@@ -54,14 +86,23 @@
 
             <div class="ml-roadmap-content">
                 <section class="ml-card">
-                    <span class="ml-step-kicker">Step 1 of 10</span>
-                    <div class="ml-section-head">
-                        <div>
-                            <h2 class="ml-section-title">Review This Dataset</h2>
-                            <p class="ml-muted">Confirm that this is the data you want to use. Continue when you are ready to choose the prediction target.</p>
-                        </div>
-                        <a class="ml-btn" href="{{ $continueUrl }}">Choose Dataset & Continue to Target →</a>
+                    @include('student.model-development.partials.step-header', [
+                        'stepNumber' => 1,
+                        'stepTitle' => 'Is this the right dataset?',
+                        'stepLead' => 'Skim the checklist and the sample rows below. When it looks right, continue to choose what to predict.',
+                    ])
+
+                    <ul class="ml-readiness" aria-label="Dataset readiness">
+                        @foreach($readiness as [$state, $message])
+                            <li><i class="{{ $state }}">{{ $state === 'ok' ? '✓' : '!' }}</i><span>{{ $message }}</span></li>
+                        @endforeach
+                    </ul>
+
+                    <div class="ml-actions" style="margin-top:16px">
+                        <a class="ml-btn" href="{{ $continueUrl }}">Use this dataset & continue →</a>
                     </div>
+
+                    @include('student.model-development.partials.step-guide', ['guideStep' => 1])
                 </section>
 
                 <section class="ml-grid four" style="margin-top:16px">
@@ -114,7 +155,7 @@
                     <div class="ml-section-head">
                         <div>
                             <h2 class="ml-section-title">Columns You Can Use</h2>
-                            <p class="ml-muted">Identifier-like and empty columns are flagged because they should not be used as training features.</p>
+                            <p class="ml-muted">Every column is a possible feature. ID-like and empty columns are flagged because they cannot help a model learn.</p>
                         </div>
                     </div>
                     <div class="ml-table-wrap">
@@ -125,7 +166,17 @@
                                 <tr>
                                     <td><strong>{{ $columnName }}</strong></td>
                                     <td>{{ ucfirst((string) ($column['type'] ?? 'unknown')) }}</td>
-                                    <td>{{ $columnName === $dataset->target_column ? 'Suggested target' : (($column['is_identifier_like'] ?? false) ? 'Identifier-like' : 'Feature') }}</td>
+                                    <td>
+                                        @if($columnName === $suggestedTarget)
+                                            <span class="ml-badge good">Suggested target</span>
+                                        @elseif($column['is_identifier_like'] ?? false)
+                                            <span class="ml-badge warn">ID – not usable</span>
+                                        @elseif(($column['type'] ?? '') === 'empty')
+                                            <span class="ml-badge warn">Empty – not usable</span>
+                                        @else
+                                            Feature
+                                        @endif
+                                    </td>
                                     <td>{{ number_format((float) ($column['missing_percent'] ?? 0), 2) }}%</td>
                                     <td>{{ number_format((int) ($column['unique_count'] ?? 0)) }}</td>
                                     <td>
@@ -169,7 +220,7 @@
                         <div class="ml-section-head">
                             <div>
                                 <h2 class="ml-section-title">Read-only System Benchmarks</h2>
-                                <p class="ml-muted">Pretrained references for comparing your own result later.</p>
+                                <p class="ml-muted">Models DataSensei already trained on this data. After Step 8 you can compare your own score with them.</p>
                             </div>
                         </div>
                         <div class="ml-grid">
@@ -179,12 +230,10 @@
                                         <h3 class="ml-section-title">{{ str($benchmark->algorithm_key)->replace('_', ' ')->title() }}</h3>
                                         <span class="ml-badge {{ $benchmark->is_primary ? 'good' : '' }}">Rank {{ $benchmark->benchmark_rank }}</span>
                                     </div>
-                                    @php($benchmarkMetrics = (array) $benchmark->metrics)
+                                    @php $benchmarkMetrics = (array) $benchmark->metrics; @endphp
                                     <div class="ml-meta">
-                                        @foreach(array_slice($benchmarkMetrics, 0, 4, true) as $key => $value)
-                                            @if(is_numeric($value))
-                                                <div><span>{{ str($key)->replace('_', ' ')->title() }}</span><strong>{{ number_format((float) $value, 2) }}{{ in_array($key, ['accuracy', 'precision', 'recall', 'f1', 'roc_auc'], true) ? '%' : '' }}</strong></div>
-                                            @endif
+                                        @foreach(array_slice(\App\Support\ModelDevelopmentGuide::displayMetrics((string) $dataset->problem_type, $benchmarkMetrics), 0, 4, true) as $key => $value)
+                                            <div><span>{{ \App\Support\ModelDevelopmentGuide::metric((string) $key)['label'] }}</span><strong>{{ \App\Support\ModelDevelopmentGuide::formatMetric((string) $key, $value) }}</strong></div>
                                         @endforeach
                                     </div>
                                     <a class="ml-btn secondary" href="{{ route('student.model-development.models.show', ['model' => $benchmark->ml_model_id, 'step' => 'evaluate']) }}">View Benchmark Evaluation</a>
@@ -198,7 +247,7 @@
 
                 <div class="ml-step-navigation ml-section">
                     <a class="ml-btn secondary" href="{{ route('student.model-development.index') }}">← Back to Dataset Library</a>
-                    <a class="ml-btn" href="{{ $continueUrl }}">Choose Dataset & Continue to Target →</a>
+                    <a class="ml-btn" href="{{ $continueUrl }}">Use this dataset & continue →</a>
                 </div>
 
                 @if($datasetType === 'user' && ! $dataset->models->count())

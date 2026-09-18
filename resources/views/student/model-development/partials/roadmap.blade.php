@@ -17,10 +17,10 @@
     aria-label="Model Development Roadmap">
     <div class="ml-roadmap-heading">
         <div>
-            <span class="ml-roadmap-eyebrow">Model Development Progress</span>
-            <strong data-roadmap-progress-text>
+            <strong class="ml-roadmap-title">Your progress</strong>
+            <small class="ml-roadmap-sub" data-roadmap-progress-text>
                 {{ $roadmapProgress['completed'] }} of {{ $roadmapProgress['total'] }} steps completed
-            </strong>
+            </small>
         </div>
         <span class="ml-roadmap-percent" data-roadmap-percent>{{ $roadmapProgress['percent'] }}%</span>
     </div>

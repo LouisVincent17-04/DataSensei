@@ -583,6 +583,31 @@
 const REVIEW_URL = @json(route('api.code-review'));
 const REVIEW_CLIENT_TIMEOUT_MS = {{ (int) config('code_execution.ollama.client_timeout_ms', 14000) }};
 const EXPIRED_LOGIN_URL = @json(route('login', ['expired' => 1]));
+const REVIEW_POLL_MS = {{ max(1000, (int) config('code_execution.ollama.background_poll_interval_ms', 2000)) }};
+
+// Load the AI reviewer model while the page is open so the first review after
+// a pause does not wait for the model to load. Background request: it does not
+// count as activity for the idle sign-out.
+(() => {
+  const warmUrl = @json(route('api.code-review.warm'));
+  let lastWarm = 0;
+  const warm = () => {
+    if (document.visibilityState !== 'visible' || Date.now() - lastWarm < 60000) return;
+    lastWarm = Date.now();
+    fetch(warmUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-DataSensei-Background': '1',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      },
+    }).catch(() => {});
+  };
+  warm();
+  setInterval(warm, 4 * 60 * 1000);
+  document.addEventListener('visibilitychange', warm);
+})();
 
 function redirectExpiredSession(destination = null) {
   if (window.DataSenseiSession?.redirectToLogin) {
@@ -619,6 +644,9 @@ const ReviewBot = (() => {
   let _lastLang = 'sqlite';
   let _lastRunOutput = '';
   let _activeController = null;
+  // A review that outlived the request keeps going on the server.
+  let _backgroundWait = null;
+  let _generation = 0;
   const _history = [];
 
   const $toggle = () => document.getElementById('rb-toggle');
@@ -655,6 +683,7 @@ const ReviewBot = (() => {
   /* ── Called by runQuery() automatically ── */
   function autoReview(sql, runOutput = '') {
     if (!sql || !sql.trim()) return;
+    if (_backgroundWait) _backgroundWait.cancel();
     _lastCode = sql;
     _lastLang = 'sqlite';
     _lastRunOutput = runOutput || '';
@@ -735,8 +764,92 @@ const ReviewBot = (() => {
       : 'Status: Review Limited\nFeedback: The query completed, but the detailed reviewer was unavailable within the response deadline. Check that the result matches the intended rows and columns.';
   }
 
+  /* ── Wait for a review that continues on the server ── */
+  function _formatElapsed(totalSeconds) {
+    const seconds = Math.max(0, Math.round(totalSeconds));
+    if (seconds < 60) return `${seconds}s`;
+    return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, '0')}s`;
+  }
+
+  async function _awaitBackground(pending, typingId) {
+    const startedAt = Date.now();
+    const wait = { cancelled: false, onCancel: null };
+    const bubble = document.getElementById(typingId);
+    const note = document.createElement('div');
+    note.className = 'rb-line';
+    note.style.cssText = 'color:var(--dim);margin-top:6px;font-size:.72rem';
+    if (bubble) bubble.querySelector('.rb-bubble').appendChild(note);
+    const tick = setInterval(() => {
+      note.textContent = `Still reviewing… ${_formatElapsed((Date.now() - startedAt) / 1000)}. This is taking longer than usual, but the review keeps going and will appear here.`;
+    }, 1000);
+
+    wait.cancel = () => {
+      wait.cancelled = true;
+      clearInterval(tick);
+      const current = document.getElementById(typingId);
+      if (current) {
+        current.removeAttribute('id');
+        current.classList.remove('rb-typing');
+        current.querySelector('.rb-bubble').innerHTML = '<div class="rb-line" style="color:var(--dim)">This review was replaced by your newer query.</div>';
+      }
+      if (wait.onCancel) wait.onCancel();
+    };
+    _backgroundWait = wait;
+
+    let failures = 0;
+    try {
+      while (true) {
+        await new Promise(resolve => {
+          const timer = setTimeout(resolve, REVIEW_POLL_MS);
+          wait.onCancel = () => { clearTimeout(timer); resolve(); };
+        });
+        if (wait.cancelled) {
+          const error = new Error('Replaced by a newer query.');
+          error.superseded = true;
+          throw error;
+        }
+
+        let response;
+        let data = {};
+        try {
+          response = await fetch(pending.status_url, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-DataSensei-Background': '1' },
+            cache: 'no-store',
+          });
+          if (await redirectWhenSessionExpired(response)) {
+            const error = new Error('Your session expired. Redirecting to sign in.');
+            error.sessionExpired = true;
+            throw error;
+          }
+          data = await _readJsonResponse(response);
+        } catch (error) {
+          if (error?.sessionExpired) throw error;
+          failures++;
+          if (failures >= 6) throw error;
+          continue;
+        }
+
+        if (response.status === 404 || data.status === 'missing') {
+          throw new Error(data.message || 'The background review is no longer available.');
+        }
+        if (!response.ok) {
+          failures++;
+          if (failures >= 6) throw new Error(`Review status failed with HTTP ${response.status}.`);
+          continue;
+        }
+
+        failures = 0;
+        if (data.status === 'done') return data.message || '';
+      }
+    } finally {
+      clearInterval(tick);
+      if (_backgroundWait === wait) _backgroundWait = null;
+    }
+  }
+
   /* ── Core: send SQL for review ── */
   async function _sendReview(code, lang) {
+    const generation = ++_generation;
     const typingId = _addTyping();
     _setBusy(true);
 
@@ -749,29 +862,32 @@ const ReviewBot = (() => {
 
       const res  = await _postReview(form);
       const data = await _readJsonResponse(res);
-      _removeTyping(typingId);
 
       if (!res.ok || !data.ok) {
         throw new Error(data.message || `Review request failed with HTTP ${res.status}.`);
       }
 
-      const msg  = data.message || '';
+      const msg  = data.pending
+        ? await _awaitBackground(data, typingId)
+        : (data.message || '');
+      _removeTyping(typingId);
       const html = _formatReview(msg);
       _addBot(html);
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      if (err?.sessionExpired) return;
+      if (err?.sessionExpired || err?.superseded) return;
       const msg = _localFallback(_lastRunOutput, false);
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
     } finally {
-      _setBusy(false);
+      if (generation === _generation) _setBusy(false);
     }
   }
 
   /* ── Core: send follow-up ── */
   async function _callAI(messages) {
+    const generation = ++_generation;
     const typingId = _addTyping();
     _setBusy(true);
 
@@ -786,11 +902,15 @@ const ReviewBot = (() => {
       form.append('stream', '1');
 
       let finalMessage = '';
+      let pending = null;
       const res = await _postReview(form, async response => {
         await _readEventStream(response, event => {
           if (event.event === 'done') finalMessage = event.data.message || '';
+          if (event.event === 'pending' && event.data.status_url) pending = event.data;
         });
       });
+
+      if (pending) finalMessage = await _awaitBackground(pending, typingId);
       _removeTyping(typingId);
 
       if (!res.ok || !finalMessage) throw new Error(`Follow-up request failed with HTTP ${res.status}.`);
@@ -800,12 +920,12 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } catch (err) {
       _removeTyping(typingId);
-      if (err?.sessionExpired) return;
+      if (err?.sessionExpired || err?.superseded) return;
       const msg = _localFallback(_lastRunOutput, true);
       _addBot(_formatReview(msg));
       _history.push({ role: 'assistant', content: msg });
     } finally {
-      _setBusy(false);
+      if (generation === _generation) _setBusy(false);
     }
   }
 

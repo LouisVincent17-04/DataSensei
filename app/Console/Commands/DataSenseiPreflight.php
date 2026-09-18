@@ -499,6 +499,15 @@ class DataSenseiPreflight extends Command
                 $this->pass($configuredModel !== ''
                     ? "Ollama is responding and model '{$configuredModel}' is installed."
                     : 'Optional Ollama service is responding.');
+
+                // Load the model now so the first student review does not wait for it.
+                $warmup = app(\App\Services\CodeReview\OllamaWarmupService::class)->warm(120);
+                $seconds = number_format($warmup['elapsed_ms'] / 1000, 1);
+                if (in_array($warmup['status'], ['ready', 'loaded'], true)) {
+                    $this->pass("AI reviewer model is loaded in memory ({$seconds}s).");
+                } elseif ($warmup['status'] !== 'disabled') {
+                    $this->recordWarning($warmup['message']);
+                }
             } else {
                 $this->recordWarning('Optional Ollama service did not return a successful health response.');
             }

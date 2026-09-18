@@ -16,6 +16,21 @@ body{font-family:Arial,sans-serif;color:#111;margin:32px;line-height:1.45}h1{fon
     $recommendedAlgorithms = (array) ($summary['recommended_algorithms'] ?? []);
     $classBalance = (array) ($summary['class_balance'] ?? []);
     $datasetName = $model->dataset?->name ?? $model->userDataset?->name ?? 'Dataset';
+    $guide = \App\Support\ModelDevelopmentGuide::class;
+    $verdict = $guide::verdict((string) $model->problem_type, $metrics);
+    $reportMetrics = $guide::displayMetrics((string) $model->problem_type, $metrics);
+    $hyperparameters = (array) $version->hyperparameters;
+    // Stored as {parameters, preprocessing, configuration}; only the first two are meaningful in a report.
+    $parameterRows = (array) ($hyperparameters['parameters'] ?? []);
+    $preprocessingRows = array_filter(
+        (array) ($hyperparameters['preprocessing'] ?? []),
+        static fn ($value) => is_scalar($value) || $value === null
+    );
+    if ($parameterRows === [] && ! array_key_exists('parameters', $hyperparameters) && ! array_key_exists('preprocessing', $hyperparameters)) {
+        $parameterRows = array_filter($hyperparameters, static fn ($value) => is_scalar($value) || $value === null);
+    }
+    $configuration = (array) ($hyperparameters['configuration'] ?? []);
+    $formatValue = static fn ($value) => is_bool($value) ? ($value ? 'Yes' : 'No') : ($value === null ? '—' : (is_array($value) ? json_encode($value) : (string) $value));
 @endphp
 <button class="print" onclick="window.print()">Print Report</button>
 <h1>{{ $model->name }}</h1>
@@ -33,30 +48,25 @@ body{font-family:Arial,sans-serif;color:#111;margin:32px;line-height:1.45}h1{fon
     <div class="box"><span>Class Balance</span><strong>{{ $classBalance['label'] ?? 'Not applicable' }}</strong></div>
 </div>
 
+<h2>Quick Verdict</h2>
+<p><strong>{{ $verdict['title'] }}</strong> ({{ $verdict['metric'] }}: {{ $verdict['value'] }}). {{ $verdict['summary'] }}</p>
+<ul>@foreach($verdict['next_steps'] as $item)<li>{{ $item }}</li>@endforeach</ul>
+<p class="muted">The verdict is a classroom rule of thumb, not a guarantee of real-world performance.</p>
+
 <h2>Model Metrics</h2>
 <table class="table">
 <thead><tr><th>Metric</th><th>Value</th><th>Interpretation</th></tr></thead>
 <tbody>
-@foreach($metrics as $key=>$value)
-@if(is_numeric($value))
+@forelse($reportMetrics as $key=>$value)
+@php $metricInfo = $guide::metric((string) $key); @endphp
 <tr>
-    <td>{{ str($key)->replace('_',' ')->title() }}</td>
-    <td>{{ number_format((float)$value,4) }}{{ in_array($key,['accuracy','precision','recall','f1','roc_auc','average_precision']) ? '%' : '' }}</td>
-    <td>@switch($key)
-        @case('accuracy') Share of test records classified correctly. @break
-        @case('precision') Reliability of positive predictions, weighted across classes. @break
-        @case('recall') Share of actual class cases recovered, weighted across classes. @break
-        @case('f1') Balance between precision and recall. @break
-        @case('roc_auc') Ability to rank classes across probability thresholds. @break
-        @case('rmse') Typical regression error with larger errors penalized more strongly. Lower is better. @break
-        @case('mae') Average absolute regression error. Lower is better. @break
-        @case('r2') Share of target variation explained on the test split. @break
-        @case('silhouette') Separation and cohesion of clusters. Higher is better. @break
-        @default Measured during the stored evaluation run.
-    @endswitch</td>
+    <td>{{ $metricInfo['label'] }}</td>
+    <td>{{ $guide::formatMetric((string) $key, $value) }}</td>
+    <td>{{ $metricInfo['plain'] }}@if($metricInfo['better']) {{ $metricInfo['better'] === 'higher' ? 'Higher is better.' : 'Lower is better.' }}@endif</td>
 </tr>
-@endif
-@endforeach
+@empty
+<tr><td colspan="3">No numeric metrics were recorded for this version.</td></tr>
+@endforelse
 </tbody>
 </table>
 
@@ -68,9 +78,9 @@ body{font-family:Arial,sans-serif;color:#111;margin:32px;line-height:1.45}h1{fon
 <tbody>
 @foreach($comparison['rows'] as $row)
 <tr>
-    <td>{{ str($row['metric'])->replace('_',' ')->title() }}</td>
-    <td>{{ number_format((float)$row['user'],3) }}</td>
-    <td>{{ number_format((float)$row['system'],3) }}</td>
+    <td>{{ $guide::metric((string) $row['metric'])['label'] }}</td>
+    <td>{{ $guide::formatMetric((string) $row['metric'], $row['user']) }}</td>
+    <td>{{ $guide::formatMetric((string) $row['metric'], $row['system']) }}</td>
     <td>{{ ($row['difference'] >= 0 ? '+' : '').number_format((float)$row['difference'],3) }}</td>
     <td class="status {{ $row['status'] }}">{{ ucfirst($row['status']) }}</td>
 </tr>
@@ -108,7 +118,20 @@ body{font-family:Arial,sans-serif;color:#111;margin:32px;line-height:1.45}h1{fon
     <div class="box"><span>Training Time</span><strong>{{ number_format(($version->training_time_ms ?? 0)/1000,3) }} s</strong></div>
     <div class="box"><span>Runtime</span><strong>Python {{ $version->python_version }} / sklearn {{ $version->sklearn_version }}</strong></div>
 </div>
+@if($configuration !== [])
+<h3>Setup Choices</h3>
+<table class="table"><tbody>
+<tr><th>Features</th><td>{{ implode(', ', (array) ($configuration['features'] ?? $version->feature_names ?? [])) }}</td></tr>
+<tr><th>Train/Test Split</th><td>{{ isset($configuration['test_size']) ? (100 - (int) round((float) $configuration['test_size'] * 100)).'% training / '.(int) round((float) $configuration['test_size'] * 100).'% testing' : 'All rows (clustering)' }}</td></tr>
+<tr><th>Random State</th><td>{{ $formatValue($configuration['random_state'] ?? null) }}</td></tr>
+<tr><th>Cross-validation</th><td>{{ (int) ($configuration['cross_validation'] ?? 0) > 0 ? (int) $configuration['cross_validation'].' folds' : 'Disabled' }}</td></tr>
+</tbody></table>
+@endif
 <h3>Hyperparameters</h3>
-<table class="table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>@forelse((array)$version->hyperparameters as $key=>$value)<tr><td>{{ $key }}</td><td>{{ is_array($value) ? json_encode($value) : (is_bool($value) ? ($value?'true':'false') : $value) }}</td></tr>@empty<tr><td colspan="2">Default parameters were used.</td></tr>@endforelse</tbody></table>
+<table class="table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>@forelse($parameterRows as $key=>$value)<tr><td>{{ str($key)->replace('_',' ')->title() }}</td><td>{{ $formatValue($value) }}</td></tr>@empty<tr><td colspan="2">Default parameters were used.</td></tr>@endforelse</tbody></table>
+@if($preprocessingRows !== [])
+<h3>Preprocessing</h3>
+<table class="table"><thead><tr><th>Step</th><th>Value</th></tr></thead><tbody>@foreach($preprocessingRows as $key=>$value)<tr><td>{{ str($key)->replace('_',' ')->title() }}</td><td>{{ $formatValue($value) }}</td></tr>@endforeach</tbody></table>
+@endif
 </body>
 </html>

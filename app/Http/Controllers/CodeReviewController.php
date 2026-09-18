@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CodeReview\BackgroundCodeReviewService;
+use App\Services\CodeReview\OllamaWarmupService;
 use App\Services\ExecutionErrorDiagnosticService;
 use App\Services\SimpleCodeReviewService;
 use Illuminate\Contracts\Cache\Lock;
@@ -46,7 +48,9 @@ PROMPT;
 
     public function __construct(
         private readonly ExecutionErrorDiagnosticService $executionDiagnostics,
-        private readonly SimpleCodeReviewService $simpleReview
+        private readonly SimpleCodeReviewService $simpleReview,
+        private readonly BackgroundCodeReviewService $backgroundReviews,
+        private readonly OllamaWarmupService $warmup
     ) {
     }
 
@@ -211,8 +215,18 @@ PROMPT;
         /** @var array<int, Lock> $locks */
         $locks = $lockResult['locks'];
 
+        $continueInBackground = fn (string $outcome): ?string => $outcome === 'timeout'
+            ? $this->backgroundReviews->start(
+                $this->reviewerKey($request),
+                $mode,
+                $payload,
+                $language,
+                $rawRunOutput
+            )
+            : null;
+
         if ($shouldStream) {
-            return $this->streamChatResponse($payload, $locks, $baseTiming, $startedAt, $fallbackFor);
+            return $this->streamChatResponse($payload, $locks, $baseTiming, $startedAt, $fallbackFor, $continueInBackground);
         }
 
         $ollamaStartedAt = hrtime(true);
@@ -223,6 +237,13 @@ PROMPT;
             $this->releaseLocks($locks);
             $failure = $this->exceptionFailure($exception);
             $this->logServiceFailure($baseTiming, $failure['outcome'], $exception::class, $exception->getMessage());
+
+            // The model is still working: keep reviewing in the background
+            // instead of reporting "Not Reviewed".
+            $backgroundId = $continueInBackground($failure['outcome']);
+            if ($backgroundId !== null) {
+                return $this->pendingResponse($mode, $backgroundId, $baseTiming, $startedAt, $ollamaStartedAt);
+            }
 
             return $this->jsonFallback(
                 $mode,
@@ -238,153 +259,250 @@ PROMPT;
         $this->releaseLocks($locks);
         $ollamaWallMs = $this->elapsedMilliseconds($ollamaStartedAt, $ollamaCompletedAt);
 
-        if ($response->failed()) {
-            $failure = $this->responseFailure($response);
-            $this->logServiceFailure($baseTiming, $failure['outcome'], 'http_'.$response->status(), $failure['detail']);
-
-            return $this->jsonFallback(
-                $mode,
-                $fallbackFor,
-                $baseTiming,
-                $startedAt,
-                $failure['outcome'],
-                ['ollama_generation_ms' => $ollamaWallMs]
-            );
-        }
-
         $responseProcessingStartedAt = hrtime(true);
-        $body = json_decode($response->body(), true);
+        $result = $this->interpretOllamaResponse($response, $isChat, $baseTiming);
+        $processingTiming = [
+            'ollama_generation_ms' => $ollamaWallMs,
+            'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
+        ];
 
-        if (! is_array($body)) {
-            return $this->jsonFallback(
-                $mode,
-                $fallbackFor,
-                $baseTiming,
-                $startedAt,
-                'malformed_response',
-                [
-                    'ollama_generation_ms' => $ollamaWallMs,
-                    'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
-                ]
-            );
-        }
-
-        $embeddedError = trim((string) ($body['error'] ?? ''));
-        if ($embeddedError !== '') {
-            $failure = $this->failureForDetail(500, $embeddedError);
-            $this->logServiceFailure($baseTiming, $failure['outcome'], 'ollama_error', $embeddedError);
-
-            return $this->jsonFallback(
-                $mode,
-                $fallbackFor,
-                $baseTiming,
-                $startedAt,
-                $failure['outcome'],
-                [
-                    'ollama_generation_ms' => $ollamaWallMs,
-                    'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
-                ]
-            );
-        }
-
-        if (($body['done'] ?? null) !== true) {
-            return $this->jsonFallback(
-                $mode,
-                $fallbackFor,
-                $baseTiming,
-                $startedAt,
-                'incomplete_response',
-                [
-                    'ollama_generation_ms' => $ollamaWallMs,
-                    'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
-                ]
-            );
-        }
-
-        $rawMessage = trim((string) ($body['response'] ?? ''));
-
-        if ($rawMessage === '') {
-            return $this->jsonFallback(
-                $mode,
-                $fallbackFor,
-                $baseTiming,
-                $startedAt,
-                'empty_response',
-                [
-                    'ollama_generation_ms' => $ollamaWallMs,
-                    'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
-                ]
-            );
-        }
-
-        $maxResponseChars = (int) config('code_execution.ollama.max_response_chars', 6000);
-        if (Str::length($rawMessage) > $maxResponseChars) {
-            return $this->jsonFallback(
-                $mode,
-                $fallbackFor,
-                $baseTiming,
-                $startedAt,
-                'response_too_large',
-                [
-                    'ollama_generation_ms' => $ollamaWallMs,
-                    'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
-                ]
-            );
-        }
-
-        if ($isChat) {
-            $message = $this->cleanChatResponse($rawMessage);
-        } else {
-            $review = $this->decodeReview($rawMessage);
-
-            if ($review === null) {
-                return $this->jsonFallback(
-                    $mode,
-                    $fallbackFor,
-                    $baseTiming,
-                    $startedAt,
-                    'invalid_review',
-                    [
-                        'ollama_generation_ms' => $ollamaWallMs,
-                        'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
-                    ]
-                );
+        if ($result['outcome'] !== 'success') {
+            $backgroundId = $continueInBackground($result['outcome']);
+            if ($backgroundId !== null) {
+                return $this->pendingResponse($mode, $backgroundId, $baseTiming, $startedAt, $ollamaStartedAt);
             }
 
-            $message = $this->formatReview($review);
-        }
-
-        if ($message === '') {
             return $this->jsonFallback(
                 $mode,
                 $fallbackFor,
                 $baseTiming,
                 $startedAt,
-                'empty_processed_response',
-                [
-                    'ollama_generation_ms' => $ollamaWallMs,
-                    'response_processing_ms' => $this->elapsedMilliseconds($responseProcessingStartedAt),
-                ]
+                $result['outcome'],
+                $processingTiming
             );
         }
 
-        $responseProcessingMs = $this->elapsedMilliseconds($responseProcessingStartedAt);
         $this->recordTiming(
             $baseTiming,
             $startedAt,
             'success',
             array_merge([
                 'ollama_generation_ms' => $ollamaWallMs,
-                'response_processing_ms' => $responseProcessingMs,
+                'response_processing_ms' => $processingTiming['response_processing_ms'],
                 'time_to_first_token_ms' => null,
-            ], $this->ollamaMetrics($body))
+            ], $this->ollamaMetrics($result['body']))
         );
 
         return response()->json([
             'ok' => true,
             'mode' => $mode,
-            'message' => $message,
+            'message' => $result['message'],
         ]);
+    }
+
+    /**
+     * Called when the IDE or SQL Sandbox opens (and every few minutes while it
+     * stays open) so the model is already in memory when the student runs code.
+     */
+    public function warm(): JsonResponse
+    {
+        return response()->json([
+            'ok' => true,
+            'started' => $this->warmup->warmInBackground(),
+        ]);
+    }
+
+    /**
+     * Status of a review that continued in the background.
+     */
+    public function status(Request $request, string $review): JsonResponse
+    {
+        $status = $this->backgroundReviews->statusFor($review, $this->reviewerKey($request));
+
+        if ($status === null) {
+            return response()->json([
+                'ok' => false,
+                'status' => 'missing',
+                'message' => 'This review is no longer available. Run the program again to request a new review.',
+            ], 404);
+        }
+
+        return response()->json(array_merge(['ok' => true, 'review_id' => $review], $status));
+    }
+
+    /**
+     * Finishes a background review with no web deadline. Called by the
+     * code-review:process command.
+     *
+     * @param array<string, mixed> $job
+     * @return array{outcome: string, message: string, fallback: bool}
+     */
+    public function completeBackgroundReview(array $job): array
+    {
+        $isChat = ($job['mode'] ?? 'review') === 'chat';
+        $language = (string) ($job['language'] ?? 'python');
+        $runOutput = (string) ($job['run_output'] ?? '');
+        $payload = (array) ($job['payload'] ?? []);
+        $payload['stream'] = false;
+        $context = ['request_id' => (string) ($job['id'] ?? ''), 'mode' => $isChat ? 'chat' : 'review', 'background' => true];
+        $fallback = fn (string $outcome): array => [
+            'outcome' => $outcome,
+            'message' => $this->executionDiagnostics->fallback($language, $runOutput, $isChat, $outcome),
+            'fallback' => true,
+        ];
+
+        $timeout = max(0, (int) config('code_execution.ollama.background_timeout_seconds', 0));
+        $slotLock = $this->waitForBackgroundSlot($timeout);
+
+        try {
+            $response = Http::acceptJson()
+                ->asJson()
+                ->connectTimeout((int) config('code_execution.ollama.connect_timeout_seconds', 3))
+                ->timeout($timeout)
+                ->post((string) config('code_execution.ollama.url', 'http://127.0.0.1:11434/api/generate'), $payload);
+        } catch (Throwable $exception) {
+            $failure = $this->exceptionFailure($exception);
+            $this->logServiceFailure($context, $failure['outcome'], $exception::class, $exception->getMessage());
+
+            return $fallback($failure['outcome']);
+        } finally {
+            if ($slotLock instanceof Lock) {
+                $this->releaseLocks([$slotLock]);
+            }
+        }
+
+        $result = $this->interpretOllamaResponse($response, $isChat, $context);
+
+        return $result['outcome'] === 'success'
+            ? ['outcome' => 'success', 'message' => (string) $result['message'], 'fallback' => false]
+            : $fallback($result['outcome']);
+    }
+
+    /**
+     * Shared by the live request and the background command.
+     *
+     * @param array<string, mixed> $logContext
+     * @return array{outcome: string, message: ?string, body: array<string, mixed>}
+     */
+    private function interpretOllamaResponse(Response $response, bool $isChat, array $logContext): array
+    {
+        $result = static fn (string $outcome, ?string $message = null, array $body = []): array => [
+            'outcome' => $outcome,
+            'message' => $message,
+            'body' => $body,
+        ];
+
+        if ($response->failed()) {
+            $failure = $this->responseFailure($response);
+            $this->logServiceFailure($logContext, $failure['outcome'], 'http_'.$response->status(), $failure['detail']);
+
+            return $result($failure['outcome']);
+        }
+
+        $body = json_decode($response->body(), true);
+        if (! is_array($body)) {
+            return $result('malformed_response');
+        }
+
+        $embeddedError = trim((string) ($body['error'] ?? ''));
+        if ($embeddedError !== '') {
+            $failure = $this->failureForDetail(500, $embeddedError);
+            $this->logServiceFailure($logContext, $failure['outcome'], 'ollama_error', $embeddedError);
+
+            return $result($failure['outcome']);
+        }
+
+        if (($body['done'] ?? null) !== true) {
+            return $result('incomplete_response');
+        }
+
+        $rawMessage = trim((string) ($body['response'] ?? ''));
+        if ($rawMessage === '') {
+            return $result('empty_response');
+        }
+
+        if (Str::length($rawMessage) > (int) config('code_execution.ollama.max_response_chars', 6000)) {
+            return $result('response_too_large');
+        }
+
+        if ($isChat) {
+            $message = $this->cleanChatResponse($rawMessage);
+        } else {
+            $review = $this->decodeReview($rawMessage);
+            if ($review === null) {
+                return $result('invalid_review');
+            }
+
+            $message = $this->formatReview($review);
+        }
+
+        if ($message === '') {
+            return $result('empty_processed_response');
+        }
+
+        return $result('success', $message, $body);
+    }
+
+    /** Background work waits its turn instead of overloading the local model. */
+    private function waitForBackgroundSlot(int $timeoutSeconds): ?Lock
+    {
+        $slotCount = max(1, min(2, (int) config('code_execution.ollama.max_concurrent_requests', 1)));
+        $ttl = $timeoutSeconds > 0 ? $timeoutSeconds + 30 : 1800;
+        $waitUntil = time() + 120;
+
+        try {
+            do {
+                for ($slot = 0; $slot < $slotCount; $slot++) {
+                    $lock = Cache::lock('datasensei:code-review:slot:'.$slot, $ttl);
+                    if ($lock->get()) {
+                        return $lock;
+                    }
+                }
+
+                usleep(500000);
+            } while (time() < $waitUntil);
+        } catch (Throwable) {
+            // Continue without a slot rather than never finishing the review.
+        }
+
+        return null;
+    }
+
+    /** @param array<string, mixed> $baseTiming */
+    private function pendingResponse(string $mode, string $reviewId, array $baseTiming, int $startedAt, int $ollamaStartedAt): JsonResponse
+    {
+        $this->recordTiming($baseTiming, $startedAt, 'background_continuation', [
+            'ollama_generation_ms' => $this->elapsedMilliseconds($ollamaStartedAt),
+            'response_processing_ms' => 0.0,
+            'time_to_first_token_ms' => null,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'mode' => $mode,
+            'pending' => true,
+            'review_id' => $reviewId,
+            'status_url' => route('api.code-review.status', ['review' => $reviewId]),
+            'message' => $this->pendingMessage($mode === 'chat'),
+            'source' => 'background_review',
+            'fallback' => false,
+        ]);
+    }
+
+    private function pendingMessage(bool $isChat): string
+    {
+        return $isChat
+            ? 'The AI reviewer needs more time for this answer. It is still working and the answer will appear here.'
+            : 'The AI reviewer needs more time for this program. It is still reviewing and the result will appear here.';
+    }
+
+    private function reviewerKey(Request $request): string
+    {
+        $reviewer = $request->user()?->getAuthIdentifier();
+
+        return $reviewer !== null
+            ? 'user:'.$reviewer
+            : 'ip:'.hash('sha256', (string) $request->ip());
     }
 
     private function buildPayload(bool $isChat, bool $stream, string $prompt): array
@@ -394,7 +512,7 @@ PROMPT;
             'system' => $isChat ? $this->chatSystemPrompt : $this->reviewSystemPrompt,
             'prompt' => $prompt,
             'stream' => $stream,
-            'keep_alive' => (string) config('code_execution.ollama.keep_alive', '30m'),
+            'keep_alive' => OllamaWarmupService::keepAlive(),
             'options' => [
                 'temperature' => $isChat ? 0.2 : 0.1,
                 'num_ctx' => (int) config('code_execution.ollama.num_ctx', 4096),
@@ -455,10 +573,7 @@ PROMPT;
     {
         $timeout = (int) config('code_execution.ollama.timeout_seconds', 30);
         $ttl = max(15, $timeout + 15);
-        $reviewer = $request->user()?->getAuthIdentifier();
-        $reviewerKey = $reviewer !== null
-            ? 'user:'.$reviewer
-            : 'ip:'.hash('sha256', (string) $request->ip());
+        $reviewerKey = $this->reviewerKey($request);
         $userLock = null;
 
         try {
@@ -511,10 +626,29 @@ PROMPT;
         array $locks,
         array $baseTiming,
         int $startedAt,
-        callable $fallbackFor
+        callable $fallbackFor,
+        ?callable $continueInBackground = null
     ): StreamedResponse
     {
-        return response()->stream(function () use ($payload, $locks, $baseTiming, $startedAt, $fallbackFor): void {
+        return response()->stream(function () use ($payload, $locks, $baseTiming, $startedAt, $fallbackFor, $continueInBackground): void {
+            // A slow answer keeps going in a background process; the browser
+            // switches to polling instead of showing "Not Reviewed".
+            $emitPendingOrFallback = function (string $outcome) use ($fallbackFor, $continueInBackground): void {
+                $backgroundId = $continueInBackground !== null ? $continueInBackground($outcome) : null;
+
+                if ($backgroundId !== null) {
+                    $this->emitStreamEvent('pending', [
+                        'review_id' => $backgroundId,
+                        'status_url' => route('api.code-review.status', ['review' => $backgroundId]),
+                        'message' => $this->pendingMessage(true),
+                    ]);
+
+                    return;
+                }
+
+                $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
+            };
+
             $outcome = 'stream_failed';
             $ollamaStartedAt = null;
             $ollamaWallMs = 0.0;
@@ -647,7 +781,8 @@ PROMPT;
 
                 if ($generationTimedOut) {
                     $outcome = 'timeout';
-                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
+                    $this->releaseLocks($locks);
+                    $emitPendingOrFallback($outcome);
 
                     return;
                 }
@@ -706,7 +841,8 @@ PROMPT;
                 $this->logServiceFailure($baseTiming, $outcome, $exception::class, $exception->getMessage());
 
                 if (! connection_aborted()) {
-                    $this->emitStreamEvent('done', ['message' => $fallbackFor($outcome), 'fallback' => true]);
+                    $this->releaseLocks($locks);
+                    $emitPendingOrFallback($outcome);
                 }
             } finally {
                 $this->releaseLocks($locks);

@@ -3,6 +3,7 @@
 namespace App\Services\HybridMl;
 
 use App\Models\AlgorithmConfig;
+use App\Support\ModelDevelopmentGuide;
 use Illuminate\Validation\ValidationException;
 
 class AlgorithmCatalogService
@@ -38,6 +39,8 @@ class AlgorithmCatalogService
                 'when_not_to_use' => array_values((array) ($definition['when_not_to_use'] ?? [])),
                 'expected_training_time' => (string) ($definition['expected_training_time'] ?? 'Depends on dataset size and parameters.'),
                 'expected_behavior' => $this->expectedBehavior($key),
+                'beginner_friendly' => ModelDevelopmentGuide::isBeginnerAlgorithm($key),
+                'analogy' => ModelDevelopmentGuide::algorithmAnalogy($key),
             ];
         }
 
@@ -103,6 +106,10 @@ class AlgorithmCatalogService
             $targetProfile = $schemaProfile['columns'][$target] ?? [];
             if ($problemType === 'classification' && (int) ($targetProfile['unique_count'] ?? 0) < 2) {
                 $errors['target_column'][] = 'Classification requires at least two target classes.';
+            }
+            // Mirrors the trusted runner limit so the student is told before the job is queued.
+            if ($problemType === 'classification' && (int) ($targetProfile['unique_count'] ?? 0) > 100) {
+                $errors['target_column'][] = 'This target has more than 100 different values. Choose Regression for numeric targets or pick a column with fewer categories.';
             }
             if ($problemType === 'regression' && ! in_array($targetProfile['type'] ?? '', ['integer', 'decimal'], true)) {
                 $errors['target_column'][] = 'Regression requires a numeric target column.';

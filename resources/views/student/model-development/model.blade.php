@@ -8,10 +8,21 @@
 </head>
 <body>
 @php
+    $guide = \App\Support\ModelDevelopmentGuide::class;
     $metrics = (array) $version->metrics;
+    $problemType = (string) $model->problem_type;
+    $displayMetrics = $guide::displayMetrics($problemType, $metrics);
+    $verdict = $guide::verdict($problemType, $metrics);
     $predictionSchema = (array) data_get($version->explanations, 'prediction_schema', []);
     $predictions = $version->predictions;
     $trainingJob = $version->trainingJob;
+    $trainingSummary = (array) (data_get($version->explanations, 'training_summary') ?: data_get($model->metadata, 'training_summary', []));
+    $confusion = (array) data_get($metrics, 'confusion_matrix', []);
+    $confusionLabels = array_values((array) ($confusion['labels'] ?? []));
+    $confusionValues = array_values((array) ($confusion['values'] ?? []));
+    $clusterSizes = (array) data_get($metrics, 'cluster_sizes', []);
+    $importance = array_slice((array) data_get($version->explanations, 'feature_importance', []), 0, 12);
+    $maxImportance = max(array_merge([0.000001], array_map(static fn ($item) => abs((float) ($item['value'] ?? 0)), $importance)));
     $datasetType = $model->dataset_id ? 'system' : 'user';
     $dataset = $model->dataset ?: $model->userDataset;
     $datasetPage = $datasetType === 'system'
@@ -41,12 +52,8 @@
         9 => 8,
         default => 7,
     };
-    $isPercentMetric = static fn (string $key): bool => in_array(
-        $key,
-        ['accuracy', 'precision', 'recall', 'f1', 'roc_auc', 'average_precision'],
-        true
-    );
     $predictionResult = (array) session('prediction_result', []);
+    $algorithmLabel = (string) config('hybrid_ml.algorithms.'.$model->algorithm_key.'.label', str($model->algorithm_key)->replace('_', ' ')->title());
 @endphp
 
 <div class="ml-layout">
@@ -54,13 +61,18 @@
     <main class="ml-main">
         <header class="ml-head">
             <div>
-                <span class="ml-badge {{ $model->isSystemModel() ? 'good' : '' }}">
-                    {{ $model->isSystemModel() ? 'System benchmark · Read-only' : 'User model · Private' }}
-                </span>
-                <h1 class="ml-title ds-page-title" style="margin-top:10px">{{ $model->name }}</h1>
-                <p class="ml-subtitle">{{ str($model->algorithm_key)->replace('_', ' ')->title() }} · {{ ucfirst($model->problem_type) }} · Active {{ $version->version_label }}</p>
+                <h1 class="ml-title ds-page-title">{{ $model->name }}</h1>
+                <div class="ml-subtitle-row">
+                    <p class="ml-subtitle">{{ $algorithmLabel }} · {{ ucfirst($problemType) }} · Active {{ $version->version_label }}</p>
+                    <span class="ml-badge {{ $model->isSystemModel() ? 'good' : '' }}">
+                        {{ $model->isSystemModel() ? 'System benchmark · Read-only' : 'Your model · Private' }}
+                    </span>
+                </div>
             </div>
-            <a class="ml-btn secondary" href="{{ route('student.model-development.index') }}#model-history">Model History</a>
+            <div class="ml-actions">
+                <a class="ml-btn secondary" href="{{ route('student.model-development.models.report', $model) }}" target="_blank" rel="noopener">Open Report</a>
+                <a class="ml-btn secondary" href="{{ route('student.model-development.index') }}#model-history">Model History</a>
+            </div>
         </header>
 
         @if(session('success'))
@@ -84,29 +96,55 @@
             </aside>
 
             <div class="ml-roadmap-content">
+                {{-- STEP 8: EVALUATE --}}
                 <section class="ml-result-section" @if($roadmapCurrent !== 8) hidden @endif data-result-step="evaluate">
                     <div class="ml-card">
-                        <span class="ml-step-kicker">Step 8 of 10</span>
-                        <h2 class="ml-section-title">Evaluate the Trained Model</h2>
-                        <p class="ml-muted">These measurements and charts were calculated from the actual training result. Use them to decide whether the model is useful before making a new prediction.</p>
+                        @include('student.model-development.partials.step-header', [
+                            'stepNumber' => 8,
+                            'stepTitle' => 'How well did your model do?',
+                            'stepLead' => $problemType === 'clustering'
+                                ? 'Clustering has no right answers, so these scores describe how clearly the groups are separated. Start with the quick verdict, then look at the details.'
+                                : 'These scores were measured on test rows the model never saw during training. Start with the quick verdict, then look at the details.',
+                        ])
+                        @include('student.model-development.partials.step-guide', ['guideStep' => 8])
                     </div>
 
+                    <section class="ml-verdict {{ $verdict['level'] }}" style="margin-top:16px" aria-label="Quick verdict">
+                        <div class="ml-verdict-score">
+                            <strong>{{ $verdict['value'] }}</strong>
+                            <span>{{ $verdict['metric'] }}</span>
+                        </div>
+                        <div>
+                            <h3>{{ $verdict['title'] }}</h3>
+                            <p>{{ $verdict['summary'] }}</p>
+                            <ul>
+                                @foreach($verdict['next_steps'] as $item)
+                                    <li>{{ $item }}</li>
+                                @endforeach
+                            </ul>
+                            <div class="ml-verdict-foot">This quick rating is a classroom rule of thumb. Whether a score is "good enough" depends on the real-world use.</div>
+                        </div>
+                    </section>
+
                     <div class="ml-grid four" style="margin-top:16px">
-                        @forelse($metrics as $key => $value)
-                            @if(is_numeric($value) && $key !== 'mse')
-                                <div class="ml-card ml-stat">
-                                    <span>{{ str($key)->replace('_', ' ')->title() }}</span>
-                                    <strong>{{ number_format((float) $value, $isPercentMetric($key) ? 2 : 4) }}{{ $isPercentMetric($key) ? '%' : '' }}</strong>
-                                </div>
-                            @endif
+                        @forelse($displayMetrics as $key => $value)
+                            @php $metricInfo = $guide::metric((string) $key); @endphp
+                            <div class="ml-card ml-stat">
+                                <span>{{ $metricInfo['label'] }}</span>
+                                <strong>{{ $guide::formatMetric((string) $key, $value) }}</strong>
+                                <small>{{ $metricInfo['plain'] }}</small>
+                                @if($metricInfo['better'])
+                                    <span class="ml-better">{{ $metricInfo['better'] === 'higher' ? 'Higher is better' : 'Lower is better' }}</span>
+                                @endif
+                            </div>
                         @empty
                             <div class="ml-card"><p class="ml-muted">No numeric metrics are available for this version.</p></div>
                         @endforelse
                     </div>
 
-                    <section class="ml-section ml-grid two">
+                    <section class="ml-section ml-grid {{ $importance === [] && $problemType === 'clustering' ? '' : 'two' }}" @if($importance === [] && $problemType === 'clustering') style="grid-template-columns:1fr" @endif>
                         <div class="ml-card">
-                            <h3 class="ml-section-title">What the Results Mean</h3>
+                            <h3 class="ml-section-title">What the results mean</h3>
                             <ul class="ml-list">
                                 @forelse((array) data_get($version->explanations, 'educational', []) as $item)
                                     <li>{{ $item }}</li>
@@ -115,53 +153,106 @@
                                 @endforelse
                             </ul>
                             <div class="ml-meta">
-                                <div><span>Training time</span><strong>{{ number_format($version->training_time_ms / 1000, 3) }} seconds</strong></div>
-                                <div><span>Features</span><strong>{{ count((array) $version->feature_names) }}</strong></div>
+                                @if(isset($trainingSummary['train_rows']))
+                                    <div><span>Rows used to learn</span><strong>{{ number_format((int) $trainingSummary['train_rows']) }}</strong></div>
+                                    <div><span>Rows used to test</span><strong>{{ (int) ($trainingSummary['test_rows'] ?? 0) > 0 ? number_format((int) $trainingSummary['test_rows']) : 'All rows (clustering)' }}</strong></div>
+                                @endif
+                                <div><span>Training time</span><strong>{{ number_format(($version->training_time_ms ?? 0) / 1000, 3) }} seconds</strong></div>
+                                <div><span>Features used</span><strong>{{ count((array) $version->feature_names) }}</strong></div>
                                 <div><span>Target</span><strong>{{ $version->target_column ?: 'No target' }}</strong></div>
                                 <div><span>Runtime</span><strong>Python {{ $version->python_version ?: 'Unknown' }} · sklearn {{ $version->sklearn_version ?: 'Unknown' }}</strong></div>
                             </div>
                         </div>
 
+                        @if($importance !== [] || $problemType !== 'clustering')
                         <div class="ml-card">
-                            <h3 class="ml-section-title">Feature Influence</h3>
-                            @php($importance = (array) data_get($version->explanations, 'feature_importance', []))
+                            <h3 class="ml-section-title">Which columns mattered most?</h3>
+                            <p class="ml-muted" style="font-size:.78rem">Longer bars had more influence on this model's decisions. Influence is not the same as cause.</p>
                             <div class="ml-table-wrap" style="margin-top:14px">
                                 <table class="ml-table">
                                     <thead><tr><th>Feature</th><th>Influence</th><th>Method</th></tr></thead>
                                     <tbody>
-                                    @forelse(array_slice($importance, 0, 12) as $item)
+                                    @forelse($importance as $item)
+                                        @php $influence = abs((float) ($item['value'] ?? 0)); @endphp
                                         <tr>
-                                            <td>{{ $item['feature'] }}</td>
-                                            <td>{{ number_format(abs((float) $item['value']), 5) }}</td>
-                                            <td>{{ str($item['kind'] ?? 'importance')->replace('_', ' ')->title() }}</td>
+                                            <td>{{ $item['feature'] ?? 'Feature' }}</td>
+                                            <td>
+                                                <div style="display:flex;align-items:center;gap:8px">
+                                                    <div class="ml-progress" style="width:64px;height:8px;flex:none"><div style="width:{{ round(($influence / $maxImportance) * 100) }}%"></div></div>
+                                                    {{ number_format($influence, 4) }}
+                                                </div>
+                                            </td>
+                                            <td>{{ ['native_importance' => 'Built-in', 'coefficient_magnitude' => 'Coefficient', 'importance' => 'Permutation'][$item['kind'] ?? 'importance'] ?? str($item['kind'] ?? 'importance')->replace('_', ' ')->title() }}</td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="3" class="ml-muted">This algorithm did not expose a stable feature-influence value.</td></tr>
+                                        <tr><td colspan="3" class="ml-muted">This algorithm does not report which columns mattered most.</td></tr>
                                     @endforelse
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+                        @endif
                     </section>
+
+                    @if($confusionLabels !== [] && $confusionValues !== [])
+                        <section class="ml-section ml-card">
+                            <h3 class="ml-section-title">Where did the model get confused?</h3>
+                            <p class="ml-muted" style="font-size:.8rem">Each row is the real class and each column is what the model predicted. Green cells are correct; red cells are mistakes.</p>
+                            <div class="ml-cm-wrap">
+                                <table class="ml-cm">
+                                    <thead>
+                                    <tr>
+                                        <th class="row">Real ↓ / Predicted →</th>
+                                        @foreach($confusionLabels as $label)
+                                            <th>{{ $label }}</th>
+                                        @endforeach
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach($confusionValues as $rowIndex => $row)
+                                        <tr>
+                                            <th class="row">{{ $confusionLabels[$rowIndex] ?? $rowIndex }}</th>
+                                            @foreach((array) $row as $columnIndex => $count)
+                                                <td class="{{ (int) $count > 0 ? ($rowIndex === $columnIndex ? 'hit' : 'miss') : '' }}">{{ (int) $count }}</td>
+                                            @endforeach
+                                        </tr>
+                                    @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    @endif
+
+                    @if($clusterSizes !== [])
+                        <section class="ml-section ml-card">
+                            <h3 class="ml-section-title">How big is each group?</h3>
+                            <p class="ml-muted" style="font-size:.8rem">Cluster numbers are just names. Look at the rows in each group to decide what they have in common.</p>
+                            <div class="ml-meta">
+                                @foreach($clusterSizes as $clusterName => $clusterCount)
+                                    <div><span>{{ $clusterName }}</span><strong>{{ number_format((int) $clusterCount) }} rows</strong></div>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endif
 
                     @if($comparison)
                         <section class="ml-section">
                             <div class="ml-section-head">
                                 <div>
-                                    <h3 class="ml-section-title">System Benchmark Comparison</h3>
-                                    <p class="ml-muted">Compare this trained result with the read-only reference for the same built-in dataset.</p>
+                                    <h3 class="ml-section-title">How do you compare with the reference model?</h3>
+                                    <p class="ml-muted">DataSensei trained a reference model on the same built-in dataset. "Better" already accounts for whether a higher or lower number is better.</p>
                                 </div>
                             </div>
                             <div class="ml-card">
                                 <div class="ml-table-wrap">
                                     <table class="ml-table">
-                                        <thead><tr><th>Metric</th><th>Your model</th><th>System benchmark</th><th>Difference</th><th>Result</th></tr></thead>
+                                        <thead><tr><th>Metric</th><th>Your model</th><th>Reference</th><th>Difference</th><th>Result</th></tr></thead>
                                         <tbody>
                                         @foreach($comparison['rows'] as $row)
                                             <tr>
-                                                <td>{{ str($row['metric'])->replace('_', ' ')->title() }}</td>
-                                                <td>{{ number_format((float) $row['user'], 3) }}</td>
-                                                <td>{{ number_format((float) $row['system'], 3) }}</td>
+                                                <td>{{ $guide::metric((string) $row['metric'])['label'] }}</td>
+                                                <td>{{ $guide::formatMetric((string) $row['metric'], $row['user']) }}</td>
+                                                <td>{{ $guide::formatMetric((string) $row['metric'], $row['system']) }}</td>
                                                 <td>{{ ($row['difference'] >= 0 ? '+' : '').number_format((float) $row['difference'], 3) }}</td>
                                                 <td><span class="ml-badge {{ $row['status'] === 'better' ? 'good' : ($row['status'] === 'worse' ? 'bad' : '') }}">{{ ucfirst($row['status']) }}</span></td>
                                             </tr>
@@ -177,8 +268,8 @@
                     <section class="ml-section">
                         <div class="ml-section-head">
                             <div>
-                                <h3 class="ml-section-title">Evaluation Charts</h3>
-                                <p class="ml-muted">Open or download any chart generated for this model version.</p>
+                                <h3 class="ml-section-title">Evaluation charts</h3>
+                                <p class="ml-muted">Each chart has a short note on how to read it. Open or download any chart for your report.</p>
                             </div>
                         </div>
                         <div class="ml-grid two">
@@ -189,6 +280,7 @@
                                         <a class="ml-btn small secondary" href="{{ route('student.model-development.visualizations.show', [$version, $key, 'download' => 1]) }}">Download</a>
                                     </div>
                                     <img class="ml-chart" loading="lazy" src="{{ route('student.model-development.visualizations.show', [$version, $key]) }}" alt="{{ str($key)->replace('_', ' ')->title() }}">
+                                    <p class="ml-chart-caption">{{ $guide::chartGuide((string) $key) }}</p>
                                 </article>
                             @empty
                                 <div class="ml-card"><p class="ml-muted">No charts are available for this model version.</p></div>
@@ -202,54 +294,84 @@
                         @else
                             <a class="ml-btn secondary" href="{{ $roadmapLinks[7] }}">← Back to Train Model</a>
                         @endif
-                        <a class="ml-btn" href="{{ $roadmapLinks[9] }}">Continue to Predict →</a>
+                        <a class="ml-btn" href="{{ $roadmapLinks[9] }}">Try a prediction →</a>
                     </div>
                 </section>
 
+                {{-- STEP 9: PREDICT --}}
                 <section class="ml-result-section" @if($roadmapCurrent !== 9) hidden @endif data-result-step="predict">
                     <div class="ml-card">
-                        <span class="ml-step-kicker">Step 9 of 10</span>
-                        <h2 class="ml-section-title">Make a New Prediction</h2>
-                        <p class="ml-muted">Enter values for the same features used during training. DataSensei runs the saved model artifact and records your result.</p>
+                        @include('student.model-development.partials.step-header', [
+                            'stepNumber' => 9,
+                            'stepTitle' => 'Try your model on a new example',
+                            'stepLead' => 'Fill in the same columns the model learned from. The ranges show what the model saw during training.',
+                        ])
 
                         @if($predictionSchema === [])
                             <div class="ml-alert error" style="margin-top:16px">This model version does not contain a prediction schema.</div>
                         @else
-                            <form method="POST" action="{{ route('student.model-development.models.predict', $model) }}" style="margin-top:18px">
+                            <form method="POST" action="{{ route('student.model-development.models.predict', $model) }}" style="margin-top:18px" id="prediction-form">
                                 @csrf
+                                <div class="ml-toolbar" style="margin:0 0 14px">
+                                    <button class="ml-btn small secondary" type="button" id="fill-typical">Fill with typical values</button>
+                                    <button class="ml-btn small secondary" type="button" id="clear-values">Clear all</button>
+                                    <span class="ml-counter">Empty fields are filled in automatically, just like during training.</span>
+                                </div>
                                 <div class="ml-grid two">
                                     @foreach($predictionSchema as $feature => $definition)
+                                        @php
+                                            $fieldType = (string) ($definition['type'] ?? '');
+                                            $options = array_values((array) ($definition['options'] ?? []));
+                                            $minimum = $definition['minimum'] ?? null;
+                                            $maximum = $definition['maximum'] ?? null;
+                                            $median = $definition['median'] ?? null;
+                                            $typical = $fieldType === 'number' ? $median : ($options[0] ?? '');
+                                        @endphp
                                         <div class="ml-field">
                                             <label class="ml-label" for="prediction-{{ $loop->index }}">{{ $feature }}</label>
-                                            @if(($definition['type'] ?? '') === 'category' && count((array) ($definition['options'] ?? [])) <= 50)
-                                                <select class="ml-select" id="prediction-{{ $loop->index }}" name="input_values[{{ $feature }}]">
-                                                    <option value="">Missing value</option>
-                                                    @foreach((array) $definition['options'] as $option)
+                                            @if($fieldType === 'category' && count($options) <= 50)
+                                                <select class="ml-select" id="prediction-{{ $loop->index }}" name="input_values[{{ $feature }}]" data-typical="{{ $typical }}">
+                                                    <option value="">Leave empty</option>
+                                                    @foreach($options as $option)
                                                         <option value="{{ $option }}" @selected((string) old('input_values.'.$feature) === (string) $option)>{{ $option }}</option>
                                                     @endforeach
                                                 </select>
+                                                <div class="ml-help">Category · most common: {{ $options[0] ?? '—' }}</div>
                                             @else
                                                 <input
                                                     class="ml-input"
                                                     id="prediction-{{ $loop->index }}"
                                                     name="input_values[{{ $feature }}]"
                                                     value="{{ old('input_values.'.$feature) }}"
-                                                    type="{{ ($definition['type'] ?? '') === 'number' ? 'number' : 'text' }}"
+                                                    type="{{ $fieldType === 'number' ? 'number' : 'text' }}"
                                                     step="any"
-                                                    placeholder="{{ ($definition['type'] ?? '') === 'number' ? 'Typical value: '.($definition['median'] ?? '') : 'Enter a value' }}">
+                                                    data-typical="{{ $typical }}"
+                                                    @if($fieldType === 'number' && is_numeric($minimum)) data-min="{{ $minimum }}" @endif
+                                                    @if($fieldType === 'number' && is_numeric($maximum)) data-max="{{ $maximum }}" @endif
+                                                    placeholder="{{ $fieldType === 'number' ? ($median !== null ? 'Typical: '.rtrim(rtrim(number_format((float) $median, 4, '.', ''), '0'), '.') : 'Enter a number') : 'Enter a value' }}">
+                                                @if($fieldType === 'number' && is_numeric($minimum) && is_numeric($maximum))
+                                                    <div class="ml-range">
+                                                        <span>Seen in training: {{ rtrim(rtrim(number_format((float) $minimum, 4, '.', ''), '0'), '.') }} to {{ rtrim(rtrim(number_format((float) $maximum, 4, '.', ''), '0'), '.') }}</span>
+                                                        <span>Number</span>
+                                                    </div>
+                                                    <div class="ml-range-warn" data-range-warning>This value is outside what the model saw, so the prediction may be less reliable.</div>
+                                                @else
+                                                    <div class="ml-help">{{ $fieldType === 'number' ? 'Number' : 'Text' }} input</div>
+                                                @endif
                                             @endif
-                                            <div class="ml-help">{{ ucfirst($definition['type'] ?? 'value') }} input</div>
                                         </div>
                                     @endforeach
                                 </div>
-                                <button class="ml-btn" type="submit">Generate Prediction & Continue to Save →</button>
+                                <button class="ml-btn" type="submit" id="predict-button">Predict & Continue to Save →</button>
                             </form>
                         @endif
+
+                        @include('student.model-development.partials.step-guide', ['guideStep' => 9])
                     </div>
 
                     <section class="ml-section ml-card">
-                        <h3 class="ml-section-title">Your Recent Predictions</h3>
-                        <p class="ml-muted">Only predictions made under your account are shown here.</p>
+                        <h3 class="ml-section-title">Your recent predictions</h3>
+                        <p class="ml-muted">Only predictions made under your account are shown here. Confidence shows how sure the model was, not a guarantee.</p>
                         <div class="ml-table-wrap" style="margin-top:14px">
                             <table class="ml-table">
                                 <thead><tr><th>Result</th><th>Confidence / probabilities</th><th>Response time</th><th>Date</th></tr></thead>
@@ -279,17 +401,27 @@
                     </div>
                 </section>
 
+                {{-- STEP 10: SAVE --}}
                 <section class="ml-result-section" @if($roadmapCurrent !== 10) hidden @endif data-result-step="save">
                     <div class="ml-saved-milestone">
-                        <span class="ml-step-kicker">Step 10 of 10</span>
-                        <h2>{{ $model->isSystemModel() ? 'Reference Model Ready' : '✓ MODEL SAVED IN MODEL HISTORY' }}</h2>
-                        <p class="ml-muted">
-                            @if($model->isSystemModel())
-                                This benchmark remains available as a shared read-only reference. Your prediction was recorded under your account.
-                            @else
-                                {{ $model->name }} {{ $version->version_label }} is active and ready for later predictions, comparison, reporting, or retraining.
-                            @endif
-                        </p>
+                        @include('student.model-development.partials.step-header', [
+                            'stepNumber' => 10,
+                            'stepTitle' => $model->isSystemModel() ? 'Reference model ready' : 'Model saved in your history',
+                            'stepLead' => $model->isSystemModel()
+                                ? 'This benchmark stays available as a shared read-only reference. Your prediction was recorded under your account.'
+                                : $model->name.' '.$version->version_label.' is active and ready for later predictions, comparison, reporting, or retraining.',
+                        ])
+
+                        @if(! $model->isSystemModel())
+                            <ul class="ml-recap" aria-label="What you completed">
+                                <li>Chose a dataset and a target</li>
+                                <li>Selected {{ count((array) $version->feature_names) }} features</li>
+                                <li>Trained a {{ $algorithmLabel }} model</li>
+                                <li>Checked it on unseen test rows</li>
+                                <li>Made {{ $predictions->count() }} {{ \Illuminate\Support\Str::plural('prediction', $predictions->count()) }}</li>
+                                <li>Saved {{ $version->version_label }} in Model History</li>
+                            </ul>
+                        @endif
                     </div>
 
                     @if($predictionResult !== [])
@@ -306,17 +438,19 @@
 
                     <section class="ml-section ml-grid two">
                         <div class="ml-card">
-                            <h3 class="ml-section-title">Saved Version</h3>
+                            <h3 class="ml-section-title">Saved version</h3>
                             <div class="ml-meta">
                                 <div><span>Version</span><strong>{{ $version->version_label }}</strong></div>
                                 <div><span>Status</span><strong>{{ ucfirst($version->status) }}</strong></div>
-                                <div><span>Algorithm</span><strong>{{ str($model->algorithm_key)->replace('_', ' ')->title() }}</strong></div>
+                                <div><span>Algorithm</span><strong>{{ $algorithmLabel }}</strong></div>
                                 <div><span>Recent predictions</span><strong>{{ $predictions->count() }}</strong></div>
                             </div>
-                            <div class="ml-actions">
-                                <a class="ml-btn secondary" href="{{ route('student.model-development.models.report', $model) }}" target="_blank">Open Report</a>
+                            <p class="ml-muted" style="font-size:.8rem">Ideas to keep learning: train the same setup with a different algorithm, or remove one feature and see how the score changes.</p>
+                            <div class="ml-actions" style="margin-top:12px">
+                                <a class="ml-btn secondary" href="{{ route('student.model-development.models.report', $model) }}" target="_blank" rel="noopener">Open Report</a>
                                 @if(! $model->isSystemModel())
-                                    <a class="ml-btn" href="{{ route('student.model-development.wizard', array_merge($wizardBase, ['step' => 2])) }}">Train New Version</a>
+                                    <a class="ml-btn" href="{{ route('student.model-development.wizard', array_merge($wizardBase, ['step' => 6])) }}">Try Another Algorithm</a>
+                                    <a class="ml-btn secondary" href="{{ route('student.model-development.wizard', array_merge($wizardBase, ['step' => 2])) }}">Train New Version</a>
                                 @endif
                             </div>
                         </div>
@@ -351,6 +485,8 @@
                         </div>
                     </section>
 
+                    @include('student.model-development.partials.step-guide', ['guideStep' => 10])
+
                     @if(! $model->isSystemModel())
                         <details class="ml-advanced ml-section">
                             <summary>Model Management</summary>
@@ -372,5 +508,62 @@
         </div>
     </main>
 </div>
+
+<script>
+(() => {
+    const form = document.getElementById('prediction-form');
+    if (!form) return;
+
+    const fields = [...form.querySelectorAll('[name^="input_values["]')];
+
+    const checkRange = input => {
+        const warning = input.parentElement.querySelector('[data-range-warning]');
+        if (!warning) return;
+        const value = input.value.trim();
+        const min = Number(input.dataset.min);
+        const max = Number(input.dataset.max);
+        const number = Number(value);
+        const outside = value !== '' && Number.isFinite(number) && (number < min || number > max);
+        warning.classList.toggle('visible', outside);
+    };
+
+    document.getElementById('fill-typical')?.addEventListener('click', () => {
+        fields.forEach(field => {
+            const typical = field.dataset.typical ?? '';
+            if (typical === '') return;
+            if (field.tagName === 'INPUT' && field.type === 'number') {
+                const number = Number(typical);
+                field.value = Number.isFinite(number) ? String(Math.round(number * 10000) / 10000) : '';
+            } else {
+                field.value = typical;
+            }
+            checkRange(field);
+        });
+    });
+
+    document.getElementById('clear-values')?.addEventListener('click', () => {
+        fields.forEach(field => {
+            field.value = '';
+            checkRange(field);
+        });
+    });
+
+    fields.forEach(field => {
+        field.addEventListener('input', () => checkRange(field));
+        checkRange(field);
+    });
+
+    form.addEventListener('submit', event => {
+        if (fields.every(field => field.value.trim() === '')) {
+            event.preventDefault();
+            window.alert('Enter at least one value, or use "Fill with typical values" to start.');
+            return;
+        }
+        const button = document.getElementById('predict-button');
+        button.disabled = true;
+        button.textContent = 'Predicting...';
+    });
+})();
+</script>
 </body>
 </html>
