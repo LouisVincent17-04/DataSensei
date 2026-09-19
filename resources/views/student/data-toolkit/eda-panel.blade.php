@@ -38,6 +38,8 @@
 
 <section class="step-card">
   <header class="step-head">
+    @include('partials.page-head', ['pageDescription' => 'Clean, explore, and profile a dataset before you model it.'])
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <div class="step-number">{{ $step }}</div>
     <div>
       <h2>{{ $steps[$step][0] }}</h2>
@@ -59,11 +61,11 @@
             <textarea id="objective" name="objective" maxlength="600" placeholder="Example: Understand the factors connected with customer satisfaction." required>{{ old('objective', $overview['objective']) }}</textarea>
             @error('objective')<div class="error-text">{{ $message }}</div>@enderror
           </div>
-          <div class="label" style="margin-top:19px">Suggested research questions</div>
+          <div class="label" style="margin-top:20px">Suggested research questions</div>
           <ul class="questions">
             @foreach($overview['research_questions'] as $question)<li>{{ $question }}</li>@endforeach
           </ul>
-          <div class="step-nav" style="margin:26px -26px -26px">
+          <div class="step-nav">
             <a class="btn secondary" href="{{ route('student.data-toolkit.index') }}">← Previous</a>
             <button class="btn" type="submit">Save objective and continue →</button>
           </div>
@@ -73,7 +75,7 @@
           <div class="label">Prepared objective</div>
           <p class="objective">{{ $overview['objective'] }}</p>
         </div>
-        <div class="label" style="margin-top:21px">Research questions to guide you</div>
+        <div class="label" style="margin-top:20px">Research questions to guide you</div>
         <ul class="questions">
           @foreach($overview['research_questions'] as $question)<li>{{ $question }}</li>@endforeach
         </ul>
@@ -99,7 +101,7 @@
         <div class="stat"><strong>{{ number_format(count($overview['numeric_columns'])) }}</strong><span>Numerical variables</span></div>
         <div class="stat"><strong>{{ number_format(count($overview['categorical_columns'])) }}</strong><span>Categorical / other variables</span></div>
       </div>
-      <div class="actions" style="margin-bottom:18px">
+      <div class="actions" style="margin-bottom:16px">
         <button class="btn secondary dataset-modal-trigger" type="button" data-dataset-modal-url="{{ route('student.data-toolkit.rows', $datasetKey) }}" data-dataset-title="{{ $overview['dataset']['title'] }}">Show Dataset</button>
       </div>
       <div class="label">First {{ min(5, count($overview['preview'])) }} rows</div>
@@ -147,14 +149,14 @@
     <div class="step-body">
       @if($cleaningHistory !== [])
         <div class="label">Before and after cleaning</div>
-        <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+        <div class="stats compare">
           <div class="stat">
             <strong>Original dataset</strong>
-            <span>{{ number_format($originalSnapshot['rows']) }} rows · {{ number_format($originalSnapshot['missing_values']) }} missing · {{ number_format($originalSnapshot['duplicate_rows']) }} duplicates · {{ number_format($originalSnapshot['inconsistent_categories']) }} category issues · {{ number_format($originalSnapshot['invalid_values']) }} invalid</span>
+            <span>{{ number_format($originalSnapshot['rows']) }} rows, {{ number_format($originalSnapshot['missing_values']) }} missing, {{ number_format($originalSnapshot['duplicate_rows']) }} duplicates, {{ number_format($originalSnapshot['inconsistent_categories']) }} category issues, {{ number_format($originalSnapshot['invalid_values']) }} invalid</span>
           </div>
           <div class="stat">
             <strong>Current working data</strong>
-            <span>{{ number_format($currentSnapshot['rows']) }} rows · {{ number_format($currentSnapshot['missing_values']) }} missing · {{ number_format($currentSnapshot['duplicate_rows']) }} duplicates · {{ number_format($currentSnapshot['inconsistent_categories']) }} category issues · {{ number_format($currentSnapshot['invalid_values']) }} invalid</span>
+            <span>{{ number_format($currentSnapshot['rows']) }} rows, {{ number_format($currentSnapshot['missing_values']) }} missing, {{ number_format($currentSnapshot['duplicate_rows']) }} duplicates, {{ number_format($currentSnapshot['inconsistent_categories']) }} category issues, {{ number_format($currentSnapshot['invalid_values']) }} invalid</span>
           </div>
         </div>
         @if($lastCleaning)
@@ -183,7 +185,7 @@
             @if($missingCount > 0)
               <div class="feature-option" style="display:block">
                 <strong>Missing values</strong>
-                <label style="display:block;margin-top:10px"><input type="radio" name="missing_action" value="fill" {{ old('missing_action', 'fill') === 'fill' ? 'checked' : '' }}> Fill with median / most common category (recommended)</label>
+                <label style="display:block;margin-top:8px"><input type="radio" name="missing_action" value="fill" {{ old('missing_action', 'fill') === 'fill' ? 'checked' : '' }}> Fill with median / most common category (recommended)</label>
                 <label style="display:block;margin-top:8px"><input type="radio" name="missing_action" value="keep" {{ old('missing_action') === 'keep' ? 'checked' : '' }}> Keep missing values</label>
               </div>
             @else
@@ -193,7 +195,7 @@
             @if($duplicateCount > 0)
               <div class="feature-option" style="display:block">
                 <strong>Exact duplicates</strong>
-                <label style="display:block;margin-top:10px"><input type="radio" name="duplicates_action" value="remove" {{ old('duplicates_action', 'remove') === 'remove' ? 'checked' : '' }}> Remove repeated rows (recommended)</label>
+                <label style="display:block;margin-top:8px"><input type="radio" name="duplicates_action" value="remove" {{ old('duplicates_action', 'remove') === 'remove' ? 'checked' : '' }}> Remove repeated rows (recommended)</label>
                 <label style="display:block;margin-top:8px"><input type="radio" name="duplicates_action" value="keep" {{ old('duplicates_action') === 'keep' ? 'checked' : '' }}> Keep repeated rows</label>
               </div>
             @else
@@ -203,11 +205,11 @@
             @if($categoryIssueCount > 0)
               <div class="feature-option" style="display:block">
                 <strong>Category labels</strong>
-                <label style="display:block;margin-top:10px"><input type="radio" name="categories_action" value="standardize" {{ old('categories_action', 'standardize') === 'standardize' ? 'checked' : '' }}> Standardize capitalization and spacing (recommended)</label>
+                <label style="display:block;margin-top:8px"><input type="radio" name="categories_action" value="standardize" {{ old('categories_action', 'standardize') === 'standardize' ? 'checked' : '' }}> Standardize capitalization and spacing (recommended)</label>
                 <label style="display:block;margin-top:8px"><input type="radio" name="categories_action" value="keep" {{ old('categories_action') === 'keep' ? 'checked' : '' }}> Keep labels as entered</label>
                 @foreach(array_slice($eda['category_issues']['columns'], 0, 2, true) as $categoryIssue)
                   @foreach(array_slice($categoryIssue['groups'], 0, 1) as $group)
-                    <p style="margin-top:9px">Example in {{ $categoryIssue['column'] }}: @foreach($group['variants'] as $variant)<code>“{{ $variant['value'] }}”</code>@if(!$loop->last), @endif @endforeach → <code>“{{ $group['canonical'] }}”</code></p>
+                    <p style="margin-top:8px">Example in {{ $categoryIssue['column'] }}: @foreach($group['variants'] as $variant)<code>“{{ $variant['value'] }}”</code>@if(!$loop->last), @endif @endforeach → <code>“{{ $group['canonical'] }}”</code></p>
                   @endforeach
                 @endforeach
               </div>
@@ -218,12 +220,12 @@
             @if($invalidCount > 0)
               <div class="feature-option" style="display:block">
                 <strong>Invalid or type-conflicting values</strong>
-                <label style="display:block;margin-top:10px"><input type="radio" name="invalid_action" value="replace" {{ old('invalid_action', 'replace') === 'replace' ? 'checked' : '' }}> Replace with the valid median (recommended)</label>
+                <label style="display:block;margin-top:8px"><input type="radio" name="invalid_action" value="replace" {{ old('invalid_action', 'replace') === 'replace' ? 'checked' : '' }}> Replace with the valid median (recommended)</label>
                 <label style="display:block;margin-top:8px"><input type="radio" name="invalid_action" value="remove" {{ old('invalid_action') === 'remove' ? 'checked' : '' }}> Remove affected rows</label>
                 <label style="display:block;margin-top:8px"><input type="radio" name="invalid_action" value="keep" {{ old('invalid_action') === 'keep' ? 'checked' : '' }}> Keep for investigation</label>
                 @foreach(array_slice($eda['invalid_values']['by_column'] ?? [], 0, 2, true) as $invalidIssue)
                   @if(isset($invalidIssue['sample_values'][0]))
-                    <p style="margin-top:9px">Example: row {{ $invalidIssue['sample_values'][0]['row_number'] }}, {{ $invalidIssue['column'] }} = <code>{{ $invalidIssue['sample_values'][0]['value'] }}</code> ({{ $invalidIssue['sample_values'][0]['reason'] }}).</p>
+                    <p style="margin-top:8px">Example: row {{ $invalidIssue['sample_values'][0]['row_number'] }}, {{ $invalidIssue['column'] }} = <code>{{ $invalidIssue['sample_values'][0]['value'] }}</code> ({{ $invalidIssue['sample_values'][0]['reason'] }}).</p>
                   @endif
                 @endforeach
               </div>
@@ -232,7 +234,7 @@
             @endif
           </div>
           <div class="recommendation"><strong>Your original source remains unchanged.</strong> Later steps use this cleaned working copy, so charts and findings will reflect the choices you make here.</div>
-          <button class="btn" style="margin-top:15px" type="submit">Apply selected cleaning actions</button>
+          <button class="btn" style="margin-top:16px" type="submit">Apply selected cleaning actions</button>
         </form>
       @else
         <div class="callout good" style="margin-top:16px"><h3>Your data is ready</h3><p>No current missing values, duplicates, category variants, or invalid values need a cleaning decision. You can continue to outlier detection.</p></div>
@@ -260,28 +262,28 @@
           @foreach(array_slice($eda['outliers']['columns'], 0, 10, true) as $column => $outlier)
             <article class="outlier-card {{ $outlier['outlier_count'] > 0 ? 'has-outliers' : '' }}">
               <h3>{{ $column }}</h3>
-              <p><strong style="color:{{ $outlier['outlier_count'] > 0 ? '#fcd34d' : '#6ee7b7' }}">{{ number_format($outlier['outlier_count']) }} potential outlier(s)</strong> · {{ $outlier['outlier_percent'] }}%</p>
+              <p><strong style="color:{{ $outlier['outlier_count'] > 0 ? '#fcd34d' : '#6ee7b7' }}">{{ number_format($outlier['outlier_count']) }} potential outlier(s)</strong>, {{ $outlier['outlier_percent'] }}%</p>
               <div class="box-line"><span class="box"><span class="median"></span></span></div>
               <p>{{ $outlier['interpretation'] }}</p>
               @if($outlier['sample_outliers'] !== [])
-                <details style="margin-top:11px">
-                  <summary class="small" style="cursor:pointer;color:#bfdbfe">Review flagged values</summary>
-                  <p style="margin-top:7px">@foreach($outlier['sample_outliers'] as $sample)Row {{ $sample['row_number'] }}: <strong>{{ $sample['value'] }}</strong>@if(!$loop->last) · @endif @endforeach</p>
+                <details style="margin-top:12px">
+                  <summary class="small" style="cursor:pointer;color:var(--ds-accent-text)">Review flagged values</summary>
+                  <p style="margin-top:8px">@foreach($outlier['sample_outliers'] as $sample)Row {{ $sample['row_number'] }}: <strong>{{ $sample['value'] }}</strong>@if(!$loop->last), @endif @endforeach</p>
                 </details>
               @endif
             </article>
           @endforeach
         </div>
-        <form action="{{ route('student.data-toolkit.outliers', $datasetKey) }}" method="POST" style="margin-top:18px">
+        <form action="{{ route('student.data-toolkit.outliers', $datasetKey) }}" method="POST" style="margin-top:16px">
           @csrf
           <div class="label">Remove only if the values are not useful for your objective</div>
           <div class="checkbox-list">
             @foreach($columnsWithOutliers as $column => $outlier)
-              <label><input type="checkbox" name="columns[]" value="{{ $column }}"> {{ $column }} · {{ number_format($outlier['outlier_count']) }} flagged value(s)</label>
+              <label><input type="checkbox" name="columns[]" value="{{ $column }}"> {{ $column }}, {{ number_format($outlier['outlier_count']) }} flagged value(s)</label>
             @endforeach
           </div>
           @error('columns')<div class="error-text">{{ $message }}</div>@enderror
-          <div class="actions" style="margin-top:14px">
+          <div class="actions" style="margin-top:16px">
             <button class="btn danger" name="action" value="remove" type="submit">Remove selected outliers</button>
           </div>
         </form>
@@ -349,11 +351,11 @@
           @endforeach
         </div>
         @if($overview['regression'])
-          <div class="relationship-card" style="margin-top:14px"><h3>{{ $overview['regression']['x_column'] }} compared with {{ $overview['regression']['y_column'] }}</h3><p>{{ $overview['regression']['interpretation'] }}</p><div class="chart-wrap" style="height:280px"><canvas id="relationshipScatter"></canvas></div></div>
+          <div class="relationship-card" style="margin-top:16px"><h3>{{ $overview['regression']['x_column'] }} compared with {{ $overview['regression']['y_column'] }}</h3><p>{{ $overview['regression']['interpretation'] }}</p><div class="chart-wrap" style="height:280px"><canvas id="relationshipScatter"></canvas></div></div>
         @endif
       @endif
       @if($overview['group_comparison'])
-        <div class="relationship-card" style="margin-top:14px"><h3>Group comparison</h3><p>{{ $overview['group_comparison']['finding'] }}</p><div class="chart-wrap" style="height:260px"><canvas id="groupComparisonChart"></canvas></div></div>
+        <div class="relationship-card" style="margin-top:16px"><h3>Group comparison</h3><p>{{ $overview['group_comparison']['finding'] }}</p><div class="chart-wrap" style="height:260px"><canvas id="groupComparisonChart"></canvas></div></div>
       @endif
       <div class="callout warn" style="margin-top:16px"><h3>Correlation does not prove causation</h3><p>Two variables can move together without one directly causing the other. Other variables or real-world conditions may explain the pattern.</p></div>
       <div class="recommendation"><strong>Next:</strong> Use what you observed to consider a simple new feature.</div>
@@ -376,7 +378,7 @@
             @endforeach
           </div>
           @error('suggestion_key')<div class="error-text">{{ $message }}</div>@enderror
-          <button class="btn" style="margin-top:15px" type="submit">Accept suggestion →</button>
+          <button class="btn" style="margin-top:16px" type="submit">Accept suggestion →</button>
         </form>
       @endif
     </div>
@@ -385,19 +387,18 @@
 
   @if($step === 8)
     <div class="step-body">
-      <div class="complete-mark">✓</div>
       <div class="eyebrow">EDA complete</div>
-      <h2 style="font-size:1.6rem;margin:7px 0 8px">You followed the full exploratory data analysis process.</h2>
-      <p class="small" style="font-size:.87rem;line-height:1.6">Your current working dataset contains {{ number_format($overview['row_count']) }} records and {{ number_format($overview['column_count']) }} variables.</p>
+      <h2 class="summary-title">You followed the full exploratory data analysis process.</h2>
+      <p class="small" style="font-size:.875rem;line-height:1.6;margin:0">Your current working dataset contains {{ number_format($overview['row_count']) }} records and {{ number_format($overview['column_count']) }} variables.</p>
       <div class="label" style="margin-top:20px">Original dataset compared with your final working data</div>
-      <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <div class="stats compare">
         <div class="stat">
-          <strong>Original · {{ number_format($overview['original_snapshot']['rows']) }} rows</strong>
-          <span>{{ number_format($overview['original_snapshot']['missing_values']) }} missing · {{ number_format($overview['original_snapshot']['duplicate_rows']) }} duplicates · {{ number_format($overview['original_snapshot']['inconsistent_categories']) }} category issues · {{ number_format($overview['original_snapshot']['invalid_values']) }} invalid · {{ number_format($overview['original_snapshot']['potential_outliers']) }} potential outliers</span>
+          <strong>Original, {{ number_format($overview['original_snapshot']['rows']) }} rows</strong>
+          <span>{{ number_format($overview['original_snapshot']['missing_values']) }} missing, {{ number_format($overview['original_snapshot']['duplicate_rows']) }} duplicates, {{ number_format($overview['original_snapshot']['inconsistent_categories']) }} category issues, {{ number_format($overview['original_snapshot']['invalid_values']) }} invalid, {{ number_format($overview['original_snapshot']['potential_outliers']) }} potential outliers</span>
         </div>
         <div class="stat">
-          <strong>Final · {{ number_format($overview['current_snapshot']['rows']) }} rows</strong>
-          <span>{{ number_format($overview['current_snapshot']['missing_values']) }} missing · {{ number_format($overview['current_snapshot']['duplicate_rows']) }} duplicates · {{ number_format($overview['current_snapshot']['inconsistent_categories']) }} category issues · {{ number_format($overview['current_snapshot']['invalid_values']) }} invalid · {{ number_format($overview['current_snapshot']['potential_outliers']) }} potential outliers</span>
+          <strong>Final, {{ number_format($overview['current_snapshot']['rows']) }} rows</strong>
+          <span>{{ number_format($overview['current_snapshot']['missing_values']) }} missing, {{ number_format($overview['current_snapshot']['duplicate_rows']) }} duplicates, {{ number_format($overview['current_snapshot']['inconsistent_categories']) }} category issues, {{ number_format($overview['current_snapshot']['invalid_values']) }} invalid, {{ number_format($overview['current_snapshot']['potential_outliers']) }} potential outliers</span>
         </div>
       </div>
       <div class="label" style="margin-top:20px">Key findings</div>
@@ -409,7 +410,7 @@
       @endif
 
       @if($overview['created_features'] !== [])
-        <div class="created callout good"><h3>Created features</h3>@foreach($overview['created_features'] as $feature)<p><strong>{{ $feature['name'] }}</strong> · {{ $feature['formula'] }}</p>@endforeach</div>
+        <div class="created callout good"><h3>Created features</h3>@foreach($overview['created_features'] as $feature)<p><strong>{{ $feature['name'] }}</strong>, {{ $feature['formula'] }}</p>@endforeach</div>
       @endif
 
       <div class="recommendation"><strong>What this means:</strong> EDA helps you understand data quality and patterns before making conclusions or building a machine-learning model. Findings should still be checked using subject knowledge.</div>

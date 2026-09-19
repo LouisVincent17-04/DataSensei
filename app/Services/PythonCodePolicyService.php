@@ -49,6 +49,14 @@ final class PythonCodePolicyService
             '/\b(?:sys\s*\.\s*(?:modules|path|settrace|setrecursionlimit|_getframe|exit_hook)|gc\s*\.\s*get_objects)\b/i'
                 => 'Interpreter internals are not available to student code.',
 
+            /*
+             * The runner strips the server's variables before a program starts,
+             * so nothing sensitive is there to read. Saying so plainly is still
+             * better than letting a lesson build on an empty dictionary.
+             */
+            '/\b(?:os\s*\.\s*(?:environ|getenv|putenv|unsetenv)|posix\s*\.\s*environ)\b/i'
+                => 'Environment variables are not available to student code.',
+
             '/\b__(?:subclasses|globals|builtins|loader|spec|code|mro|bases|reduce|reduce_ex)__\b/i'
                 => 'Unsafe Python introspection is blocked.',
 

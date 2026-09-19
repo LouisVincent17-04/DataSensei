@@ -3,154 +3,337 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DataSensei — Modules</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
+  <title>Modules — DataSensei</title>
+<style>
+    /* Module catalogue. Colours, type and radius come from
+       partials.design-system; status colours are the shared tokens. */
     :root {
-      --bg:          #0d1320;
-      --surface:     #111c2d;
-      --surface2:    #1a2638;
-      --border:      #1e2f47;
-      --border-hover:#2c4168;
-      --accent:      #3b82f6;
-      --accent-hover:#2563eb;
-      --accent2:     #8b5cf6;
-      --accent3:     #10b981;
-      --accent4:     #f59e0b;
-      --warn:        #ef4444;
-      --text:        #fafafa;
-      --muted:       #7f93b0;
-      --dim:         #3d5272;
-      --radius:      8px;
-      --radius-sm:   6px;
+      --accent2: var(--ds-accent);
+      --accent3: var(--ds-success);
+      --accent4: var(--ds-warning);
+      --warn: var(--ds-danger);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── STANDARDIZED LAYOUT ── */
     body {
-      font-family: 'Inter', sans-serif;
+      margin: 0;
       background: var(--bg);
       color: var(--text);
-      margin: 0;
-      -webkit-font-smoothing: antialiased;
+      font-family: var(--ds-font-sans);
     }
+
     .page-layout-wrapper { display: flex; min-height: 100vh; }
 
-    /* ── NAMESPACED MAIN AREA ── */
-    .page-modules-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-    
-    .page-modules-topbar { height: 64px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; }
-    .page-modules-topbar h1 { font-size: 1.125rem; font-weight: 600; color: var(--text); flex: 1; letter-spacing: -0.01em; }
-    
-    .page-modules-search { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; gap: 8px; width: min(320px, 38vw); min-height: 38px; transition: border-color 0.15s; }
-    .page-modules-search:focus-within { border-color: var(--accent); }
-    .page-modules-search input { min-height: 0 !important; height: 20px !important; padding: 0 !important; background: transparent !important; border: 0 !important; border-radius: 0 !important; outline: none; box-shadow: none !important; color: var(--text); font-size: 0.875rem; font-family: inherit; width: 100%; }
+    .page-modules-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+    /* ── title bar ─────────────────────────────────────────────── */
+    .page-modules-topbar {
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 32px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .page-modules-topbar h1 { flex: 1 1 auto; min-width: 0; }
+
+    .page-modules-search {
+      width: min(320px, 38vw);
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 6px 0 12px;
+      border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm);
+      background: var(--surface3);
+      color: var(--dim);
+      transition: border-color .12s ease, box-shadow .12s ease;
+    }
+
+    .page-modules-search:focus-within { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
+
+    .page-modules-search input {
+      width: 100%;
+      min-height: 0 !important;
+      height: 36px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      outline: none;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--text);
+      font-family: inherit;
+      font-size: .875rem;
+    }
+
     .page-modules-search input::placeholder { color: var(--dim); }
-    .page-modules-search-clear { width: 24px; height: 24px; flex: 0 0 24px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+
+    .page-modules-search-clear {
+      width: 26px;
+      height: 26px;
+      flex: 0 0 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: var(--radius-xs);
+      background: transparent;
+      color: var(--muted);
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
     .page-modules-search-clear:hover { background: var(--surface2); color: var(--text); }
     .page-modules-search-clear[hidden] { display: none; }
-    .page-modules-search-status { color: var(--dim); font-size: .75rem; }
-    .page-modules-empty-search { padding: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--muted); text-align: center; }
-    
-    .page-modules-topbar-btn { width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all 0.15s; position: relative; }
-    .page-modules-topbar-btn:hover { color: var(--text); border-color: var(--border-hover); }
-    .page-modules-notif-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; border: 2px solid var(--bg); }
-    
-    .page-modules-content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 28px; }
-    
-    /* ── HEADERS & STATS ── */
-    .page-modules-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
-    .page-modules-header-text h2 { font-size: 1.375rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
-    .page-modules-header-text p { font-size: 0.875rem; color: var(--muted); margin-top: 6px; line-height: 1.5; }
-    
-    .page-modules-summary { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
-    .page-modules-stat { text-align: right; }
-    .page-modules-stat .val { font-size: 1.5rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1; }
-    .page-modules-stat .lbl { font-size: 0.7rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
-    .page-modules-divider { width: 1px; height: 36px; background: var(--border); }
 
-    /* ── FILTER TABS ── */
-    .page-modules-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .page-modules-filter-tab { padding: 6px 14px; border-radius: var(--radius-sm); font-size: 0.8125rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: inherit; transition: all 0.15s; }
+    .page-modules-topbar-btn {
+      width: 36px;
+      height: 36px;
+      flex: 0 0 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--ds-text-secondary);
+      transition: background-color .12s ease, color .12s ease;
+    }
+
+    .page-modules-topbar-btn:hover { background: var(--ds-surface-hover); color: var(--text); }
+
+    .page-modules-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 28px 32px 48px;
+    }
+
+    /* ── lead-in and summary ───────────────────────────────────── */
+    .page-modules-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+    }
+
+    .page-modules-header-text { min-width: 0; flex: 1 1 320px; }
+    .page-modules-header-text h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.35; color: var(--text); }
+    .page-modules-header-text p { max-width: 72ch; margin-top: 4px; color: var(--muted); font-size: .875rem; line-height: 1.5; }
+
+    .page-modules-summary { display: flex; align-items: stretch; gap: 20px; flex-shrink: 0; }
+    .page-modules-stat { display: flex; flex-direction: column-reverse; gap: 2px; }
+    .page-modules-stat .val {
+      color: var(--text);
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .page-modules-stat .lbl { color: var(--muted); font-size: .8125rem; font-weight: 500; }
+    .page-modules-divider { width: 1px; background: var(--border); }
+
+    /* ── filters ───────────────────────────────────────────────── */
+    .page-modules-filter-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+    .page-modules-filter-tab {
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: .8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+    }
+
     .page-modules-filter-tab:hover { background: var(--surface2); color: var(--text); }
-    .page-modules-filter-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .page-modules-filter-tab.active {
+      border-color: var(--ds-accent-border);
+      background: var(--ds-accent-soft);
+      color: var(--ds-accent-text);
+    }
+
     .page-modules-filter-spacer { flex: 1; }
-    .page-modules-unlock-note { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); padding: 6px 12px; border-radius: var(--radius-sm); }
+    .page-modules-search-status { color: var(--muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+    .page-modules-unlock-note { color: var(--muted); font-size: .8125rem; }
+    .page-modules-search-status:not(:empty) + .page-modules-unlock-note { padding-left: 8px; border-left: 1px solid var(--border); }
 
-    /* ── GRID & CARDS ── */
-    .page-modules-year-group { display: flex; flex-direction: column; gap: 16px; }
-    .page-modules-year-label { display: flex; align-items: center; gap: 12px; font-size: 0.75rem; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .page-modules-empty-search {
+      padding: 32px 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: .875rem;
+      text-align: center;
+    }
+
+    /* ── year groups and module cards ──────────────────────────── */
+    .page-modules-year-group { display: flex; flex-direction: column; gap: 12px; }
+
+    /* The filter script hides cards and groups with the hidden attribute. */
+    .page-modules-year-group[hidden],
+    .page-modules-card[hidden] { display: none; }
+
+    .page-modules-year-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
     .page-modules-year-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-    .page-modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    
-    .page-modules-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; position: relative; }
-    .page-modules-card.unlocked:hover { border-color: var(--border-hover); transform: translateY(-2px); }
-    
-    .page-modules-card.completed { border-color: rgba(16,185,129,0.3); }
-    .page-modules-card.completed:hover { border-color: rgba(16,185,129,0.6); box-shadow: 0 4px 12px rgba(16,185,129,0.05); transform: translateY(-2px); }
-    
-    .page-modules-card.locked { opacity: 0.55; }
-    .page-modules-card.locked:hover { opacity: 0.7; }
-    
-    .page-modules-stripe { height: 3px; width: 100%; }
-    .page-modules-card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
-    .page-modules-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    
-    /* Status Badges */
-    .page-modules-badge { display: flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 4px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; }
-    .page-modules-badge.is-completed { background: rgba(16,185,129,0.12); color: var(--accent3); }
-    .page-modules-badge.is-unlocked { background: rgba(245,158,11,0.12); color: var(--accent4); }
-    .page-modules-badge.is-locked { background: rgba(127,147,176,0.1); color: var(--muted); }
-    .page-modules-badge.is-inprogress { background: rgba(59,130,246,0.12); color: var(--accent); }
-    
-    .page-modules-title { font-size: 0.9375rem; font-weight: 600; color: var(--text); line-height: 1.35; padding-right: 18px; }
-    .page-modules-card.locked .page-modules-title { color: var(--muted); }
-    .page-modules-desc { font-size: 0.8125rem; color: var(--muted); line-height: 1.55; flex: 1; }
-    
-    .page-modules-meta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .page-modules-meta-chip { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--muted); }
-    .page-modules-card-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    
-    /* Progress Bar */
-    .page-modules-prog-wrap { flex: 1; }
-    .page-modules-prog-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .page-modules-prog-text { font-size: 0.75rem; color: var(--muted); }
-    .page-modules-prog-pct { font-size: 0.75rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-    .page-modules-prog-bar { height: 5px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
-    .page-modules-prog-fill { height: 100%; border-radius: 4px; transition: width 1.2s ease; }
-    
-    /* Buttons */
-    .page-modules-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 0.8125rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; font-family: inherit; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; text-decoration: none;}
-    .page-modules-btn-start { background: var(--accent); color: #fff; }
-    .page-modules-btn-start:hover { background: var(--accent-hover); }
-    .page-modules-btn-continue { background: var(--surface2); color: var(--text); border-color: var(--border); }
-    .page-modules-btn-continue:hover { background: var(--border); }
-    .page-modules-btn-locked { background: transparent; color: var(--dim); border-color: var(--border); cursor: not-allowed; }
-    .page-modules-btn-review { background: rgba(16,185,129,0.1); color: var(--accent3); border-color: rgba(16,185,129,0.2); }
-    .page-modules-btn-review:hover { background: rgba(16,185,129,0.18); }
-    
-    /* Overlays */
-    .page-modules-status-overlay { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; justify-content: center; }
-    .page-modules-status-overlay.locked { color: var(--dim); }
-    .page-modules-status-overlay.completed { color: #fff; background: var(--accent3); border-radius: 50%; width: 22px; height: 22px; box-shadow: 0 0 10px rgba(16,185,129,0.4); }
 
-    /* Scrollbars */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+    .page-modules-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 
-    @media (max-width: 1200px) { .page-modules-grid { grid-template-columns: repeat(2,1fr); } }
-    @media (max-width: 900px)  { .page-modules-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 700px)  { 
-      .page-modules-topbar { height: auto; min-height: 64px; padding: 12px 16px; flex-wrap: wrap; }
+    .page-modules-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      transition: border-color .12s ease, background-color .12s ease;
+    }
+
+    .page-modules-card.unlocked:hover,
+    .page-modules-card.completed:hover { border-color: var(--border-hover); }
+
+    .page-modules-card.locked { background: var(--surface3); }
+
+    /* Status is carried by the badge; the old colour stripe is not shown. */
+    .page-modules-stripe { display: none; }
+
+    .page-modules-card-body { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 20px; }
+    .page-modules-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 22px; margin-bottom: 4px; }
+
+    .page-modules-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-xs);
+      background: var(--surface2);
+      color: var(--ds-text-secondary);
+      font-size: .75rem;
+      font-weight: 600;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .page-modules-badge.is-completed { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-text); }
+    .page-modules-badge.is-inprogress { border-color: var(--ds-accent-border); background: var(--ds-accent-soft); color: var(--ds-accent-text); }
+    .page-modules-badge.is-unlocked { border-color: var(--ds-accent-border); background: transparent; color: var(--ds-accent-text); }
+    .page-modules-badge.is-locked { border-color: var(--border); background: transparent; color: var(--muted); }
+
+    .page-modules-title { padding-right: 20px; color: var(--text); font-size: .9375rem; font-weight: 600; line-height: 1.4; overflow-wrap: break-word; }
+    .page-modules-card.locked .page-modules-title { color: var(--ds-text-secondary); }
+    .page-modules-desc { flex: 1; color: var(--muted); font-size: .8125rem; line-height: 1.55; overflow-wrap: break-word; }
+
+    .page-modules-meta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .page-modules-meta-chip { color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+    .page-modules-meta-chip:not(:last-child)::after { content: ","; }
+
+    .page-modules-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .page-modules-prog-wrap { flex: 1; min-width: 0; }
+    .page-modules-prog-label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .page-modules-prog-text { color: var(--muted); font-size: .75rem; }
+    .page-modules-prog-pct { color: var(--ds-text-secondary); font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .page-modules-prog-bar { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface2); }
+    .page-modules-prog-fill { height: 100%; border-radius: inherit; transition: width .3s ease; }
+
+    .page-modules-btn {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: .8125rem;
+      font-weight: 500;
+      line-height: 1.2;
+      text-decoration: none;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background-color .12s ease, border-color .12s ease;
+    }
+
+    .page-modules-btn-start { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .page-modules-btn-start:hover { border-color: var(--accent-hover); background: var(--accent-hover); }
+    .page-modules-btn-continue { border-color: var(--ds-border-strong); background: var(--surface2); color: var(--text); }
+    .page-modules-btn-continue:hover { background: var(--ds-surface-hover); }
+    .page-modules-btn-review { border-color: var(--ds-success-border); background: transparent; color: var(--ds-success-text); }
+    .page-modules-btn-review:hover { background: var(--ds-success-soft); }
+    .page-modules-btn-locked { border-color: var(--border); background: transparent; color: var(--muted); cursor: not-allowed; }
+
+    /* Status mark in the card corner: a lock for locked modules, a check for completed ones. */
+    .page-modules-status-overlay { position: absolute; top: 20px; right: 18px; display: flex; align-items: center; justify-content: center; }
+    .page-modules-status-overlay.locked { color: var(--muted); }
+    .page-modules-status-overlay.completed { color: var(--ds-success-text); }
+
+    @media (max-width: 1200px) {
+      .page-modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 900px) {
+      .page-modules-topbar { min-height: 56px; padding: 0 20px; }
+      .page-modules-content { padding: 24px 20px 40px; }
+    }
+
+    @media (max-width: 700px) {
+      .page-modules-topbar { flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
       .page-modules-topbar h1 { flex: 1 1 calc(100% - 96px); }
       .page-modules-search { order: 2; width: 100%; }
-      .page-modules-header { flex-direction: column; }
+    }
+
+    @media (max-width: 640px) {
+      .page-modules-topbar { padding-left: 16px; padding-right: 16px; }
+      .page-modules-content { padding: 20px 16px 32px; }
+      .page-modules-grid { grid-template-columns: minmax(0, 1fr); }
       .page-modules-summary { width: 100%; justify-content: space-between; }
+      .page-modules-filter-spacer { display: none; }
+      .page-modules-search-status:not(:empty) + .page-modules-unlock-note { padding-left: 0; border-left: 0; }
+      .page-modules-card-body { padding: 16px; }
+      .page-modules-card-footer { padding: 12px 16px; }
+      .page-modules-status-overlay { top: 16px; right: 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-modules-prog-fill { transition: none; }
     }
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Modules', 'pageDescription' => 'Work through DataSensei lessons and modules at your own pace.'])
 </head>
 <body>
 
@@ -180,7 +363,7 @@
     <div class="page-modules-main">
 
       <header class="page-modules-topbar">
-        <h1></h1>
+        <h1 class="ds-page-title">Modules</h1>
         <div class="page-modules-search">
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="search" placeholder="Search by title or description" id="searchInput" autocomplete="off" aria-label="Search modules" />
@@ -230,7 +413,6 @@
           <div class="page-modules-filter-spacer"></div>
           <span class="page-modules-search-status" id="moduleSearchStatus" role="status" aria-live="polite"></span>
           <div class="page-modules-unlock-note">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             Complete prerequisites to unlock modules
           </div>
         </div>
@@ -282,17 +464,11 @@
                   <div class="page-modules-card-body">
                     <div class="page-modules-card-top">
                       @if($isCompleted)
-                        <span class="page-modules-badge is-completed">
-                          <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Completed
-                        </span>
+                        <span class="page-modules-badge is-completed">Completed</span>
                       @elseif($isInProgress)
-                        <span class="page-modules-badge is-inprogress">
-                          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg> In Progress
-                        </span>
+                        <span class="page-modules-badge is-inprogress">In Progress</span>
                       @elseif($isUnlocked)
-                        <span class="page-modules-badge is-unlocked">
-                          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg> Unlocked
-                        </span>
+                        <span class="page-modules-badge is-unlocked">Unlocked</span>
                       @else
                         <span class="page-modules-badge is-locked">Locked</span>
                       @endif
@@ -302,14 +478,8 @@
                     <div class="page-modules-desc">{{ Str::limit($module->description, 90) }}</div>
                     
                     <div class="page-modules-meta-row">
-                      <span class="page-modules-meta-chip">
-                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13"/></svg>
-                        {{ $tLessons }} lessons
-                      </span>
-                      <span class="page-modules-meta-chip">
-                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        ~{{ max(1, round($tLessons / 2)) }} hrs
-                      </span>
+                      <span class="page-modules-meta-chip">{{ $tLessons }} lessons</span>
+                      <span class="page-modules-meta-chip">~{{ max(1, round($tLessons / 2)) }} hrs</span>
                     </div>
                   </div>
 

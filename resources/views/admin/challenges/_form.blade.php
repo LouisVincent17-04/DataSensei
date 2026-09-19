@@ -55,7 +55,7 @@
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Challenge Settings</h2>
@@ -81,14 +81,14 @@
           <input id="order-index" class="input" type="number" name="order_index" min="0" value="{{ old('order_index', $challenge->order_index ?? 0) }}" required>
         </div>
       </div>
-      <div class="field" style="margin-top:14px">
+      <div class="field" style="margin-top:16px">
         <label for="challenge-description">Description</label>
         <textarea id="challenge-description" class="textarea" name="description">{{ old('description', $challenge->description) }}</textarea>
       </div>
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px" data-question-editor>
+  <section class="panel" data-question-editor>
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">MCQ Questions</h2>
@@ -168,7 +168,7 @@
     </template>
   </section>
 
-  <div class="action-row" style="margin-top:24px">
+  <div class="action-row">
     <button class="btn" type="submit">{{ $submitLabel }}</button>
     <a class="btn secondary" href="{{ $cancelUrl }}">Cancel</a>
   </div>
@@ -176,11 +176,11 @@
 
 @push('head')
 <style>
-  .question-list { display:grid; gap:16px; padding:18px; }
-  .question-item { padding:18px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface3); }
-  .question-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:14px; }
+  .question-list { display:grid; gap:16px; padding:16px; }
+  .question-item { padding:16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface3); }
+  .question-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
   .question-head strong { color:var(--text); }
-  .option-list { display:grid; gap:10px; margin:14px 0; }
+  .option-list { display:grid; gap:8px; margin:16px 0; }
   .option-item { display:grid; grid-template-columns:auto minmax(180px,1fr) auto auto auto; align-items:center; gap:8px; }
   .correct-choice { width:34px; height:34px; display:flex; align-items:center; justify-content:center; gap:4px; border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--muted); cursor:pointer; }
   .correct-choice input { accent-color:var(--accent3); }

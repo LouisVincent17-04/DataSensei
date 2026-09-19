@@ -4,10 +4,65 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{{ $assessment->title }}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--surface3:#0f1928;--border:#263854;--text:#f8fafc;--muted:#91a4bf;--dim:#68809f;--accent:#3b82f6;--good:#10b981;--warn:#f59e0b;--bad:#ef4444;--radius:16px}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}.layout{display:flex;min-height:100vh}.main{flex:1;padding:28px;min-width:0}.wrap{max-width:1480px;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:22px}.title{font-size:2rem;font-weight:900;margin:0}.subtitle{color:var(--muted);line-height:1.6;margin-top:8px}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px}.grid{display:grid;gap:14px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;border-radius:10px;padding:10px 14px;font-weight:800;text-decoration:none;cursor:pointer;background:var(--accent);color:#fff}.btn.secondary{background:var(--surface2);border-color:var(--border);color:var(--text)}.btn.good{background:var(--good)}.actions{display:flex;gap:9px;flex-wrap:wrap}.muted{color:var(--muted)}.alert{padding:13px 15px;border-radius:12px;margin-bottom:16px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.10);color:#a7f3d0}.alert.error{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#fecaca}.metric{background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:14px}.metric strong{font-size:1.55rem;display:block}.availability-note{margin:14px 0 0;padding:12px 14px;border-radius:10px;background:var(--surface3);border:1px solid var(--border);color:var(--muted)}@media(max-width:1000px){.grid-2,.grid-3{grid-template-columns:1fr}.main{padding:18px}.top{flex-direction:column}}
+<style>
+    /* Student assessment overview. */
+    /* Colours, type and radius come from partials.design-system. */
+    :root{--good:var(--ds-success);--warn:var(--ds-warning);--bad:var(--ds-danger)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--text)}
+    .layout{display:flex;min-height:100vh}
+    .main{flex:1;min-width:0;padding:28px 32px 48px}
+    .wrap{max-width:1480px;margin:0 auto}
+
+    /* page header */
+    .top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+    .top > div{min-width:0;flex:1 1 320px}
+    .top .ds-page-title{overflow-wrap:anywhere}
+    .subtitle{margin:4px 0 0;max-width:72ch;color:var(--muted);font-size:.875rem;line-height:1.55;overflow-wrap:anywhere}
+
+    .card{min-width:0;margin-bottom:16px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+    .card > p{margin:0 0 12px;color:var(--ds-text-secondary);font-size:.875rem;line-height:1.6;overflow-wrap:anywhere}
+    .card > :last-child{margin-bottom:0}
+    .card h3{margin:0 0 8px;font-size:.9375rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+    .muted{color:var(--muted)}
+    .card > p.muted{color:var(--muted);font-size:.8125rem}
+
+    /* summary figures: label above value */
+    .grid{display:grid;gap:12px}
+    .grid-3{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px}
+    .metric{min-width:0;display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:4px;padding:16px 18px;
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+    .metric strong{display:block;font-size:1.5rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+    .metric .muted{font-size:.8125rem;font-weight:500}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
+      border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
+      font-size:.875rem;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer;
+      transition:background .12s ease,border-color .12s ease}
+    .btn:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+    .btn.secondary{background:var(--surface2);border-color:var(--ds-border-strong);color:var(--text)}
+    .btn.secondary:hover{background:var(--ds-surface-hover);border-color:var(--ds-border-strong)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .actions form{margin:0}
+
+    .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
+      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.55}
+    .alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+    .btn.good{background:var(--accent);border-color:var(--accent)}
+    .btn.good:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+    .availability-note{margin:16px 0 0;padding:12px 16px;border-radius:var(--radius-sm);background:var(--surface3);color:var(--muted);font-size:.875rem;line-height:1.55}
+
+    @media(max-width:900px){.main{padding:24px 20px 40px}}
+    @media(max-width:640px){
+      .main{padding:20px 16px 32px}
+      .card{padding:16px}
+      .top > .btn{width:100%}
+      .actions > .btn,.actions > form,.actions > form .btn{flex:1 1 auto;width:100%}
+    }
+    @media(max-width:560px){.grid-3{grid-template-columns:minmax(0,1fr)}}
+    @media(prefers-reduced-motion:reduce){.btn{transition:none}}
   </style>
+    @include('partials.page-head', ['pageDescription' => 'Take assessments set by your instructor and review your results.'])
 </head>
 <body>
 <div class="layout">

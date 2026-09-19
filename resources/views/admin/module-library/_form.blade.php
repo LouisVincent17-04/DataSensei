@@ -47,7 +47,7 @@
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Display Information</h2>
@@ -76,14 +76,14 @@
           </select>
         </div>
       </div>
-      <div class="field" style="margin-top:14px">
+      <div class="field" style="margin-top:16px">
         <label for="module-description">Description</label>
         <textarea id="module-description" class="textarea" name="description">{{ old('description', $module->description) }}</textarea>
       </div>
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Learning Content Sections</h2>
@@ -99,7 +99,7 @@
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Embedded Review Questions</h2>
@@ -115,7 +115,7 @@
     </div>
   </section>
 
-  <div class="action-row" style="margin-top:24px">
+  <div class="action-row">
     <button class="btn" type="submit">{{ $submitLabel }}</button>
     <a class="btn secondary" href="{{ $cancelUrl }}">Cancel</a>
   </div>
@@ -123,7 +123,7 @@
 
 @push('head')
 <style>
-  .code-editor { min-height:360px; font-family:Consolas, Monaco, monospace; font-size:.78rem; line-height:1.55; tab-size:2; }
-  .field-help { margin-top:7px; color:var(--dim); font-size:.72rem; line-height:1.5; }
+  .code-editor { min-height:360px; font-family:var(--ds-font-mono); font-size:.8125rem; line-height:1.55; tab-size:2; }
+  .field-help { margin-top:6px; color:var(--muted); font-size:.75rem; line-height:1.5; }
 </style>
 @endpush

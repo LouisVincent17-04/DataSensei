@@ -3,113 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DataSensei — Super Admin Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
+  <title>Super Admin Dashboard — DataSensei</title>
+<style>
+    /* Super admin dashboard. Colours, type and radius come from partials.design-system. */
     :root {
-      --bg:          #0d1320;
-      --surface:     #111c2d;
-      --surface2:    #1a2638;
-      --border:      #1e2f47;
-      --border-hover:#2c4168;
-      --accent:      #3b82f6;
-      --accent-hover:#2563eb;
-      --accent2:     #8b5cf6;
-      --accent3:     #10b981;
-      --accent4:     #f59e0b;
-      --warn:        #ef4444;
-      --text:        #fafafa;
-      --muted:       #7f93b0;
-      --dim:         #3d5272;
-      --radius:      8px;
-      --radius-sm:   6px;
+      --accent2: var(--ds-accent);
+      --accent3: var(--ds-success);
+      --accent4: var(--ds-warning);
+      --warn:    var(--ds-danger);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    body { font-family: var(--ds-font-sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-    /* ── TOPBAR ── */
-    .topbar { height: 64px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; }
-    .topbar h1 { font-size: 1.125rem; font-weight: 600; color: var(--text); flex: 1; letter-spacing: -0.01em; }
-    .topbar-meta { font-size: 0.8rem; color: var(--muted); }
+    /* ── Title bar ── */
+    .topbar { min-height: 60px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px;
+      background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .topbar-meta { color: var(--muted); font-size: .8125rem; }
 
-    /* ── CONTENT ── */
-    .content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 28px; }
+    /* ── Content ── */
+    .content { flex: 1; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px; }
 
-    /* ── WELCOME ── */
-    .welcome-banner { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent2); border-radius: var(--radius); padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-    .welcome-text h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
-    .welcome-text p { font-size: 0.875rem; color: var(--muted); }
-    .welcome-pill { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); border: 1px solid rgba(139,92,246,0.3); color: #a78bfa; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 6px 16px; border-radius: 20px; white-space: nowrap; }
+    /* ── Lead-in ── */
+    .welcome-banner { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; }
+    .welcome-text { min-width: 0; }
+    .welcome-text h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -.01em; }
+    .welcome-text p { margin-top: 4px; max-width: 72ch; color: var(--muted); font-size: .875rem; line-height: 1.5; }
 
-    /* ── FLASH MESSAGE ── */
-    .flash { padding: 12px 20px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; border-left: 3px solid; }
-    .flash-success { background: rgba(16,185,129,0.08); border-color: var(--accent3); color: var(--accent3); }
-    .flash-error   { background: rgba(239,68,68,0.08); border-color: var(--warn); color: var(--warn); }
+    /* ── Flash ── */
+    .flash { padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: .875rem; line-height: 1.5; }
+    .flash-success { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: #d1fae5; }
+    .flash-error   { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: #fee2e2; }
 
-    /* ── STAT GRID ── */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s; }
-    .stat-card:hover { border-color: var(--border-hover); }
-    .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .stat-value { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
-    .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-    .stat-accent  { color: var(--accent);  }
-    .stat-accent2 { color: var(--accent2); }
-    .stat-accent3 { color: var(--accent3); }
-    .stat-accent4 { color: var(--accent4); }
-    .stat-warn    { color: var(--warn);    }
+    /* ── Summary figures ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .stat-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .stat-label { color: var(--muted); font-size: .8125rem; font-weight: 500; }
+    .stat-value { margin-top: 2px; color: var(--text); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .stat-sub { color: var(--muted); font-size: .75rem; line-height: 1.4; }
+    .stat-accent, .stat-accent2, .stat-accent3, .stat-accent4 { color: var(--text); }
+    .stat-warn { color: var(--ds-danger-text); }
 
-    /* ── GRID ROW ── */
-    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 900px) { .grid-row { grid-template-columns: 1fr; } }
+    /* ── Two columns ── */
+    .grid-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 20px; align-items: start; }
 
-    /* ── CARD ── */
+    /* ── Card ── */
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .card-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: flex-start; }
-    .card-title  { font-size: 0.9375rem; font-weight: 600; color: var(--text); }
-    .card-subtitle { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
-    .card-body   { padding: 20px 24px 24px; }
-    .card-link   { font-size: 0.8rem; color: var(--accent); text-decoration: none; font-weight: 500; }
+    .card-header { padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 1px solid var(--border); }
+    .card-title { color: var(--text); font-size: .9375rem; font-weight: 600; line-height: 1.35; }
+    .card-subtitle { margin-top: 2px; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
+    .card-body { padding: 0; overflow-x: auto; }
+    .card-link { flex-shrink: 0; color: var(--ds-accent-text); font-size: .8125rem; font-weight: 500; text-decoration: none; white-space: nowrap; }
     .card-link:hover { text-decoration: underline; }
 
-    /* ── TABLE ── */
-    .tbl { width: 100%; border-collapse: collapse; }
-    .tbl th { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim); padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; }
-    .tbl td { font-size: 0.875rem; color: var(--text); padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    /* ── Table ── */
+    .tbl { width: 100%; min-width: 520px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .tbl th { padding: 10px 14px; background: var(--surface3); border-bottom: 1px solid var(--border); color: var(--muted);
+      font-size: .75rem; font-weight: 600; text-align: left; white-space: nowrap; }
+    .tbl td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--ds-text-secondary); font-size: .875rem; vertical-align: middle; }
+    .tbl td:first-child { min-width: 200px; }
     .tbl tr:last-child td { border-bottom: none; }
-    .tbl tr:hover td { background: var(--surface2); }
+    .tbl tbody tr:hover td { background: rgba(255, 255, 255, .02); }
 
-    /* ── PILL ── */
-    .pill { display: inline-flex; align-items: center; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .pill-active   { background: rgba(16,185,129,0.12);  color: var(--accent3); border: 1px solid rgba(16,185,129,0.25); }
-    .pill-disabled { background: rgba(239,68,68,0.08);   color: var(--warn);    border: 1px solid rgba(239,68,68,0.2); }
-    .pill-student {
-        background: rgba(59, 130, 246, 0.12);
-        color: #2563eb;
-        border: 1px solid rgba(59, 130, 246, 0.25);
-    }
-    .pill-admin {
-        background: rgba(249, 115, 22, 0.12);
-        color: #ea580c;
-        border: 1px solid rgba(249, 115, 22, 0.25);
-    }
-    .pill-super-admin {
-        background: rgba(147, 51, 234, 0.12);
-        color: #7c3aed;
-        border: 1px solid rgba(147, 51, 234, 0.25);
-    }
-    /* ── AVATAR ── */
-    .user-av { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; color: var(--accent); flex-shrink: 0; }
+    /* ── Role label (plain text) and status badge ── */
+    .pill { color: var(--ds-text-secondary); font-size: .875rem; white-space: nowrap; }
+    .pill-active, .pill-disabled { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid; border-radius: var(--radius-xs);
+      font-size: .75rem; font-weight: 600; line-height: 1.4; text-transform: capitalize; }
+    .pill-active   { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: var(--ds-success-text); }
+    .pill-disabled { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
 
-    /* ── TOP INSTITUTIONS ── */
-    .inst-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    /* ── Initials ── */
+    .user-av { width: 32px; height: 32px; flex: 0 0 32px; display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); background: var(--surface2);
+      color: var(--text); font-size: .75rem; font-weight: 600; }
+
+    /* ── Top institutions ── */
+    .inst-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); }
     .inst-item:last-child { border-bottom: none; }
-    .inst-icon { width: 36px; height: 36px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .inst-name { font-size: 0.875rem; font-weight: 600; color: var(--text); }
-    .inst-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-    .inst-count { margin-left: auto; font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+    .inst-item > div:first-child { min-width: 0; flex: 1 1 auto; }
+    .inst-name { color: var(--text); font-size: .875rem; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+    .inst-meta { margin-top: 4px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; color: var(--muted); font-size: .8125rem; }
+    .inst-count { margin-left: auto; flex-shrink: 0; color: var(--text); font-size: .9375rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 1100px) {
+      .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-row { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .topbar { min-height: 56px; padding: 8px 20px; }
+      .content { padding: 24px 20px 40px; }
+    }
+    @media (max-width: 640px) {
+      .topbar { padding: 8px 16px; }
+      .content { padding: 20px 16px 32px; gap: 20px; }
+      .card-header { padding: 12px 16px; }
+      .inst-item { padding: 12px 16px; }
+      .stat-card { padding: 14px 16px; }
+    }
+    @media (max-width: 420px) {
+      .stat-grid { grid-template-columns: minmax(0, 1fr); }
+    }
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Super Admin Dashboard', 'pageDescription' => 'Platform administration for DataSensei.'])
 </head>
 <body>
 
@@ -139,7 +135,6 @@
           <h2>Welcome back, {{ auth()->user()->name }}</h2>
           <p>Here's a platform-wide overview. Manage users, institutions, and monitor activity from one place.</p>
         </div>
-        <span class="welcome-pill">Super Admin</span>
       </div>
 
       {{-- STAT CARDS --}}
@@ -205,8 +200,8 @@
                     <div style="display:flex;align-items:center;gap:10px;">
                       <div class="user-av">{{ strtoupper(substr($user->name, 0, 1)) }}</div>
                       <div>
-                        <div style="font-weight:600;">{{ $user->name }}</div>
-                        <div style="font-size:0.75rem;color:var(--muted);">{{ $user->email }}</div>
+                        <div style="font-weight:600;color:var(--text);">{{ $user->name }}</div>
+                        <div style="font-size:0.75rem;color:var(--muted);overflow-wrap:anywhere;">{{ $user->email }}</div>
                       </div>
                     </div>
                   </td>
@@ -230,10 +225,10 @@
                       {{ $user->status }}
                     </span>
                   </td>
-                  <td style="color:var(--muted);font-size:0.8rem;">{{ $user->created_at->diffForHumans() }}</td>
+                  <td style="color:var(--muted);font-size:0.8125rem;white-space:nowrap;">{{ $user->created_at->diffForHumans() }}</td>
                 </tr>
                 @empty
-                <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">No users yet.</td></tr>
+                <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px 20px;">No users yet.</td></tr>
                 @endforelse
               </tbody>
             </table>
@@ -252,23 +247,17 @@
           <div class="card-body">
             @forelse($institutions as $inst)
             <div class="inst-item">
-              <div class="inst-icon">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="var(--accent2)" stroke-width="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                  <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
-              </div>
               <div>
                 <div class="inst-name">{{ $inst->name }}</div>
                 <div class="inst-meta">
-                  {{ $inst->admin_count }} admin{{ $inst->admin_count !== 1 ? 's' : '' }} ·
+                  <span>{{ $inst->admin_count }} admin{{ $inst->admin_count !== 1 ? 's' : '' }}</span>
                   <span class="pill {{ $inst->status === 'active' ? 'pill-active' : 'pill-disabled' }}">{{ $inst->status }}</span>
                 </div>
               </div>
               <div class="inst-count">{{ number_format($inst->student_count) }}</div>
             </div>
             @empty
-              <p style="color:var(--muted);font-size:0.875rem;text-align:center;padding:24px 0;">No institutions yet.</p>
+              <p style="color:var(--muted);font-size:0.875rem;text-align:center;padding:32px 20px;">No institutions yet.</p>
             @endforelse
           </div>
         </div>

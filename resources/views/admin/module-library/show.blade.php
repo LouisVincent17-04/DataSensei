@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', $module->title)
-@section('eyebrow', 'Learning Module')
 @section('page_title', $module->title)
 @section('page_subtitle', 'Review module metadata, content, version history controls, and publication status.')
 
@@ -10,7 +9,7 @@
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">{{ $module->version_name }}</h2>
-        <p class="panel-subtitle">Module {{ $module->module_no }} · {{ $module->module_code }} · {{ $module->version_code }}</p>
+        <p class="panel-subtitle">Module {{ $module->module_no }}, {{ $module->module_code }}, {{ $module->version_code }}</p>
       </div>
       <div class="action-row">
         <span class="badge {{ $module->is_active ? 'active' : 'disabled' }}">{{ $module->is_active ? 'Published' : 'Inactive' }}</span>
@@ -41,7 +40,7 @@
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head"><div class="panel-heading"><h2 class="panel-title">Create a New Version</h2><p class="panel-subtitle">Copies all current sections and embedded review questions into a separate editable version.</p></div></div>
     <form class="panel-body" method="POST" action="{{ route('admin.module-library.duplicate', $module) }}">
       @csrf
@@ -52,21 +51,21 @@
         <div class="field"><label for="duplicate-version-name">Version Name</label><input id="duplicate-version-name" class="input" name="version_name" value="Version {{ $nextVersionNo }}" required></div>
         <div class="field"><label for="duplicate-status">Initial Status</label><select id="duplicate-status" class="select" name="is_active"><option value="0">Inactive / Draft</option><option value="1">Published</option></select></div>
       </div>
-      <div class="action-row" style="margin-top:14px"><button class="btn" type="submit">Duplicate Version</button></div>
+      <div class="action-row" style="margin-top:16px"><button class="btn" type="submit">Duplicate Version</button></div>
     </form>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head"><div class="panel-heading"><h2 class="panel-title">Learning Sections JSON</h2><p class="panel-subtitle">Read-only formatted view of the stored seeded-compatible structure.</p></div></div>
     <div class="panel-body"><pre class="json-preview">{{ $contentSectionsJson }}</pre></div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head"><div class="panel-heading"><h2 class="panel-title">Review Questions JSON</h2><p class="panel-subtitle">Read-only formatted view of the embedded instructional review questions.</p></div></div>
     <div class="panel-body"><pre class="json-preview">{{ $mcqQuestionsJson }}</pre></div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head"><div class="panel-heading"><h2 class="panel-title">Delete Version</h2><p class="panel-subtitle">Deletion is allowed only when the version is not assigned to any class.</p></div></div>
     <div class="panel-body">
       @if($hasReferences)
@@ -84,6 +83,6 @@
 
 @push('head')
 <style>
-  .json-preview { max-height:520px; overflow:auto; padding:16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg); color:#cbd5e1; font:12px/1.55 Consolas, Monaco, monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .json-preview { max-height:520px; overflow:auto; padding:16px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface3); color:var(--ds-text-secondary); font:.8125rem/1.55 var(--ds-font-mono); white-space:pre-wrap; overflow-wrap:anywhere; }
 </style>
 @endpush

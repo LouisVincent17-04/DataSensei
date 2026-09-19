@@ -4,46 +4,87 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Challenge Pool — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;--text:#fafafa;--muted:#7f93b0;--accent:#3b82f6;--good:#10b981;--warn:#f59e0b;--bad:#ef4444;--radius:14px;--radius-sm:8px}
+<style>
+    /* Instructor challenge pool. Colours, type and radius come from partials.design-system. */
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
     .layout{display:flex;min-height:100vh}
-    .main{flex:1;padding:32px;min-width:0;background:radial-gradient(circle at top right,rgba(59,130,246,.10),transparent 40%),var(--bg)}
-    .top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}
-    .title{font-size:1.8rem;font-weight:800;margin:0}
-    .subtitle{color:var(--muted);margin-top:8px;line-height:1.6}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:18px}
-    .table-wrap{overflow-x:auto}
-    .table{width:100%;border-collapse:collapse;min-width:820px}
-    .table th,.table td{padding:14px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
-    .table th{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
-    .table tbody tr:hover{background:rgba(59,130,246,.04)}
-    .challenge-title{font-weight:700;color:var(--text);line-height:1.45}
-    .challenge-meta{display:block;color:var(--muted);font-size:.78rem;margin-top:4px}
-    .badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:.75rem;font-weight:700;border:1px solid var(--border);background:var(--surface2);color:var(--text)}
-    .badge.good{color:var(--good);border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.08)}
-    .badge.warn{color:var(--warn);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--accent);color:white;text-decoration:none;border:0;font-weight:700;cursor:pointer;font-family:inherit;font-size:.88rem;white-space:nowrap}
-    .btn:hover{filter:brightness(1.08)}
-    .btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-    .btn.small{padding:8px 11px;font-size:.8rem}
-    .form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:var(--radius-sm);font:inherit;min-width:180px}
+    .main{flex:1;min-width:0;padding:28px 32px 48px}
+
+    /* page header */
+    .top{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+    .top > div:first-child{min-width:0;flex:1 1 320px}
+    .subtitle{max-width:72ch;margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.55}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
+      border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
+      font:500 .875rem/1.2 var(--ds-font-sans);text-decoration:none;white-space:nowrap;cursor:pointer;
+      transition:background .12s ease,border-color .12s ease}
+    .btn:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
+    .btn.secondary{border-color:var(--ds-border-strong);background:var(--surface2);color:var(--text)}
+    .btn.secondary:hover{background:var(--ds-surface-hover)}
     .muted{color:var(--muted)}
-    .empty{padding:34px 16px;text-align:center;color:var(--muted)}
-    .pager{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
-    .pager-info{color:var(--muted);font-size:.85rem}
+    .btn.small{min-height:32px;padding:0 12px;font-size:.8125rem}
+
+    .card{margin-bottom:16px;padding:16px 20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+
+    /* filter row */
+    .form-row{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center}
+    /* the category scope is information, not a control: plain text */
+    .input,select{min-width:180px;min-height:38px;padding:8px 12px;border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);
+      background:var(--surface3);color:var(--text);font:400 .875rem/1.4 var(--ds-font-sans);outline:none;
+      transition:border-color .12s ease,box-shadow .12s ease}
+    .input:focus,select:focus{border-color:var(--accent);box-shadow:var(--ds-focus-ring)}
+
+    /* table card: rows run edge to edge */
+    .card.table-wrap{padding:0;overflow-x:auto}
+    .table{width:100%;min-width:760px;border-collapse:collapse}
+    .table th{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface3);color:var(--muted);
+      font-size:.75rem;font-weight:600;text-align:left;white-space:nowrap}
+    .table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--ds-text-secondary);font-size:.875rem;
+      line-height:1.45;vertical-align:middle}
+    .table tbody tr:last-child td{border-bottom:0}
+    .table tbody tr:hover td{background:rgba(255,255,255,.02)}
+    .table td:nth-child(4),.table td:nth-child(5){font-variant-numeric:tabular-nums}
+    .challenge-title{color:var(--text);font-weight:600;line-height:1.45}
+    .challenge-meta{display:block;margin-top:2px;color:var(--muted);font-size:.8125rem}
+
+    .badge{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
+      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
+    .badge.good{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
+    .badge.warn{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-text)}
+    .form-row .badge,.form-row .badge.good{padding:0;border:0;background:none;color:var(--muted);font-size:.8125rem;font-weight:500;margin-right:4px}
+    .empty{padding:32px 20px;color:var(--muted);font-size:.875rem;line-height:1.5;text-align:center}
+    .table tbody tr:hover td[colspan]{background:none}
+
+    /* pagination: same control as the shared pagination */
+    .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid var(--border)}
+    .pager-info{color:var(--muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
     .pager-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-    .page-link{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:38px;padding:0 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);text-decoration:none;font-size:.85rem;font-weight:700}
-    .page-link:hover{border-color:var(--accent);color:#bfdbfe}
-    .page-link.current{background:var(--accent);border-color:var(--accent);color:white;pointer-events:none}
-    .page-link.disabled{opacity:.42;pointer-events:none}
-    .page-gap{display:inline-flex;align-items:center;justify-content:center;min-width:26px;color:var(--muted)}
-    @media(max-width:1000px){.main{padding:20px}}
-    @media(max-width:700px){.layout{display:block}.main{padding:18px}.top{display:block}.form-row>*{width:100%}.input,select{min-width:0}.pager{align-items:flex-start}.pager-controls{width:100%}.page-link{min-width:36px}}
+    .page-link{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 8px;
+      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--ds-text-secondary);
+      font-size:.8125rem;font-weight:500;font-variant-numeric:tabular-nums;text-decoration:none;transition:background .12s ease,color .12s ease}
+    a.page-link:hover{background:var(--ds-surface-hover);color:var(--text)}
+    .page-link.current{border-color:var(--accent);background:var(--accent);color:#fff;pointer-events:none}
+    .page-link.disabled{opacity:.45;pointer-events:none}
+    .page-gap{display:inline-flex;align-items:center;justify-content:center;min-width:20px;color:var(--muted)}
+
+    @media(max-width:900px){.main{padding:24px 20px 40px}}
+    @media(max-width:640px){
+      .main{padding:20px 16px 32px}
+      .card{padding:16px}
+      .card.table-wrap{padding:0}
+      .top{align-items:stretch;flex-direction:column}
+      .top > div:first-child{flex:0 0 auto}
+      .form-row > *{width:100%}
+      .form-row .badge{width:auto}
+      .input,select{min-width:0}
+      .pager{align-items:flex-start;flex-direction:column;padding:12px 16px}
+      .table td[colspan] .empty{padding:24px 0;text-align:left}
+    }
+    @media(prefers-reduced-motion:reduce){.btn,.page-link,.input,select{transition:none}}
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Challenge Pool', 'pageDescription' => 'Browse and manage the coding and quiz challenge pool.'])
 </head>
 <body>
 <div class="layout">
@@ -95,7 +136,7 @@
             <td>
               <span class="challenge-title">{{ $challenge->title }}</span>
               @if($challenge->version_name || $challenge->version_code)
-                <span class="challenge-meta">{{ $challenge->version_name ?: 'Version '.$challenge->version_no }} · {{ $challenge->version_code ?: 'V'.$challenge->version_no }}</span>
+                <span class="challenge-meta">{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}, {{ $challenge->version_code ?: 'V'.$challenge->version_no }}</span>
               @endif
             </td>
             <td>{{ $challenge->category->name ?? '—' }}</td>

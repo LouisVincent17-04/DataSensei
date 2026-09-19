@@ -4,13 +4,64 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Create Assessment Draft — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--surface3:#0f1928;--border:#263854;--text:#f8fafc;--muted:#91a4bf;--dim:#68809f;--accent:#3b82f6;--good:#10b981;--bad:#ef4444;--radius:16px}
-    *{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .layout{display:flex;min-height:100vh}.main{flex:1;padding:28px;min-width:0}.wrap{max-width:1100px;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:22px}.title{font-size:2rem;font-weight:900;margin:0}.subtitle{color:var(--muted);line-height:1.6;margin-top:8px}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}.grid{display:grid;gap:14px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.field label{display:block;color:var(--dim);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}.input,.select,.textarea{width:100%;background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font:inherit}.textarea{min-height:105px;resize:vertical}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;border-radius:10px;padding:10px 14px;font-weight:800;text-decoration:none;cursor:pointer;background:var(--accent);color:#fff}.btn.secondary{background:var(--surface2);border-color:var(--border);color:var(--text)}.btn.good{background:var(--good)}.actions{display:flex;gap:9px;flex-wrap:wrap}.alert{padding:13px 15px;border-radius:12px;margin-bottom:16px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#fecaca}.draft-note{border-left:4px solid var(--accent);background:rgba(59,130,246,.08);border-radius:10px;padding:12px 14px;margin-bottom:18px;color:var(--muted);line-height:1.5}.draft-note strong{color:var(--text)}
-    @media(max-width:760px){.layout{display:block}.main{padding:18px}.top{flex-direction:column}.grid-2{grid-template-columns:1fr}}
+<style>
+    /* New assessment draft form. Colours, type and radius come from partials.design-system. */
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
+    .layout{display:flex;min-height:100vh}
+    .main{flex:1;min-width:0;padding:28px 32px 48px}
+    .wrap{max-width:1100px;margin:0 auto}
+
+    /* page header */
+    .top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+    .top > div:first-child{min-width:0;flex:1 1 320px}
+    .subtitle{max-width:72ch;margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.55}
+
+    .card{padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+    .grid{display:grid;gap:16px}
+    .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+    /* form */
+    .field label{display:block;margin-bottom:6px;color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500}
+    .input,.select,.textarea{width:100%;min-height:38px;padding:8px 12px;border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);
+      background:var(--surface3);color:var(--text);font:400 .875rem/1.4 var(--ds-font-sans);outline:none;
+      transition:border-color .12s ease,box-shadow .12s ease}
+    .input::placeholder,.textarea::placeholder{color:var(--dim)}
+    .input:focus,.select:focus,.textarea:focus{border-color:var(--accent);box-shadow:var(--ds-focus-ring)}
+    .textarea{min-height:105px;resize:vertical;line-height:1.55}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
+      border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
+      font:500 .875rem/1.2 var(--ds-font-sans);text-decoration:none;white-space:nowrap;cursor:pointer;
+      transition:background .12s ease,border-color .12s ease}
+    .btn:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
+    .btn.secondary{border-color:var(--ds-border-strong);background:var(--surface2);color:var(--text)}
+    .btn.secondary:hover{background:var(--ds-surface-hover)}
+    /* The form's only submit button is its primary action. */
+    .btn.good{border-color:var(--accent);background:var(--accent);color:#fff}
+    .btn.good:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    form.card > .actions{padding-top:16px;border-top:1px solid var(--border)}
+
+    .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-danger-border);border-radius:var(--radius-sm);
+      background:var(--ds-danger-soft);color:#fee2e2;font-size:.875rem;line-height:1.5}
+    .draft-note{margin-bottom:20px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);
+      background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.55}
+    .draft-note strong{color:#fff;font-weight:600}
+
+    @media(max-width:900px){.main{padding:24px 20px 40px}}
+    @media(max-width:760px){.grid-2{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:640px){
+      .main{padding:20px 16px 32px}
+      .card{padding:16px}
+      .top{align-items:stretch;flex-direction:column}
+      .top > div:first-child{flex:0 0 auto}
+      .top > .btn,form.card > .actions .btn{width:100%}
+      .btn{white-space:normal;text-align:center}
+    }
+    @media(prefers-reduced-motion:reduce){.btn,.input,.select,.textarea{transition:none}}
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Create Assessment Draft', 'pageDescription' => 'Create, publish, and grade assessments for your classes.'])
 </head>
 <body>
 <div class="layout">
@@ -73,7 +124,7 @@
             <textarea class="textarea" id="instructions" name="instructions">{{ old('instructions') }}</textarea>
           </div>
         </div>
-        <div class="actions" style="justify-content:flex-end;margin-top:18px">
+        <div class="actions" style="justify-content:flex-end;margin-top:16px">
           <button class="btn good" type="submit">Create Draft & Start Authoring</button>
         </div>
       </form>

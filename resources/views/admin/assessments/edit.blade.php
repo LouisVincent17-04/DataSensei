@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Edit Assessment Content')
-@section('eyebrow', 'Platform Content')
 @section('page_title', 'Edit Assessment Content')
 @section('page_subtitle', 'Update this assessment version while preserving class-assignment and submission integrity.')
 

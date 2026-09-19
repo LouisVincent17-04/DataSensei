@@ -1,7 +1,7 @@
 @extends('layouts.auth-reset', ['title' => 'Forgot Password', 'step' => 1])
 
 @section('content')
-  <h1 class="heading">Forgot your password?</h1>
+  <h1 class="heading ds-page-title">Forgot your password?</h1>
   <p class="subheading">Enter the email address registered to your DataSensei account. For privacy, the response is the same whether or not an account exists.</p>
 
   @if ($errors->any() && ! $errors->has('rate_limit'))

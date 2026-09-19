@@ -4,11 +4,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apply as Instructor — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-:root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;--text:#fafafa;--muted:#7f93b0;--accent:#3b82f6;--good:#10b981;--warn:#f59e0b;--bad:#ef4444;--radius:14px;--radius-sm:8px}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}.layout{display:flex;min-height:100vh}.main{flex:1;padding:32px;min-width:0;background:radial-gradient(circle at top right,rgba(59,130,246,.10),transparent 40%),var(--bg)}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}.title{font-size:1.8rem;font-weight:800;margin:0}.subtitle{color:var(--muted);margin-top:8px;line-height:1.6}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.metric{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}.metric .num{font-size:1.6rem;font-weight:800}.metric .lbl{color:var(--muted);font-size:.85rem;margin-top:4px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}.table th{color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}.badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:.75rem;font-weight:700;border:1px solid var(--border);background:var(--surface2);color:var(--text)}.badge.good{color:var(--good);border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.08)}.badge.warn{color:var(--warn);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}.badge.bad{color:var(--bad);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.08)}.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--radius-sm);background:var(--accent);color:white;text-decoration:none;border:0;font-weight:700;cursor:pointer}.btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}.btn.good{background:var(--good)}.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.input,select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:var(--radius-sm)}.muted{color:var(--muted)}.alert{padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:16px;border:1px solid rgba(16,185,129,.25);background:rgba(16,185,129,.08);color:var(--good)}.alert.error{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.08);color:var(--bad)}.pagination{margin-top:16px}.pagination nav{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:1000px){.grid,.grid-2{grid-template-columns:1fr}.main{padding:20px}}@media(max-width:700px){.layout{display:block}}
+<style>
+/* Apply as instructor. Colours, type and radius come from partials.design-system;
+   the sidebar comes from partials.sidebar-shell. */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--ds-font-sans); }
+.layout { display: flex; min-height: 100vh; }
+.main { flex: 1; min-width: 0; padding: 28px 32px 48px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.top > div { min-width: 0; }
+.subtitle { max-width: 72ch; margin: 4px 0 0; color: var(--muted); font-size: 0.875rem; line-height: 1.5; }
+
+.card { max-width: 720px; margin-bottom: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.card > p { margin: 0; font-size: 0.875rem; line-height: 1.5; color: var(--ds-text-secondary); }
+.card h3 { margin: 4px 0 8px; font-size: 0.9375rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.card > p.muted { color: var(--muted); font-size: 0.8125rem; }
+
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs); background: var(--surface2); color: var(--ds-text-secondary); font-size: 0.75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; vertical-align: 1px; }
+.badge.good { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-text); }
+.badge.warn { border-color: var(--ds-warning-border); background: var(--ds-warning-soft); color: var(--ds-warning-text); }
+.badge.bad { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-text); }
+
+.form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.card > * + .form-row { margin-top: 16px; }
+.input, select {
+  min-height: 38px;
+  padding: 8px 12px;
+  background: var(--surface3);
+  border: 1px solid var(--ds-input-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: 400 0.875rem/1.4 var(--ds-font-sans);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.input { flex: 1 1 240px; max-width: 320px; }
+.input::placeholder { color: var(--dim); }
+.input:focus, select:focus { border-color: var(--accent); box-shadow: var(--ds-focus-ring); outline: none; }
+
+.btn { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent); color: #fff; font: 500 0.875rem/1.2 var(--ds-font-sans); text-decoration: none; white-space: nowrap; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease; }
+.btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.secondary { background: var(--surface2); border-color: var(--ds-border-strong); color: var(--text); }
+.btn.secondary:hover { background: var(--ds-surface-hover); }
+
+.alert { max-width: 720px; margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm); background: var(--ds-success-soft); color: #d1fae5; font-size: 0.875rem; line-height: 1.5; }
+.alert.error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+
+@media (max-width: 900px) { .main { padding: 24px 20px 40px; } }
+@media (max-width: 640px) {
+  .main { padding: 20px 16px 32px; }
+  .card { padding: 16px; }
+  .input { max-width: none; flex-basis: 100%; }
+  .form-row .btn { flex: 1 1 auto; }
+}
 </style>
 
+    @include('partials.page-head', ['pageTitle' => 'Apply as Instructor', 'pageDescription' => 'Apply for an instructor account on DataSensei.'])
 </head>
 <body>
 <div class="layout">
@@ -32,7 +84,7 @@
         <p>Status: <span class="badge {{ $existingApplication->status === 'approved' ? 'good' : ($existingApplication->status === 'rejected' ? 'bad' : 'warn') }}">{{ ucfirst($existingApplication->status) }}</span></p>
       @endif
 
-      <form method="POST" action="{{ route('instructor.apply.submit') }}" class="form-row" style="margin-top:18px">
+      <form method="POST" action="{{ route('instructor.apply.submit') }}" class="form-row">
         @csrf
         <input class="input" name="institution_code" maxlength="6" placeholder="6-character institution code" value="{{ old('institution_code') }}" required>
         <button class="btn" type="submit">Submit Application</button>

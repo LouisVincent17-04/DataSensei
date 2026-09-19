@@ -4,21 +4,134 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guided EDA Roadmap — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#17243a;--border:#243650;--text:#f8fafc;--muted:#9bacc4;--accent:#3b82f6;--accent2:#60a5fa;--good:#10b981;--danger:#f87171;--radius:18px;--small:11px}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 0,rgba(59,130,246,.15),transparent 34%),var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}.layout{display:flex;min-height:100vh}.content{flex:1;min-width:0;padding:34px}.page{max-width:1240px;margin:0 auto}.hero{max-width:780px;margin-bottom:24px}.eyebrow{font-size:.74rem;color:var(--accent2);font-weight:900;letter-spacing:.13em;text-transform:uppercase}.hero h1{font-size:clamp(2rem,4vw,3.15rem);line-height:1.08;margin:8px 0 12px}.hero p,.muted{color:var(--muted);line-height:1.65}.roadmap{display:grid;grid-template-columns:repeat(8,minmax(105px,1fr));gap:8px;margin:24px 0 30px;overflow-x:auto;padding-bottom:5px}.roadmap-step{min-width:105px;border:1px solid var(--border);background:rgba(17,28,45,.78);border-radius:13px;padding:12px}.roadmap-step span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,.15);color:var(--accent2);font-size:.75rem;font-weight:900;margin-bottom:8px}.roadmap-step strong{display:block;font-size:.78rem;line-height:1.35}.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:28px 0 14px}.section-head h2{font-size:1.35rem;margin:0}.section-head p{margin:0;color:var(--muted);font-size:.88rem}.starter-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:18px}.card{background:linear-gradient(180deg,rgba(255,255,255,.025),transparent),var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:0 18px 45px rgba(0,0,0,.16)}.recommended{border-color:rgba(59,130,246,.55);box-shadow:0 18px 50px rgba(37,99,235,.12)}.badge{display:inline-flex;border-radius:999px;padding:6px 10px;background:rgba(59,130,246,.15);border:1px solid rgba(96,165,250,.3);color:#bfdbfe;font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.07em}.card h2,.card h3{margin:12px 0 8px}.card p{color:var(--muted);line-height:1.6}.upload-box{border:1px dashed #3b587d;background:rgba(59,130,246,.055);padding:18px;border-radius:14px;margin:16px 0}.upload-box label{display:block;font-size:.87rem;font-weight:800;margin-bottom:9px}.upload-box input{display:block;width:100%;color:var(--muted);font:inherit}.limits{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.limit{border:1px solid var(--border);background:var(--surface2);padding:6px 9px;border-radius:999px;color:var(--muted);font-size:.74rem;font-weight:700}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:0;border-radius:11px;background:linear-gradient(135deg,var(--accent),#2563eb);color:#fff;text-decoration:none;padding:11px 16px;font:800 .88rem Inter;cursor:pointer}.btn:hover{filter:brightness(1.08)}.btn.full{width:100%}.btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}.notice{border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.09);color:#bbf7d0;border-radius:12px;padding:12px 14px;margin-bottom:16px}.error{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.09);color:#fecaca}.datasets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.dataset{display:flex;flex-direction:column;min-height:300px}.dataset-top{display:flex;align-items:start;justify-content:space-between;gap:10px}.dataset h3{font-size:1.06rem}.dataset .description{font-size:.84rem;flex:1}.meta{display:flex;gap:8px;margin:4px 0 18px}.meta span{font-size:.75rem;color:var(--muted);border:1px solid var(--border);border-radius:9px;padding:7px 9px;background:var(--surface2)}.dataset-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.beginner-note{display:flex;gap:11px;align-items:start;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.25);border-radius:13px;padding:14px;margin-top:16px}.beginner-note strong{color:#a7f3d0}.beginner-note p{margin:3px 0 0;font-size:.82rem}.error-text{color:#fecaca;font-size:.82rem;margin-top:8px}.fine-print{font-size:.76rem;color:var(--muted);margin:12px 0 0}@media(max-width:1100px){.roadmap{grid-template-columns:repeat(4,minmax(130px,1fr))}.datasets{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:800px){.layout{display:block}.content{padding:22px}.starter-grid,.datasets{grid-template-columns:1fr}.roadmap{grid-template-columns:repeat(8,130px)}.section-head{display:block}.section-head p{margin-top:6px}}@media(max-width:430px){.dataset-actions{grid-template-columns:1fr}}
+<style>
+    /* Layout and components for the EDA toolkit landing page. Colours, type
+       and radius come from partials.design-system. */
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
+    .layout{display:flex;min-height:100vh}
+    .content{flex:1;min-width:0;padding:28px 32px 48px}
+    .page{max-width:1240px;margin:0 auto}
+
+    /* ── page header ───────────────────────────────────────────── */
+    .page-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+    .page-head > div{min-width:0;flex:1 1 320px}
+    .page-head p{max-width:72ch;margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.55}
+    .muted{color:var(--muted);line-height:1.55}
+
+    .notice{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
+      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.5}
+    .notice.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+    .notice strong{font-weight:600}
+
+    /* ── roadmap: eight steps in one hairline strip ─────────────── */
+    .roadmap{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:1px;margin:0 0 32px;
+      border:1px solid var(--border);border-radius:var(--radius);background:var(--border);overflow:hidden}
+    .roadmap-step{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:12px;background:var(--surface)}
+    .roadmap-step span{display:inline-grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border:1px solid var(--ds-border-strong);
+      border-radius:var(--radius-xs);background:var(--surface2);color:var(--muted);font-size:.75rem;font-weight:600;
+      font-variant-numeric:tabular-nums}
+    .roadmap-step strong{min-width:0;color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.3;overflow-wrap:break-word}
+
+    /* ── section headings ──────────────────────────────────────── */
+    .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:32px 0 16px}
+    .roadmap + .section-head{margin-top:0}
+    .section-head h2{margin:0;font-size:1.125rem;font-weight:600;line-height:1.35}
+    .section-head p{margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.5}
+
+    /* ── cards ─────────────────────────────────────────────────── */
+    .starter-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+    .recommended{border-color:var(--ds-accent-border)}
+    .card h2,.card h3{margin:12px 0 6px;font-size:1rem;font-weight:600;line-height:1.35}
+    .card p{margin:0;color:var(--muted);font-size:.875rem;line-height:1.55}
+
+    .badge{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
+      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
+    .recommended > .badge{border-color:var(--ds-accent-border);background:var(--ds-accent-soft);color:var(--ds-accent-text)}
+
+    .beginner-note{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px 14px;
+      border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);background:var(--ds-success-soft)}
+    .beginner-note > div:first-child{flex:0 0 auto;color:var(--ds-success-text);font-weight:600;line-height:1.4}
+    .beginner-note strong{display:block;color:#d1fae5;font-size:.875rem;font-weight:600;line-height:1.4}
+    .beginner-note p{margin:2px 0 0;color:var(--ds-text-secondary);font-size:.8125rem}
+
+    .upload-box{margin:16px 0;padding:16px;border:1px dashed var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface3)}
+    .upload-box label{display:block;margin-bottom:6px;color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500}
+    .upload-box input{display:block;width:100%;color:var(--muted);font:inherit;font-size:.875rem;overflow-wrap:anywhere}
+    .upload-box input::file-selector-button{min-height:32px;margin-right:12px;padding:0 12px;border:1px solid var(--ds-border-strong);
+      border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font:500 .8125rem var(--ds-font-sans);cursor:pointer;
+      transition:background .12s ease}
+    .upload-box input::file-selector-button:hover{background:var(--ds-surface-hover)}
+    .upload-box input:focus-visible{outline:none;box-shadow:none}
+    .upload-box input:focus-visible::file-selector-button{box-shadow:var(--ds-focus-ring)}
+    .limits{margin-top:10px;color:var(--muted);font-size:.75rem;line-height:1.5}
+    .limits .limit:not(:last-child)::after{content:","}
+    .error-text{margin-top:6px;color:var(--ds-danger-text);font-size:.75rem;line-height:1.4}
+    .fine-print{margin:12px 0 0 !important;color:var(--muted);font-size:.75rem !important;line-height:1.5}
+
+    /* ── buttons ───────────────────────────────────────────────── */
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 16px;
+      border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
+      font:500 .875rem/1.2 var(--ds-font-sans);text-align:center;text-decoration:none;cursor:pointer;
+      transition:background .12s ease,border-color .12s ease}
+    .btn:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
+    .btn.full{width:100%}
+    .btn.secondary{border-color:var(--ds-border-strong);background:var(--surface2);color:var(--text)}
+    .btn.secondary:hover{background:var(--ds-surface-hover)}
+
+    /* ── predefined datasets ───────────────────────────────────── */
+    .datasets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .dataset{display:flex;flex-direction:column}
+    .dataset-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .dataset-top > div{min-width:0;flex:1 1 auto}
+    .dataset-top > .limit{flex-shrink:0;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);
+      border-radius:var(--radius-xs);background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;
+      line-height:1.4;white-space:nowrap}
+    .dataset h3{margin:10px 0 0;font-size:.9375rem}
+    .dataset .description{flex:1;margin-top:8px;font-size:.875rem}
+    .meta{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 16px;color:var(--muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
+    .meta span:not(:last-child)::after{content:","}
+    .dataset-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .dataset-actions .btn{flex:1 1 auto;padding:0 12px}
+
+    @media(max-width:1280px){
+      .roadmap{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .roadmap-step{flex-direction:row;align-items:center;gap:8px;padding:12px 14px}
+    }
+    @media(max-width:1100px){
+      .datasets{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media(max-width:900px){
+      .content{padding:24px 20px 40px}
+      .starter-grid{grid-template-columns:minmax(0,1fr)}
+    }
+    @media(max-width:640px){
+      .content{padding:20px 16px 32px}
+      .card{padding:16px}
+      .datasets{grid-template-columns:minmax(0,1fr)}
+      .section-head{flex-direction:column;align-items:flex-start;gap:0}
+    }
+    @media(max-width:560px){
+      .roadmap{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media(max-width:420px){
+      .dataset-actions .btn{width:100%}
+    }
+    @media(prefers-reduced-motion:reduce){.btn,.upload-box input::file-selector-button{transition:none}}
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Guided EDA Roadmap', 'pageDescription' => 'Clean, explore, and profile a dataset before you model it.'])
 </head>
 <body>
 <div class="layout">
   @include('partials.sidebar')
   <main class="content">
     <div class="page">
-      <header class="hero">
-        <div class="eyebrow"></div>
-        <h1 class="ds-page-title">Follow one clear path through your data.</h1>
-        <p>DataSensei will guide you from a simple objective to a complete EDA summary. Each page shows only what you need for the current step.</p>
+      <header class="page-head">
+        <div>
+          <h1 class="ds-page-title">EDA &amp; Data Toolkit</h1>
+          <p>Work from a simple objective to a complete EDA summary, one guided step at a time.</p>
+        </div>
       </header>
 
       @if(session('success'))
@@ -47,7 +160,7 @@
             <div>✓</div>
             <div><strong>No setup required</strong><p>The objective and research questions are already prepared. Choose one of the datasets below.</p></div>
           </div>
-          <a class="btn full" href="#predefined" style="margin-top:18px">Choose a dataset ↓</a>
+          <a class="btn full" href="#predefined" style="margin-top:16px">Choose a dataset ↓</a>
         </article>
 
         <article class="card">

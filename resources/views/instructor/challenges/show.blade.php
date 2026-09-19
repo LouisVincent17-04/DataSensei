@@ -4,48 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ $challenge->title }} — Challenge Pool</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;--text:#fafafa;--muted:#7f93b0;--accent:#3b82f6;--good:#10b981;--warn:#f59e0b;--radius:14px;--radius-sm:8px}
+<style>
+    /* Read-only challenge content and answer key. Colours, type and radius come from partials.design-system. */
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
     .layout{display:flex;min-height:100vh}
-    .main{flex:1;padding:32px;min-width:0;background:radial-gradient(circle at top right,rgba(59,130,246,.10),transparent 40%),var(--bg)}
-    .top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}
-    .eyebrow{color:#93c5fd;text-transform:uppercase;letter-spacing:.08em;font-size:.73rem;font-weight:800;margin-bottom:8px}
-    .title{font-size:1.8rem;font-weight:800;margin:0;line-height:1.25}
-    .subtitle{color:var(--muted);margin-top:8px;line-height:1.65;max-width:850px}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:18px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--accent);color:white;text-decoration:none;border:0;font-weight:700;cursor:pointer;font-family:inherit;font-size:.88rem;white-space:nowrap}
-    .btn.secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-    .btn:hover{filter:brightness(1.08)}
+    .main{flex:1;min-width:0;padding:28px 32px 48px}
+
+    /* page header */
+    .top{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+    .top > div:first-child{min-width:0;flex:1 1 320px}
+    .subtitle{max-width:72ch;margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.55}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
+      border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
+      font:500 .875rem/1.2 var(--ds-font-sans);text-decoration:none;white-space:nowrap;cursor:pointer;
+      transition:background .12s ease,border-color .12s ease}
+    .btn:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
+    .btn.secondary{border-color:var(--ds-border-strong);background:var(--surface2);color:var(--text)}
+    .btn.secondary:hover{background:var(--ds-surface-hover)}
+    .muted{color:var(--muted)}
+
+    .card{margin-bottom:16px;padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+
+    /* challenge facts: flat insets, label above value */
     .meta-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
-    .meta{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:15px}
-    .meta-label{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
-    .meta-value{font-size:1rem;font-weight:800;line-height:1.4}
-    .section-title{font-size:1.15rem;margin:0}
-    .section-note{color:var(--muted);font-size:.88rem;line-height:1.55;margin:7px 0 0}
-    .questions{display:grid;gap:12px;margin-top:18px}
-    .question{background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-    .question summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+    .meta{min-width:0;padding:12px 16px;border-radius:var(--radius-sm);background:var(--surface3)}
+    .meta-label{display:block;margin-bottom:4px;color:var(--muted);font-size:.8125rem;font-weight:500}
+    .meta-value{display:block;font-size:1rem;font-weight:600;line-height:1.4;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+    .section-title{margin:0;font-size:1rem;font-weight:600;line-height:1.35}
+    .section-note{margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.55}
+
+    /* questions: rows separated by rules, running edge to edge in the card */
+    .questions{display:grid;margin:16px -20px -20px;border-top:1px solid var(--border)}
+    .question{border-bottom:1px solid var(--border)}
+    .question:last-child{border-bottom:0}
+    .question summary{list-style:none;cursor:pointer;padding:14px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+      transition:background .12s ease}
     .question summary::-webkit-details-marker{display:none}
-    .question summary:hover{background:rgba(59,130,246,.05)}
-    .question-number{display:block;color:#93c5fd;font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-    .question-preview{font-weight:700;line-height:1.55}
-    .toggle{color:var(--muted);font-size:.8rem;white-space:nowrap;padding-top:3px}
+    .question summary:hover{background:var(--surface2)}
+    .question summary > div{min-width:0;flex:1 1 auto}
+    .question-number{display:block;margin-bottom:2px;color:var(--muted);font-size:.75rem;font-weight:600}
+    .question-preview{font-size:.875rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}
+    .toggle{flex-shrink:0;padding-top:2px;color:var(--ds-accent-text);font-size:.8125rem;font-weight:500;white-space:nowrap}
     .question[open] .toggle::after{content:'Hide'}
     .question:not([open]) .toggle::after{content:'View'}
-    .question-body{border-top:1px solid var(--border);padding:18px}
-    .question-text{margin:0 0 16px;line-height:1.7;color:var(--text)}
-    .options{display:grid;gap:9px;margin:0;padding:0;list-style:none}
-    .option{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--muted);line-height:1.55}
-    .option.correct{border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.08);color:#d1fae5}
-    .option-key{display:inline-flex;align-items:center;justify-content:center;flex:0 0 26px;height:26px;border-radius:999px;background:rgba(255,255,255,.06);font-size:.75rem;font-weight:800}
-    .correct-tag{margin-left:auto;color:#6ee7b7;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;padding-top:3px}
-    .empty{padding:30px;text-align:center;color:var(--muted)}
-    @media(max-width:1100px){.meta-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:700px){.layout{display:block}.main{padding:18px}.top{display:block}.top .btn{margin-top:16px}.meta-grid{grid-template-columns:1fr}.question summary{display:block}.toggle{display:block;margin-top:10px}.correct-tag{margin-left:0}}
+    .question-body{padding:4px 20px 20px}
+    .question-text{margin:0 0 12px;color:var(--text);font-size:.875rem;line-height:1.65;overflow-wrap:anywhere}
+    .options{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+    .option{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+      color:var(--ds-text-secondary);font-size:.875rem;line-height:1.5}
+    .option > span:nth-child(2){min-width:0;flex:1 1 auto;overflow-wrap:anywhere}
+    .option.correct{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:#d1fae5}
+    .option-key{display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;height:22px;border-radius:var(--radius-xs);
+      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600}
+    .option.correct .option-key{background:rgba(16,185,129,.2);color:var(--ds-success-text)}
+    .correct-tag{flex-shrink:0;margin-left:auto;color:var(--ds-success-text);font-size:.75rem;font-weight:600;white-space:nowrap;padding-top:2px}
+    .empty{padding:32px 20px;color:var(--muted);font-size:.875rem;text-align:center}
+
+    @media(max-width:1100px){.meta-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:900px){.main{padding:24px 20px 40px}}
+    @media(max-width:700px){.meta-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:640px){
+      .main{padding:20px 16px 32px}
+      .card{padding:16px}
+      .questions{margin:16px -16px -16px}
+      .question summary{padding:12px 16px}
+      .question-body{padding:4px 16px 16px}
+      .top{align-items:stretch;flex-direction:column}
+      .top > div:first-child{flex:0 0 auto}
+      .top > .btn{width:100%}
+      .option{flex-wrap:wrap}
+      .correct-tag{flex-basis:calc(100% - 32px);margin-left:32px;padding-top:0}
+    }
+    @media(max-width:420px){.meta-grid{grid-template-columns:minmax(0,1fr)}}
+    @media(prefers-reduced-motion:reduce){.btn,.question summary{transition:none}}
   </style>
+    @include('partials.page-head', ['pageDescription' => 'Browse and manage the coding and quiz challenge pool.'])
 </head>
 <body>
 <div class="layout">
@@ -54,7 +90,6 @@
   <main class="main">
     <div class="top">
       <div>
-        <div class="eyebrow">University Student MCQ Content</div>
         <h1 class="title ds-page-title">{{ $challenge->title }}</h1>
         <p class="subtitle">{{ $challenge->description ?: 'Review the published questions and answer key available to students in this challenge.' }}</p>
       </div>

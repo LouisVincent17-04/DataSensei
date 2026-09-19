@@ -4,11 +4,93 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EDA Report — {{ $report['dataset']['title'] }}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-    :root{--bg:#f5f7fb;--surface:#ffffff;--border:#d8e0ed;--text:#111827;--muted:#52637a;--accent:#2563eb;--good:#047857;--radius:14px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}.page{max-width:1120px;margin:0 auto;padding:28px}.toolbar{display:flex;justify-content:space-between;gap:12px;margin-bottom:18px}.btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:10px 14px;text-decoration:none;font-weight:800;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.report{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:30px;box-shadow:0 20px 45px rgba(15,23,42,.08)}.header{border-bottom:2px solid var(--border);padding-bottom:18px;margin-bottom:22px}.eyebrow{font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:var(--accent)}h1{margin:6px 0 8px;font-size:2rem}.muted{color:var(--muted);line-height:1.65}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:16px 0}.card{border:1px solid var(--border);border-radius:12px;padding:14px;background:#fbfdff}.label{font-size:.72rem;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.08em}.metric{font-size:1.5rem;font-weight:900;margin-top:4px}.section{margin-top:26px}.section h2{font-size:1.25rem;margin:0 0 10px}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:12px}table{width:100%;border-collapse:collapse}th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-size:.86rem}th{background:#f1f5f9;color:#475569;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem}tr:last-child td{border-bottom:0}.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.note{border-left:4px solid var(--accent);background:#eef5ff;border-radius:10px;padding:12px;color:#334155;line-height:1.55}.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid var(--border);background:#f8fafc;border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:800;color:#475569}@media(max-width:900px){.grid,.two{grid-template-columns:1fr}.toolbar{display:block}.toolbar .btn{margin-bottom:8px}}@media print{body{background:white}.page{max-width:none;padding:0}.toolbar{display:none}.report{box-shadow:none;border:0;border-radius:0}.section{break-inside:avoid}.card{break-inside:avoid}}
+    /* Printable EDA report. It stays light on purpose (it is made for paper),
+       so its colours live on <body>: partials.page-head defines the dark
+       product tokens on :root after this block, and body-scoped values win. */
+    *{box-sizing:border-box}
+    body{
+      --rp-bg:#f5f7fb;--rp-surface:#ffffff;--rp-inset:#f8fafc;--rp-head:#f1f5f9;
+      --rp-border:#d8e0ed;--rp-border-strong:#c3cfe0;
+      --rp-text:#111827;--rp-text-secondary:#334155;--rp-muted:#52637a;
+      --rp-accent:#3b82f6;--rp-accent-strong:#2563eb;--rp-accent-soft:rgba(59,130,246,.08);--rp-accent-border:rgba(59,130,246,.3);
+      color-scheme:light;margin:0;background:var(--rp-bg);color:var(--rp-text);font-family:var(--ds-font-sans);
+      font-size:.875rem;line-height:1.5}
+    body ::selection{color:var(--rp-text)}
+    .page{max-width:1120px;margin:0 auto;padding:28px 32px 48px}
+
+    .toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 16px;
+      border:1px solid var(--rp-border-strong);border-radius:var(--ds-radius-sm);background:var(--rp-surface);color:var(--rp-text);
+      font:500 .875rem/1.2 var(--ds-font-sans);text-decoration:none;cursor:pointer;transition:background .12s ease,border-color .12s ease}
+    .btn:hover{background:var(--rp-head)}
+    .btn.primary{border-color:var(--rp-accent);background:var(--rp-accent);color:#fff}
+    .btn.primary:hover{border-color:var(--rp-accent-strong);background:var(--rp-accent-strong)}
+
+    .report{padding:32px;border:1px solid var(--rp-border);border-radius:var(--ds-radius-md);background:var(--rp-surface)}
+    .header{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--rp-border)}
+    .report .ds-page-title{color:var(--rp-text);overflow-wrap:anywhere}
+    .muted{color:var(--rp-muted);line-height:1.6}
+    .header .muted{max-width:72ch;margin:4px 0 12px}
+    .chips{display:flex;flex-wrap:wrap;gap:4px 20px}
+    .chip{color:var(--rp-muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
+
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+    .card{min-width:0;padding:14px 16px;border:1px solid var(--rp-border);border-radius:var(--ds-radius-md);background:var(--rp-surface)}
+    .card p{margin:6px 0 0;color:var(--rp-text-secondary);font-size:.875rem;overflow-wrap:anywhere}
+    .card .muted{color:var(--rp-muted)}
+    .label{color:var(--rp-muted);font-size:.8125rem;font-weight:500;line-height:1.4}
+    .metric{margin-top:4px;font-size:1.5rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+    .section{margin-top:32px}
+    .section h2{margin:0 0 12px;font-size:1.125rem;font-weight:600;line-height:1.35}
+    .section > h2 + .grid{margin-top:0}
+
+    .table-wrap{overflow-x:auto;border:1px solid var(--rp-border);border-radius:var(--ds-radius-md)}
+    table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+    th,td{padding:10px 14px;border-bottom:1px solid var(--rp-border);text-align:left;vertical-align:top}
+    th{background:var(--rp-head);color:var(--rp-muted);font-size:.75rem;font-weight:600;white-space:nowrap;text-transform:none;letter-spacing:0}
+    td{color:var(--rp-text-secondary);font-size:.875rem}
+    tbody tr:last-child td{border-bottom:0}
+
+    .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .two > div{min-width:0}
+    .note{margin:0;padding:12px 16px;border:1px solid var(--rp-accent-border);border-radius:var(--ds-radius-sm);background:var(--rp-accent-soft);
+      color:var(--rp-text-secondary);font-size:.875rem;line-height:1.6}
+    .section > .note{margin-top:12px}
+    .section > h2 + .note{margin-top:0}
+
+    @media(max-width:900px){
+      .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .two{grid-template-columns:minmax(0,1fr)}
+    }
+    @media(max-width:760px){
+      .table-wrap table:has(th:nth-child(5)){min-width:720px}
+    }
+    @media(max-width:640px){
+      .page{padding:16px 16px 32px}
+      .report{padding:20px 16px}
+      .toolbar .btn{flex:1 1 auto}
+    }
+    @media(max-width:420px){
+      .grid{grid-template-columns:minmax(0,1fr)}
+    }
+    @media print{
+      body{background:#fff}
+      .page{max-width:none;padding:0}
+      .toolbar{display:none}
+      .report{padding:0;border:0;border-radius:0}
+      .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .two{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .table-wrap{overflow:visible}
+      th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .section{break-inside:avoid}
+      .card{break-inside:avoid}
+    }
+    @media(prefers-reduced-motion:reduce){.btn{transition:none}}
   </style>
   @include('partials.ui-polish')
+    @include('partials.page-head', ['pageDescription' => 'Clean, explore, and profile a dataset before you model it.'])
 </head>
 <body>
 <div class="page">
@@ -19,8 +101,7 @@
 
   <main class="report">
     <header class="header">
-      <div class="eyebrow">DataSensei Exploratory Data Analysis Report</div>
-      <h1>{{ $report['dataset']['title'] }}</h1>
+      <h1 class="ds-page-title">{{ $report['dataset']['title'] }}</h1>
       <p class="muted">{{ $report['dataset']['description'] }}</p>
       <div class="chips">
         <span class="chip">Student: {{ $student->name ?? 'Student' }}</span>
@@ -127,9 +208,9 @@
       <div>
         <h2>Categorical Summary</h2>
         @forelse($report['categorical'] as $summary)
-          <div class="card" style="margin-bottom:10px">
+          <div class="card" style="margin-bottom:8px">
             <div class="label">{{ $summary['column'] }}</div>
-            <p><strong>{{ $summary['unique_count'] }}</strong> unique values · Most common: <strong>{{ $summary['most_frequent'] ?? 'N/A' }}</strong></p>
+            <p><strong>{{ $summary['unique_count'] }}</strong> unique values, Most common: <strong>{{ $summary['most_frequent'] ?? 'N/A' }}</strong></p>
             <p class="muted">{{ $summary['interpretation'] }}</p>
           </div>
         @empty
@@ -141,10 +222,10 @@
         <h2>Correlation Findings</h2>
         <p class="note">{{ $report['correlation']['interpretation'] }}</p>
         @if($report['correlation']['strongest_pair'])
-          <div class="card" style="margin-top:10px">
+          <div class="card" style="margin-top:8px">
             <div class="label">Strongest Pair</div>
             <p><strong>{{ $report['correlation']['strongest_pair']['x'] }}</strong> and <strong>{{ $report['correlation']['strongest_pair']['y'] }}</strong></p>
-            <p class="muted">r = {{ $report['correlation']['strongest_pair']['value'] }} · {{ $report['correlation']['strongest_pair']['strength'] }} {{ $report['correlation']['strongest_pair']['direction'] }}</p>
+            <p class="muted">r = {{ $report['correlation']['strongest_pair']['value'] }}, {{ $report['correlation']['strongest_pair']['strength'] }} {{ $report['correlation']['strongest_pair']['direction'] }}</p>
           </div>
         @endif
       </div>

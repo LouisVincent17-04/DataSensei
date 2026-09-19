@@ -1,7 +1,7 @@
 @extends('layouts.auth-reset', ['title' => 'Create New Password', 'step' => 3])
 
 @section('content')
-  <h1 class="heading">Create a new password</h1>
+  <h1 class="heading ds-page-title">Create a new password</h1>
   <p class="subheading">Your email has been verified. Choose a strong password that you do not use on another service.</p>
 
   @if ($errors->any() && ! $errors->has('rate_limit'))

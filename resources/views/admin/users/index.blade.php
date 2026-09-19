@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'User Management')
-@section('eyebrow', 'Admin Operations')
 @section('page_title', 'User Management')
 @section('page_subtitle', 'Manage learners, instructors, and institution admins. Admin and superadmin accounts are intentionally protected from this workspace.')
 
@@ -110,7 +109,7 @@
               </td>
               <td data-label="Status">
                 <span class="badge {{ $user->status === 'active' ? 'active' : 'disabled' }}">{{ ucfirst($user->status) }}</span>
-                <form method="POST" action="{{ route('admin.users.status', $user) }}" style="margin-top:10px">
+                <form method="POST" action="{{ route('admin.users.status', $user) }}" style="margin-top:8px">
                   @csrf
                   @method('PATCH')
                   <button class="btn small {{ $user->status === 'active' ? 'danger' : 'green' }}" type="submit">{{ $user->status === 'active' ? 'Disable' : 'Enable' }}</button>

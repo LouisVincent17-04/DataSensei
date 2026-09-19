@@ -10,11 +10,55 @@
 
 @if(!empty($antiCheatSettings['enabled']))
 <style>
-  .ds-ac-toast{position:relative;inset:auto;z-index:10000;max-width:390px;margin:16px 16px 0 auto;border:1px solid rgba(245,158,11,.45);background:rgba(17,28,45,.98);color:#fde68a;border-radius:16px;padding:14px 16px;box-shadow:0 18px 55px rgba(0,0,0,.38);font:600 13px/1.45 Inter,system-ui,sans-serif;display:none}.ds-ac-toast.show{display:block}.ds-ac-toast strong{display:block;color:#fff;margin-bottom:3px}.ds-ac-lock{position:fixed;inset:0;z-index:99998;background:rgba(8,15,28,.94);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:24px}.ds-ac-lock.show{display:flex}.ds-ac-lock-card{max-width:560px;border:1px solid rgba(239,68,68,.45);background:#111c2d;border-radius:24px;padding:28px;text-align:center;box-shadow:0 22px 75px rgba(0,0,0,.45)}.ds-ac-lock-icon{font-size:2.6rem;margin-bottom:12px}.ds-ac-lock-title{font-size:1.45rem;font-weight:900;color:#fff;margin-bottom:10px}.ds-ac-lock-msg{color:#fecaca;line-height:1.65;margin-bottom:18px}.ds-ac-lock-btn{border:1px solid rgba(59,130,246,.45);background:#3b82f6;color:#fff;border-radius:12px;min-height:42px;padding:0 16px;font-weight:900;cursor:pointer}.ds-ac-fullscreen{position:fixed;inset:0;z-index:99997;background:rgba(8,15,28,.94);display:none;align-items:center;justify-content:center;padding:24px}.ds-ac-fullscreen.show{display:flex}.ds-ac-fullscreen-card{max-width:560px;border:1px solid rgba(59,130,246,.45);background:#111c2d;border-radius:24px;padding:28px;text-align:center}.ds-ac-fullscreen-title{font-size:1.35rem;font-weight:900;color:#fff;margin-bottom:8px}.ds-ac-fullscreen-msg{color:#7f93b0;line-height:1.65;margin-bottom:18px}.ds-ac-fullscreen-btn{border:0;background:#3b82f6;color:white;border-radius:12px;min-height:44px;padding:0 18px;font-weight:900;cursor:pointer}
+  /* Anti-cheat warnings for timed work. The toast joins the global
+     notification stack; the lock and fullscreen dialogs sit above every
+     other layer (mobile bar 900, drawer 960, page dialogs 1000+). */
+  .ds-ac-toast {
+    position: relative; inset: auto; z-index: 10000; display: none;
+    width: min(390px, 100%); max-width: 390px; margin: 16px 16px 0 auto; padding: 12px 14px;
+    border: 1px solid var(--ds-warning-border); border-radius: var(--ds-radius-sm); background: var(--ds-surface);
+    box-shadow: var(--ds-shadow-md); color: #fef3c7;
+    font: 500 .8125rem/1.5 var(--ds-font-sans); overflow-wrap: anywhere;
+  }
+  .ds-ac-toast.show { display: block; }
+  .ds-ac-toast strong { display: block; margin-bottom: 2px; color: #fff; font-weight: 600; }
+
+  /* Both overlays stay nearly opaque: a locked or paused attempt must not
+     remain readable behind the dialog. */
+  .ds-ac-lock, .ds-ac-fullscreen {
+    position: fixed; inset: 0; padding: 16px; overflow-y: auto;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(3, 8, 18, .94);
+  }
+  .ds-ac-lock { z-index: 99998; }
+  .ds-ac-fullscreen { z-index: 99997; }
+  .ds-ac-lock.show, .ds-ac-fullscreen.show { display: flex; }
+
+  .ds-ac-lock-card, .ds-ac-fullscreen-card {
+    width: min(560px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto;
+    padding: 20px; display: flex; flex-direction: column; align-items: flex-start;
+    border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-lg); background: var(--ds-surface);
+    box-shadow: var(--ds-shadow-lg); font-family: var(--ds-font-sans); text-align: left;
+  }
+  .ds-ac-lock-icon { display: block; width: 24px; height: 24px; margin: 0 0 12px; color: var(--ds-danger-text); }
+  .ds-ac-lock-title, .ds-ac-fullscreen-title { margin-bottom: 6px; color: var(--ds-text); font-size: 1rem; font-weight: 600; line-height: 1.35; }
+  .ds-ac-lock-msg { margin-bottom: 20px; color: var(--ds-danger-text); font-size: .875rem; line-height: 1.55; }
+  .ds-ac-fullscreen-msg { margin-bottom: 20px; color: var(--ds-text-muted); font-size: .875rem; line-height: 1.55; }
+  .ds-ac-lock-btn, .ds-ac-fullscreen-btn {
+    align-self: flex-end; min-height: 38px; padding: 0 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--ds-accent); border-radius: var(--ds-radius-sm); background: var(--ds-accent); color: #fff;
+    font: 500 .875rem/1.2 var(--ds-font-sans); white-space: nowrap; cursor: pointer;
+    transition: background var(--ds-dur-2) ease, border-color var(--ds-dur-2) ease;
+  }
+  .ds-ac-lock-btn:hover, .ds-ac-fullscreen-btn:hover { border-color: var(--ds-accent-strong); background: var(--ds-accent-strong); }
+  @media (max-width: 560px) {
+    .ds-ac-lock-btn, .ds-ac-fullscreen-btn { align-self: stretch; }
+  }
 </style>
 
 <div class="ds-ac-toast" id="ds-ac-toast" data-ds-global-notification role="alert"><strong id="ds-ac-toast-title">Anti-cheat warning</strong><span id="ds-ac-toast-msg"></span></div>
-<div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><div class="ds-ac-lock-icon">🔒</div><div class="ds-ac-lock-title">Assignment Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This assignment attempt was locked because a restricted action was detected.</div><button type="button" class="ds-ac-lock-btn" onclick="window.location.reload()">Reload Page</button></div></div>
+<div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><svg class="ds-ac-lock-icon" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="ds-ac-lock-title">Assignment Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This assignment attempt was locked because a restricted action was detected.</div><button type="button" class="ds-ac-lock-btn" onclick="window.location.reload()">Reload Page</button></div></div>
 <div class="ds-ac-fullscreen" id="ds-ac-fullscreen"><div class="ds-ac-fullscreen-card"><div class="ds-ac-fullscreen-title">Fullscreen Required</div><div class="ds-ac-fullscreen-msg">Your instructor requires fullscreen mode for this assignment. Leaving fullscreen may be logged as a violation.</div><button type="button" class="ds-ac-fullscreen-btn" id="ds-ac-fullscreen-btn">Enter Fullscreen</button></div></div>
 
 <script src="{{ asset('js/anti-cheat-client.js') }}"></script>

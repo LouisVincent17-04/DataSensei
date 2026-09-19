@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Table of Specifications — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  @include('instructor.tos.partials.styles')
+@include('instructor.tos.partials.styles')
+    @include('partials.page-head', ['pageTitle' => 'Table of Specifications', 'pageDescription' => 'Build a table of specifications for a balanced assessment.'])
 </head>
 <body>
 <div class="layout">
@@ -14,7 +14,6 @@
     <div class="wrap">
       <div class="top">
         <div>
-          <div class="kicker">Assessment Blueprint</div>
           <h1 class="title ds-page-title">Table of Specifications</h1>
           <p class="subtitle">Plan what an assessment should cover first. Write the actual questions only after the blueprint is ready.</p>
         </div>
@@ -81,7 +80,7 @@
             @empty
               <tr>
                 <td colspan="6">
-                  <div style="padding:30px 10px;text-align:center">
+                  <div style="padding:32px 8px;text-align:center">
                     <strong>No TOS yet.</strong>
                     <p class="muted">Create your first assessment blueprint using the 3-step wizard.</p>
                     <a class="btn" href="{{ route('instructor.tos.create') }}">Create TOS</a>

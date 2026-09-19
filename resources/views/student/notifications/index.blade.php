@@ -4,23 +4,98 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Notifications — DataSensei</title>
-  @include('partials.brand-head')
-  <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#243550;--text:#f8fafc;--muted:#8ca0bb;--dim:#657994;--accent:#3b82f6;--radius:10px;--radius-sm:7px}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}.layout{display:flex;min-height:100vh}.main{min-width:0;flex:1}.topbar{min-height:64px;padding:0 30px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:rgba(17,28,45,.92)}.topbar h1{font-size:1rem;margin:0;font-weight:700}.content{max-width:980px;margin:0 auto;padding:32px 28px 70px}.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px}.page-head h2{font-size:1.375rem;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.02em}.page-head p{margin:7px 0 0;color:var(--muted);font-size:.88rem}.head-actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:8px;padding:9px 13px;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.btn:hover{border-color:#3c5579}.btn.subtle{background:transparent;color:var(--muted)}.tabs{display:flex;gap:6px;margin-bottom:14px}.tab{padding:8px 14px;border-radius:999px;text-decoration:none;color:var(--muted);font-size:.8rem;font-weight:700}.tab.active{background:rgba(59,130,246,.15);color:#93c5fd}.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}.item{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:14px;padding:17px 18px;border-bottom:1px solid var(--border);color:inherit;text-decoration:none;position:relative}.item:last-child{border-bottom:0}.item:hover{background:#162238}.item.unread{background:rgba(59,130,246,.065)}.item.unread:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}.icon{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#1b2a41;border:1px solid #2e4566;color:#93c5fd}.icon svg{width:19px;height:19px}.item-title{font-size:.9rem;font-weight:750;margin:0 0 4px}.message{color:#b3c1d4;font-size:.82rem;line-height:1.55;margin:0}.meta{color:#7085a1;font-size:.72rem;margin-top:7px}.item-actions{display:flex;align-items:center;gap:6px}.item-actions form{margin:0}.icon-btn{width:34px;height:34px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}.icon-btn:hover{background:var(--surface2);border-color:var(--border);color:var(--text)}.icon-btn.danger:hover{color:#fca5a5;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.08)}.empty{padding:70px 24px;text-align:center;color:var(--muted)}.empty strong{display:block;color:var(--text);font-size:.95rem;margin-bottom:7px}.pagination{padding:18px 0;display:flex;align-items:center;justify-content:center;gap:10px}.page-link{min-width:92px;text-align:center;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:8px 12px;text-decoration:none;font-size:.78rem;font-weight:700}.page-link:hover{border-color:#3c5579}.page-link.disabled{opacity:.45;pointer-events:none}.page-status{color:var(--muted);font-size:.76rem}.flash{padding:11px 14px;border:1px solid rgba(16,185,129,.32);background:rgba(16,185,129,.1);color:#a7f3d0;border-radius:8px;margin-bottom:14px;font-size:.82rem}@media(max-width:700px){.content{padding:24px 16px}.page-head{display:block}.head-actions{margin-top:14px}.item{grid-template-columns:40px minmax(0,1fr);padding:15px}.icon{width:40px;height:40px}.item-actions{grid-column:2;justify-content:flex-start}.topbar{padding:0 18px}}
+<style>
+    /* Student notifications. Colours, type and radius come from partials.design-system. */
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
+    .layout{display:flex;min-height:100vh}
+    .main{min-width:0;flex:1}
+    .content{max-width:980px;margin:0 auto;padding:28px 32px 48px}
+
+    /* page header */
+    .page-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:20px}
+    .page-head > div:first-child{min-width:0;flex:1 1 280px}
+    .page-head p{margin:4px 0 0;max-width:72ch;color:var(--muted);font-size:.875rem;line-height:1.55}
+    .head-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .head-actions form{margin:0}
+
+    .btn{min-height:32px;display:inline-flex;align-items:center;justify-content:center;padding:0 12px;
+      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);
+      font-family:var(--ds-font-sans);font-size:.8125rem;font-weight:500;line-height:1.2;white-space:nowrap;cursor:pointer;text-decoration:none;
+      transition:background .12s ease,border-color .12s ease,color .12s ease}
+    .btn:hover{background:var(--ds-surface-hover)}
+    .btn.subtle{background:transparent;border-color:transparent;color:var(--muted)}
+    .btn.subtle:hover{background:var(--surface2);color:var(--text)}
+
+    /* filter tabs: underline style */
+    .tabs{display:flex;gap:20px;margin-bottom:16px;border-bottom:1px solid var(--border)}
+    .tab{margin-bottom:-1px;padding:8px 2px 10px;border-bottom:2px solid transparent;color:var(--muted);
+      font-size:.875rem;font-weight:500;text-decoration:none;transition:color .12s ease,border-color .12s ease}
+    .tab:hover{color:var(--text)}
+    .tab.active{border-bottom-color:var(--accent);color:var(--text)}
+
+    /* notification list */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+    .item{position:relative;display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:14px;align-items:start;
+      padding:14px 16px 14px 20px;border-bottom:1px solid var(--border);color:inherit;text-decoration:none;transition:background .12s ease}
+    .item:last-child{border-bottom:0}
+    .item:hover{background:var(--surface2)}
+    .item.unread{background:var(--ds-accent-soft)}
+    .item.unread:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+    .item > .icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--ds-accent-text)}
+    .item > .icon svg{width:18px;height:18px}
+    .item-title{margin:0 0 2px;font-size:.875rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+    .item:not(.unread) .item-title{color:var(--ds-text-secondary)}
+    .message{margin:0;color:var(--ds-text-secondary);font-size:.8125rem;line-height:1.55;overflow-wrap:anywhere}
+    .meta{margin-top:6px;color:var(--muted);font-size:.75rem}
+    .item-actions{display:flex;align-items:center;gap:4px}
+    .item-actions form{margin:0}
+    .icon-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;
+      border:1px solid transparent;border-radius:var(--radius-sm);background:transparent;color:var(--muted);cursor:pointer;
+      transition:background .12s ease,border-color .12s ease,color .12s ease}
+    .icon-btn:hover{background:var(--surface2);border-color:var(--ds-border-strong);color:var(--text)}
+    .icon-btn.danger:hover{background:var(--ds-danger-soft);border-color:var(--ds-danger-border);color:var(--ds-danger-text)}
+
+    .empty{padding:32px 20px;text-align:center;color:var(--muted);font-size:.875rem;line-height:1.55}
+    .empty strong{display:block;margin-bottom:4px;color:var(--text);font-size:.9375rem;font-weight:600}
+
+    .pagination{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;padding:16px 0}
+    .page-link{min-width:88px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;padding:0 12px;
+      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);
+      font-size:.8125rem;font-weight:500;text-decoration:none}
+    .page-link:hover{background:var(--ds-surface-hover)}
+    .page-link.disabled{opacity:.45;pointer-events:none}
+    .page-status{color:var(--muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
+
+    .flash{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
+      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem}
+
+    @media(max-width:900px){.content{padding:24px 20px 40px}}
+    @media(max-width:640px){
+      .content{padding:20px 16px 32px}
+      .page-head{align-items:flex-start;flex-direction:column}
+      .page-head > div:first-child{flex:0 0 auto;width:100%}
+      .head-actions{width:100%}
+      .item{grid-template-columns:32px minmax(0,1fr);gap:12px;padding:14px 16px}
+      .item > .icon{width:32px;height:32px}
+      .item > .icon svg{width:16px;height:16px}
+      .item-actions{grid-column:2;justify-content:flex-start;margin-left:-6px}
+    }
+    @media(prefers-reduced-motion:reduce){.btn,.tab,.item,.icon-btn{transition:none}}
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Notifications', 'pageDescription' => 'Class announcements, feedback, and reminders in one place.'])
 </head>
 <body>
 <div class="layout">
   @include('partials.sidebar')
   <div class="main">
-    <header class="topbar"><h1></h1></header>
     <main class="content">
       @if(session('success'))<div class="flash" role="status">{{ session('success') }}</div>@endif
 
       <div class="page-head">
         <div>
-          <h2>Notifications</h2>
+          <h1 class="ds-page-title">Notifications</h1>
           <p>{{ $unreadCount ? $unreadCount . ' unread notification' . ($unreadCount === 1 ? '' : 's') : 'You are all caught up.' }}</p>
         </div>
         <div class="head-actions">

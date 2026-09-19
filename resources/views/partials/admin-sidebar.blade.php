@@ -1,4 +1,4 @@
-@include('partials.page-heading-style')
+@include('partials.sidebar-shell', ['navHome' => route('admin.dashboard')])
 <aside class="sidebar" id="admin-sidebar">
   <div class="sidebar-logo">
     @include('partials.brand-logo', [
@@ -122,62 +122,3 @@
     </form>
   </div>
 </aside>
-
-<style>
-  .sidebar {
-    width:260px;
-    min-height:100vh;
-    height:100vh;
-    position:sticky;
-    top:0;
-    z-index:100;
-    flex-shrink:0;
-    display:flex;
-    flex-direction:column;
-    overflow-y:auto;
-    border-right:1px solid var(--border);
-    background:var(--surface);
-    transition:transform .2s ease;
-  }
-
-  .sidebar-logo { padding:24px; border-bottom:1px solid var(--border); }
-  .nav-group { padding:24px 16px 0; }
-  .nav-label { padding:0 12px; margin-bottom:8px; color:var(--dim); font-size:.75rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; }
-
-  .nav-item {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    min-width:0;
-    margin-bottom:2px;
-    padding:8px 12px;
-    border-radius:var(--radius-sm);
-    color:var(--muted);
-    font-size:.875rem;
-    font-weight:500;
-    text-decoration:none;
-    transition:all .15s ease;
-  }
-
-  .nav-item:hover { color:var(--text); background:var(--surface2); }
-  .nav-item.active { color:var(--text); border-left:3px solid var(--accent); border-radius:0 var(--radius-sm) var(--radius-sm) 0; background:var(--surface2); }
-  .nav-item .icon { width:18px; height:18px; flex-shrink:0; color:var(--muted); transition:color .15s ease; }
-  .nav-item:hover .icon { color:var(--text); }
-  .nav-item.active .icon { color:var(--accent); }
-
-  .sidebar-footer { margin-top:auto; padding:16px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
-  .user-card { display:flex; align-items:center; gap:12px; padding:8px; border-radius:var(--radius-sm); transition:background .15s ease; }
-  .user-card:hover { background:var(--surface2); }
-  .avatar { width:36px; height:36px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface2); color:var(--text); font-size:.875rem; font-weight:600; }
-  .user-info { min-width:0; overflow:hidden; }
-  .user-info .name { overflow:hidden; color:var(--text); font-size:.875rem; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
-  .user-info .role { margin-top:2px; overflow:hidden; color:var(--muted); font-size:.75rem; text-overflow:ellipsis; white-space:nowrap; }
-  .logout-form { width:100%; }
-  .logout-btn { width:100%; display:flex; align-items:center; gap:10px; padding:8px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:transparent; color:var(--muted); font-size:.875rem; font-weight:500; cursor:pointer; text-align:left; transition:all .15s ease; }
-  .logout-btn:hover { border-color:rgba(239,68,68,.30); background:rgba(239,68,68,.08); color:#ef4444; }
-
-  @media (max-width:700px) {
-    .sidebar { position:fixed; left:0; transform:translateX(-100%); }
-    .sidebar.is-open { transform:translateX(0); }
-  }
-</style>

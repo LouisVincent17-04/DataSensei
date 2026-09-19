@@ -104,12 +104,15 @@ class SupportUtilityBehaviorTest extends TestCase
         yield 'basic arithmetic' => ['numbers = [1, 2, 3]' . "\n" . 'print(sum(numbers))'];
         yield 'safe standard library' => ['import math' . "\n" . 'print(math.sqrt(81))'];
         yield 'function definition' => ['def double(value):' . "\n" . '    return value * 2'];
+        // os itself is lesson material (os.path, os.listdir). Only the calls
+        // that leave the sandbox are blocked, one by one, below.
+        yield 'operating system paths' => ['import os' . "\n" . 'print(os.getcwd())'];
     }
 
     /** @return iterable<string, array{string}> */
     public static function blockedPythonProvider(): iterable
     {
-        yield 'operating system import' => ['import os' . "\n" . 'print(os.getcwd())'];
+        yield 'process spawning import' => ['import subprocess' . "\n" . 'subprocess.run(["ls"])'];
         yield 'network import' => ['from socket import socket'];
         yield 'dynamic evaluation' => ['result = eval("2 + 2")'];
         yield 'network client call' => ['requests.get("https://example.test")'];

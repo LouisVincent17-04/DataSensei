@@ -3,200 +3,167 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DataSensei — Institution Admin Dashboard</title>
-  @include('partials.brand-head')
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  @include('partials.page-heading-style')
+  <title>Institution Admin Dashboard — DataSensei</title>
+@include('partials.page-heading-style')
   <style>
-    :root {
-      --bg:          #0d1320;
-      --surface:     #111c2d;
-      --surface2:    #1a2638;
-      --border:      #1e2f47;
-      --border-hover:#2c4168;
-      --accent:      #3b82f6;
-      --accent2:     #8b5cf6;
-      --accent3:     #10b981;
-      --accent4:     #f59e0b;
-      --warn:        #ef4444;
-      --text:        #fafafa;
-      --muted:       #7f93b0;
-      --dim:         #3d5272;
-      --radius:      8px;
-      --radius-sm:   6px;
-    }
+    /* Institution admin dashboard. Colours, type and radius come from
+       partials.design-system; the sidebar comes from partials.sidebar-shell. */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    body { min-height: 100vh; display: flex; overflow-x: hidden; background: var(--bg); color: var(--text); font-family: var(--ds-font-sans); }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-    /* ── SIDEBAR ── */
-    .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-    .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
-    .sidebar-logo > span { font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
-    .sidebar-logo > small { display: block; font-size: 0.7rem; color: var(--muted); margin-top: 2px; font-weight: 500; }
-    .sidebar-nav { padding: 12px 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; color: var(--muted); text-decoration: none; transition: background 0.12s, color 0.12s; }
-    .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--text); }
-    .nav-item.active { color: var(--accent); }
-    .nav-item svg { flex-shrink: 0; }
-    .nav-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim); padding: 12px 12px 4px; }
-    .badge { margin-left: auto; background: rgba(239,68,68,0.15); color: var(--warn); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
-    .sidebar-footer { padding: 12px 10px; border-top: 1px solid var(--border); }
-    .logout-btn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
-    .logout-btn:hover { background: rgba(239,68,68,0.08); color: var(--warn); }
+    /* ── title bar ── */
+    .topbar {
+      min-height: 60px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px 16px;
+      padding: 10px 32px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar h1 { flex: 1 1 auto; min-width: 0; }
+    .topbar-meta { color: var(--muted); font-size: 0.8125rem; white-space: nowrap; }
 
-    /* ── TOPBAR ── */
-    .topbar { height: 64px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; }
-    .topbar h1 { font-size: 1.125rem; font-weight: 600; color: var(--text); flex: 1; letter-spacing: -0.01em; }
-    .topbar-meta { font-size: 0.8rem; color: var(--muted); }
+    /* ── content ── */
+    .content { flex: 1; display: flex; flex-direction: column; gap: 24px; padding: 28px 32px 48px; }
 
-    /* ── CONTENT ── */
-    .content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 28px; }
+    /* ── flash ── */
+    .flash { padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.5; }
+    .flash-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
+    .flash-error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
 
-    /* ── FLASH ── */
-    .flash { padding: 12px 20px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; border-left: 3px solid; }
-    .flash-success { background: rgba(16,185,129,0.08); border-color: var(--accent3); color: var(--accent3); }
-    .flash-error   { background: rgba(239,68,68,0.08); border-color: var(--warn); color: var(--warn); }
+    /* ── lead-in with the institution code ── */
+    .welcome-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
+    .welcome-text { flex: 1 1 320px; min-width: 0; }
+    .welcome-text h2 { margin: 0; font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; }
+    .welcome-text p { margin-top: 4px; max-width: 72ch; color: var(--muted); font-size: 0.875rem; line-height: 1.5; }
+    .welcome-text p strong { color: var(--ds-text-secondary); font-weight: 600; }
 
-    /* ── WELCOME ── */
-    .welcome-banner { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent3); border-radius: var(--radius); padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-    .welcome-text h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
-    .welcome-text p  { font-size: 0.875rem; color: var(--muted); }
-
-    /* ── INSTITUTION CODE FLIP BOX ── */
     .inst-code-box {
-      background: var(--surface2);
+      flex: 0 0 auto;
+      min-width: 240px;
+      padding: 14px 16px;
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px 20px;
-      text-align: center;
-      flex-shrink: 0;
-      min-width: 180px;
-      transition: border-color 0.2s;
     }
-    .inst-code-box:hover { border-color: var(--border-hover); }
-    .inst-code-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px; }
+    .inst-code-label { margin-bottom: 4px; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
     .inst-code-value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      letter-spacing: 0.2em;
-      color: var(--accent2);
+      min-height: 1.75rem;
+      color: var(--text);
+      font-family: var(--ds-font-mono);
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1.4;
       font-variant-numeric: tabular-nums;
-      font-family: 'Courier New', monospace;
-      min-height: 2rem;
-      transition: filter 0.3s, opacity 0.3s;
+      overflow-wrap: anywhere;
+      transition: filter 0.2s ease, opacity 0.2s ease;
     }
-    .inst-code-value.hidden {
-      filter: blur(6px);
-      opacity: 0.4;
-      user-select: none;
-    }
-    .inst-code-actions { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
-    .code-toggle-btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 0.7rem; font-weight: 600;
-      padding: 4px 10px; border-radius: var(--radius-sm);
-      background: rgba(139,92,246,0.12); color: var(--accent2);
-      border: 1px solid rgba(139,92,246,0.25);
-      cursor: pointer; transition: opacity 0.15s;
-    }
-    .code-toggle-btn:hover { opacity: 0.8; }
+    /* Hidden until the admin chooses to show it. */
+    .inst-code-value.hidden { filter: blur(6px); opacity: 0.4; user-select: none; }
+    .inst-code-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+    .code-toggle-btn,
     .code-copy-btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 0.7rem; font-weight: 600;
-      padding: 4px 10px; border-radius: var(--radius-sm);
-      background: rgba(59,130,246,0.1); color: var(--accent);
-      border: 1px solid rgba(59,130,246,0.2);
-      cursor: pointer; transition: opacity 0.15s;
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.12s ease;
     }
-    .code-copy-btn:hover { opacity: 0.8; }
-    .inst-code-hint { font-size: 0.7rem; color: var(--dim); margin-top: 8px; }
+    .code-toggle-btn:hover,
+    .code-copy-btn:hover { background: var(--ds-surface-hover); }
+    .inst-code-hint { margin-top: 8px; color: var(--muted); font-size: 0.75rem; }
 
-    /* ── STAT GRID ── */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
-    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.15s; }
-    .stat-card:hover { border-color: var(--border-hover); }
-    .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .stat-value { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
-    .stat-sub   { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-    .stat-blue   { color: var(--accent);  }
-    .stat-green  { color: var(--accent3); }
-    .stat-amber  { color: var(--accent4); }
-    .stat-red    { color: var(--warn);    }
+    /* ── summary figures ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .stat-card { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .stat-label { color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
+    .stat-value { margin-top: 2px; font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .stat-sub { color: var(--muted); font-size: 0.75rem; line-height: 1.4; }
+    /* Colour only where the figure is a status. */
+    .stat-blue, .stat-green, .stat-red { color: var(--text); }
+    .stat-amber { color: var(--ds-warning-text); }
 
-    /* ── GRID ROW ── */
-    .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 900px) { .grid-row { grid-template-columns: 1fr; } }
+    /* ── two lists ── */
+    .grid-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 
-    /* ── CARD ── */
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .card-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: flex-start; }
-    .card-title  { font-size: 0.9375rem; font-weight: 600; }
-    .card-subtitle { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
-    .card-body   { padding: 20px 24px 24px; }
-    .card-link   { font-size: 0.8rem; color: var(--accent); text-decoration: none; font-weight: 500; }
+    .card { min-width: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .card-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .card-header > div { min-width: 0; flex: 1 1 auto; }
+    .card-title { font-size: 0.9375rem; font-weight: 600; line-height: 1.35; }
+    .card-subtitle { margin-top: 2px; color: var(--muted); font-size: 0.8125rem; line-height: 1.45; }
+    .card-link { flex-shrink: 0; color: var(--ds-accent-text); font-size: 0.8125rem; font-weight: 500; text-decoration: none; white-space: nowrap; }
     .card-link:hover { text-decoration: underline; }
+    .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    /* ── TABLE ── */
-    .tbl { width: 100%; border-collapse: collapse; }
-    .tbl th { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim); padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; }
-    .tbl td { font-size: 0.875rem; color: var(--text); padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    /* ── tables ── */
+    .tbl { width: 100%; min-width: 440px; border-collapse: collapse; }
+    .tbl th { padding: 10px 14px; background: var(--surface3); border-bottom: 1px solid var(--border); color: var(--muted); font-size: 0.75rem; font-weight: 600; text-align: left; white-space: nowrap; }
+    .tbl td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--ds-text-secondary); font-size: 0.875rem; vertical-align: middle; }
+    .tbl th:first-child, .tbl td:first-child { padding-left: 20px; }
+    .tbl th:last-child, .tbl td:last-child { padding-right: 20px; }
     .tbl tr:last-child td { border-bottom: none; }
-    .tbl tr:hover td { background: var(--surface2); }
+    .tbl tbody tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .tbl .muted-cell { color: var(--muted); font-size: 0.8125rem; white-space: nowrap; }
+    .tbl .empty-cell { padding: 32px 20px; color: var(--muted); text-align: center; white-space: normal; }
 
-    /* ── PILLS ── */
-    .pill { display: inline-flex; align-items: center; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .pill-pending  { background: rgba(245,158,11,0.12); color: var(--accent4); border: 1px solid rgba(245,158,11,0.25); }
-    .pill-approved { background: rgba(16,185,129,0.12); color: var(--accent3); border: 1px solid rgba(16,185,129,0.25); }
-    .pill-rejected { background: rgba(239,68,68,0.08);  color: var(--warn);    border: 1px solid rgba(239,68,68,0.2); }
+    .person { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .person > div:last-child { min-width: 0; }
+    .person-name { color: var(--text); font-weight: 600; line-height: 1.35; }
+    .person-email { color: var(--muted); font-size: 0.75rem; overflow-wrap: break-word; }
 
-    /* ── AVATAR ── */
-    .user-av { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; color: var(--accent); flex-shrink: 0; }
+    .user-av { width: 32px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--surface2); border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 0.75rem; font-weight: 600; }
 
-    /* ── ACTION BUTTONS ── */
-    .btn { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: opacity 0.12s; }
-    .btn:hover { opacity: 0.85; }
-    .btn-approve { background: rgba(16,185,129,0.15); color: var(--accent3); border: 1px solid rgba(16,185,129,0.3); }
-    .btn-reject  { background: rgba(239,68,68,0.08);  color: var(--warn);    border: 1px solid rgba(239,68,68,0.2); }
+    /* ── row actions ── */
+    .row-actions { display: flex; flex-wrap: nowrap; gap: 8px; }
+    .btn { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; font-size: 0.8125rem; font-weight: 500; line-height: 1.2; white-space: nowrap; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease; }
+    .btn-approve { border-color: var(--ds-success-border); color: var(--ds-success-text); }
+    .btn-approve:hover { background: var(--ds-success-soft); }
+    .btn-reject { border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
+    .btn-reject:hover { background: var(--ds-danger-soft); }
+
+    /* The two lists sit side by side only when their tables fit. */
+    @media (max-width: 1440px) {
+      .grid-row { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 1100px) {
+      .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 900px) {
+      .topbar { min-height: 56px; padding: 8px 20px; }
+      .content { padding: 24px 20px 40px; }
+    }
+    @media (max-width: 640px) {
+      .topbar { padding: 8px 16px; }
+      .content { padding: 20px 16px 32px; gap: 20px; }
+      .welcome-banner { align-items: stretch; flex-direction: column; }
+      .welcome-text { flex: 0 0 auto; }
+      .inst-code-box { min-width: 0; width: 100%; }
+      .card-header { padding: 12px 16px; }
+      .tbl th:first-child, .tbl td:first-child { padding-left: 16px; }
+      .tbl th:last-child, .tbl td:last-child { padding-right: 16px; }
+    }
+    @media (max-width: 480px) {
+      .stat-grid { grid-template-columns: minmax(0, 1fr); }
+    }
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Institution Admin Dashboard', 'pageDescription' => 'Manage the instructors and classes in your institution.'])
 </head>
 <body>
 
   {{-- ── SIDEBAR ── --}}
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      @include('partials.brand-logo', [
-        'variant' => 'sidebar',
-        'size' => 'normal',
-        'subtext' => 'Institution Admin',
-        'href' => route('institution-admin.dashboard'),
-      ])
-    </div>
-    <nav class="sidebar-nav">
-      <div class="nav-label">Overview</div>
-      <a href="{{ route('institution-admin.dashboard') }}" class="nav-item active">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-        Dashboard
-      </a>
-      <div class="nav-label">Applications</div>
-      <a href="{{ route('institution-admin.applications.index') }}" class="nav-item">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-        Instructor Applications
-        @if($pendingCount > 0)
-          <span class="badge">{{ $pendingCount }}</span>
-        @endif
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <form method="POST" action="{{ route('logout') }}">
-        @csrf
-        <button type="submit" class="logout-btn">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-          Log out
-        </button>
-      </form>
-    </div>
-  </aside>
+  @include('partials.institution-admin-sidebar', ['pendingCount' => $pendingCount ?? 0])
 
   {{-- ── MAIN ── --}}
   <div class="main">
@@ -290,17 +257,17 @@
                 @forelse($pendingApplications as $app)
                 <tr>
                   <td>
-                    <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="person">
                       <div class="user-av">{{ strtoupper(substr($app->user->name, 0, 1)) }}</div>
                       <div>
-                        <div style="font-weight:600;">{{ $app->user->name }}</div>
-                        <div style="font-size:0.75rem;color:var(--muted);">{{ $app->user->email }}</div>
+                        <div class="person-name">{{ $app->user->name }}</div>
+                        <div class="person-email">{{ $app->user->email }}</div>
                       </div>
                     </div>
                   </td>
-                  <td style="color:var(--muted);font-size:0.8rem;">{{ $app->created_at->diffForHumans() }}</td>
+                  <td class="muted-cell">{{ $app->created_at->diffForHumans() }}</td>
                   <td>
-                    <div style="display:flex;gap:6px;">
+                    <div class="row-actions">
                       <form method="POST" action="{{ route('institution-admin.applications.approve', $app) }}">
                         @csrf @method('PATCH')
                         <button type="submit" class="btn btn-approve">✓ Approve</button>
@@ -314,7 +281,7 @@
                 </tr>
                 @empty
                 <tr>
-                  <td colspan="3" style="text-align:center;color:var(--muted);padding:24px;">No pending applications 🎉</td>
+                  <td colspan="3" class="empty-cell">No applications are waiting for review.</td>
                 </tr>
                 @endforelse
               </tbody>
@@ -340,17 +307,17 @@
                 @forelse($recentApproved as $app)
                 <tr>
                   <td>
-                    <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="person">
                       <div class="user-av">{{ strtoupper(substr($app->user->name, 0, 1)) }}</div>
-                      <div style="font-weight:600;">{{ $app->user->name }}</div>
+                      <div class="person-name">{{ $app->user->name }}</div>
                     </div>
                   </td>
-                  <td style="font-size:0.8rem;color:var(--muted);">{{ $app->reviewer?->name ?? '—' }}</td>
-                  <td style="font-size:0.8rem;color:var(--muted);">{{ $app->reviewed_at?->diffForHumans() ?? '—' }}</td>
+                  <td class="muted-cell">{{ $app->reviewer?->name ?? '—' }}</td>
+                  <td class="muted-cell">{{ $app->reviewed_at?->diffForHumans() ?? '—' }}</td>
                 </tr>
                 @empty
                 <tr>
-                  <td colspan="3" style="text-align:center;color:var(--muted);padding:24px;">No approved instructors yet.</td>
+                  <td colspan="3" class="empty-cell">No approved instructors yet.</td>
                 </tr>
                 @endforelse
               </tbody>

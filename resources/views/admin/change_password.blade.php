@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Change Password')
-@section('eyebrow', 'Account Security')
 @section('page_title', 'Change Password')
 @section('page_subtitle', 'Update the password used to access the DataSensei admin workspace.')
 
@@ -24,7 +23,7 @@
             <input class="input" type="password" name="current_password" required autocomplete="current-password" placeholder="Enter current password">
           </div>
 
-          <div class="form-grid" style="margin-top:14px">
+          <div class="form-grid" style="margin-top:16px">
             <div class="field">
               <label>New Password</label>
               <input class="input" type="password" name="password" required autocomplete="new-password" placeholder="Enter new password">
@@ -35,7 +34,7 @@
             </div>
           </div>
 
-          <div class="action-row" style="justify-content:flex-end;margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+          <div class="action-row" style="justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
             <a class="btn secondary" href="{{ url()->previous() }}">Back</a>
             <button class="btn" type="submit">Update Password</button>
           </div>
@@ -51,7 +50,7 @@
         </div>
       </div>
       <div class="panel-body">
-        <div style="display:flex;flex-direction:column;gap:14px;color:var(--muted);font-size:.86rem;line-height:1.6">
+        <div style="display:flex;flex-direction:column;gap:16px;color:var(--muted);font-size:.86rem;line-height:1.6">
           <p>Use at least eight characters and combine uppercase letters, lowercase letters, numbers, and symbols.</p>
           <p>Avoid reusing a password from another website or sharing the password with another administrator.</p>
           <p>After the update succeeds, continue using the same admin routes and permissions as before.</p>

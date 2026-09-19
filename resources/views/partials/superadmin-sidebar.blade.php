@@ -1,4 +1,4 @@
-@include('partials.page-heading-style')
+@include('partials.sidebar-shell', ['navHome' => route('superadmin.dashboard')])
 {{-- ── SUPERADMIN SIDEBAR PARTIAL ── --}}
 <aside class="sidebar">
   <div class="sidebar-logo">
@@ -36,9 +36,15 @@
         <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
       </svg>
       Users
-      @php $pendingUsers = \App\Models\User::where('status','active')->where('role','!=','superadmin')->count(); @endphp
-      @if($pendingUsers > 0)
-        <span class="badge">{{ $pendingUsers }}</span>
+      @php
+        // role is a tinyInteger column. Comparing it to the string 'superadmin'
+        // excluded nobody, so this badge counted every active account.
+        $manageableUsers = \App\Models\User::where('status', 'active')
+            ->where('role', '!=', \App\Models\User::ROLE_SUPERADMIN)
+            ->count();
+      @endphp
+      @if($manageableUsers > 0)
+        <span class="badge" title="Active accounts you can manage">{{ $manageableUsers }}</span>
       @endif
     </a>
 
@@ -73,13 +79,18 @@
       Platform Analytics
     </a>
 
+  </nav>
+
+  <nav class="nav-group">
+    <div class="nav-label">Account</div>
+
     <a href="{{ route('profile') }}"
-       class="nav-item {{ request()->routeIs('profile') ? 'active' : '' }}">
+       class="nav-item {{ request()->routeIs('profile', 'change-password') ? 'active' : '' }}"
+       @if(request()->routeIs('profile', 'change-password')) aria-current="page" @endif>
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
       </svg>
-      Settings
+      Profile
     </a>
   </nav>
 
@@ -109,31 +120,3 @@
     </form>
   </div>
 </aside>
-
-<style>
-  /* Reuse all student sidebar base styles + overrides */
-  .sidebar { width: 260px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; }
-  .sidebar-logo { padding: 24px; border-bottom: 1px solid var(--border); }
-  .nav-group { padding: 24px 16px 0; }
-  .nav-label { font-size: 0.75rem; font-weight: 600; color: var(--dim); letter-spacing: 0.05em; text-transform: uppercase; padding: 0 12px; margin-bottom: 8px; }
-  .nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.875rem; font-weight: 500; color: var(--muted); transition: all 0.15s ease; text-decoration: none; margin-bottom: 2px; }
-  .nav-item:hover { background: var(--surface2); color: var(--text); }
-  .nav-item.active { background: var(--surface2); color: var(--text); border-left: 3px solid var(--accent2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-  .nav-item .icon { width: 18px; height: 18px; flex-shrink: 0; color: var(--muted); transition: color 0.15s ease; }
-  .nav-item:hover .icon { color: var(--text); }
-  .nav-item.active .icon { color: var(--accent2); }
-  .badge { margin-left: auto; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; }
-
-  .sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-  .user-card { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s; }
-  .user-card:hover { background: var(--surface2); }
-  .avatar { width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; color: var(--text); flex-shrink: 0; }
-  .avatar-super { background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(59,130,246,0.25)); border-color: rgba(139,92,246,0.4); color: #a78bfa; }
-  .user-info .name  { font-size: 0.875rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-info .role  { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-  .logout-form { width: 100%; }
-  .logout-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border-radius: var(--radius-sm); background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.875rem; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.15s ease; text-align: left; }
-  .logout-btn:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); color: #ef4444; }
-
-  @media (max-width: 700px) { .sidebar { display: none; } }
-</style>

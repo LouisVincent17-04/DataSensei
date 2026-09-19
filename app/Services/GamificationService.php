@@ -131,23 +131,44 @@ class GamificationService
                 ->get()
                 ->map(function (MissionDefinition $mission) use ($user, $today, $week) {
                 $periodStart = $mission->period_type === 'weekly' ? $week : $today;
-                $progress = StudentMissionProgress::firstOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'mission_definition_id' => $mission->id,
-                        'period_start' => $periodStart,
-                    ],
-                    [
-                        'progress_count' => 0,
-                        'is_completed' => false,
-                        'xp_awarded' => 0,
-                    ]
-                );
+                $progress = $this->missionProgressFor($user->id, $mission->id, $periodStart);
 
                 $mission->setRelation('currentProgress', $progress);
                 return $mission;
             });
         }, 3);
+    }
+
+    /**
+     * Find or start a student's progress row for one mission period.
+     *
+     * period_start is cast to "date", so Eloquent stores it with a time part
+     * ("2026-09-19 00:00:00") on drivers without a real DATE type (SQLite).
+     * firstOrCreate compared that against the bare "2026-09-19" string, never
+     * found the row, and tried to insert a duplicate, which failed on the
+     * student_mission_period_unique index. whereDate() matches the day on
+     * every driver, so the existing row is found and reused.
+     */
+    private function missionProgressFor(int $userId, int $missionId, string $periodStart): StudentMissionProgress
+    {
+        $progress = StudentMissionProgress::query()
+            ->where('user_id', $userId)
+            ->where('mission_definition_id', $missionId)
+            ->whereDate('period_start', $periodStart)
+            ->first();
+
+        if ($progress) {
+            return $progress;
+        }
+
+        return StudentMissionProgress::create([
+            'user_id' => $userId,
+            'mission_definition_id' => $missionId,
+            'period_start' => $periodStart,
+            'progress_count' => 0,
+            'is_completed' => false,
+            'xp_awarded' => 0,
+        ]);
     }
 
     private function unlock(User $user, string $key, string $source, ?int $sourceId, float $progress): ?UserAchievement
@@ -210,18 +231,7 @@ class GamificationService
                     ? now()->startOfWeek()->toDateString()
                     : now()->toDateString();
 
-                $progress = StudentMissionProgress::firstOrCreate(
-                    [
-                        'user_id' => $lockedUser->id,
-                        'mission_definition_id' => $mission->id,
-                        'period_start' => $periodStart,
-                    ],
-                    [
-                        'progress_count' => 0,
-                        'is_completed' => false,
-                        'xp_awarded' => 0,
-                    ]
-                );
+                $progress = $this->missionProgressFor($lockedUser->id, $mission->id, $periodStart);
                 $progress = StudentMissionProgress::query()
                     ->whereKey($progress->id)
                     ->lockForUpdate()

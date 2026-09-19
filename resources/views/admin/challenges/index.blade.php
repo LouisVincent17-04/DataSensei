@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'MCQ Challenges')
-@section('eyebrow', 'Platform Content')
 @section('page_title', 'MCQ Challenges')
 @section('page_subtitle', 'Create and version multiple-choice challenges while keeping coding challenges under developer control.')
 
@@ -47,7 +46,7 @@
     </form>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="table-wrap">
       <table>
         <thead>
@@ -65,12 +64,12 @@
             <tr>
               <td>
                 <strong>{{ $challenge->title }}</strong>
-                <div class="dim">{{ $challenge->content_code }} · {{ number_format($challenge->time_limit_seconds) }} sec · {{ number_format($challenge->base_xp) }} XP</div>
+                <div class="dim">{{ $challenge->content_code }}, {{ number_format($challenge->time_limit_seconds) }} sec, {{ number_format($challenge->base_xp) }} XP</div>
               </td>
               <td>{{ $challenge->category?->name ?? 'Uncategorized' }}</td>
               <td>
                 <strong>{{ $challenge->version_name }}</strong>
-                <div class="dim">{{ $challenge->version_code }} · V{{ $challenge->version_no }}</div>
+                <div class="dim">{{ $challenge->version_code }}, V{{ $challenge->version_no }}</div>
               </td>
               <td>{{ number_format($challenge->questions_count) }}</td>
               <td>

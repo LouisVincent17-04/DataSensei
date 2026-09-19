@@ -7,19 +7,19 @@
   html.ds-session-blocked,
   html.ds-session-blocked body{overflow:hidden!important}
   .ds-session-timeout[hidden]{display:none!important}
-  .ds-session-timeout{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;margin:0!important;z-index:2147483000;background:rgba(3,8,18,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;overflow:auto;padding:20px;isolation:isolate;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-  .ds-session-timeout-card{width:min(440px,100%);margin:auto;background:#111c2d;border:1px solid #2a3d59;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.56);padding:24px;color:#f8fafc;text-align:center}
-  .ds-session-timeout-card h2{margin:0 0 8px;font-size:1.25rem;line-height:1.25;font-weight:750;letter-spacing:-.02em}
-  .ds-session-timeout-card p{margin:0;color:#a8b7ca;font-size:.9rem;line-height:1.55}
-  .ds-session-timeout-countdown{margin-top:16px;padding:12px 14px;border:1px solid #2a3d59;border-radius:9px;background:#0d1727;color:#dbeafe;font-size:.86rem;font-weight:700}
-  .ds-session-timeout-actions{display:flex;justify-content:center;gap:10px;margin-top:20px}
+  .ds-session-timeout{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:none!important;margin:0!important;z-index:2147483000;background:rgba(3,8,18,.86);display:flex;align-items:center;justify-content:center;overflow:auto;padding:16px;isolation:isolate;font-family:var(--ds-font-sans,Inter,Arial,Helvetica,sans-serif)}
+  .ds-session-timeout-card{width:min(440px,100%);margin:auto;padding:24px;background:var(--ds-surface,#111c2d);border:1px solid var(--ds-border-strong,#2c4168);border-radius:var(--ds-radius-lg,10px);box-shadow:var(--ds-shadow-lg);color:var(--ds-text,#f8fafc);text-align:left}
+  .ds-session-timeout-card h2{margin:0 0 6px;font-size:1.125rem;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+  .ds-session-timeout-card p{margin:0;color:var(--ds-text-secondary,#c8d5e8);font-size:.875rem;line-height:1.55}
+  .ds-session-timeout-countdown{margin-top:16px;padding:12px 14px;border:1px solid var(--ds-border,#1e2f47);border-radius:var(--ds-radius-sm,6px);background:var(--ds-surface-3,#0f1928);color:var(--ds-text,#f8fafc);font-size:.875rem;font-weight:600;font-variant-numeric:tabular-nums}
+  .ds-session-timeout-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:20px}
   .ds-session-timeout-actions[hidden]{display:none!important}
-  .ds-session-timeout-btn{min-height:40px;padding:0 15px;border-radius:8px;border:1px solid #334a69;background:#17243a;color:#dbe7f5;font:inherit;font-size:.84rem;font-weight:700;cursor:pointer}
-  .ds-session-timeout-btn:hover{background:#1d2e49;border-color:#49698f}
-  .ds-session-timeout-btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
-  .ds-session-timeout-btn.primary:hover{background:#1d4ed8;border-color:#1d4ed8}
-  .ds-session-timeout-server{margin-top:14px;color:#fca5a5!important}
-  .ds-session-timeout.is-ending .ds-session-timeout-countdown{color:#bfdbfe;border-color:rgba(59,130,246,.45);background:rgba(37,99,235,.1)}
+  .ds-session-timeout-btn{min-height:38px;padding:0 16px;border-radius:var(--ds-radius-sm,6px);border:1px solid var(--ds-border-strong,#2c4168);background:var(--ds-surface-2,#1a2638);color:var(--ds-text,#f8fafc);font:inherit;font-size:.875rem;font-weight:500;cursor:pointer}
+  .ds-session-timeout-btn:hover{background:var(--ds-surface-hover,#1f2d44)}
+  .ds-session-timeout-btn.primary{background:var(--ds-accent,#3b82f6);border-color:var(--ds-accent,#3b82f6);color:#fff}
+  .ds-session-timeout-btn.primary:hover{background:var(--ds-accent-strong,#2563eb);border-color:var(--ds-accent-strong,#2563eb)}
+  .ds-session-timeout-server{margin-top:16px;color:var(--ds-danger-text,#fca5a5)!important}
+  .ds-session-timeout.is-ending .ds-session-timeout-countdown{color:var(--ds-warning-text,#fcd34d);border-color:var(--ds-warning-border,rgba(245,158,11,.38));background:var(--ds-warning-soft,rgba(245,158,11,.12))}
   @media(max-width:520px){.ds-session-timeout-actions{flex-direction:column-reverse}.ds-session-timeout-btn{width:100%}}
 </style>
 

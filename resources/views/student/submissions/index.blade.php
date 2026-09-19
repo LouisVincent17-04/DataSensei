@@ -3,645 +3,609 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataSensei — My Submissions</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-  <style>
+  <title>My Submissions — DataSensei</title>
+<style>
+    /* Student submission history. Colours, type and radius come from partials.design-system. */
     :root {
-      --bg:#0d1320;
-      --surface:#111c2d;
-      --surface2:#1a2638;
-      --surface3:#0f1928;
-      --border:#1e2f47;
-      --border-hover:#2c4168;
-      --accent:#3b82f6;
-      --accent-hover:#2563eb;
-      --accent2:#8b5cf6;
-      --accent3:#10b981;
-      --warn:#ef4444;
-      --warn2:#f59e0b;
-      --text:#fafafa;
-      --muted:#7f93b0;
-      --dim:#3d5272;
-      --radius:14px;
-      --radius-sm:10px;
+      --accent2: var(--ds-accent);
+      --accent3: var(--ds-success);
+      --warn: var(--ds-danger);
+      --warn2: var(--ds-warning);
     }
 
     *, *::before, *::after {
-      box-sizing:border-box;
-      margin:0;
-      padding:0;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     html, body {
-      min-height:100%;
-      font-family:'Inter', system-ui, -apple-system, sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(59,130,246,.12), transparent 34rem),
-        radial-gradient(circle at top right, rgba(139,92,246,.10), transparent 28rem),
-        var(--bg);
-      color:var(--text);
-      -webkit-font-smoothing:antialiased;
+      min-height: 100%;
+      font-family: var(--ds-font-sans);
+      background: var(--bg);
+      color: var(--text);
     }
 
     a {
-      color:inherit;
-      text-decoration:none;
+      color: inherit;
+      text-decoration: none;
     }
 
+    /* ── Mobile bar (this page keeps its own menu button, #js-menu-btn;
+          it matches the shared mobile bar) ── */
     .mobile-header {
-      display:none;
-      align-items:center;
-      justify-content:space-between;
-      height:56px;
-      padding:0 16px;
-      background:var(--surface);
-      border-bottom:1px solid var(--border);
-      position:sticky;
-      top:0;
-      z-index:200;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      height: 52px;
+      padding: 0 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(64px, env(safe-area-inset-right));
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 900;
     }
+
+    .mobile-header > [aria-hidden="true"] { display: none; }
 
     .hamburger {
-      width:38px;
-      height:38px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid var(--border);
-      border-radius:10px;
-      background:rgba(255,255,255,.04);
-      color:var(--text);
-      cursor:pointer;
+      flex: 0 0 38px;
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
     }
+
+    .hamburger:hover { background: var(--ds-surface-hover); }
 
     .mobile-title {
-      flex:1;
-      text-align:center;
-      font-size:.86rem;
-      font-weight:800;
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+      font-size: .9375rem;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
+    /* Drawer backdrop (the drawer itself comes from the shared shell) */
     .sidebar-overlay {
-      display:none;
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.55);
-      backdrop-filter:blur(3px);
-      z-index:150;
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--ds-overlay);
+      z-index: 950;
     }
 
     .sidebar-overlay.open {
-      display:block;
+      display: block;
     }
 
     .ds-shell {
-      display:flex;
-      min-height:100vh;
+      display: flex;
+      min-height: 100vh;
     }
 
     .ds-main {
-      flex:1;
-      min-width:0;
-      padding:28px;
+      flex: 1;
+      min-width: 0;
+      padding: 28px 32px 48px;
     }
 
     .wrap {
-      width:100%;
-      max-width:1450px;
-      margin:0 auto;
+      width: 100%;
+      max-width: 1450px;
+      margin: 0 auto;
     }
 
+    /* ── Page header ── */
     .top-row {
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:20px;
-      margin-bottom:24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
     }
 
-    .page-kicker {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      color:var(--accent);
-      font-size:.72rem;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.09em;
-      margin-bottom:8px;
-    }
-
-    .page-kicker::before {
-      content:"";
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      background:var(--accent3);
-      box-shadow:0 0 18px rgba(16,185,129,.8);
-    }
-
-    .page-title {
-      font-size:clamp(1.8rem, 3vw, 2.6rem);
-      font-weight:900;
-      letter-spacing:-.06em;
-      line-height:1.05;
-    }
+    .top-row > div:first-child { min-width: 0; flex: 1 1 320px; }
 
     .page-subtitle {
-      max-width:760px;
-      margin-top:10px;
-      color:var(--muted);
-      font-size:.92rem;
-      line-height:1.65;
+      max-width: 72ch;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .875rem;
+      line-height: 1.55;
     }
 
     .header-action {
-      min-height:42px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      padding:0 17px;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:rgba(255,255,255,.04);
-      color:var(--text);
-      font-size:.82rem;
-      font-weight:900;
-      white-space:nowrap;
-      transition:.15s;
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 16px;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: .875rem;
+      font-weight: 500;
+      line-height: 1.2;
+      white-space: nowrap;
+      transition: background .12s ease;
     }
 
     .header-action:hover {
-      transform:translateY(-1px);
-      border-color:var(--border-hover);
-      background:rgba(255,255,255,.07);
+      background: var(--ds-surface-hover);
     }
 
+    /* ── Summary figures ── */
     .stats-grid {
-      display:grid;
-      grid-template-columns:repeat(5, minmax(0, 1fr));
-      gap:14px;
-      margin-bottom:20px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
     }
 
     .stat-card {
-      min-width:0;
-      padding:18px;
-      border:1px solid var(--border);
-      border-radius:18px;
-      background:rgba(17,28,45,.92);
-      box-shadow:0 14px 38px rgba(0,0,0,.16);
-    }
-
-    .stat-top {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
     }
 
     .stat-label {
-      color:var(--muted);
-      font-size:.75rem;
-      font-weight:800;
-      line-height:1.4;
-    }
-
-    .stat-icon {
-      width:34px;
-      height:34px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid var(--border);
-      border-radius:10px;
-      background:var(--surface2);
-      color:var(--accent);
-      flex-shrink:0;
+      color: var(--muted);
+      font-size: .8125rem;
+      font-weight: 500;
+      line-height: 1.4;
     }
 
     .stat-value {
-      margin-top:15px;
-      font-size:1.7rem;
-      font-weight:900;
-      letter-spacing:-.05em;
+      margin-top: 2px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
     }
 
     .stat-note {
-      margin-top:5px;
-      color:var(--dim);
-      font-size:.7rem;
-      line-height:1.45;
+      color: var(--muted);
+      font-size: .75rem;
+      line-height: 1.45;
     }
 
+    /* ── History panel ── */
     .card {
-      overflow:hidden;
-      border:1px solid var(--border);
-      border-radius:22px;
-      background:rgba(17,28,45,.92);
-      box-shadow:0 18px 55px rgba(0,0,0,.22);
-      backdrop-filter:blur(12px);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
     }
 
     .toolbar {
-      display:grid;
-      grid-template-columns:minmax(240px, 1fr) 220px auto auto;
-      align-items:end;
-      gap:12px;
-      padding:17px 18px;
-      border-bottom:1px solid var(--border);
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.015)),
-        var(--surface);
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) 220px auto auto;
+      align-items: end;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
     }
 
     .field {
-      display:flex;
-      flex-direction:column;
-      gap:6px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .field label {
-      color:var(--dim);
-      font-size:.68rem;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.08em;
+      color: var(--ds-text-secondary);
+      font-size: .8125rem;
+      font-weight: 500;
+      line-height: 1.35;
     }
 
     .input,
     .select {
-      width:100%;
-      min-height:42px;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:var(--surface3);
-      color:var(--text);
-      padding:10px 12px;
-      font:inherit;
-      font-size:.88rem;
-      outline:none;
-      transition:border-color .15s, box-shadow .15s;
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm);
+      background: var(--surface3);
+      color: var(--text);
+      padding: 8px 12px;
+      font-family: var(--ds-font-sans);
+      font-size: .875rem;
+      outline: none;
+      transition: border-color .12s ease, box-shadow .12s ease;
     }
 
     .input:focus,
     .select:focus {
-      border-color:rgba(59,130,246,.65);
-      box-shadow:0 0 0 4px rgba(59,130,246,.10);
+      border-color: var(--accent);
+      box-shadow: var(--ds-focus-ring);
     }
 
     .input::placeholder {
-      color:var(--dim);
+      color: var(--dim);
     }
 
     .btn {
-      min-height:42px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      padding:0 17px;
-      border:1px solid transparent;
-      border-radius:12px;
-      font:inherit;
-      font-size:.82rem;
-      font-weight:900;
-      cursor:pointer;
-      white-space:nowrap;
-      transition:.15s;
-    }
-
-    .btn:hover {
-      transform:translateY(-1px);
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 16px;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: var(--ds-font-sans);
+      font-size: .875rem;
+      font-weight: 500;
+      line-height: 1.2;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .12s ease, border-color .12s ease;
     }
 
     .btn.primary {
-      background:var(--accent);
-      border-color:var(--accent);
-      color:#fff;
-      box-shadow:0 8px 22px rgba(59,130,246,.25);
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
     }
 
     .btn.primary:hover {
-      background:var(--accent-hover);
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
     }
 
     .btn.secondary {
-      background:rgba(255,255,255,.04);
-      border-color:var(--border);
-      color:var(--text);
+      background: var(--surface2);
+      border-color: var(--ds-border-strong);
+      color: var(--text);
     }
 
     .btn.secondary:hover {
-      background:rgba(255,255,255,.07);
-      border-color:var(--border-hover);
+      background: var(--ds-surface-hover);
     }
 
     .table-scroll {
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .table {
-      width:100%;
-      min-width:980px;
-      border-collapse:collapse;
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
     }
 
     .table th,
     .table td {
-      padding:14px 16px;
-      border-bottom:1px solid var(--border);
-      text-align:left;
-      vertical-align:middle;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: middle;
     }
 
     .table th {
-      background:rgba(255,255,255,.022);
-      color:var(--dim);
-      font-size:.69rem;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.07em;
-      white-space:nowrap;
+      padding: 10px 14px;
+      background: var(--surface3);
+      color: var(--muted);
+      font-size: .75rem;
+      font-weight: 600;
+      white-space: nowrap;
     }
 
     .table td {
-      color:var(--muted);
-      font-size:.84rem;
-      line-height:1.5;
+      padding: 12px 14px;
+      color: var(--ds-text-secondary);
+      font-size: .875rem;
+      line-height: 1.5;
     }
 
     .table tbody tr:last-child td {
-      border-bottom:none;
+      border-bottom: none;
     }
 
     .table tbody tr:hover td {
-      background:rgba(255,255,255,.014);
+      background: rgba(255,255,255,.02);
     }
 
     .submission-title {
-      display:block;
-      color:var(--text);
-      font-size:.88rem;
-      font-weight:800;
-      margin-bottom:3px;
+      display: block;
+      color: var(--text);
+      font-size: .875rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+      overflow-wrap: anywhere;
     }
 
     .subtext {
-      display:block;
-      color:var(--dim);
-      font-size:.75rem;
+      display: block;
+      color: var(--muted);
+      font-size: .8125rem;
     }
 
-    .attempt-badge,
+    /* "Attempt #n" is plain text; statuses are compact labels */
+    .attempt-badge {
+      color: var(--ds-text-secondary);
+      font-size: .875rem;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
     .pill {
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      border:1px solid var(--border);
-      border-radius:999px;
-      background:rgba(255,255,255,.04);
-      padding:5px 9px;
-      color:var(--muted);
-      font-size:.71rem;
-      font-weight:900;
-      white-space:nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-xs);
+      background: var(--surface2);
+      padding: 2px 8px;
+      color: var(--ds-text-secondary);
+      font-size: .75rem;
+      font-weight: 600;
+      line-height: 1.4;
+      white-space: nowrap;
     }
 
     .pill.good {
-      color:#a7f3d0;
-      border-color:rgba(16,185,129,.35);
-      background:rgba(16,185,129,.09);
+      color: var(--ds-success-text);
+      border-color: var(--ds-success-border);
+      background: var(--ds-success-soft);
     }
 
     .pill.warn {
-      color:#fde68a;
-      border-color:rgba(245,158,11,.35);
-      background:rgba(245,158,11,.09);
+      color: var(--ds-warning-text);
+      border-color: var(--ds-warning-border);
+      background: var(--ds-warning-soft);
     }
 
     .pill.danger {
-      color:#fecaca;
-      border-color:rgba(239,68,68,.35);
-      background:rgba(239,68,68,.09);
+      color: var(--ds-danger-text);
+      border-color: var(--ds-danger-border);
+      background: var(--ds-danger-soft);
     }
 
     .pill.info {
-      color:#bfdbfe;
-      border-color:rgba(59,130,246,.35);
-      background:rgba(59,130,246,.09);
+      color: var(--ds-accent-text);
+      border-color: var(--ds-accent-border);
+      background: var(--ds-accent-soft);
     }
 
     .score {
-      color:var(--text);
-      font-weight:900;
-      font-variant-numeric:tabular-nums;
+      color: var(--text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
 
     .feedback {
-      max-width:250px;
-      overflow:hidden;
-      display:-webkit-box;
-      -webkit-line-clamp:2;
-      -webkit-box-orient:vertical;
-      color:var(--muted);
-      font-size:.78rem;
-      line-height:1.5;
+      max-width: 250px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      color: var(--muted);
+      font-size: .8125rem;
+      line-height: 1.5;
     }
 
     .pagination {
-      display:flex;
-      justify-content:flex-end;
-      padding:15px 18px;
-      border-top:1px solid var(--border);
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
     }
 
+    .pagination:empty { display: none; }
+
+    /* ── Empty state ── */
     .empty {
-      min-height:330px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:50px 24px;
-      gap:12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      gap: 8px;
     }
 
     .empty-icon {
-      width:62px;
-      height:62px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid rgba(59,130,246,.24);
-      border-radius:18px;
-      background:rgba(59,130,246,.10);
-      color:var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
     }
 
+    .empty-icon svg { width: 28px; height: 28px; }
+
     .empty h3 {
-      color:var(--text);
-      font-size:1.05rem;
-      font-weight:900;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
     }
 
     .empty p {
-      max-width:440px;
-      color:var(--muted);
-      font-size:.87rem;
-      line-height:1.65;
+      max-width: 440px;
+      color: var(--muted);
+      font-size: .875rem;
+      line-height: 1.6;
     }
 
     .empty-actions {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      justify-content:center;
-      margin-top:6px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
     }
 
     .alert {
-      margin-bottom:16px;
-      padding:13px 16px;
-      border:1px solid transparent;
-      border-radius:14px;
-      font-weight:700;
-      line-height:1.5;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      border: 1px solid var(--ds-accent-border);
+      border-radius: var(--radius-sm);
+      background: var(--ds-accent-soft);
+      color: #dbeafe;
+      font-size: .875rem;
+      line-height: 1.55;
     }
 
     .alert.success {
-      background:rgba(16,185,129,.10);
-      border-color:rgba(16,185,129,.30);
-      color:#a7f3d0;
+      background: var(--ds-success-soft);
+      border-color: var(--ds-success-border);
+      color: #d1fae5;
     }
 
     .alert.danger {
-      background:rgba(239,68,68,.10);
-      border-color:rgba(239,68,68,.30);
-      color:#fecaca;
+      background: var(--ds-danger-soft);
+      border-color: var(--ds-danger-border);
+      color: #fee2e2;
     }
 
-    @media (max-width:1200px) {
+    @media (max-width: 1280px) {
       .stats-grid {
-        grid-template-columns:repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
-    @media (max-width:900px) {
-      .toolbar {
-        grid-template-columns:1fr 1fr;
-      }
-
-      .top-row {
-        flex-direction:column;
-      }
-    }
-
-    @media (max-width:800px) {
+    @media (max-width: 900px) {
       .mobile-header {
-        display:flex;
+        display: flex;
       }
 
       .ds-main {
-        padding:16px;
+        padding: 24px 20px 40px;
       }
 
       .stats-grid {
-        grid-template-columns:1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .sidebar {
-        display:flex !important;
-        position:fixed;
-        top:0;
-        left:0;
-        height:100vh;
-        z-index:160;
-        transform:translateX(-100%);
-        transition:transform .25s cubic-bezier(.4,0,.2,1);
-        box-shadow:4px 0 32px rgba(0,0,0,.35);
-      }
-
-      .sidebar.is-open {
-        transform:translateX(0);
+      .toolbar {
+        grid-template-columns: 1fr 1fr;
       }
     }
 
-    @media (max-width:640px) {
-      .page-title {
-        font-size:1.65rem;
+    @media (min-width: 901px) {
+      .sidebar-overlay.open { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      .ds-main {
+        padding: 20px 16px 32px;
       }
 
-      .stats-grid,
+      .top-row .header-action {
+        width: 100%;
+      }
+
       .toolbar {
-        grid-template-columns:1fr;
+        grid-template-columns: 1fr;
+        padding: 14px 16px;
       }
 
-      .table-scroll {
-        overflow-x:visible;
-      }
+      .toolbar > span[aria-hidden="true"] { display: none; }
 
-      .table,
+      /* The table becomes a list of labelled rows. The global 640px minimum
+         for wide tables does not apply here. */
+      .card table.table,
       .table tbody {
-        display:block;
-        width:100%;
-        min-width:0;
+        display: block;
+        width: 100%;
+        min-width: 0;
       }
 
       .table thead {
-        display:none;
+        display: none;
       }
 
       .table tr {
-        display:block;
-        padding:16px;
-        border-bottom:1px solid var(--border);
+        display: block;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
       }
 
       .table tr:last-child {
-        border-bottom:none;
+        border-bottom: none;
       }
 
+      .table tbody tr:hover td {
+        background: transparent;
+      }
+
+      /* label on the left, value (and its sub-line) stacked on the right */
       .table td {
-        display:flex;
-        align-items:flex-start;
-        justify-content:space-between;
-        gap:16px;
-        padding:7px 0;
-        border:0;
-        text-align:right;
+        display: flow-root;
+        padding: 6px 0;
+        border: 0;
+        text-align: right;
       }
 
       .table td::before {
-        content:attr(data-label);
-        color:var(--dim);
-        font-size:.69rem;
-        font-weight:900;
-        text-transform:uppercase;
-        letter-spacing:.06em;
-        text-align:left;
+        content: attr(data-label);
+        float: left;
+        margin-right: 16px;
+        color: var(--muted);
+        font-size: .8125rem;
+        font-weight: 500;
+        line-height: 1.6;
+        text-align: left;
       }
 
       .table td:first-child {
-        display:block;
-        padding-bottom:12px;
-        text-align:left;
+        display: block;
+        padding-bottom: 10px;
+        text-align: left;
       }
 
       .table td:first-child::before {
-        display:none;
+        display: none;
+      }
+
+      .table td:last-child .btn {
+        min-height: 32px;
+        padding: 0 12px;
+        font-size: .8125rem;
       }
 
       .feedback {
-        max-width:190px;
-        text-align:right;
+        max-width: 200px;
+        margin-left: auto;
+        text-align: right;
       }
+
+      .pagination { padding: 14px 16px; }
+    }
+
+    @media (max-width: 420px) {
+      .stats-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .header-action, .input, .select { transition: none; }
     }
   </style>
   @include('partials.admin-inspired-page-style')
+    @include('partials.page-head', ['pageTitle' => 'My Submissions', 'pageDescription' => 'Every submission you have made, with its result and feedback.'])
 </head>
 <body class="ds-admin-inspired">
   <header class="mobile-header">
@@ -663,7 +627,6 @@
       <div class="wrap">
         <div class="top-row">
           <div>
-            <div class="page-kicker"></div>
             <h1 class="page-title ds-page-title">My Submissions</h1>
             <p class="page-subtitle">
               Review your assignment attempts, scores, status, and instructor feedback.
@@ -687,11 +650,6 @@
           <article class="stat-card">
             <div class="stat-top">
               <span class="stat-label">All Attempts</span>
-              <span class="stat-icon">
-                <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>
-                </svg>
-              </span>
             </div>
             <div class="stat-value">{{ $submissionStats['all_attempts'] ?? 0 }}</div>
             <div class="stat-note">Every saved assignment attempt</div>
@@ -700,11 +658,6 @@
           <article class="stat-card">
             <div class="stat-top">
               <span class="stat-label">Completed</span>
-              <span class="stat-icon" style="color:var(--accent3)">
-                <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path d="M5 13l4 4L19 7"/>
-                </svg>
-              </span>
             </div>
             <div class="stat-value">{{ $submissionStats['completed'] ?? 0 }}</div>
             <div class="stat-note">Submitted, late, or graded attempts</div>
@@ -713,11 +666,6 @@
           <article class="stat-card">
             <div class="stat-top">
               <span class="stat-label">In Progress</span>
-              <span class="stat-icon" style="color:var(--warn2)">
-                <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
-                </svg>
-              </span>
             </div>
             <div class="stat-value">{{ $submissionStats['in_progress'] ?? 0 }}</div>
             <div class="stat-note">Attempts that can still be continued</div>
@@ -726,11 +674,6 @@
           <article class="stat-card">
             <div class="stat-top">
               <span class="stat-label">Late</span>
-              <span class="stat-icon" style="color:var(--warn)">
-                <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                </svg>
-              </span>
             </div>
             <div class="stat-value">{{ $submissionStats['late'] ?? 0 }}</div>
             <div class="stat-note">Attempts submitted after the due time</div>
@@ -739,11 +682,6 @@
           <article class="stat-card">
             <div class="stat-top">
               <span class="stat-label">Average Score</span>
-              <span class="stat-icon" style="color:var(--accent2)">
-                <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path d="M4 19V9m8 10V5m8 14v-7"/><path d="M3 19h18"/>
-                </svg>
-              </span>
             </div>
             <div class="stat-value">{{ $submissionStats['average_percentage'] ?? 0 }}%</div>
             <div class="stat-note">Combined completed-attempt score</div>
@@ -821,12 +759,7 @@
                     <tr>
                       <td data-label="Assignment">
                         <span class="submission-title">{{ $assignment?->title ?? 'Deleted Assignment' }}</span>
-                        <span class="subtext">
-                          {{ $assignment?->libraryItem?->topic_title ?? 'No topic' }}
-                          @if($assignment?->libraryItem?->version_name)
-                            · {{ $assignment->libraryItem->version_name }}
-                          @endif
-                        </span>
+                        <span class="subtext">{{ $assignment?->libraryItem?->topic_title ?? 'No topic' }}@if($assignment?->libraryItem?->version_name), {{ $assignment->libraryItem->version_name }}@endif</span>
                       </td>
 
                       <td data-label="Class">

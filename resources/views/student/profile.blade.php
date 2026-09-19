@@ -4,121 +4,168 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
-  <title>DataSensei — My Profile</title>
+  <title>My Profile — DataSensei</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+    /* Profile (all roles). Colours, type and radius come from
+       partials.design-system; the sidebar comes from partials.sidebar-shell. */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--ds-font-sans); }
+    .page-layout-wrapper { display: flex; min-height: 100vh; }
+    .page-profile-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 
+    /* ── title bar ── */
+    .page-profile-topbar { min-height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 16px; padding: 0 32px; background: var(--bg); border-bottom: 1px solid var(--border); }
+    .page-profile-topbar h1 { flex: 1; min-width: 0; }
 
-  <style>
-    :root {
-      --bg:#0d1320; --surface:#111c2d; --surface2:#1a2638; --border:#1e2f47;
-      --border-hover:#2c4168; --accent:#3b82f6; --accent-hover:#2563eb;
-      --warn:#ef4444; --warn2:#f59e0b; --success:#22c55e;
-      --text:#fafafa; --muted:#7f93b0; --dim:#3d5272;
-      --radius:8px; --radius-sm:6px; --topbar-h:64px;
+    /* ── content ── */
+    .page-profile-content { flex: 1; display: flex; flex-direction: column; gap: 24px; padding: 28px 32px 48px; }
+    .page-profile-content-inner { width: 100%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── account summary: a plain header, not a banner ── */
+    .page-profile-header-card { display: flex; flex-direction: column; gap: 24px; }
+    .page-profile-info-section { display: flex; flex-wrap: wrap; gap: 12px; }
+    .page-profile-identity { flex: 1 1 100%; min-width: 0; display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+    .page-profile-avatar-large { width: 56px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface2); border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 1.375rem; font-weight: 600; }
+    .page-profile-text { min-width: 0; }
+    .page-profile-text h2 { margin-bottom: 2px; color: var(--text); font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+    .page-profile-text p { color: var(--muted); font-size: 0.875rem; line-height: 1.5; overflow-wrap: anywhere; }
+
+    .page-profile-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; }
+    .page-profile-badge { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs); background: var(--surface2); color: var(--ds-text-secondary); font-size: 0.75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+    /* The role is plain text, not a capsule. */
+    .page-profile-badge-ds { padding: 0; border: 0; background: none; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
+
+    /* Summary tiles */
+    .page-profile-stats-row { flex: 2 1 420px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .page-profile-stat { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .page-profile-stat .lbl { order: -1; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
+    .page-profile-stat .val { margin-top: 2px; color: var(--text); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+
+    /* Current rank */
+    .page-profile-rank-showcase { flex: 1 1 300px; min-width: 0; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .page-profile-rank-shell { display: block; }
+    .page-profile-rank-kicker { margin-bottom: 4px; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
+    .page-profile-rank-title { color: var(--text); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+    .page-profile-rank-subtitle { margin-top: 4px; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+    .page-profile-rank-progress { height: 6px; margin-top: 12px; overflow: hidden; border-radius: 999px; background: var(--surface2); }
+    .page-profile-rank-progress-fill { width: var(--rank-progress, 0%); height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.4s ease; }
+    .page-profile-rank-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-top: 8px; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+    .page-profile-rank-foot strong { color: var(--text); font-weight: 600; }
+
+    /* Section tabs (underline) */
+    .page-profile-tabs { display: flex; gap: 24px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+    .page-profile-tabs::-webkit-scrollbar { display: none; }
+    .page-profile-tab { flex-shrink: 0; display: inline-flex; align-items: center; min-height: 40px; margin-bottom: -1px; padding: 0 2px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 0.875rem; font-weight: 500; text-decoration: none; white-space: nowrap; cursor: pointer; transition: color 0.12s ease, border-color 0.12s ease; }
+    .page-profile-tab:hover { color: var(--text); }
+    .page-profile-tab.active { border-bottom-color: var(--accent); color: var(--text); }
+
+    /* ── cards ── */
+    .page-profile-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+    .page-profile-grid-single { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    .page-profile-card { min-width: 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .page-profile-card-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .page-profile-card-header > div { min-width: 0; }
+    .page-profile-card-title { color: var(--text); font-size: 0.9375rem; font-weight: 600; line-height: 1.35; }
+    .page-profile-card-subtitle { margin-top: 2px; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+    .page-profile-card-body { flex: 1; padding: 20px; }
+
+    /* ── forms ── */
+    .page-profile-form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .page-profile-form-group:last-child { margin-bottom: 0; }
+    .page-profile-form-group label { color: var(--ds-text-secondary); font-size: 0.8125rem; font-weight: 500; }
+    .page-profile-form-group input[type="text"],
+    .page-profile-form-group input[type="email"],
+    .page-profile-form-group input[type="password"],
+    .page-profile-form-group textarea,
+    .page-profile-form-group select {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 12px;
+      background: var(--surface3);
+      border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font: 400 0.875rem/1.4 var(--ds-font-sans);
+      outline: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
     }
+    .page-profile-form-group input::placeholder,
+    .page-profile-form-group textarea::placeholder { color: var(--dim); }
+    .page-profile-form-group input:focus,
+    .page-profile-form-group textarea:focus,
+    .page-profile-form-group select:focus { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
+    .page-profile-form-group input[readonly] { color: var(--muted); cursor: not-allowed; }
+    .page-profile-form-group input[readonly]:focus { border-color: var(--ds-input-border); box-shadow: none; }
+    .page-profile-form-group textarea { min-height: 96px; resize: vertical; line-height: 1.55; }
+    .page-profile-help-text { color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+    .page-profile-field-error { color: var(--ds-danger-text); font-size: 0.75rem; line-height: 1.45; }
 
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);margin:0;-webkit-font-smoothing:antialiased}
-    .page-layout-wrapper{display:flex;min-height:100vh}
-    .page-profile-main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:0}
-    .page-profile-topbar{height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;gap:16px;flex-shrink:0;z-index:10}
-    .page-profile-topbar h1{font-size:1.125rem;font-weight:600;color:var(--text);flex:1}
-    .page-profile-content{flex:1;overflow-y:auto;padding:32px;display:flex;flex-direction:column;gap:24px}
-    .page-profile-content-inner{max-width:1100px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:24px}
-    .page-profile-header-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column}
-    .page-profile-info-section{padding:32px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
-    .page-profile-identity{display:flex;align-items:center;gap:24px}
-    .page-profile-avatar-large{width:90px;height:90px;border-radius:12px;background:var(--surface2);border:1px solid var(--border-hover);display:flex;align-items:center;justify-content:center;font-size:2.25rem;font-weight:700;color:var(--accent);position:relative;flex-shrink:0}
-    .page-profile-text h2{font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:4px}
-    .page-profile-text p{font-size:.875rem;color:var(--muted)}
-    .page-profile-badges{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-    .page-profile-badge{font-size:.65rem;font-weight:600;padding:4px 8px;border-radius:4px;border:1px solid;letter-spacing:.05em;text-transform:uppercase}
-    .page-profile-badge-ds{color:var(--accent);border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.1)}
-    .page-profile-badge-rank{color:var(--warn2);border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.1)}
-    .page-profile-stats-row{display:flex;gap:32px;padding-left:24px;border-left:1px solid var(--border)}
-    .page-profile-stat{display:flex;flex-direction:column;align-items:flex-start}
-    .page-profile-stat .val{font-size:1.375rem;font-weight:700;color:var(--text);line-height:1}
-    .page-profile-stat .lbl{font-size:.7rem;font-weight:500;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
-    .page-profile-tabs{display:flex;gap:32px;padding:0 32px;background:var(--surface);border-radius:0 0 var(--radius) var(--radius)}
-    .page-profile-tab{padding:16px 0;font-size:.875rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;text-decoration:none}
-    .page-profile-tab:hover{color:var(--text)}
-    .page-profile-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-    .page-profile-grid{display:grid;grid-template-columns:2fr 1fr;gap:24px}
-    .page-profile-grid-single{display:grid;grid-template-columns:1fr;gap:24px}
-    .page-profile-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column}
-    .page-profile-card-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:16px}
-    .page-profile-card-title{font-weight:600;font-size:1rem;color:var(--text)}
-    .page-profile-card-subtitle{font-size:.75rem;color:var(--muted);margin-top:4px;line-height:1.5}
-    .page-profile-card-body{padding:24px;flex:1}
-    .page-profile-form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
-    .page-profile-form-group:last-child{margin-bottom:0}
-    .page-profile-form-group label{font-size:.8125rem;font-weight:500;color:var(--muted)}
-    .page-profile-form-group input[type="text"],.page-profile-form-group input[type="email"],.page-profile-form-group input[type="password"],.page-profile-form-group textarea,.page-profile-form-group select{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:.875rem;padding:10px 14px;font-family:inherit;outline:none;transition:border-color .15s;width:100%}
-    .page-profile-form-group input:focus,.page-profile-form-group textarea:focus,.page-profile-form-group select:focus{border-color:var(--accent)}
-    .page-profile-form-group input[readonly]{color:var(--muted);cursor:not-allowed}
-    .page-profile-form-group textarea{resize:vertical;min-height:100px}
-    .page-profile-help-text{font-size:.75rem;color:var(--muted);line-height:1.5}
-    .page-profile-form-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:12px;padding-top:24px;border-top:1px solid var(--border)}
-    .page-profile-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 16px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .15s;font-family:inherit;text-decoration:none}
-    .page-profile-btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .page-profile-btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
-    .page-profile-btn-ghost{background:transparent;color:var(--text);border-color:var(--border)}
-    .page-profile-btn-ghost:hover{background:var(--surface2)}
-    .page-profile-btn-danger{width:100%;border:1px solid var(--warn);color:var(--warn);background:rgba(239,68,68,.1)}
-    .page-profile-btn-danger:hover{background:rgba(239,68,68,.2)}
-    .page-profile-danger-note{font-size:.8125rem;color:var(--muted);margin-bottom:16px;line-height:1.6}
-    .page-profile-alert{padding:12px 14px;border-radius:var(--radius-sm);font-size:.8125rem;line-height:1.5;margin-bottom:18px;border:1px solid}
-    .page-profile-alert-success{background:rgba(34,197,94,.1);color:var(--success);border-color:rgba(34,197,94,.35)}
-    .page-profile-alert-danger{background:rgba(239,68,68,.1);color:var(--warn);border-color:rgba(239,68,68,.35)}
-    .page-profile-field-error{color:var(--warn);font-size:.75rem;line-height:1.4;margin-top:2px}
-    .page-profile-status-pill{display:inline-flex;align-items:center;width:fit-content;padding:5px 10px;border-radius:999px;font-size:.72rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;border:1px solid var(--border);color:var(--muted);background:var(--bg)}
-    .page-profile-status-pending{color:var(--warn2);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.1)}
-    .page-profile-status-approved{color:var(--success);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.1)}
-    .page-profile-status-rejected{color:var(--warn);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.1)}
+    .page-profile-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
 
+    /* ── buttons ── */
+    .page-profile-btn { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border: 1px solid transparent; border-radius: var(--radius-sm); font: 500 0.875rem/1.2 var(--ds-font-sans); text-decoration: none; white-space: nowrap; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease; }
+    .page-profile-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .page-profile-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .page-profile-btn-ghost { background: var(--surface2); border-color: var(--ds-border-strong); color: var(--text); }
+    .page-profile-btn-ghost:hover { background: var(--ds-surface-hover); }
+    .page-profile-btn-danger { width: 100%; background: transparent; border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
+    .page-profile-btn-danger:hover { background: var(--ds-danger-soft); }
 
-    /* ─── Rank Progress ─────────────────────────────────────────────────── */
-    .page-profile-info-section{gap:24px;flex-wrap:wrap}
-    .page-profile-rank-showcase{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1;min-width:330px;max-width:470px;flex:1;padding:20px;border-radius:var(--radius);border:1px solid color-mix(in srgb,var(--rank-b) 38%,var(--border));background:var(--surface2);box-shadow:0 12px 28px rgba(0,0,0,.18)}
-    .page-profile-rank-shell{display:block}
-    .page-profile-rank-kicker{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-    .page-profile-rank-title{font-size:1.45rem;font-weight:700;line-height:1.15;color:var(--text)}
-    .page-profile-rank-subtitle{font-size:.78rem;color:var(--muted);margin-top:7px;line-height:1.5}
-    .page-profile-rank-progress{height:8px;border-radius:999px;background:var(--bg);border:1px solid var(--border);overflow:hidden;margin-top:16px}
-    .page-profile-rank-progress-fill{height:100%;width:var(--rank-progress,0%);border-radius:inherit;background:var(--rank-b);transition:width .4s ease}
-    .page-profile-rank-foot{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:.7rem;color:var(--muted)}
-    .page-profile-rank-foot strong{color:var(--text)}
-    .rank-tier-1{--rank-a:#64748b;--rank-b:#94a3b8;--rank-c:#cbd5e1}
-    .rank-tier-2{--rank-a:#0f766e;--rank-b:#14b8a6;--rank-c:#99f6e4}
-    .rank-tier-3{--rank-a:#2563eb;--rank-b:#38bdf8;--rank-c:#bfdbfe}
-    .rank-tier-4{--rank-a:#7c3aed;--rank-b:#a855f7;--rank-c:#ddd6fe}
-    .rank-tier-5{--rank-a:#c026d3;--rank-b:#ec4899;--rank-c:#fbcfe8}
-    .rank-tier-6{--rank-a:#ea580c;--rank-b:#f97316;--rank-c:#fed7aa}
-    .rank-tier-7{--rank-a:#dc2626;--rank-b:#f43f5e;--rank-c:#fecdd3}
-    .rank-tier-8{--rank-a:#b45309;--rank-b:#f59e0b;--rank-c:#fde68a}
-    .page-profile-rank-path{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
-    .page-profile-rank-step{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);padding:14px;min-height:108px;transition:border-color .18s ease,background .18s ease}
-    .page-profile-rank-step.unlocked{border-color:color-mix(in srgb,var(--rank-b) 48%,var(--border))}
-    .page-profile-rank-step.current{border-color:var(--rank-b);background:color-mix(in srgb,var(--rank-b) 8%,var(--surface2))}
-    .page-profile-rank-step.locked{opacity:.58}
-    .page-profile-rank-step-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
-    .page-profile-rank-step-no{font-size:.68rem;font-weight:600;letter-spacing:.05em;color:var(--muted)}
-    .page-profile-rank-step-status{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-    .page-profile-rank-step.current .page-profile-rank-step-status{color:var(--rank-b)}
-    .page-profile-rank-step-name{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:5px}
-    .page-profile-rank-step-exp{font-size:.7rem;color:var(--muted)}
-    .page-profile-rank-empty{font-size:.82rem;color:var(--muted);line-height:1.6}
-    @media(max-width:1050px){.page-profile-rank-showcase{order:3;max-width:none;width:100%}.page-profile-stats-row{order:2}}
-    @media(max-width:700px){.page-profile-rank-showcase{min-width:0}.page-profile-rank-foot{flex-direction:column}.page-profile-rank-path{grid-template-columns:1fr}}
+    .page-profile-danger-note { margin-bottom: 16px; color: var(--muted); font-size: 0.875rem; line-height: 1.6; }
 
-    ::-webkit-scrollbar{width:6px;height:6px}
-    ::-webkit-scrollbar-track{background:transparent}
-    ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:4px}
-    ::-webkit-scrollbar-thumb:hover{background:var(--dim)}
-    @media(max-width:900px){.page-profile-grid{grid-template-columns:1fr}.page-profile-info-section{flex-direction:column;align-items:flex-start;gap:32px}.page-profile-stats-row{padding-left:0;border-left:none;width:100%;justify-content:space-between}}
-    @media(max-width:700px){.page-profile-content{padding:20px}.page-profile-identity{flex-direction:column;align-items:center;text-align:center;width:100%}.page-profile-badges{justify-content:center}.page-profile-info-section{padding:24px}.page-profile-tabs{padding:0 16px;gap:20px;overflow-x:auto}.page-profile-card-header{align-items:flex-start;flex-direction:column}.page-profile-form-actions{flex-direction:column}.page-profile-btn{width:100%}}
+    /* ── messages ── */
+    .page-profile-alert { margin-bottom: 16px; padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.5; }
+    .page-profile-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
+    .page-profile-alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+
+    /* ── status labels ── */
+    .page-profile-status-pill { width: fit-content; display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs); background: var(--surface2); color: var(--ds-text-secondary); font-size: 0.75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+    .page-profile-status-pending { border-color: var(--ds-warning-border); background: var(--ds-warning-soft); color: var(--ds-warning-text); }
+    .page-profile-status-approved { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-text); }
+    .page-profile-status-rejected { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-text); }
+
+    /* ── rank progression ── */
+    .page-profile-rank-path { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+    .page-profile-rank-step { min-width: 0; padding: 12px 14px; background: var(--surface3); border: 1px solid transparent; border-radius: var(--radius-sm); transition: border-color 0.12s ease, background 0.12s ease; }
+    .page-profile-rank-step.current { background: var(--ds-accent-soft); border-color: var(--ds-accent-border); }
+    .page-profile-rank-step-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .page-profile-rank-step-no { color: var(--muted); font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .page-profile-rank-step-status { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+    .page-profile-rank-step.current .page-profile-rank-step-status { color: var(--ds-accent-text); }
+    .page-profile-rank-step.unlocked .page-profile-rank-step-status { color: var(--ds-success-text); }
+    .page-profile-rank-step-name { margin-bottom: 2px; color: var(--text); font-size: 0.875rem; font-weight: 600; }
+    .page-profile-rank-step.locked .page-profile-rank-step-name { color: var(--ds-text-secondary); }
+    .page-profile-rank-step-exp { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+    .page-profile-rank-empty { color: var(--muted); font-size: 0.875rem; line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      .page-profile-topbar { min-height: 56px; padding: 0 20px; }
+      .page-profile-content { padding: 24px 20px 40px; }
+      .page-profile-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .page-profile-topbar { padding: 0 16px; }
+      .page-profile-content { padding: 20px 16px 32px; }
+      .page-profile-avatar-large { width: 48px; height: 48px; font-size: 1.25rem; }
+      .page-profile-tabs { gap: 20px; }
+      .page-profile-card-header { padding: 12px 16px; }
+      .page-profile-card-body { padding: 16px; }
+      .page-profile-form-actions .page-profile-btn { flex: 1 1 auto; }
+      .page-profile-rank-path { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    /* Phones: the summary figures become rows of one panel instead of tall tiles. */
+    @media (max-width: 560px) {
+      .page-profile-stats-row { grid-template-columns: minmax(0, 1fr); gap: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+      .page-profile-stat { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; background: none; border: 0; border-top: 1px solid var(--border); border-radius: 0; }
+      .page-profile-stat:first-child { border-top: 0; }
+      .page-profile-stat .val { margin: 0; font-size: 1.125rem; text-align: right; }
+    }
+    @media (max-width: 380px) {
+      .page-profile-rank-path { grid-template-columns: minmax(0, 1fr); }
+    }
   </style>
+    @include('partials.page-head', ['pageTitle' => 'My Profile', 'pageDescription' => 'Your DataSensei account details and learning summary.'])
 </head>
 
 <body>
@@ -131,6 +178,10 @@
   }
 
   $roleLabel = 'Student';
+
+  // Ranks, XP and the streak only mean something for learner accounts. Staff
+  // accounts see their account summary in the same place instead.
+  $isLearner = (int) $currentUser->role === \App\Models\User::ROLE_USER;
 
   if ($currentUser->role == \App\Models\User::ROLE_SUPERADMIN) {
       $roleLabel = 'Super Admin';
@@ -176,11 +227,11 @@
 @endphp
 
 <div class="page-layout-wrapper">
-  @include('partials.sidebar')
+  @include('partials.role-sidebar')
 
   <div class="page-profile-main">
     <header class="page-profile-topbar">
-      <h1 class="ds-page-title"></h1>
+      <h1 class="ds-page-title">My Profile</h1>
     </header>
 
     <main class="page-profile-content">
@@ -211,7 +262,9 @@
 
                 <div class="page-profile-badges">
                   <span class="page-profile-badge page-profile-badge-ds">{{ $roleLabel }}</span>
-                  <span class="page-profile-badge page-profile-badge-rank">{{ $rankName }} Rank</span>
+                  @if ($isLearner)
+                    <span class="page-profile-badge page-profile-badge-rank">{{ $rankName }} Rank</span>
+                  @endif
                   <span class="page-profile-badge page-profile-badge-rank">
                     {{ $currentUser->institution_id ? 'Institution Connected' : 'No Institution Yet' }}
                   </span>
@@ -221,10 +274,11 @@
 
 
 
+            @if ($isLearner)
             <div class="page-profile-rank-showcase {{ $rankTierClass }}" style="--rank-progress: {{ $rankProgressPercent }}%;">
               <div class="page-profile-rank-shell">
                 <div class="page-profile-rank-details">
-                  <div class="page-profile-rank-kicker">Current Rank · Tier {{ $currentRankPosition }} of {{ $totalRanks }}</div>
+                  <div class="page-profile-rank-kicker">Current Rank, Tier {{ $currentRankPosition }} of {{ $totalRanks }}</div>
                   <div class="page-profile-rank-title">{{ $rankName }}</div>
                   <div class="page-profile-rank-subtitle">
                     @if ($nextRank)
@@ -249,17 +303,30 @@
                 </div>
               </div>
             </div>
+            @endif
 
             <div class="page-profile-stats-row">
-              <div class="page-profile-stat">
-                <div class="val">{{ number_format($currentUser->xp ?? 0) }}</div>
-                <div class="lbl">Total XP</div>
-              </div>
+              @if ($isLearner)
+                <div class="page-profile-stat">
+                  <div class="val">{{ number_format($currentUser->xp ?? 0) }}</div>
+                  <div class="lbl">Total XP</div>
+                </div>
 
-              <div class="page-profile-stat">
-                <div class="val">{{ $currentUser->streak ?? 0 }}</div>
-                <div class="lbl">Day Streak</div>
-              </div>
+                <div class="page-profile-stat">
+                  <div class="val">{{ $currentUser->streak ?? 0 }}</div>
+                  <div class="lbl">Day Streak</div>
+                </div>
+              @else
+                <div class="page-profile-stat">
+                  <div class="val">{{ $roleLabel }}</div>
+                  <div class="lbl">Account Role</div>
+                </div>
+
+                <div class="page-profile-stat">
+                  <div class="val">{{ optional($currentUser->created_at)->format('M Y') ?? '—' }}</div>
+                  <div class="lbl">Member Since</div>
+                </div>
+              @endif
 
               <div class="page-profile-stat">
                 <div class="val">{{ $currentUser->status ?? 'active' }}</div>
@@ -332,7 +399,7 @@
                     <label>Bio</label>
                     <textarea
                       name="bio"
-                      placeholder="Write a short bio about your learning goals..."
+                      placeholder="{{ $isLearner ? 'Write a short bio about your learning goals...' : 'Write a short bio your colleagues will see...' }}"
                     >{{ old('bio', $currentUser->bio) }}</textarea>
 
                     @error('bio')
@@ -353,6 +420,7 @@
               </div>
             </div>
 
+            @if ($isLearner)
             <div class="page-profile-card page-profile-rank-path-card">
               <div class="page-profile-card-header">
                 <div>
@@ -389,6 +457,7 @@
                 @endif
               </div>
             </div>
+            @endif
 
           </div>
         @endif
@@ -400,7 +469,11 @@
                 <div>
                   <div class="page-profile-card-title">Institution</div>
                   <div class="page-profile-card-subtitle">
-                    Apply as Instructor using an institution code.
+                    @if ($canApplyAsInstructor)
+                      Apply as Instructor using an institution code.
+                    @else
+                      The institution this account belongs to.
+                    @endif
                   </div>
                 </div>
               </div>
@@ -479,10 +552,16 @@
                     </div>
                   @endif
 
-                  <p class="page-profile-danger-note">
-                    Choose your institution and enter the institution code provided by your institution admin or school representative.
-                    This is only available to regular student accounts with no institution yet. Once approved, your account role will become Instructor under the selected institution.
-                  </p>
+                  @if ($canApplyAsInstructor)
+                    <p class="page-profile-danger-note">
+                      Choose your institution and enter the institution code provided by your institution admin or school representative.
+                      This is only available to regular student accounts with no institution yet. Once approved, your account role will become Instructor under the selected institution.
+                    </p>
+                  @else
+                    <p class="page-profile-danger-note">
+                      This account is not linked to an institution. A {{ strtolower($roleLabel) }} account works across DataSensei without one.
+                    </p>
+                  @endif
 
                   @if ($canApplyAsInstructor)
                     <form action="{{ route('profile.institution.apply') }}" method="POST">
@@ -593,7 +672,7 @@
                       <div class="page-profile-field-error">{{ $message }}</div>
                     @enderror
 
-                    <div style="margin-top:8px;color:#7f93b0;font-size:.78rem;line-height:1.5;">
+                    <div class="page-profile-help-text">
                       Use at least {{ config('password_otp.password_min_length', 8) }} characters with uppercase and lowercase letters, a number, and a symbol.
                     </div>
                   </div>

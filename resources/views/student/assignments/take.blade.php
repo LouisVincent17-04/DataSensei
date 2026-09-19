@@ -3,13 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataSensei — Take Assignment</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Take Assignment — DataSensei</title>
+<style>
+    /* Student assignment attempt. Colours, type and radius come from partials.design-system. */
+    :root{--accent2:var(--ds-accent);--accent3:var(--ds-success);--warn:var(--ds-danger);--warn2:var(--ds-warning)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;font-family:var(--ds-font-sans);background:var(--bg);color:var(--text)}
+    a{color:inherit}
+    .ds-shell{display:flex;min-height:100vh}
+    .ds-main{flex:1;min-width:0;padding:28px 32px 48px}
+    .wrap{max-width:1200px;margin:0 auto}
 
-  <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--surface3:#0f1928;--border:#1e2f47;--border-hover:#2c4168;--accent:#3b82f6;--accent-hover:#2563eb;--accent2:#8b5cf6;--accent3:#10b981;--warn:#ef4444;--warn2:#f59e0b;--text:#fafafa;--muted:#7f93b0;--dim:#3d5272;--radius:14px;--radius-sm:10px;--sidebar-w:270px}*{box-sizing:border-box;margin:0;padding:0}html,body{min-height:100%;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top left,rgba(59,130,246,.12),transparent 34rem),radial-gradient(circle at top right,rgba(139,92,246,.10),transparent 28rem),var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}a{color:inherit}.ds-shell{display:flex;min-height:100vh}.ds-main{flex:1;min-width:0;padding:28px}.wrap{max-width:1450px;margin:0 auto}.top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px}.page-kicker{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-size:.72rem;font-weight:900;text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px}.page-kicker:before{content:"";width:8px;height:8px;background:var(--accent3);border-radius:50%;box-shadow:0 0 18px rgba(16,185,129,.8)}.page-title{font-size:clamp(1.8rem,3vw,2.6rem);font-weight:900;letter-spacing:-.06em;line-height:1.05}.page-subtitle{color:var(--muted);max-width:780px;line-height:1.65;margin-top:10px;font-size:.95rem}.timer-box{min-width:180px;border:1px solid var(--border);background:var(--surface);border-radius:16px;padding:14px}.timer-box span{display:block;color:var(--muted);font-size:.75rem}.timer-box strong{display:block;font-size:1.55rem;margin-top:4px}.card{border:1px solid var(--border);background:rgba(17,28,45,.92);border-radius:22px;box-shadow:0 18px 55px rgba(0,0,0,.22);backdrop-filter:blur(12px);overflow:hidden}.card-pad{padding:18px}.grid{display:grid;gap:14px}.stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}.stat{border:1px solid var(--border);background:rgba(255,255,255,.035);border-radius:18px;padding:16px}.stat .num{font-size:1.6rem;font-weight:900}.stat .label{color:var(--muted);font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}.toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 190px 190px auto;gap:12px;align-items:end;padding:18px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.015)),var(--surface);border-bottom:1px solid var(--border)}.field label{display:block;color:var(--dim);font-size:.68rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}.input,.select,textarea{width:100%;min-height:42px;border:1px solid var(--border);border-radius:12px;background:var(--surface3);color:var(--text);padding:10px 12px;font:inherit;font-size:.88rem;outline:none}.input:focus,.select:focus,textarea:focus{border-color:rgba(59,130,246,.65);box-shadow:0 0 0 4px rgba(59,130,246,.10)}textarea{min-height:110px;resize:vertical}.btn{min-height:42px;border-radius:12px;border:1px solid transparent;padding:0 16px;font:inherit;font-size:.82rem;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.15s;white-space:nowrap}.btn:hover{transform:translateY(-1px)}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 12px 26px rgba(59,130,246,.24)}.btn.primary:hover{background:var(--accent-hover)}.btn.secondary{background:rgba(255,255,255,.035);color:var(--text);border-color:var(--border)}.btn.danger{background:rgba(239,68,68,.10);color:#fecaca;border-color:rgba(239,68,68,.35)}.btn.good{background:rgba(16,185,129,.12);color:#a7f3d0;border-color:rgba(16,185,129,.35)}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:top}.table th{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);background:rgba(255,255,255,.025)}.table td{font-size:.88rem;color:var(--muted)}.table strong{color:var(--text)}.muted{color:var(--muted)}.dim{color:var(--dim)}.badge-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:900;color:var(--muted);white-space:nowrap}.badge-pill.good{color:#a7f3d0;border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.09)}.badge-pill.warn{color:#fde68a;border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.09)}.badge-pill.danger{color:#fecaca;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.09)}.actions{display:flex;gap:8px;flex-wrap:wrap}.alert{border-radius:16px;padding:14px 16px;font-weight:800;line-height:1.5;margin-bottom:16px;border:1px solid transparent}.alert.success{background:rgba(16,185,129,.10);border-color:rgba(16,185,129,.30);color:#a7f3d0}.alert.danger{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.30);color:#fecaca}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.span-2{grid-column:span 2}.question-card{border:1px solid var(--border);background:rgba(255,255,255,.025);border-radius:18px;padding:16px;margin-bottom:12px}.option-row{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);background:rgba(15,25,40,.75);border-radius:12px;padding:11px;margin-top:8px}.score-big{font-size:3rem;font-weight:900;letter-spacing:-.08em}.pagination{padding:16px}.empty{text-align:center;padding:46px 22px;color:var(--muted)}@media(max-width:900px){.ds-main{padding:18px}.top-row{flex-direction:column}.stats,.form-grid{grid-template-columns:1fr}.span-2{grid-column:span 1}.toolbar{grid-template-columns:1fr}.table{display:block;overflow-x:auto}}
+    /* page header */
+    .top-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+    .top-row > div:first-child{min-width:0;flex:1 1 320px}
+    .top-row .ds-page-title{overflow-wrap:anywhere}
+    .page-subtitle{max-width:72ch;margin-top:4px;color:var(--muted);font-size:.875rem;line-height:1.55;overflow-wrap:anywhere}
+
+    .card{border:1px solid var(--border);background:var(--surface);border-radius:var(--radius);overflow:hidden}
+    .card-pad{padding:20px}
+    .card h2{color:var(--text);font-size:1rem;font-weight:600;line-height:1.35}
+    .muted{color:var(--muted)}
+    .dim{color:var(--muted)}
+
+    .btn{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;
+      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);
+      font-family:var(--ds-font-sans);font-size:.875rem;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer;
+      transition:background .12s ease,border-color .12s ease}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+    .btn.secondary{background:var(--surface2);border-color:var(--ds-border-strong);color:var(--text)}
+    .btn.secondary:hover{background:var(--ds-surface-hover)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .actions form{display:contents}
+
+    /* status labels */
+    .badge-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
+      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .badge-pill.good{color:var(--ds-success-text);border-color:var(--ds-success-border);background:var(--ds-success-soft)}
+    .badge-pill.warn{color:var(--ds-warning-text);border-color:var(--ds-warning-border);background:var(--ds-warning-soft)}
+    .badge-pill.danger{color:var(--ds-danger-text);border-color:var(--ds-danger-border);background:var(--ds-danger-soft)}
+
+    .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);
+      background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.55}
+    .alert.success{background:var(--ds-success-soft);border-color:var(--ds-success-border);color:#d1fae5}
+    .alert.danger{background:var(--ds-danger-soft);border-color:var(--ds-danger-border);color:#fee2e2}
+
+    .timer-box{flex-shrink:0;min-width:150px;padding:10px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+    .timer-box span{display:block;color:var(--muted);font-size:.8125rem;font-weight:500}
+    .timer-box strong{display:block;margin-top:2px;font-size:1.375rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+    /* questions: rows separated by rules inside the form panel */
+    .question-card{padding:18px 0;border-bottom:1px solid var(--border)}
+    .question-card:first-of-type{padding-top:0}
+    .question-card p{font-size:.9375rem;line-height:1.55;overflow-wrap:anywhere}
+    .question-card p strong{color:var(--text);font-weight:600}
+    .option-row{display:flex;gap:10px;align-items:flex-start;margin-top:8px;padding:10px 12px;
+      border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);background:var(--surface3);
+      color:var(--ds-text-secondary);font-size:.875rem;line-height:1.5;cursor:pointer;transition:border-color .12s ease,background .12s ease}
+    .option-row:hover{border-color:var(--ds-border-strong);background:var(--surface2)}
+    .option-row:has(input:checked){border-color:var(--ds-accent-border);background:var(--ds-accent-soft);color:var(--text)}
+    .option-row input{flex:0 0 16px;width:16px;height:16px;margin-top:2px}
+    .option-row span{min-width:0;overflow-wrap:anywhere}
+    .input{width:100%;min-height:38px;padding:8px 12px;border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);
+      background:var(--surface3);color:var(--text);font-family:var(--ds-font-sans);font-size:.875rem;line-height:1.4;outline:none;
+      transition:border-color .12s ease,box-shadow .12s ease}
+    .input::placeholder{color:var(--dim)}
+    .input:focus{border-color:var(--accent);box-shadow:var(--ds-focus-ring)}
+
+    @media(max-width:640px){.top-row{flex-direction:column;align-items:stretch}.top-row > div:first-child{flex:0 0 auto}.timer-box{min-width:0}}
+
+    @media(max-width:900px){.ds-main{padding:24px 20px 40px}}
+    @media(max-width:640px){
+      .ds-main{padding:20px 16px 32px}
+      .card-pad{padding:16px}
+      .top-row > .btn{width:100%}
+      .actions > .btn,.actions > form > .btn{flex:1 1 auto}
+    }
+    @media(prefers-reduced-motion:reduce){.btn,.input,.option-row{transition:none}}
   </style>
   @include('partials.admin-inspired-page-style')
+    @include('partials.page-head', ['pageTitle' => 'Take Assignment', 'pageDescription' => 'See the assignments your instructor set, submit work, and review feedback.'])
 </head>
 <body class="ds-admin-inspired">
   <div class="ds-shell">
@@ -19,9 +93,8 @@
       <div class="wrap">
         <div class="top-row">
           <div>
-            <div class="page-kicker">Attempt #{{ $submission->attempt_no }}</div>
             <h1 class="page-title ds-page-title">{{ $assignment->title }}</h1>
-            <p class="page-subtitle">Answer every item. The timer is enforced by the server and does not reset if you refresh the page.</p>
+            <p class="page-subtitle">Attempt #{{ $submission->attempt_no }}. Answer every item. The timer is enforced by the server and does not reset if you refresh the page.</p>
           </div>
           @if($remainingSeconds !== null)
             <div class="timer-box" role="timer" aria-live="polite"><span>Time remaining</span><strong id="assignment-timer" data-remaining="{{ $remainingSeconds }}">—</strong></div>
@@ -34,8 +107,8 @@
           @csrf
           @foreach($assignment->libraryItem->questions as $question)
             <div class="question-card" data-assignment-question-id="{{ $question->id }}">
-              <div class="badge-pill">{{ $question->type_label }} · {{ $question->points }} pt</div>
-              <p style="margin-top:10px;line-height:1.6"><strong>{{ $loop->iteration }}. {{ $question->question_text }}</strong></p>
+              <div class="badge-pill">{{ $question->type_label }}, {{ $question->points }} pt</div>
+              <p style="margin-top:8px;line-height:1.6"><strong>{{ $loop->iteration }}. {{ $question->question_text }}</strong></p>
               @if($question->question_type === 'mcq')
                 @foreach($question->options as $option)
                   <label class="option-row">
@@ -51,7 +124,7 @@
               @else
                 <input
                   class="input"
-                  style="margin-top:10px"
+                  style="margin-top:8px"
                   type="text"
                   name="answers[{{ $question->id }}]"
                   value="{{ old('answers.'.$question->id, $draftAnswers[(string) $question->id] ?? '') }}"
@@ -60,7 +133,7 @@
               @endif
             </div>
           @endforeach
-          <div class="actions" style="justify-content:flex-end;margin-top:18px">
+          <div class="actions" style="justify-content:flex-end;margin-top:16px">
             <a href="{{ route('student.assignments.show', $assignment) }}" class="btn secondary">Cancel</a>
             <button class="btn primary" type="submit" onclick="return confirm('Submit this assignment now?')">Submit Assignment</button>
           </div>

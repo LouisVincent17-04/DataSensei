@@ -4,161 +4,197 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DataSensei — {{ $category->name }} Coding Path</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg:           #0a0f18;
-      --surface:      #111c2d;
-      --surface2:     #1a2638;
-      --border:       #1e2f47;
-      --border-hover: #2c4168;
-      --accent:       #3b82f6;
-      --accent-hover: #2563eb;
-      --accent3:      #10b981;
-      --warn:         #f59e0b;
-      --amber:        #f59e0b;
-      --red:          #ef4444;
-      --text:         #fafafa;
-      --muted:        #8b9ebb;
-      --dim:          #4a5f82;
-      --radius:       16px;
-      --radius-sm:    8px;
-    }
+<style>
+    /* Challenge path map. Colours, type and radius come from partials.design-system.
+       Node positions are computed in PHP below (4 columns 420px apart, rows 380px
+       apart, each node centred on its point). Keep the node box at or under
+       76px icon + 12px gap + info card, 240px wide, or neighbouring nodes overlap. */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; -webkit-font-smoothing: antialiased; }
-    .page-layout-wrapper { display: flex; min-height: 100vh; }
 
-    /* ── MAIN ── */
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--ds-font-sans);
+    }
+    .page-layout-wrapper { display: flex; min-height: 100vh; min-height: calc(100dvh - var(--ds-sticky-top, 0px)); }
+
+    /* ── Page frame: title bar on top, the map fills the rest ── */
     .challenge-map-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
-    /* Topbar */
-    .challenge-map-topbar { height: 70px; background: rgba(17, 28, 45, 0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; z-index: 50; }
-    .challenge-map-topbar-title { font-weight: 700; font-size: 1.25rem; flex: 1; letter-spacing: -0.01em; color: var(--text); }
-    .challenge-map-topbar-title small { color: var(--muted); font-weight: 500; font-size: 0.875rem; margin-left: 8px; background: var(--surface2); padding: 4px 8px; border-radius: 6px; }
-    .challenge-map-topbar-btn { padding: 8px 16px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.875rem; font-weight: 500; text-decoration: none; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
-    .challenge-map-topbar-btn:hover { background: var(--surface2); border-color: var(--accent); }
-
-    /* Alert */
-    .challenge-map-alert { background: rgba(16,185,129,0.1); border-bottom: 1px solid rgba(16,185,129,0.3); color: var(--accent3); padding: 12px 32px; font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; flex-shrink: 0; z-index: 40; }
-
-    /* Map Canvas */
-    .challenge-map-container { 
-        flex: 1; position: relative; overflow: hidden; 
-        background-color: var(--bg);
-        background-image: 
-            radial-gradient(ellipse at 50% 0%, var(--surface2) 0%, transparent 70%),
-            linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-        background-size: 100% 100%, 40px 40px, 40px 40px;
+    .challenge-map-topbar {
+      min-height: 60px; padding: 10px 32px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px;
+      background: var(--bg); border-bottom: 1px solid var(--border);
     }
-    .challenge-map-viewport { width: 100%; height: 100%; overflow: auto; cursor: grab; scroll-behavior: smooth; }
+    .challenge-map-topbar-title { flex: 1 1 auto; min-width: 0; }
+    .challenge-map-topbar-title small {
+      margin-left: 8px; color: var(--muted); font-size: .875rem; font-weight: 500;
+      letter-spacing: 0; white-space: nowrap; font-variant-numeric: tabular-nums;
+    }
+    .challenge-map-topbar-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0;
+      min-height: 38px; padding: 0 16px;
+      border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm);
+      background: var(--surface2); color: var(--text);
+      font-size: .875rem; font-weight: 500; line-height: 1.2; text-decoration: none; white-space: nowrap;
+      transition: background .12s ease;
+    }
+    .challenge-map-topbar-btn svg { width: 16px; height: 16px; }
+    .challenge-map-topbar-btn:hover { background: var(--ds-surface-hover); }
+
+    /* Flash messages (the shared notification script usually moves these into its stack) */
+    .challenge-map-alert {
+      display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0;
+      margin: 16px 32px 0; padding: 12px 16px;
+      border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm);
+      background: var(--ds-success-soft); color: #d1fae5;
+      font-size: .875rem; line-height: 1.5;
+    }
+    .challenge-map-alert svg { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 2px; }
+
+    /* ── Map canvas: scrolls (and drags) inside its own box ── */
+    .challenge-map-container { flex: 1 1 auto; position: relative; min-height: 360px; overflow: hidden; background: var(--bg); }
+    .challenge-map-viewport { position: absolute; inset: 0; overflow: auto; cursor: grab; scroll-behavior: smooth; }
     .challenge-map-viewport:active { cursor: grabbing; }
-    .challenge-map-content { position: relative; }
+    .challenge-map-content { position: relative; /* width and height come from the PHP layout */ }
 
-    /* SVG paths */
+    /* Connectors */
     .challenge-map-svg-paths { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-    .challenge-map-path-line { fill: none; stroke: var(--border); stroke-width: 4; stroke-dasharray: 12 8; opacity: 0.4; transition: all 0.5s ease; }
-    .challenge-map-path-line.passed   { stroke: var(--accent3); stroke-dasharray: none; opacity: 0.8; filter: drop-shadow(0 0 6px rgba(16,185,129,0.4)); }
-    .challenge-map-path-line.inprog   { stroke: var(--amber); stroke-dasharray: 8 8; opacity: 0.7; }
-    @keyframes flow { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
-    .challenge-map-path-line.current  { stroke: var(--accent); stroke-dasharray: 12 12; opacity: 1; animation: flow 1s linear infinite; filter: drop-shadow(0 0 8px rgba(59,130,246,0.6)); }
+    .challenge-map-path-line { fill: none; stroke: var(--ds-border-strong); stroke-width: 2; stroke-dasharray: 6 6; }
+    .challenge-map-path-line.passed  { stroke: var(--ds-success); stroke-dasharray: none; }
+    .challenge-map-path-line.current { stroke: var(--accent); }
+    .challenge-map-path-line.inprog  { stroke: var(--ds-warning); }
 
-    /* Nodes */
-    .challenge-map-node { position: absolute; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 12px; transform: translate(-50%, -50%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .challenge-map-node:hover { z-index: 20; transform: translate(-50%, -52%) scale(1.02); }
+    /* ── Nodes ── */
+    .challenge-map-node { position: absolute; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 12px; transform: translate(-50%, -50%); }
+    .challenge-map-node:hover { z-index: 20; }
 
     .challenge-map-node-icon-wrap { position: relative; }
-    .challenge-map-node-icon { width: 76px; height: 76px; border-radius: 50%; background: var(--surface); border: 4px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--dim); box-shadow: 0 8px 24px rgba(0,0,0,0.5); transition: all 0.4s ease; z-index: 2; position: relative; }
+    .challenge-map-node-icon {
+      position: relative; z-index: 2; width: 76px; height: 76px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--ds-border-strong); border-radius: 50%;
+      background: var(--surface); color: var(--muted);
+    }
+    .challenge-map-node-icon svg { width: 28px; height: 28px; }
 
-    .challenge-map-node.state-completed .challenge-map-node-icon { background: rgba(16,185,129,0.15); border-color: var(--accent3); color: var(--accent3); box-shadow: 0 0 30px rgba(16,185,129,0.25); }
-    .challenge-map-node.state-inprogress .challenge-map-node-icon { background: rgba(245,158,11,0.12); border-color: var(--amber); color: var(--amber); box-shadow: 0 0 30px rgba(245,158,11,0.25); animation: pulse-amber 2.5s infinite; }
-    .challenge-map-node.state-active    .challenge-map-node-icon { background: rgba(59,130,246,0.15); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 40px rgba(59,130,246,0.4); animation: pulse-ring 2.5s infinite; }
-    .challenge-map-node.state-expired   .challenge-map-node-icon  { background: rgba(239,68,68,0.12); border-color: var(--red); color: var(--red); box-shadow: 0 0 30px rgba(239,68,68,.2); }
-    .challenge-map-node.state-locked    .challenge-map-node-icon { opacity: 0.5; background: var(--bg); }
+    .challenge-map-node.state-completed  .challenge-map-node-icon { border-color: var(--ds-success); background: color-mix(in srgb, var(--ds-success) 14%, var(--ds-surface)); color: var(--ds-success-text); }
+    .challenge-map-node.state-inprogress .challenge-map-node-icon { border-color: var(--ds-warning); background: color-mix(in srgb, var(--ds-warning) 12%, var(--ds-surface)); color: var(--ds-warning-text); }
+    .challenge-map-node.state-active     .challenge-map-node-icon { border-color: var(--accent); background: color-mix(in srgb, var(--ds-accent) 14%, var(--ds-surface)); color: var(--ds-accent-text); }
+    .challenge-map-node.state-expired    .challenge-map-node-icon { border-color: var(--ds-danger); background: color-mix(in srgb, var(--ds-danger) 12%, var(--ds-surface)); color: var(--ds-danger-text); }
+    .challenge-map-node.state-locked     .challenge-map-node-icon { border-color: var(--border); background: var(--surface3); color: var(--dim); }
 
-    @keyframes pulse-ring  { 0%,100%{box-shadow:0 0 40px rgba(59,130,246,.4)} 50%{box-shadow:0 0 60px rgba(59,130,246,.7)} }
-    @keyframes pulse-amber { 0%,100%{box-shadow:0 0 30px rgba(245,158,11,.25)} 50%{box-shadow:0 0 50px rgba(245,158,11,.5)} }
+    /* State label on the node ring */
+    .challenge-map-node-badge {
+      position: absolute; left: 50%; bottom: -4px; z-index: 3; transform: translateX(-50%);
+      display: none; align-items: center; gap: 4px; padding: 1px 6px;
+      border: 1px solid; border-radius: var(--radius-xs);
+      font-size: .75rem; font-weight: 600; line-height: 1.4; white-space: nowrap;
+    }
+    .challenge-map-node.state-completed  .challenge-map-node-badge { display: flex; border-color: var(--ds-success-border); background: color-mix(in srgb, var(--ds-success) 18%, var(--ds-surface)); color: var(--ds-success-text); }
+    .challenge-map-node.state-inprogress .challenge-map-node-badge { display: flex; border-color: var(--ds-warning-border); background: color-mix(in srgb, var(--ds-warning) 18%, var(--ds-surface)); color: var(--ds-warning-text); }
+    .challenge-map-node.state-expired    .challenge-map-node-badge { display: flex; border-color: var(--ds-danger-border); background: color-mix(in srgb, var(--ds-danger) 18%, var(--ds-surface)); color: var(--ds-danger-text); }
 
-    /* Badge */
-    .challenge-map-node-badge { position: absolute; top: -6px; right: -6px; font-size: 0.65rem; font-weight: 700; padding: 4px 8px; border-radius: 12px; border: 3px solid var(--surface); display: none; z-index: 3; letter-spacing: 0.05em; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-    .challenge-map-node.state-completed  .challenge-map-node-badge { display: flex; align-items: center; gap: 4px; background: var(--accent3); color: #fff; }
-    .challenge-map-node.state-inprogress .challenge-map-node-badge { display: flex; align-items: center; gap: 4px; background: var(--amber); color: #000; }
-    .challenge-map-node.state-expired    .challenge-map-node-badge { display: flex; align-items: center; gap: 4px; background: var(--red); color: #fff; }
+    .challenge-map-node.state-active     .challenge-map-node-info { border-color: var(--ds-accent-border); }
+    .challenge-map-node.state-inprogress .challenge-map-node-info { border-color: var(--ds-warning-border); }
+    .challenge-map-node.state-completed  .challenge-map-node-info { border-color: var(--ds-success-border); }
+    .challenge-map-node.state-expired    .challenge-map-node-info { border-color: var(--ds-danger-border); }
 
     /* Info card */
-    .challenge-map-node-info { background: rgba(17, 28, 45, 0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); padding: 18px; border-radius: var(--radius); text-align: center; width: 240px; opacity: 0.85; transition: all 0.3s ease; pointer-events: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
-    .challenge-map-node:hover .challenge-map-node-info { opacity: 1; border-color: rgba(255,255,255,0.15); box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
-    .challenge-map-node.state-active     .challenge-map-node-info { opacity: 1; border-color: rgba(59,130,246,0.4); background: rgba(17, 28, 45, 0.8); }
-    .challenge-map-node.state-inprogress .challenge-map-node-info { opacity: 1; border-color: rgba(245,158,11,0.35); background: rgba(17,28,45,0.85); }
-    .challenge-map-node.state-completed  .challenge-map-node-info { border-color: rgba(16,185,129,0.2); }
-    .challenge-map-node.state-expired    .challenge-map-node-info { opacity: 1; border-color: rgba(239,68,68,0.35); background: rgba(17,28,45,0.85); }
-
-    .challenge-map-node-number { font-size: 0.7rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
-    .challenge-map-node.state-completed  .challenge-map-node-number { color: var(--accent3); }
-    .challenge-map-node.state-inprogress .challenge-map-node-number { color: var(--amber); }
-    .challenge-map-node.state-locked     .challenge-map-node-number { color: var(--dim); }
-    .challenge-map-node.state-expired    .challenge-map-node-number { color: var(--red); }
-
-    .challenge-map-node-title  { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 8px; line-height: 1.4; letter-spacing: -0.01em; }
-    .challenge-map-node-xp     { font-size: 0.8rem; color: var(--warn); font-weight: 700; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 4px; background: rgba(245,158,11,0.1); padding: 4px 10px; border-radius: 20px; }
-    .challenge-map-node-score  { font-size: 0.75rem; color: var(--muted); margin-bottom: 10px; font-weight: 500; }
-    .challenge-map-node-status { 
-        font-size: 0.75rem; 
-        color: var(--dim); 
-        margin-bottom: 8px; 
-        font-weight: 500; 
-        line-height: 1.4; 
-        white-space: normal; 
-        word-wrap: break-word;
+    .challenge-map-node-info {
+      width: 240px; padding: 14px 16px; pointer-events: auto; text-align: center;
+      border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
     }
+    .challenge-map-node-number { margin-bottom: 2px; color: var(--muted); font-size: .75rem; font-weight: 500; line-height: 1.4; }
+    .challenge-map-node-title  { margin-bottom: 2px; color: var(--text); font-size: .9375rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+    .challenge-map-node.state-locked .challenge-map-node-title { color: var(--muted); }
+    .challenge-map-node-xp     { margin-bottom: 10px; color: var(--muted); font-size: .8125rem; font-weight: 500; line-height: 1.4; font-variant-numeric: tabular-nums; }
+    .challenge-map-node-score  { margin-bottom: 6px; color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.4; font-variant-numeric: tabular-nums; }
+    .challenge-map-node-status { margin-bottom: 8px; color: var(--muted); font-size: .8125rem; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+    .challenge-map-node-status:last-child { margin-bottom: 0; }
+    .challenge-map-node.state-completed  .challenge-map-node-status { color: var(--ds-success-text); }
+    .challenge-map-node.state-inprogress .challenge-map-node-status { color: var(--ds-warning-text); }
+    .challenge-map-node.state-expired    .challenge-map-node-status { color: var(--ds-danger-text); }
+    .retake-meta { margin-bottom: 8px; color: var(--muted); font-size: .75rem; line-height: 1.4; text-align: center; font-variant-numeric: tabular-nums; }
 
-    /* ── BUTTONS ── */
-    .btn-map-start { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: linear-gradient(135deg, var(--accent), #2563eb); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); transition: all 0.2s; box-shadow: 0 4px 12px rgba(59,130,246,0.3); border: 1px solid rgba(255,255,255,0.1); }
-    .btn-map-start:hover { background: linear-gradient(135deg, #4f93f7, var(--accent)); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(59,130,246,0.4); }
+    /* Buttons */
+    .btn-map-start, .btn-map-continue {
+      display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+      min-height: 32px; padding: 6px 12px; border: 1px solid; border-radius: var(--radius-sm);
+      font: 500 .8125rem/1.3 var(--ds-font-sans); text-align: center; text-decoration: none;
+      transition: background .12s ease, border-color .12s ease;
+      border-color: var(--accent); background: var(--accent); color: #fff;
+    }
+    .btn-map-start:hover, .btn-map-continue:hover { border-color: var(--accent-hover); background: var(--accent-hover); }
 
-    .btn-map-continue { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: linear-gradient(135deg, var(--amber), #d97706); color: #000; text-decoration: none; font-size: 0.85rem; font-weight: 700; border-radius: var(--radius-sm); transition: all 0.2s; box-shadow: 0 4px 12px rgba(245,158,11,0.3); border: 1px solid rgba(255,255,255,0.1); }
-    .btn-map-continue:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(245,158,11,0.45); }
+    .btn-map-retry {
+      display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+      min-height: 32px; padding: 6px 12px; border: 1px solid; border-radius: var(--radius-sm);
+      font: 500 .8125rem/1.3 var(--ds-font-sans); text-align: center; text-decoration: none;
+      transition: background .12s ease, border-color .12s ease;
+      border-color: var(--ds-border-strong); background: var(--surface2); color: var(--text);
+    }
+    .btn-map-retry:hover { background: var(--ds-surface-hover); }
 
-    .btn-map-retry { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); transition: all 0.2s; }
-    .btn-map-retry:hover { background: var(--surface2); border-color: var(--border-hover); transform: translateY(-1px); }
+    .btn-map-retake {
+      display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+      min-height: 32px; padding: 6px 12px; border: 1px solid; border-radius: var(--radius-sm);
+      font: 500 .8125rem/1.3 var(--ds-font-sans); text-align: center; text-decoration: none;
+      transition: background .12s ease, border-color .12s ease;
+      border-color: var(--ds-danger-border); background: transparent; color: var(--ds-danger-text); cursor: pointer;
+    }
+    .btn-map-retake:hover { border-color: var(--ds-danger); background: var(--ds-danger-soft); }
 
-    .btn-map-retake { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: linear-gradient(135deg, var(--red), #dc2626); color: #fff; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(239,68,68,0.3); font-family: 'Inter', sans-serif; }
-    .btn-map-retake:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(239,68,68,0.45); }
+    .btn-map-exhausted {
+      display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+      min-height: 32px; padding: 6px 12px; border: 1px solid; border-radius: var(--radius-sm);
+      font: 500 .8125rem/1.3 var(--ds-font-sans); text-align: center; text-decoration: none;
+      transition: background .12s ease, border-color .12s ease;
+      border-color: var(--ds-danger-border); background: transparent; color: var(--ds-danger-text); opacity: .55; cursor: not-allowed;
+    }
+    .btn-map-start svg, .btn-map-continue svg, .btn-map-retry svg { width: 14px; height: 14px; }
 
-    .btn-map-exhausted { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 14px; background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25); color: var(--red); opacity: 0.55; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); cursor: not-allowed; }
-
-    .retake-meta { font-size: 0.7rem; color: var(--muted); text-align: center; margin-bottom: 8px; letter-spacing: 0.02em; }
-
-    /* Empty state */
+    /* Empty path: kept at the top-left of the canvas so it is in view at any width */
     .challenge-map-empty-state {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 32px; text-align: center; z-index: 20;
+      position: absolute; inset: 0; z-index: 20;
+      display: flex; align-items: flex-start; justify-content: flex-start; padding: 32px;
     }
     .challenge-map-empty-card {
-      width: min(520px, 100%); background: rgba(17,28,45,0.86); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: 0 16px 45px rgba(0,0,0,.35);
+      width: min(520px, calc(100vw - 32px)); padding: 24px;
+      border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
     }
-    .challenge-map-empty-card h2 { font-size: 1.25rem; margin-bottom: 10px; }
-    .challenge-map-empty-card p { color: var(--muted); line-height: 1.65; font-size: .9rem; margin-bottom: 18px; }
+    .challenge-map-empty-card h2 { margin-bottom: 8px; color: var(--text); font-size: 1rem; font-weight: 600; line-height: 1.35; }
+    .challenge-map-empty-card p { margin-bottom: 16px; color: var(--muted); font-size: .875rem; line-height: 1.55; }
 
-    /* Legend */
-    .challenge-map-legend { position: absolute; bottom: 32px; left: 32px; background: rgba(17, 28, 45, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 100px; padding: 12px 24px; display: flex; gap: 24px; z-index: 50; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-    .challenge-map-legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .challenge-map-legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
-    .challenge-map-legend-dot.passed  { background: rgba(16,185,129,0.2); border-color: var(--accent3); box-shadow: 0 0 8px var(--accent3); }
-    .challenge-map-legend-dot.inprog  { background: rgba(245,158,11,0.2); border-color: var(--amber); box-shadow: 0 0 8px var(--amber); }
-    .challenge-map-legend-dot.current { background: rgba(59,130,246,0.2); border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
-    .challenge-map-legend-dot.locked  { background: var(--surface2); border-color: var(--border); }
 
-    /* Scrollbars */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+    /* ── Legend ── */
+    .challenge-map-legend {
+      position: absolute; left: 32px; bottom: 24px; z-index: 50; max-width: calc(100% - 64px);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 12px;
+      border: 1px solid var(--ds-border-strong); border-radius: var(--radius); background: var(--surface);
+      pointer-events: none;
+    }
+    .challenge-map-legend-item { display: flex; align-items: center; gap: 6px; color: var(--ds-text-secondary); font-size: .75rem; font-weight: 500; line-height: 1.4; white-space: nowrap; }
+    .challenge-map-legend-dot { width: 10px; height: 10px; flex-shrink: 0; border: 2px solid; border-radius: 50%; }
+    .challenge-map-legend-dot.passed  { border-color: var(--ds-success); background: var(--ds-success); }
+    .challenge-map-legend-dot.current { border-color: var(--accent); background: var(--ds-accent-soft); }
+    .challenge-map-legend-dot.locked  { border-color: var(--ds-border-strong); background: var(--surface3); }
+    .challenge-map-legend-dot.inprog  { border-color: var(--ds-warning); background: var(--ds-warning-soft); }
 
-    @media (max-width: 768px) {
-      .challenge-map-topbar { padding: 0 16px; }
-      .challenge-map-legend { bottom: 16px; left: 50%; transform: translateX(-50%); width: 90%; justify-content: center; gap: 12px; padding: 12px; border-radius: var(--radius-sm); flex-wrap: wrap; }
+    @media (max-width: 900px) {
+      .challenge-map-topbar { min-height: 56px; padding: 8px 20px; }
+      .challenge-map-alert { margin: 12px 20px 0; }
+    }
+    @media (max-width: 640px) {
+      .challenge-map-topbar { padding: 8px 16px; }
+      .challenge-map-topbar-btn { min-height: 32px; padding: 0 12px; font-size: .8125rem; }
+      .challenge-map-alert { margin: 12px 16px 0; }
+      .challenge-map-legend { left: 16px; right: 16px; bottom: 16px; max-width: none; justify-content: center; gap: 6px 12px; }
+      .challenge-map-empty-state { padding: 16px; }
     }
   </style>
+    @include('partials.page-head', ['pageDescription' => 'Practise Python coding challenges and see where your skills stand.'])
 </head>
 <body>
 <div class="page-layout-wrapper">
@@ -167,10 +203,10 @@
   <div class="challenge-map-main">
 
     <div class="challenge-map-topbar">
-      <div class="challenge-map-topbar-title">
+      <h1 class="challenge-map-topbar-title ds-page-title">
         {{ $category->name }} Coding Path
-        <small>🐍 Python</small>
-      </div>
+        <small>Python</small>
+      </h1>
       <a href="{{ route('challenges.coding') }}" class="challenge-map-topbar-btn">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
         Back to Paths
@@ -185,7 +221,7 @@
     @endif
 
     @if(session('error'))
-      <div class="challenge-map-alert" style="background:rgba(239,68,68,0.1); border-bottom-color:rgba(239,68,68,0.3); color:var(--red);">
+      <div class="challenge-map-alert" style="background:var(--ds-danger-soft); border-color:var(--ds-danger-border); color:#fee2e2;">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         {{ session('error') }}
       </div>
@@ -193,7 +229,7 @@
 
     @if(!empty($exceptionalNotifications))
       @foreach($exceptionalNotifications as $notification)
-        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:rgba(245,158,11,0.12); border-bottom-color:rgba(245,158,11,0.35); color:#fbbf24;">
+        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:var(--ds-warning-soft); border-color:var(--ds-warning-border); color:#fef3c7;">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           {{ $notification }}
         </div>
@@ -348,12 +384,11 @@
 
                 <div class="challenge-map-node-badge">
                   @if($isCompleted)
-                    <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                     Done
                   @elseif($isInProgress && $isExpired)
-                    ⏱ Time's Up
+                    Time's up
                   @elseif($isInProgress)
-                    ⏱ In Progress
+                    In progress
                   @endif
                 </div>
               </div>
@@ -363,18 +398,17 @@
                 <div class="challenge-map-node-title">{{ $ch->title }}</div>
 
                 <div class="challenge-map-node-xp">
-                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                  {{ $ch->base_xp }} XP · {{ $totalQ }} problems
+                  {{ $ch->base_xp }} XP, {{ $totalQ }} problems
                 </div>
 
                 @if($best)
                   <div class="challenge-map-node-score">
-                    Best: {{ $best['score'] }} tests · {{ $best['xp'] }} XP earned
+                    Best: {{ $best['score'] }} tests, {{ $best['xp'] }} XP earned
                   </div>
                 @endif
 
                 @if($isCompleted)
-                  <div class="challenge-map-node-status" style="color:var(--accent3);">✅ All problems solved</div>
+                  <div class="challenge-map-node-status">✓ All problems solved</div>
                   <a href="{{ route('challenges.coding.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}"
                      class="btn-map-retry">
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -382,7 +416,7 @@
                   </a>
 
                 @elseif($isInProgress && $isExpired)
-                  <div class="challenge-map-node-status" style="color:var(--red);">⏱ Time's up — round ended</div>
+                  <div class="challenge-map-node-status">Time's up — round ended</div>
 
                   @if($canRetake)
                     <div class="retake-meta">
@@ -396,18 +430,18 @@
                           style="width:100%">
                       @csrf
                       <button type="submit" class="btn-map-retake">
-                        🔄 Retake Challenge
+                        Retake Challenge
                       </button>
                     </form>
                   @else
                     <div class="retake-meta">No retakes remaining ({{ \App\Models\CodingChallengeRetake::MAX_RETAKES }}/{{ \App\Models\CodingChallengeRetake::MAX_RETAKES }} used)</div>
                     <div class="btn-map-exhausted">
-                      ❌ No More Retakes
+                      No retakes left
                     </div>
                   @endif
 
                 @elseif($isInProgress)
-                  <div class="challenge-map-node-status" style="color:var(--amber);">⏱ Timer is running — pick up where you left off</div>
+                  <div class="challenge-map-node-status">Timer is running — pick up where you left off</div>
                   <a href="{{ route('challenges.coding.quiz', ['slug' => $slug, 'challenge' => $ch->id]) }}"
                      class="btn-map-continue">
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -422,7 +456,7 @@
                   </a>
 
                 @else
-                  <div class="challenge-map-node-status">🔒 Complete prior modules to unlock</div>
+                  <div class="challenge-map-node-status">Locked — complete prior modules to unlock</div>
                 @endif
 
               </div>

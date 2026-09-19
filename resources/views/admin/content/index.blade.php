@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Platform Content')
-@section('eyebrow', 'Content Manager')
 @section('page_title', 'Platform Content')
 @section('page_subtitle', 'Create, version, publish, and maintain learning modules, MCQ challenges, and assessment-library content.')
 
@@ -38,7 +37,7 @@
     </a>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Content Workspaces</h2>
@@ -66,7 +65,7 @@
     </div>
   </section>
 
-  <section class="panel section-anchor" id="challenge-categories" style="margin-top:24px">
+  <section class="panel section-anchor" id="challenge-categories">
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">MCQ Challenge Categories</h2>
@@ -117,7 +116,7 @@
                 </div>
               </div>
 
-              <div class="field" style="margin-top:14px">
+              <div class="field" style="margin-top:16px">
                 <label for="category-description-{{ $category->id }}">Description</label>
                 <textarea id="category-description-{{ $category->id }}" class="textarea" name="description" required>{{ $category->description }}</textarea>
               </div>

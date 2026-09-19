@@ -1,3 +1,56 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Assessment Diagnostics</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"><style>
-:root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--surface3:#0f1928;--border:#263854;--text:#f8fafc;--muted:#91a4bf;--dim:#68809f;--accent:#3b82f6;--good:#10b981;--warn:#f59e0b;--bad:#ef4444;--radius:16px}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}.layout{display:flex;min-height:100vh}.main{flex:1;padding:28px;min-width:0}.wrap{max-width:1480px;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:22px}.title{font-size:2rem;font-weight:900;margin:0}.subtitle{color:var(--muted);line-height:1.6;margin-top:8px}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px}.grid{display:grid;gap:14px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.field label{display:block;color:var(--dim);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}.input,.select,.textarea{width:100%;background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px 12px;font:inherit}.textarea{min-height:100px;resize:vertical}.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;border-radius:10px;padding:10px 14px;font-weight:800;text-decoration:none;cursor:pointer;background:var(--accent);color:#fff}.btn.secondary{background:var(--surface2);border-color:var(--border);color:var(--text)}.btn.good{background:var(--good)}.btn.warn{background:var(--warn);color:#111827}.btn.bad{background:var(--bad)}.actions{display:flex;gap:9px;flex-wrap:wrap}.badge{display:inline-flex;padding:4px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);font-size:.74rem;font-weight:800}.muted{color:var(--muted)}.alert{padding:13px 15px;border-radius:12px;margin-bottom:16px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.10);color:#a7f3d0}.alert.error{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.10);color:#fecaca}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:11px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}.table th{color:var(--dim);font-size:.72rem;text-transform:uppercase}.question-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;margin-bottom:18px;overflow:hidden}.question-head{padding:14px 18px;background:var(--surface2);display:flex;justify-content:space-between;gap:14px;align-items:center}.question-body{padding:18px}.meta-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}.meta{background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:9px}.meta b{display:block;font-size:.66rem;text-transform:uppercase;color:var(--dim);margin-bottom:4px}.option-row{display:grid;grid-template-columns:34px 1fr;gap:9px;align-items:center;margin-top:8px}.item-nav{display:flex;flex-wrap:wrap;gap:6px}.item-nav a{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-weight:800}.item-nav a.done{color:#a7f3d0;border-color:rgba(16,185,129,.45)}.metric{background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:14px}.metric strong{font-size:1.55rem;display:block}.image-preview{max-width:520px;max-height:320px;border-radius:12px;border:1px solid var(--border);margin-top:10px}.hidden{display:none!important}@media(max-width:1000px){.grid-2,.grid-3,.meta-grid{grid-template-columns:1fr}.main{padding:18px}.top{flex-direction:column}}
-</style></head><body><div class="layout">@include('partials.instructor-sidebar')<main class="main"><div class="wrap"><div class="top"><div><h1 class="title ds-page-title">Learning diagnostics</h1><p class="subtitle">{{ $assessment->title }}. This page identifies where students are weak by topic, learning objective, and Bloom's Taxonomy level.</p></div><a class="btn secondary" href="{{ route('instructor.assessments.builder', $assessment) }}">Back to Builder</a></div>@foreach([['Topic',$byTopic],['Learning Objective',$byObjective],["Bloom's Taxonomy",$byBloom]] as [$heading,$rows])<div class="card"><h2>{{ $heading }}</h2><div class="table-wrap"><table class="table"><thead><tr><th>{{ $heading }}</th><th>Students</th><th>Average Mastery</th><th>Needs Support</th><th>Pending Review</th></tr></thead><tbody>@forelse($rows as $row)<tr><td>{{ $row['label'] }}</td><td>{{ $row['students'] }}</td><td><strong>{{ $row['average_mastery'] }}%</strong></td><td>{{ $row['needs_support'] }}</td><td>{{ $row['pending_review'] }}</td></tr>@empty<tr><td colspan="5" class="muted">No diagnostic data yet.</td></tr>@endforelse</tbody></table></div></div>@endforeach<div class="card"><h2>Per-student diagnostic records</h2><div class="table-wrap"><table class="table"><thead><tr><th>Student</th><th>Topic</th><th>Objective</th><th>Bloom</th><th>Mastery</th><th>Interpretation</th></tr></thead><tbody>@forelse($diagnostics as $row)<tr><td>{{ $row->student->name ?? 'Unknown' }}</td><td>{{ $row->topic_title }}</td><td>{{ $row->learning_objective ?: '—' }}</td><td>{{ $row->bloom_level ?: '—' }}</td><td>{{ $row->mastery_percent }}%</td><td><span class="badge">{{ $row->proficiency_label }}</span></td></tr>@empty<tr><td colspan="6" class="muted">No diagnostic data yet.</td></tr>@endforelse</tbody></table></div></div></div></main></div></body></html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Assessment Diagnostics — DataSensei</title><style>
+/* Assessment learning diagnostics. Colours, type and radius come from partials.design-system. */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
+.layout{display:flex;min-height:100vh}
+.main{flex:1;min-width:0;padding:28px 32px 48px}
+.wrap{max-width:1480px;margin:0 auto}
+
+/* page header */
+.top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+.top > div:first-child{min-width:0;flex:1 1 320px}
+.subtitle{max-width:72ch;margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.55}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
+  border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
+  font:500 .875rem/1.2 var(--ds-font-sans);text-decoration:none;white-space:nowrap;cursor:pointer;
+  transition:background .12s ease,border-color .12s ease}
+.btn:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
+.btn.secondary{border-color:var(--ds-border-strong);background:var(--surface2);color:var(--text)}
+.btn.secondary:hover{background:var(--ds-surface-hover)}
+.muted{color:var(--muted)}
+
+/* one card per breakdown: title row, then the table edge to edge */
+.card{margin-bottom:16px;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+.card > h2{margin:0;padding:14px 20px;border-bottom:1px solid var(--border);font-size:.9375rem;font-weight:600;line-height:1.35}
+.card .table{min-width:640px}
+.card .table td:first-child{min-width:180px}
+.card .table th:first-child,.card .table td:first-child{padding-left:20px}
+
+/* tables */
+.table-wrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse}
+.table th{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface3);color:var(--muted);
+  font-size:.75rem;font-weight:600;text-align:left;white-space:nowrap}
+.table td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--ds-text-secondary);font-size:.875rem;
+  line-height:1.45;vertical-align:middle}
+.table tbody tr:last-child td{border-bottom:0}
+.table tbody tr:hover td{background:rgba(255,255,255,.02)}
+.table strong{color:var(--text);font-weight:600}
+.table td.muted[colspan]{padding:32px 20px;color:var(--muted);text-align:center}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
+  background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
+
+@media(max-width:900px){.main{padding:24px 20px 40px}}
+@media(max-width:640px){
+  .main{padding:20px 16px 32px}
+  .top{align-items:stretch;flex-direction:column}
+  .top > div:first-child{flex:0 0 auto}
+  .top > .btn{width:100%}
+  .table td.muted[colspan]{text-align:left}
+  .card > h2{padding:12px 16px}
+  .card .table th:first-child,.card .table td:first-child{padding-left:16px}
+}
+@media(prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>    @include('partials.page-head', ['pageTitle' => 'Assessment Diagnostics', 'pageDescription' => 'Create, publish, and grade assessments for your classes.'])
+</head><body><div class="layout">@include('partials.instructor-sidebar')<main class="main"><div class="wrap"><div class="top"><div><h1 class="title ds-page-title">Learning diagnostics</h1><p class="subtitle">{{ $assessment->title }}. This page identifies where students are weak by topic, learning objective, and Bloom's Taxonomy level.</p></div><a class="btn secondary" href="{{ route('instructor.assessments.builder', $assessment) }}">Back to Builder</a></div>@foreach([['Topic',$byTopic],['Learning Objective',$byObjective],["Bloom's Taxonomy",$byBloom]] as [$heading,$rows])<div class="card"><h2>{{ $heading }}</h2><div class="table-wrap"><table class="table"><thead><tr><th>{{ $heading }}</th><th>Students</th><th>Average Mastery</th><th>Needs Support</th><th>Pending Review</th></tr></thead><tbody>@forelse($rows as $row)<tr><td>{{ $row['label'] }}</td><td>{{ $row['students'] }}</td><td><strong>{{ $row['average_mastery'] }}%</strong></td><td>{{ $row['needs_support'] }}</td><td>{{ $row['pending_review'] }}</td></tr>@empty<tr><td colspan="5" class="muted">No diagnostic data yet.</td></tr>@endforelse</tbody></table></div></div>@endforeach<div class="card"><h2>Per-student diagnostic records</h2><div class="table-wrap"><table class="table"><thead><tr><th>Student</th><th>Topic</th><th>Objective</th><th>Bloom</th><th>Mastery</th><th>Interpretation</th></tr></thead><tbody>@forelse($diagnostics as $row)<tr><td>{{ $row->student->name ?? 'Unknown' }}</td><td>{{ $row->topic_title }}</td><td>{{ $row->learning_objective ?: '—' }}</td><td>{{ $row->bloom_level ?: '—' }}</td><td>{{ $row->mastery_percent }}%</td><td><span class="badge">{{ $row->proficiency_label }}</span></td></tr>@empty<tr><td colspan="6" class="muted">No diagnostic data yet.</td></tr>@endforelse</tbody></table></div></div></div></main></div></body></html>

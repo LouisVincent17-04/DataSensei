@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Assessment Content')
-@section('eyebrow', 'Platform Content')
 @section('page_title', 'Assessment Content')
 @section('page_subtitle', 'Create and version reusable assessment templates that instructors can assign to their classes.')
 
@@ -47,7 +46,7 @@
     </form>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="table-wrap">
       <table>
         <thead>
@@ -65,11 +64,11 @@
             <tr>
               <td>
                 <strong>{{ $assessment->title }}</strong>
-                <div class="dim">{{ $assessment->assignment_code }} · {{ $assessment->topic_title }}</div>
+                <div class="dim">{{ $assessment->assignment_code }}, {{ $assessment->topic_title }}</div>
               </td>
               <td>Module {{ $assessment->module_no }}<div class="dim">{{ $assessment->year_level }}</div></td>
-              <td><strong>{{ $assessment->version_name }}</strong><div class="dim">{{ $assessment->version_code }} · V{{ $assessment->version_no }}</div></td>
-              <td>{{ number_format($assessment->questions_count) }}<div class="dim">{{ $assessment->type_label }} · {{ number_format($assessment->total_points) }} points</div></td>
+              <td><strong>{{ $assessment->version_name }}</strong><div class="dim">{{ $assessment->version_code }}, V{{ $assessment->version_no }}</div></td>
+              <td>{{ number_format($assessment->questions_count) }}<div class="dim">{{ $assessment->type_label }}, {{ number_format($assessment->total_points) }} points</div></td>
               <td>
                 <span class="badge {{ $assessment->is_active ? 'active' : 'disabled' }}">{{ $assessment->is_active ? 'Published' : 'Inactive' }}</span>
                 @if($assessment->class_assignments_count > 0)

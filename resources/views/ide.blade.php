@@ -4,168 +4,172 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
-  <title>DataSensei — IDE</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  
+  <title>IDE — DataSensei</title>
 <style>
+    /* Colours, type and radius come from partials.design-system. */
     :root {
-      /* DataSensei Core Palette */
-      --bg:           #0d1320;
-      --surface:      #111c2d;
-      --surface2:     #1a2638;
-      --border:       #1e2f47;
-      --border-hover: #2c4168;
-      --accent:       #3b82f6; 
-      --accent-hover: #2563eb;
-      --accent3:      #10b981; /* Green for Run button */
-      --text:         #fafafa;
-      --muted:        #7f93b0;
-      --dim:          #3d5272;
+      --accent3: var(--ds-success); /* page-specific name kept for older markup */
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: var(--ds-font-sans);
       background: var(--bg);
       color: var(--text);
       height: 100vh;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── TOP NAVIGATION BAR ── */
+    /* ── top bar ── */
     .topbar {
-      height: 60px;
+      min-height: 52px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      padding: 0 16px;
       flex-shrink: 0;
     }
-    
+
     .topbar-left {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 10px;
+      min-width: 0;
       font-weight: 600;
-      font-size: 1.125rem;
+      font-size: .9375rem;
     }
-    .topbar-left svg { color: var(--accent); }
+    .topbar-left svg { width: 20px; height: 20px; color: var(--ds-accent-text); }
 
     .topbar-right {
       display: flex;
       align-items: center;
-      gap: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
-    /* The magical Return button (Hidden by default) */
+    /* Return button, hidden until the script finds a lesson to return to. */
     .btn-return {
-      display: none; /* Will be unhidden by JS if needed */
+      display: none;
       align-items: center;
-      gap: 8px;
-      background: rgba(59, 130, 246, 0.1);
-      color: var(--accent);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 600;
+      gap: 6px;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--ds-accent-border);
+      border-radius: var(--radius-sm);
+      background: var(--ds-accent-soft);
+      color: var(--ds-accent-text);
+      font-size: .8125rem;
+      font-weight: 500;
       text-decoration: none;
-      transition: all 0.2s;
+      transition: color .12s ease;
     }
-    .btn-return:hover {
-      background: rgba(59, 130, 246, 0.2);
-    }
+    .btn-return:hover { color: var(--text); }
 
     .btn-run {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: var(--accent3);
+      gap: 6px;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      background: var(--accent);
       color: #fff;
-      border: none;
-      padding: 8px 20px;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 600;
+      font: 500 .8125rem/1.2 var(--ds-font-sans);
       cursor: pointer;
-      transition: background 0.15s;
-      font-family: 'Inter', sans-serif;
+      transition: background .12s ease, border-color .12s ease;
     }
-    .btn-run:hover { background: #059669; }
+    .btn-run:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
-    /* ── IDE WORKSPACE ── */
+    /* ── workspace ── */
     .workspace {
       display: flex;
       flex: 1;
+      min-height: 0;
       overflow: hidden;
     }
 
-    /* Code Editor Panel */
     .editor-pane {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       border-right: 1px solid var(--border);
       background: var(--bg);
     }
-    
+
     .pane-header {
-      padding: 12px 24px;
-      background: var(--surface2);
+      min-height: 40px;
+      padding: 0 16px;
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: .8125rem;
+      font-weight: 500;
+      color: var(--ds-text-secondary);
       display: flex;
       align-items: center;
       gap: 8px;
     }
+
+    .editor-pane .pane-header { font-family: var(--ds-font-mono); }
 
     .code-textarea {
       flex: 1;
       width: 100%;
       background: transparent;
       border: none;
-      color: #e5e7eb;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.95rem;
+      color: var(--text);
+      font-family: var(--ds-font-mono);
+      font-size: .875rem;
       line-height: 1.6;
-      padding: 24px;
+      padding: 16px 20px;
       resize: none;
       outline: none;
     }
 
-    /* Terminal Output Panel */
     .terminal-pane {
       width: 40%;
-      background: #090e17; /* Slightly darker for terminal feel */
+      min-width: 0;
+      background: var(--surface3);
       display: flex;
       flex-direction: column;
     }
 
     .terminal-output {
       flex: 1;
-      padding: 24px;
-      color: #9ca3af;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      line-height: 1.5;
+      padding: 16px 20px;
+      color: var(--muted);
+      font-family: var(--ds-font-mono);
+      font-size: .8125rem;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
       overflow-y: auto;
     }
 
     .terminal-output.running {
-      color: var(--text);
+      color: var(--ds-text-secondary);
+    }
+
+    /* Tablets and phones: the page scrolls and the panes stack. */
+    @media (max-width: 900px) {
+      body { height: auto; min-height: 100vh; min-height: 100dvh; overflow: visible; overflow-x: hidden; }
+      .topbar { padding: 8px 12px; }
+      .workspace { flex-direction: column; overflow: visible; }
+      .editor-pane { flex: none; border-right: 0; border-bottom: 1px solid var(--border); }
+      .code-textarea { flex: none; min-height: 55vh; min-height: 55dvh; }
+      .terminal-pane { width: 100%; min-height: 240px; }
     }
   </style>
   @include('partials.ui-polish')
+    @include('partials.page-head', ['pageTitle' => 'IDE'])
 </head>
 <body>
 
@@ -209,7 +213,7 @@ print("Hello, DataSensei!")</textarea>
     </div>
 
     <div class="terminal-pane">
-      <div class="pane-header" style="background: #0d1320;">
+      <div class="pane-header">
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>

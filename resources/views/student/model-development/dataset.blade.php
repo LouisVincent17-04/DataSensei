@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ $dataset->name }} - DataSensei</title>
+    <title>{{ $dataset->name }} — DataSensei</title>
     @include('student.model-development.partials.styles')
+    @include('partials.page-head', ['pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
 </head>
 <body>
 @php
@@ -58,7 +59,7 @@
                 <p class="ml-subtitle">{{ $dataset->description ?? 'Review the structure, quality, and sample records before using this dataset.' }}</p>
                 <div class="ml-subtitle-row">
                     <span class="ml-badge {{ $datasetType === 'system' ? 'good' : '' }}">
-                        {{ $datasetType === 'system' ? 'Built-in dataset · Read-only' : 'Uploaded dataset · Private' }}
+                        {{ $datasetType === 'system' ? 'Built-in dataset, read-only' : 'Uploaded dataset, private' }}
                     </span>
                 </div>
             </div>
@@ -108,8 +109,8 @@
                 <section class="ml-grid four" style="margin-top:16px">
                     <div class="ml-card ml-stat"><span>Rows</span><strong>{{ number_format($dataset->row_count) }}</strong></div>
                     <div class="ml-card ml-stat"><span>Columns</span><strong>{{ $dataset->column_count }}</strong></div>
-                    <div class="ml-card ml-stat"><span>Suggested target</span><strong style="font-size:1rem">{{ $dataset->target_column ?: 'Choose in Step 2' }}</strong></div>
-                    <div class="ml-card ml-stat"><span>Suggested problem</span><strong style="font-size:1rem">{{ ucfirst($dataset->problem_type ?: 'Choose in Step 4') }}</strong></div>
+                    <div class="ml-card ml-stat"><span>Suggested target</span><strong style="font-size:1rem;overflow-wrap:anywhere">{{ $dataset->target_column ?: 'Choose in Step 2' }}</strong></div>
+                    <div class="ml-card ml-stat"><span>Suggested problem</span><strong style="font-size:1rem;overflow-wrap:anywhere">{{ ucfirst($dataset->problem_type ?: 'Choose in Step 4') }}</strong></div>
                 </section>
 
                 <section class="ml-section ml-grid two">
@@ -119,7 +120,7 @@
                                 <h2 class="ml-section-title">Dataset Quality</h2>
                                 <p class="ml-muted">Calculated from the stored data, not estimated.</p>
                             </div>
-                            <div class="ml-quality">{{ number_format((float) ($quality?->quality_score ?? $dataset->quality_score ?? 0), 0) }}<span style="font-size:.9rem;color:var(--ml-muted)">/100</span></div>
+                            <div class="ml-quality">{{ number_format((float) ($quality?->quality_score ?? $dataset->quality_score ?? 0), 0) }}<span style="font-size:.875rem;font-weight:500;color:var(--ds-text-muted)">/100</span></div>
                         </div>
                         <div class="ml-meta">
                             <div><span>Missing values</span><strong>{{ number_format((float) ($summary['missing_percent'] ?? 0), 2) }}%</strong></div>
@@ -130,7 +131,7 @@
                             <div><span>Quality grade</span><strong>{{ $quality?->grade ?? 'Not assessed' }}</strong></div>
                         </div>
                         @if($quality?->recommendations)
-                            <h3 class="ml-section-title" style="font-size:.86rem">Recommended preprocessing</h3>
+                            <h3 class="ml-section-title" style="font-size:.875rem;font-weight:600;margin-top:16px">Recommended preprocessing</h3>
                             <ul class="ml-list">@foreach($quality->recommendations as $recommendation)<li>{{ $recommendation }}</li>@endforeach</ul>
                         @endif
                     </div>
@@ -144,9 +145,9 @@
                             <div><span>Categorical columns</span><strong>{{ count((array) ($profile['categorical_columns'] ?? [])) }}</strong></div>
                         </div>
                         @if($datasetType === 'system')
-                            <p class="ml-muted" style="font-size:.8rem">Built-in datasets and benchmark artifacts are shared and read-only. Training creates your own model and never changes this dataset.</p>
+                            <p class="ml-muted" style="font-size:.8125rem">Built-in datasets and benchmark artifacts are shared and read-only. Training creates your own model and never changes this dataset.</p>
                         @else
-                            <p class="ml-muted" style="font-size:.8rem">This dataset is stored under your account{{ $dataset->class_id ? ' and associated with a class' : '' }}. Other students cannot access it.</p>
+                            <p class="ml-muted" style="font-size:.8125rem">This dataset is stored under your account{{ $dataset->class_id ? ' and associated with a class' : '' }}. Other students cannot access it.</p>
                         @endif
                     </div>
                 </section>
@@ -254,7 +255,7 @@
                     <details class="ml-advanced ml-section">
                         <summary>Dataset Management</summary>
                         <p class="ml-help">Delete is available only before this dataset has training or model history.</p>
-                        <form method="POST" action="{{ route('student.model-development.user-datasets.destroy', $dataset) }}" onsubmit="return confirm('Delete this dataset permanently?')" style="margin-top:14px">
+                        <form method="POST" action="{{ route('student.model-development.user-datasets.destroy', $dataset) }}" onsubmit="return confirm('Delete this dataset permanently?')" style="margin-top:16px">
                             @csrf
                             @method('DELETE')
                             <button class="ml-btn danger" type="submit">Delete Dataset</button>

@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create TOS — DataSensei</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  @include('instructor.tos.partials.styles')
+@include('instructor.tos.partials.styles')
+    @include('partials.page-head', ['pageTitle' => 'Create TOS', 'pageDescription' => 'Build a table of specifications for a balanced assessment.'])
 </head>
 <body>
 <div class="layout">
@@ -14,7 +14,6 @@
     <div class="wrap">
       <div class="top">
         <div>
-          <div class="kicker">Step 1 of 3</div>
           <h1 class="title ds-page-title">Create Table of Specifications</h1>
           <p class="subtitle">Start with only the information needed to build the assessment blueprint.</p>
         </div>
@@ -52,11 +51,11 @@
               <option value="">Template / no class yet</option>
               @foreach($classes as $class)
                 <option value="{{ $class->id }}" @selected((string) old('class_id') === (string) $class->id)>
-                  {{ $class->subject_code ? $class->subject_code.' — ' : '' }}{{ $class->name }}{{ $class->section ? ' · '.$class->section : '' }}
+                  {{ $class->subject_code ? $class->subject_code.' — ' : '' }}{{ $class->name }}{{ $class->section ? ', '.$class->section : '' }}
                 </option>
               @endforeach
             </select>
-            <div class="muted small" style="margin-top:6px">You can create a reusable template without attaching it to a class.</div>
+            <div class="muted small" style="margin-top:8px">You can create a reusable template without attaching it to a class.</div>
           </div>
 
           <div class="field">
@@ -70,7 +69,7 @@
               @endforeach
               <option value="other" @selected($usesCustomCoverage)>Others — Enter manually</option>
             </select>
-            <div id="custom-coverage-field" style="margin-top:10px" @if(! $usesCustomCoverage) hidden @endif>
+            <div id="custom-coverage-field" style="margin-top:8px" @if(! $usesCustomCoverage) hidden @endif>
               <label for="custom_coverage">Other Module / Coverage</label>
               <input
                 class="input"
@@ -80,7 +79,7 @@
                 placeholder="e.g. Data Ethics and Responsible AI"
                 maxlength="191"
                 @if($usesCustomCoverage) required @else disabled @endif>
-              <div class="muted small" style="margin-top:6px">Enter the exact module or coverage for this assessment.</div>
+              <div class="muted small" style="margin-top:8px">Enter the exact module or coverage for this assessment.</div>
             </div>
           </div>
 

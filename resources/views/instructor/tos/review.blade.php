@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ $tos->title }} — Review TOS</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  @include('instructor.tos.partials.styles')
+@include('instructor.tos.partials.styles')
+    @include('partials.page-head', ['pageDescription' => 'Build a table of specifications for a balanced assessment.'])
 </head>
 <body>
 <div class="layout">
@@ -14,7 +14,6 @@
     <div class="wrap">
       <div class="top">
         <div>
-          <div class="kicker">Step 3 of 3</div>
           <h1 class="title ds-page-title">Review & Generate</h1>
           <p class="subtitle">Confirm the assessment blueprint before moving to the question-writing stage.</p>
         </div>
@@ -37,7 +36,6 @@
 
       <div class="grid grid-2" style="margin-top:16px">
         <section class="card">
-          <div class="kicker">Assessment Blueprint</div>
           <h2>{{ $tos->title }}</h2>
           <div class="review-row"><span>Subject / Course</span><strong>{{ $tos->classRoom->name ?? 'Template / no class' }}</strong></div>
           <div class="review-row"><span>Coverage</span><strong>{{ $tos->coverage_label }}{{ $module ? ' — '.$module->title : '' }}</strong></div>
@@ -46,7 +44,6 @@
         </section>
 
         <section class="card">
-          <div class="kicker">Explain this TOS</div>
           <h2>Plain-language summary</h2>
           <p class="muted" style="line-height:1.75">{{ $explanation }}</p>
           <div class="callout">This explanation summarizes the blueprint only. It does not generate, grade, or change any question.</div>
@@ -56,7 +53,7 @@
       @if($isModernBlueprint)
         <section class="card">
           <div class="section-title">
-            <div><div class="kicker">Coverage</div><h2>Learning Competencies</h2></div>
+            <div><h2>Learning Competencies</h2></div>
           </div>
           <div class="table-wrap">
             <table class="table">
@@ -64,7 +61,7 @@
               <tbody>
               @foreach($matrix['groups'] as $group)
                 <tr>
-                  <td><strong>{{ $group['title'] }}</strong>@if($group['objective'])<div class="muted small" style="margin-top:5px">{{ $group['objective'] }}</div>@endif</td>
+                  <td><strong>{{ $group['title'] }}</strong>@if($group['objective'])<div class="muted small" style="margin-top:4px">{{ $group['objective'] }}</div>@endif</td>
                   <td>{{ $group['weight'] }}%</td>
                   <td>{{ $group['total'] }}</td>
                 </tr>
@@ -76,7 +73,7 @@
 
         <section class="card">
           <div class="section-title">
-            <div><div class="kicker">Cognitive Distribution</div><h2>How students will be challenged</h2></div>
+            <div><h2>How students will be challenged</h2></div>
           </div>
           <div class="grid grid-2">
             @foreach($cognitiveLevels as $slug => $definition)
@@ -84,14 +81,14 @@
               @php($percent = $matrix['target_items'] > 0 ? round(($count / $matrix['target_items']) * 100) : 0)
               <div class="metric">
                 <strong>{{ $definition['label'] }} — {{ $percent }}%</strong>
-                <span>{{ $count }} item(s) · {{ $definition['explanation'] }}</span>
+                <span>{{ $count }} item(s), {{ $definition['explanation'] }}</span>
               </div>
             @endforeach
           </div>
         </section>
       @else
         <section class="card">
-          <div class="section-title"><div><div class="kicker">Legacy Blueprint</div><h2>Existing Allocations</h2></div></div>
+          <div class="section-title"><div><h2>Existing Allocations</h2></div></div>
           <div class="table-wrap">
             <table class="table">
               <thead><tr><th>Topic</th><th>Difficulty</th><th>Cognitive Level</th><th>Items</th></tr></thead>
@@ -106,7 +103,6 @@
       @endif
 
       <section class="card">
-        <div class="kicker">Questions</div>
         <h2>Question writing stays separate</h2>
         <p class="muted" style="line-height:1.7">The TOS decides what the assessment should contain. The existing DataSensei Question Builder remains responsible for the actual question text, question type, choices, correct answers, explanations, images, and rubrics.</p>
         <div class="callout">When you generate the assessment, DataSensei creates the numbered item structure from this TOS. You then write or configure each question in the Question Builder.</div>

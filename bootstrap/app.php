@@ -15,6 +15,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->appendToGroup('web', \App\Http\Middleware\EnforceIdleSessionTimeout::class);
 
+        // Laravel trims every incoming string by default. For code and program
+        // input, whitespace is part of the value: a Python file that ends with a
+        // blank line, a file that starts with one, or stdin whose first line is
+        // empty all came back altered. These fields are left exactly as typed.
+        $middleware->trimStrings(except: [
+            'content',
+            'code',
+            'stdin',
+            'query',
+        ]);
+
         $middleware->alias([
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'institution.admin' => \App\Http\Middleware\InstitutionAdmin::class,

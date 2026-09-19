@@ -24,7 +24,7 @@
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="panel-head"><div class="panel-heading"><h2 class="panel-title">Assessment Settings</h2><p class="panel-subtitle">This information is presented to instructors when they create class assignments.</p></div></div>
     <div class="panel-body">
       <div class="form-grid three">
@@ -42,12 +42,12 @@
         <div class="field"><label for="sort-order">Sort Order</label><input id="sort-order" class="input" type="number" name="sort_order" min="0" value="{{ old('sort_order', $assessment->sort_order ?? 0) }}" required></div>
         <div class="field"><label for="assessment-status">Publication Status</label><select id="assessment-status" class="select" name="is_active"><option value="0" @selected(!old('is_active', $assessment->is_active))>Inactive / Draft</option><option value="1" @selected((bool) old('is_active', $assessment->is_active))>Published</option></select></div>
       </div>
-      <div class="field" style="margin-top:14px"><label for="description">Description</label><textarea id="description" class="textarea" name="description">{{ old('description', $assessment->description) }}</textarea></div>
-      <div class="field" style="margin-top:14px"><label for="instructions">Instructions</label><textarea id="instructions" class="textarea" name="instructions">{{ old('instructions', $assessment->instructions) }}</textarea></div>
+      <div class="field" style="margin-top:16px"><label for="description">Description</label><textarea id="description" class="textarea" name="description">{{ old('description', $assessment->description) }}</textarea></div>
+      <div class="field" style="margin-top:16px"><label for="instructions">Instructions</label><textarea id="instructions" class="textarea" name="instructions">{{ old('instructions', $assessment->instructions) }}</textarea></div>
     </div>
   </section>
 
-  <section class="panel" style="margin-top:24px" data-question-editor>
+  <section class="panel" data-question-editor>
     <div class="panel-head">
       <div class="panel-heading"><h2 class="panel-title">Assessment Questions</h2><p class="panel-subtitle">Map a question only to ILOs it genuinely measures. Unmapped questions do not count as ILO mastery evidence.</p></div>
       <div class="action-row"><button class="btn small" type="button" data-add-question="mcq">Add MCQ</button><button class="btn small secondary" type="button" data-add-question="fill_blank">Add Fill Blank</button></div>
@@ -67,7 +67,7 @@
               <label>ILO Evidence</label>
               <select class="select ilo-select" multiple size="4" data-field="ilo_ids" name="questions[{{ $questionIndex }}][ilo_ids][]">
                 @foreach($ilos as $ilo)
-                  <option value="{{ $ilo->id }}" @selected(in_array((int) $ilo->id, array_map('intval', $question['ilo_ids'] ?? []), true))>M{{ str_pad((string) $ilo->module_no, 2, '0', STR_PAD_LEFT) }} · {{ $ilo->ilo_code }} — {{ $ilo->title }}</option>
+                  <option value="{{ $ilo->id }}" @selected(in_array((int) $ilo->id, array_map('intval', $question['ilo_ids'] ?? []), true))>M{{ str_pad((string) $ilo->module_no, 2, '0', STR_PAD_LEFT) }}, {{ $ilo->ilo_code }} — {{ $ilo->title }}</option>
                 @endforeach
               </select>
               <span class="field-hint">Choose only ILOs from this assessment's module. Leave blank when the item is not valid evidence.</span>
@@ -109,7 +109,7 @@
     <template data-question-template>
       <article class="question-item">
         <div class="question-head"><strong>Question <span data-question-number></span></strong><div class="action-row"><button class="btn small secondary" type="button" data-move-up>Move Up</button><button class="btn small secondary" type="button" data-move-down>Move Down</button><button class="btn small danger" type="button" data-remove-question>Remove</button></div></div>
-        <div class="form-grid three"><div class="field"><label>Question Type</label><select class="select" data-field="question_type"><option value="mcq">MCQ</option><option value="fill_blank">Fill in the Blanks</option></select></div><div class="field"><label>Points</label><input class="input" type="number" min="1" value="1" data-field="points" required></div><div class="field"><label>ILO Evidence</label><select class="select ilo-select" multiple size="4" data-field="ilo_ids">@foreach($ilos as $ilo)<option value="{{ $ilo->id }}">M{{ str_pad((string) $ilo->module_no, 2, '0', STR_PAD_LEFT) }} · {{ $ilo->ilo_code }} — {{ $ilo->title }}</option>@endforeach</select><span class="field-hint">Choose only ILOs from this assessment's module.</span></div></div>
+        <div class="form-grid three"><div class="field"><label>Question Type</label><select class="select" data-field="question_type"><option value="mcq">MCQ</option><option value="fill_blank">Fill in the Blanks</option></select></div><div class="field"><label>Points</label><input class="input" type="number" min="1" value="1" data-field="points" required></div><div class="field"><label>ILO Evidence</label><select class="select ilo-select" multiple size="4" data-field="ilo_ids">@foreach($ilos as $ilo)<option value="{{ $ilo->id }}">M{{ str_pad((string) $ilo->module_no, 2, '0', STR_PAD_LEFT) }}, {{ $ilo->ilo_code }} — {{ $ilo->title }}</option>@endforeach</select><span class="field-hint">Choose only ILOs from this assessment's module.</span></div></div>
         <div class="field" style="margin-top:12px"><label>Question Text</label><textarea class="textarea" data-field="question_text" required></textarea></div>
         <div class="field" style="margin-top:12px"><label>Explanation</label><textarea class="textarea" data-field="explanation"></textarea></div>
         <div data-options-block><div class="option-list" data-option-list>
@@ -125,24 +125,24 @@
     <template data-answer-template><div class="answer-item"><span class="answer-number" data-answer-number></span><input class="input" data-field="answer_text" placeholder="Accepted answer"><label class="case-check"><input type="checkbox" value="1" data-field="is_case_sensitive"> Case-sensitive</label><button class="btn small secondary" type="button" data-move-up>↑</button><button class="btn small secondary" type="button" data-move-down>↓</button><button class="btn small danger" type="button" data-remove-answer>Remove</button></div></template>
   </section>
 
-  <div class="action-row" style="margin-top:24px"><button class="btn" type="submit">{{ $submitLabel }}</button><a class="btn secondary" href="{{ $cancelUrl }}">Cancel</a></div>
+  <div class="action-row"><button class="btn" type="submit">{{ $submitLabel }}</button><a class="btn secondary" href="{{ $cancelUrl }}">Cancel</a></div>
 </form>
 
 @push('head')
 <style>
-  .question-list { display:grid; gap:16px; padding:18px; }
-  .question-item { padding:18px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface3); }
-  .question-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:14px; }
-  .option-list, .answer-list { display:grid; gap:10px; margin:14px 0; }
+  .question-list { display:grid; gap:16px; padding:16px; }
+  .question-item { padding:16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface3); }
+  .question-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; }
+  .option-list, .answer-list { display:grid; gap:8px; margin:16px 0; }
   .option-item { display:grid; grid-template-columns:auto minmax(180px,1fr) auto auto auto; align-items:center; gap:8px; }
   .answer-item { display:grid; grid-template-columns:auto minmax(180px,1fr) auto auto auto auto; align-items:center; gap:8px; }
   .correct-choice, .answer-number { min-width:34px; height:34px; display:flex; align-items:center; justify-content:center; gap:4px; border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--muted); }
   .correct-choice { cursor:pointer; }
   .correct-choice input { accent-color:var(--accent3); }
-  .case-check { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:.75rem; white-space:nowrap; }
+  .case-check { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:.8125rem; white-space:nowrap; }
   .case-check input { accent-color:var(--accent); }
   .ilo-select { min-height:104px; }
-  .field-hint { display:block; margin-top:6px; color:var(--muted); font-size:.72rem; line-height:1.45; }
+  .field-hint { display:block; margin-top:6px; color:var(--muted); font-size:.75rem; line-height:1.45; }
   [hidden] { display:none !important; }
   @media (max-width:850px) { .option-item, .answer-item { grid-template-columns:auto 1fr; } .question-head { align-items:flex-start; flex-direction:column; } }
 </style>

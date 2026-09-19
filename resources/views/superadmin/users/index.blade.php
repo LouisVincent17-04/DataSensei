@@ -3,117 +3,149 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DataSensei — User Management</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>User Management — DataSensei</title>
+<meta name="csrf-token" content="{{ csrf_token() }}">
   <style>
+    /* User management. Colours, type and radius come from partials.design-system. */
     :root {
-      --bg:#0d1320; --surface:#111c2d; --surface2:#1a2638; --border:#1e2f47; --border-hover:#2c4168;
-      --accent:#3b82f6; --accent-hover:#2563eb; --accent2:#8b5cf6; --accent3:#10b981; --accent4:#f59e0b;
-      --warn:#ef4444; --text:#fafafa; --muted:#7f93b0; --dim:#3d5272; --radius:8px; --radius-sm:6px;
+      --accent2: var(--ds-accent);
+      --accent3: var(--ds-success);
+      --accent4: var(--ds-warning);
+      --warn:    var(--ds-danger);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    body { font-family: var(--ds-font-sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-    /* TOPBAR */
-    .topbar { height: 64px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; }
-    .topbar h1 { font-size: 1.125rem; font-weight: 600; flex: 1; letter-spacing: -0.01em; }
+    /* Title bar */
+    .topbar { min-height: 60px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px;
+      background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
 
-    /* CONTENT */
-    .content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+    /* Content */
+    .content { flex: 1; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 20px; }
 
-    /* FLASH */
-    .flash { padding: 12px 20px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; border-left: 3px solid; }
-    .flash-success { background: rgba(16,185,129,0.08); border-color: var(--accent3); color: var(--accent3); }
-    .flash-error   { background: rgba(239,68,68,0.08);  border-color: var(--warn);    color: var(--warn); }
+    /* Flash */
+    .flash { padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: .875rem; line-height: 1.5; }
+    .flash-success { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: #d1fae5; }
+    .flash-error   { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: #fee2e2; }
 
-    /* TOOLBAR */
-    .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .search-box { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; gap: 10px; min-width: 260px; flex: 1; max-width: 400px; transition: border-color 0.15s; }
-    .search-box:focus-within { border-color: var(--accent); }
-    .search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 0.875rem; font-family: inherit; width: 100%; }
+    /* Filters */
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .search-box { flex: 1 1 220px; min-width: 0; max-width: 360px; min-height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 8px;
+      background: var(--surface3); border: 1px solid var(--ds-input-border); border-radius: var(--radius-sm);
+      transition: border-color .12s ease, box-shadow .12s ease; }
+    .search-box:focus-within { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
+    .search-box input { width: 100%; min-width: 0; padding: 8px 0; background: none; border: none; outline: none; box-shadow: none;
+      color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); }
+    .search-box input:focus-visible { box-shadow: none; }
     .search-box input::placeholder { color: var(--dim); }
-    select.filter { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; color: var(--text); font-size: 0.875rem; font-family: inherit; cursor: pointer; outline: none; }
-    select.filter:focus { border-color: var(--accent); }
+    select.filter { min-height: 38px; max-width: 100%; padding: 8px 12px; background: var(--surface3); border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm); color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); outline: none;
+      transition: border-color .12s ease, box-shadow .12s ease; }
+    select.filter:focus { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
 
-    /* BUTTONS */
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 18px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; font-family: inherit; text-decoration: none; }
-    .btn-primary  { background: var(--accent);  color: #fff; }
-    .btn-primary:hover  { background: var(--accent-hover); }
-    .btn-ghost    { background: var(--surface);  color: var(--text);    border-color: var(--border); }
-    .btn-ghost:hover    { border-color: var(--border-hover); }
-    .btn-danger   { background: rgba(239,68,68,0.10); color: var(--warn);    border-color: rgba(239,68,68,0.20); }
-    .btn-danger:hover   { background: rgba(239,68,68,0.18); }
-    .btn-purple   { background: rgba(139,92,246,0.12); color: #a78bfa; border-color: rgba(139,92,246,0.25); }
-    .btn-purple:hover   { background: rgba(139,92,246,0.20); }
-    .btn-amber    { background: rgba(245,158,11,0.10); color: var(--accent4); border-color: rgba(245,158,11,0.25); }
-    .btn-amber:hover    { background: rgba(245,158,11,0.18); }
-    .btn-teal     { background: rgba(16,185,129,0.10); color: var(--accent3); border-color: rgba(16,185,129,0.25); }
-    .btn-teal:hover     { background: rgba(16,185,129,0.18); }
-    .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 16px;
+      border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text);
+      font: 500 .875rem/1.2 var(--ds-font-sans); text-decoration: none; white-space: nowrap; cursor: pointer;
+      transition: background .12s ease, border-color .12s ease, color .12s ease; }
+    .btn:hover { background: var(--ds-surface-hover); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-ghost, .btn-secondary { background: var(--surface2); border-color: var(--ds-border-strong); color: var(--text); }
+    .btn-ghost:hover, .btn-secondary:hover { background: var(--ds-surface-hover); }
+    .btn-danger { background: transparent; border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
+    .btn-danger:hover { background: var(--ds-danger-soft); }
+    .btn-sm { min-height: 32px; padding: 0 12px; font-size: .8125rem; }
 
-    /* CARD */
+    /* Card */
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .card-header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .card-title { font-size: 0.9375rem; font-weight: 600; }
-    .card-subtitle { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
+    .card-header { padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 1px solid var(--border); }
+    .card-title { font-size: .9375rem; font-weight: 600; line-height: 1.35; }
+    .card-subtitle { margin-top: 2px; color: var(--muted); font-size: .8125rem; }
 
-    /* TABLE */
+    /* Table */
     .tbl-wrap { overflow-x: auto; }
-    .tbl { width: 100%; border-collapse: collapse; }
-    .tbl th { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim); padding: 10px 16px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
-    .tbl td { font-size: 0.875rem; color: var(--text); padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .tbl-wrap > table.tbl { min-width: 960px; }
+    .tbl th { padding: 10px 14px; background: var(--surface3); border-bottom: 1px solid var(--border); color: var(--muted);
+      font-size: .75rem; font-weight: 600; text-align: left; white-space: nowrap; }
+    .tbl td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--ds-text-secondary); font-size: .875rem; vertical-align: middle; }
+    .tbl td:first-child { min-width: 240px; }
     .tbl tr:last-child td { border-bottom: none; }
-    .tbl tr:hover td { background: var(--surface2); }
-    .tbl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tbl tbody tr:hover td { background: rgba(255, 255, 255, .02); }
+    .tbl-actions { display: flex; gap: 6px; flex-wrap: wrap; min-width: 220px; }
 
-    /* PILLS */
-    .pill { display: inline-flex; align-items: center; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-    .pill-active      { background: rgba(16,185,129,0.12);  color: var(--accent3); border: 1px solid rgba(16,185,129,0.25); }
-    .pill-disabled    { background: rgba(239,68,68,0.08);   color: var(--warn);    border: 1px solid rgba(239,68,68,0.20); }
-    .pill-student     { background: rgba(59,130,246,0.12);  color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
-    .pill-admin       { background: rgba(249,115,22,0.12);  color: #fb923c; border: 1px solid rgba(249,115,22,0.25); }
-    .pill-super-admin { background: rgba(139,92,246,0.12);  color: #a78bfa; border: 1px solid rgba(139,92,246,0.25); }
-    .pill-instructor   { background: rgba(16,185,129,0.12);  color: var(--accent3); border: 1px solid rgba(16,185,129,0.25); }
-    .pill-institution-admin { background: rgba(245,158,11,0.10); color: var(--accent4); border-color: rgba(245,158,11,0.25); }
+    /* Role label (plain text) and status badge */
+    .pill { color: var(--ds-text-secondary); font-size: .875rem; white-space: nowrap; }
+    .pill-active, .pill-disabled { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid; border-radius: var(--radius-xs);
+      font-size: .75rem; font-weight: 600; line-height: 1.4; text-transform: capitalize; }
+    .pill-active   { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: var(--ds-success-text); }
+    .pill-disabled { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
 
-    /* AVATAR */
-    .av { width: 34px; height: 34px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; color: var(--accent); flex-shrink: 0; }
+    /* Initials */
+    .av { width: 32px; height: 32px; flex: 0 0 32px; display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); background: var(--surface2);
+      color: var(--text); font-size: .75rem; font-weight: 600; }
 
-    /* PAGINATION */
-    .pagination { display: flex; gap: 6px; justify-content: center; padding: 20px; }
-    .pagination a, .pagination span { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; padding: 0 10px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500; border: 1px solid var(--border); color: var(--muted); text-decoration: none; transition: all 0.15s; }
-    .pagination a:hover { background: var(--surface2); color: var(--text); }
-    .pagination .active span { background: var(--accent); color: #fff; border-color: var(--accent); }
+    /* Pagination (vendor/pagination/admin) */
+    .pagination { padding: 14px 20px; border-top: 1px solid var(--border); }
+    .pagination:not(:has(.admin-pagination)) { display: none; }
 
-    /* MODAL */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(3px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+    /* Dialogs */
+    .modal-overlay { position: fixed; inset: 0; z-index: 1300; /* above the mobile bar and drawer */ display: none; align-items: center; justify-content: center;
+      padding: 16px; background: var(--ds-overlay); overflow-y: auto; }
     .modal-overlay.open { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
-    .modal-header { padding: 24px 28px 0; display: flex; justify-content: space-between; align-items: center; }
-    .modal-title  { font-size: 1.1rem; font-weight: 700; }
-    .modal-close  { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; transition: color 0.15s; }
-    .modal-close:hover { color: var(--text); }
-    .modal-body   { padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 18px; }
-    .form-row     { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-group   { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
-    .form-control { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 14px; color: var(--text); font-size: 0.875rem; font-family: inherit; outline: none; transition: border-color 0.15s; width: 100%; }
-    .form-control:focus { border-color: var(--accent); }
-    .form-error   { font-size: 0.75rem; color: var(--warn); margin-top: 2px; }
-    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; }
+    .modal { width: 100%; max-width: 520px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-lg); }
+    .modal-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+    .modal-title { font-size: 1rem; font-weight: 600; line-height: 1.35; }
+    .modal-close { width: 32px; height: 32px; flex: 0 0 32px; display: inline-flex; align-items: center; justify-content: center; margin-right: -6px;
+      padding: 0; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--muted); cursor: pointer;
+      transition: background .12s ease, color .12s ease; }
+    .modal-close:hover { background: var(--surface2); color: var(--text); }
+    .modal-close svg { width: 18px; height: 18px; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .form-group label { color: var(--ds-text-secondary); font-size: .8125rem; font-weight: 500; line-height: 1.35; }
+    .form-control { width: 100%; min-height: 38px; padding: 8px 12px; background: var(--surface3); border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm); color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); outline: none;
+      transition: border-color .12s ease, box-shadow .12s ease; }
+    .form-control::placeholder { color: var(--dim); }
+    .form-control:focus { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
+    .form-error { color: var(--ds-danger-text); font-size: .75rem; line-height: 1.4; }
+    .modal-footer { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
+      margin: 4px -20px -20px; padding: 16px 20px; border-top: 1px solid var(--border); }
 
-    /* NOTICES */
-    .notice { font-size: 0.78rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; line-height: 1.5; }
-    .notice strong { color: #a78bfa; }
-    .notice-warn  { border-color: rgba(245,158,11,0.30); background: rgba(245,158,11,0.06); }
-    .notice-warn strong { color: var(--accent4); }
-    .notice-teal  { border-color: rgba(16,185,129,0.30); background: rgba(16,185,129,0.06); }
-    .notice-teal strong { color: var(--accent3); }
-    .notice-danger { border-color: rgba(239,68,68,0.30); background: rgba(239,68,68,0.06); }
-    .notice-danger strong { color: var(--warn); }
+    /* Notes inside dialogs */
+    .notice { padding: 12px 16px; background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.55; }
+    .notice strong { color: var(--text); font-weight: 600; }
+    .notice-teal { background: var(--ds-accent-soft); border-color: var(--ds-accent-border); color: #dbeafe; }
+    .notice-warn { background: var(--ds-warning-soft); border-color: var(--ds-warning-border); color: #fef3c7; }
+    .notice-danger { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: #fee2e2; }
+    .notice-teal strong, .notice-warn strong, .notice-danger strong { color: #fff; }
+
+    @media (max-width: 900px) {
+      .topbar { min-height: 56px; padding: 8px 20px; }
+      .content { padding: 24px 20px 40px; }
+    }
+    @media (max-width: 640px) {
+      .topbar { padding: 8px 16px; }
+      .content { padding: 20px 16px 32px; gap: 16px; }
+      .card-header, .pagination { padding-left: 16px; padding-right: 16px; }
+      .search-box { flex: 1 1 100%; max-width: none; }
+      select.filter { flex: 1 1 140px; }
+      .toolbar > .btn { flex: 1 1 auto; }
+      .form-row { grid-template-columns: minmax(0, 1fr); }
+      .modal-header { padding: 14px 16px; }
+      .modal-body { padding: 16px; }
+      .modal-footer { margin: 4px -16px -16px; padding: 14px 16px; }
+      .modal-footer .btn { flex: 1 1 auto; }
+    }
   </style>
+    @include('partials.page-head', ['pageTitle' => 'User Management', 'pageDescription' => 'Manage DataSensei accounts, roles, and access.'])
 </head>
 <body>
 
@@ -143,9 +175,11 @@
           </div>
           <select name="role" class="filter" onchange="this.form.submit()">
             <option value="">All Roles</option>
-            <option value="student"     {{ request('role') === 'student'     ? 'selected' : '' }}>Student</option>
-            <option value="admin"       {{ request('role') === 'admin'       ? 'selected' : '' }}>Admin</option>
-            <option value="super_admin" {{ request('role') === 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+            <option value="student"           {{ request('role') === 'student'           ? 'selected' : '' }}>Student</option>
+            <option value="instructor"        {{ request('role') === 'instructor'        ? 'selected' : '' }}>Instructor</option>
+            <option value="institution_admin" {{ request('role') === 'institution_admin' ? 'selected' : '' }}>Institution Admin</option>
+            <option value="admin"             {{ request('role') === 'admin'             ? 'selected' : '' }}>Admin</option>
+            <option value="super_admin"       {{ request('role') === 'super_admin'       ? 'selected' : '' }}>Super Admin</option>
           </select>
           <select name="status" class="filter" onchange="this.form.submit()">
             <option value="">All Status</option>
@@ -192,11 +226,11 @@
               @forelse($users as $user)
               <tr>
                 <td>
-                  <div style="display:flex;align-items:center;gap:12px;">
+                  <div style="display:flex;align-items:center;gap:10px;">
                     <div class="av">{{ strtoupper(substr($user->name,0,1)) }}</div>
                     <div>
-                      <div style="font-weight:600;">{{ $user->name }}</div>
-                      <div style="font-size:0.75rem;color:var(--muted);">{{ $user->email }}</div>
+                      <div style="font-weight:600;color:var(--text);">{{ $user->name }}</div>
+                      <div style="font-size:0.75rem;color:var(--muted);overflow-wrap:anywhere;">{{ $user->email }}</div>
                     </div>
                   </div>
                 </td>
@@ -218,10 +252,10 @@
                     @endswitch
                   </span>
                 </td>
-                <td style="color:var(--muted);font-size:0.8rem;">
+                <td style="color:var(--muted);font-size:0.8125rem;">
                   {{ $user->institution?->name ?? '—' }}
                 </td>
-                <td style="font-weight:600;color:var(--accent4);">
+                <td style="color:var(--text);">
                   {{ number_format($user->xp ?? 0) }}
                 </td>
                 <td>
@@ -229,7 +263,7 @@
                     {{ $user->status }}
                   </span>
                 </td>
-                <td style="color:var(--muted);font-size:0.8rem;white-space:nowrap;">
+                <td style="color:var(--muted);font-size:0.8125rem;white-space:nowrap;">
                   {{ $user->created_at->format('M d, Y') }}
                 </td>
                 <td>
@@ -259,7 +293,7 @@
 
                     {{-- Promote: students and admins only, not yourself --}}
                     @if($user->role < 3 && $user->id !== auth()->id())
-                      <button class="btn btn-purple btn-sm"
+                      <button class="btn btn-secondary btn-sm"
                         onclick="openPromoteModal({{ $user->id }}, '{{ addslashes($user->name) }}', {{ $user->role }})">
                         Promote
                       </button>
@@ -267,7 +301,7 @@
 
                     {{-- Demote: admins and super admins only, not yourself --}}
                     @if($user->role >= 2 && $user->id !== auth()->id())
-                      <button class="btn btn-amber btn-sm"
+                      <button class="btn btn-secondary btn-sm"
                         onclick="openDemoteModal({{ $user->id }}, '{{ addslashes($user->name) }}', {{ $user->role }})">
                         Demote
                       </button>
@@ -275,7 +309,7 @@
 
                     {{-- Assign Institution Admin: non-super-admins, not yourself --}}
                     @if(!$user->isSuperAdmin() && $user->id !== auth()->id())
-                      <button class="btn btn-teal btn-sm"
+                      <button class="btn btn-secondary btn-sm"
                         onclick="openAssignInstModal({{ $user->id }}, '{{ addslashes($user->name) }}', {{ $user->institution_id ?? 'null' }})">
                         Inst. Admin
                       </button>
@@ -286,7 +320,7 @@
               </tr>
               @empty
               <tr>
-                <td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">
+                <td colspan="7" style="text-align:center;color:var(--muted);padding:32px 20px;">
                   No users found. Try adjusting your filters.
                 </td>
               </tr>
@@ -424,7 +458,7 @@
       <form method="POST" id="promoteForm" action="">
         @csrf @method('PATCH')
         <div class="modal-body">
-          <p style="font-size:0.875rem;color:var(--muted);line-height:1.6;">
+          <p style="font-size:0.875rem;color:var(--ds-text-secondary);line-height:1.55;">
             Promoting <strong id="promote_name" style="color:var(--text);"></strong> will change their system access immediately.
           </p>
           <div class="form-group">
@@ -440,7 +474,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-ghost" onclick="closeModal('promoteModal')">Cancel</button>
-            <button type="submit" class="btn btn-purple">Confirm Promotion</button>
+            <button type="submit" class="btn btn-primary">Confirm Promotion</button>
           </div>
         </div>
       </form>
@@ -459,10 +493,10 @@
       <form method="POST" id="demoteForm" action="">
         @csrf @method('PATCH')
         <div class="modal-body">
-          <p style="font-size:0.875rem;color:var(--muted);line-height:1.6;">
+          <p style="font-size:0.875rem;color:var(--ds-text-secondary);line-height:1.55;">
             You are about to demote <strong id="demote_name" style="color:var(--text);"></strong>
-            from <strong id="demote_from" style="color:var(--accent4);"></strong>
-            to <strong id="demote_to" style="color:var(--accent4);"></strong>.
+            from <strong id="demote_from" style="color:var(--text);"></strong>
+            to <strong id="demote_to" style="color:var(--text);"></strong>.
           </p>
           <div class="notice notice-warn">
             <strong>Warning:</strong> Demoting an <strong>Admin → Student</strong> will also remove them from their institution.
@@ -470,7 +504,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-ghost" onclick="closeModal('demoteModal')">Cancel</button>
-            <button type="submit" class="btn btn-amber">Confirm Demotion</button>
+            <button type="submit" class="btn btn-primary">Confirm Demotion</button>
           </div>
         </div>
       </form>
@@ -489,10 +523,10 @@
       <form method="POST" id="assignInstForm" action="">
         @csrf @method('PATCH')
         <div class="modal-body">
-          <p style="font-size:0.875rem;color:var(--muted);line-height:1.6;">
+          <p style="font-size:0.875rem;color:var(--ds-text-secondary);line-height:1.55;">
             Designate <strong id="assign_inst_name" style="color:var(--text);"></strong>
             as the administrator of an institution.
-            Their role will be set to <strong style="color:#fb923c;">Admin</strong> and they will be linked to the chosen institution.
+            Their role will be set to <strong style="color:var(--text);">Admin</strong> and they will be linked to the chosen institution.
           </p>
           <div class="form-group">
             <label>Institution *</label>
@@ -509,7 +543,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-ghost" onclick="closeModal('assignInstModal')">Cancel</button>
-            <button type="submit" class="btn btn-teal">Assign as Inst. Admin</button>
+            <button type="submit" class="btn btn-primary">Assign as Inst. Admin</button>
           </div>
         </div>
       </form>

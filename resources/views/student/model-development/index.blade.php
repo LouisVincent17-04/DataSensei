@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Model Development Roadmap - DataSensei</title>
+    <title>Model Development Roadmap — DataSensei</title>
     @include('student.model-development.partials.styles')
+    @include('partials.page-head', ['pageTitle' => 'Model Development Roadmap', 'pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
 </head>
 <body>
 <div class="ml-layout">
@@ -60,7 +61,7 @@
                     <section class="ml-card ml-starter ml-resume">
                         <div>
                             <h3>A model is still training: {{ $activeTrainingJob->model_name }}</h3>
-                            <p class="ml-muted" style="font-size:.82rem">{{ $activeTrainingJob->stage ?: 'Waiting for the machine-learning worker' }} · {{ $activeTrainingJob->progress }}% complete</p>
+                            <p class="ml-muted" style="font-size:.8125rem">{{ $activeTrainingJob->stage ?: 'Waiting for the machine-learning worker' }}, {{ $activeTrainingJob->progress }}% complete</p>
                         </div>
                         <a class="ml-btn" href="{{ route('student.model-development.training.show', $activeTrainingJob) }}">View Progress →</a>
                     </section>
@@ -68,7 +69,7 @@
                     <section class="ml-card ml-starter">
                         <div>
                             <h3>First time here? Start with {{ $starterDataset->name }}</h3>
-                            <p class="ml-muted" style="font-size:.82rem">It is small ({{ number_format($starterDataset->row_count) }} rows), already clean, and comes with a recommended target, features, and algorithm, so you can finish all ten steps in a few minutes.</p>
+                            <p class="ml-muted" style="font-size:.8125rem">It is small ({{ number_format($starterDataset->row_count) }} rows), already clean, and comes with a recommended target, features, and algorithm, so you can finish all ten steps in a few minutes.</p>
                         </div>
                         <a class="ml-btn" href="{{ route('student.model-development.wizard', ['dataset_type' => 'system', 'dataset_id' => $starterDataset->id, 'step' => 2]) }}">Start with this dataset →</a>
                     </section>
@@ -90,7 +91,7 @@
                                     <h3 class="ml-section-title">{{ $dataset->name }}</h3>
                                     <span class="ml-badge {{ $starterDataset && $starterDataset->id === $dataset->id ? 'good' : '' }}">{{ $starterDataset && $starterDataset->id === $dataset->id ? 'Start here' : ucfirst($dataset->problem_type) }}</span>
                                 </div>
-                                <p class="ml-muted" style="font-size:.8rem">{{ $dataset->description }}</p>
+                                <p class="ml-muted" style="font-size:.8125rem">{{ $dataset->description }}</p>
                                 <div class="ml-meta">
                                     <div><span>Rows</span><strong>{{ number_format($dataset->row_count) }}</strong></div>
                                     <div><span>Columns</span><strong>{{ $dataset->column_count }}</strong></div>
@@ -98,7 +99,7 @@
                                     <div><span>Problem type</span><strong>{{ ucfirst($dataset->problem_type) }}</strong></div>
                                 </div>
                                 @if(! empty($datasetSetup['algorithm_key']))
-                                    <p class="ml-recommended-line">Suggested algorithm: <strong>{{ config('hybrid_ml.algorithms.'.$datasetSetup['algorithm_key'].'.label', str($datasetSetup['algorithm_key'])->replace('_', ' ')->title()) }}</strong> · {{ $dataset->benchmarks->count() }} reference models to compare with</p>
+                                    <p class="ml-recommended-line">Suggested algorithm: <strong>{{ config('hybrid_ml.algorithms.'.$datasetSetup['algorithm_key'].'.label', str($datasetSetup['algorithm_key'])->replace('_', ' ')->title()) }}</strong>, {{ $dataset->benchmarks->count() }} reference models to compare with</p>
                                 @endif
                                 <div class="ml-actions">
                                     <a class="ml-btn secondary" href="{{ route('student.model-development.system-datasets.show', $dataset) }}">Preview</a>
@@ -182,7 +183,7 @@
                                 <select class="ml-select" id="class_id" name="class_id">
                                     <option value="">Private, no class</option>
                                     @foreach($classes as $class)
-                                        <option value="{{ $class->id }}" @selected(old('class_id') == $class->id)>{{ $class->name }}{{ $class->section ? ' · '.$class->section : '' }}</option>
+                                        <option value="{{ $class->id }}" @selected(old('class_id') == $class->id)>{{ $class->name }}{{ $class->section ? ', '.$class->section : '' }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -202,7 +203,7 @@
                     <div class="ml-grid two">
                         <div class="ml-card">
                             <h3 class="ml-section-title">Saved Models</h3>
-                            <div class="ml-table-wrap" style="margin-top:14px">
+                            <div class="ml-table-wrap" style="margin-top:16px">
                                 <table class="ml-table">
                                     <thead><tr><th>Model</th><th>Algorithm</th><th>Version</th><th>Action</th></tr></thead>
                                     <tbody>
@@ -223,7 +224,7 @@
 
                         <div class="ml-card">
                             <h3 class="ml-section-title">Training History</h3>
-                            <div class="ml-table-wrap" style="margin-top:14px">
+                            <div class="ml-table-wrap" style="margin-top:16px">
                                 <table class="ml-table">
                                     <thead><tr><th>Model</th><th>Status</th><th>Progress</th><th>Action</th></tr></thead>
                                     <tbody>

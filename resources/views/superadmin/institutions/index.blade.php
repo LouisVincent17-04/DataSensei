@@ -3,102 +3,161 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DataSensei — Institution Management</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
+  <title>Institution Management — DataSensei</title>
+<style>
+    /* Institution management. Colours, type and radius come from partials.design-system. */
     :root {
-      --bg:#0d1320; --surface:#111c2d; --surface2:#1a2638; --border:#1e2f47; --border-hover:#2c4168;
-      --accent:#3b82f6; --accent-hover:#2563eb; --accent2:#8b5cf6; --accent3:#10b981; --accent4:#f59e0b;
-      --warn:#ef4444; --text:#fafafa; --muted:#7f93b0; --dim:#3d5272; --radius:8px; --radius-sm:6px;
+      --accent2: var(--ds-accent);
+      --accent3: var(--ds-success);
+      --accent4: var(--ds-warning);
+      --warn:    var(--ds-danger);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    body { font-family: var(--ds-font-sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; overflow-x: hidden; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-    .topbar { height: 64px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 16px; flex-shrink: 0; }
-    .topbar h1 { font-size: 1.125rem; font-weight: 600; flex: 1; letter-spacing: -0.01em; }
-    .content { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+    /* Title bar */
+    .topbar { min-height: 60px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px;
+      background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .content { flex: 1; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 20px; }
 
-    .flash { padding: 12px 20px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; border-left: 3px solid; }
-    .flash-success { background: rgba(16,185,129,0.08); border-color: var(--accent3); color: var(--accent3); }
-    .flash-error   { background: rgba(239,68,68,0.08); border-color: var(--warn); color: var(--warn); }
+    /* Flash */
+    .flash { padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: .875rem; line-height: 1.5; }
+    .flash-success { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: #d1fae5; }
+    .flash-error   { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: #fee2e2; }
 
-    .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .search-box { display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; gap: 10px; min-width: 260px; flex: 1; max-width: 400px; transition: border-color 0.15s; }
-    .search-box:focus-within { border-color: var(--accent); }
-    .search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 0.875rem; font-family: inherit; width: 100%; }
+    /* Filters */
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .search-box { flex: 1 1 220px; min-width: 0; max-width: 360px; min-height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 8px;
+      background: var(--surface3); border: 1px solid var(--ds-input-border); border-radius: var(--radius-sm);
+      transition: border-color .12s ease, box-shadow .12s ease; }
+    .search-box:focus-within { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
+    .search-box input { width: 100%; min-width: 0; padding: 8px 0; background: none; border: none; outline: none; box-shadow: none;
+      color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); }
+    .search-box input:focus-visible { box-shadow: none; }
     .search-box input::placeholder { color: var(--dim); }
-    select.filter { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; color: var(--text); font-size: 0.875rem; font-family: inherit; cursor: pointer; outline: none; }
-    select.filter:focus { border-color: var(--accent); }
+    select.filter { min-height: 38px; max-width: 100%; padding: 8px 12px; background: var(--surface3); border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm); color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); outline: none;
+      transition: border-color .12s ease, box-shadow .12s ease; }
+    select.filter:focus { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
 
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 18px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; font-family: inherit; text-decoration: none; }
-    .btn-primary  { background: var(--accent); color: #fff; }
-    .btn-primary:hover  { background: var(--accent-hover); }
-    .btn-ghost    { background: var(--surface); color: var(--text); border-color: var(--border); }
-    .btn-ghost:hover    { border-color: var(--border-hover); }
-    .btn-danger   { background: rgba(239,68,68,0.1); color: var(--warn); border-color: rgba(239,68,68,0.3); }
-    .btn-danger:hover   { background: rgba(239,68,68,0.18); }
-    .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 16px;
+      border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text);
+      font: 500 .875rem/1.2 var(--ds-font-sans); text-decoration: none; white-space: nowrap; cursor: pointer;
+      transition: background .12s ease, border-color .12s ease, color .12s ease; }
+    .btn:hover { background: var(--ds-surface-hover); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-ghost { background: var(--surface2); border-color: var(--ds-border-strong); color: var(--text); }
+    .btn-ghost:hover { background: var(--ds-surface-hover); }
+    .btn-danger { background: transparent; border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
+    .btn-danger:hover { background: var(--ds-danger-soft); }
+    .btn-sm { min-height: 32px; padding: 0 12px; font-size: .8125rem; }
 
-    /* INST GRID */
-    .inst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
-    .inst-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; transition: border-color 0.15s; }
+    /* Institution cards */
+    .inst-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+    .inst-card { min-width: 0; padding: 20px; display: flex; flex-direction: column; gap: 16px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); transition: border-color .12s ease; }
     .inst-card:hover { border-color: var(--border-hover); }
-    .inst-card-top { display: flex; align-items: flex-start; gap: 14px; }
-    .inst-logo { width: 46px; height: 46px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+    .inst-card-top { display: flex; align-items: flex-start; gap: 12px; }
+    .inst-card-top > .pill { flex-shrink: 0; }
+    .inst-logo { width: 40px; height: 40px; flex: 0 0 40px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+      background: var(--surface2); border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); color: var(--muted); }
     .inst-logo img { width: 100%; height: 100%; object-fit: cover; }
-    .inst-info .inst-name { font-size: 1rem; font-weight: 700; color: var(--text); }
-    .inst-info .inst-email { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
-    .inst-stats { display: flex; gap: 16px; }
+    .inst-logo svg { width: 20px; height: 20px; }
+    .inst-info .inst-name { color: var(--text); font-size: .9375rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+    .inst-info .inst-email { margin-top: 2px; color: var(--muted); font-size: .8125rem; overflow-wrap: anywhere; }
+    .inst-info a { display: inline-block; margin-top: 2px; text-decoration: none; overflow-wrap: anywhere; }
+    .inst-info a:hover { text-decoration: underline; }
+    .inst-stats { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 28px; padding: 12px 14px; background: var(--surface3); border-radius: var(--radius-sm); }
     .inst-stat { display: flex; flex-direction: column; gap: 2px; }
-    .inst-stat-val { font-size: 1.25rem; font-weight: 700; }
-    .inst-stat-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
-    .inst-card-footer { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
-    .inst-meta-item { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--muted); }
+    .inst-stat-val { color: var(--text); font-size: 1.125rem; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+    .inst-stat-lbl { color: var(--muted); font-size: .75rem; }
+    .inst-card-footer { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .inst-meta-item { display: flex; align-items: flex-start; gap: 6px; color: var(--muted); font-size: .8125rem; line-height: 1.45; overflow-wrap: anywhere; }
+    .inst-meta-item svg { margin-top: 3px; }
 
-    /* PILLS */
-    .pill { display: inline-flex; align-items: center; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-    .pill-active   { background: rgba(16,185,129,0.12);  color: var(--accent3); border: 1px solid rgba(16,185,129,0.25); }
-    .pill-disabled { background: rgba(239,68,68,0.08);   color: var(--warn);    border: 1px solid rgba(239,68,68,0.2); }
+    /* Status badge */
+    .pill { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs);
+      background: var(--surface2); color: var(--ds-text-secondary); font-size: .75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; text-transform: capitalize; }
+    .pill-active   { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: var(--ds-success-text); }
+    .pill-disabled { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
 
-    /* PAGINATION */
-    .pagination { display: flex; gap: 6px; justify-content: center; padding: 20px 0; }
-    .pagination a, .pagination span { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; padding: 0 10px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500; border: 1px solid var(--border); color: var(--muted); text-decoration: none; transition: all 0.15s; }
-    .pagination a:hover { background: var(--surface2); color: var(--text); }
-    .pagination .active span { background: var(--accent); color: #fff; border-color: var(--accent); }
+    /* Pagination (vendor/pagination/admin) */
+    .pagination { padding: 4px 0 0; }
+    .pagination:not(:has(.admin-pagination)) { display: none; }
 
-    /* MODAL */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(3px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+    /* Dialogs */
+    .modal-overlay { position: fixed; inset: 0; z-index: 1300; /* above the mobile bar and drawer */ display: none; align-items: center; justify-content: center;
+      padding: 16px; background: var(--ds-overlay); overflow-y: auto; }
     .modal-overlay.open { display: flex; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
-    .modal-header { padding: 24px 28px 0; display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 1.1rem; font-weight: 700; }
-    .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; transition: color 0.15s; }
-    .modal-close:hover { color: var(--text); }
-    .modal-body  { padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 16px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
-    .form-control { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 14px; color: var(--text); font-size: 0.875rem; font-family: inherit; outline: none; transition: border-color 0.15s; width: 100%; }
-    .form-control:focus { border-color: var(--accent); }
-    textarea.form-control { resize: vertical; min-height: 80px; }
-    .form-error { font-size: 0.75rem; color: var(--warn); margin-top: 2px; }
-    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; }
+    .modal { width: 100%; max-width: 560px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-lg); box-shadow: var(--ds-shadow-lg); }
+    .modal-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+    .modal-title { font-size: 1rem; font-weight: 600; line-height: 1.35; }
+    .modal-close { width: 32px; height: 32px; flex: 0 0 32px; display: inline-flex; align-items: center; justify-content: center; margin-right: -6px;
+      padding: 0; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--muted); cursor: pointer;
+      transition: background .12s ease, color .12s ease; }
+    .modal-close:hover { background: var(--surface2); color: var(--text); }
+    .modal-close svg { width: 18px; height: 18px; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .form-group label { color: var(--ds-text-secondary); font-size: .8125rem; font-weight: 500; line-height: 1.35; }
+    .form-group label span { font-weight: 400; }
+    .form-control { width: 100%; min-height: 38px; padding: 8px 12px; background: var(--surface3); border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm); color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); outline: none;
+      transition: border-color .12s ease, box-shadow .12s ease; }
+    .form-control::placeholder { color: var(--dim); }
+    .form-control:focus { border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
+    input[type="file"].form-control { padding: 6px 8px; color: var(--ds-text-secondary); font-size: .8125rem; }
+    input[type="file"].form-control::file-selector-button { margin-right: 10px; min-height: 26px; padding: 0 10px; border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-xs); background: var(--surface2); color: var(--text); font: 500 .8125rem/1.2 var(--ds-font-sans); cursor: pointer; }
+    textarea.form-control { min-height: 96px; resize: vertical; line-height: 1.55; }
+    .form-error { color: var(--ds-danger-text); font-size: .75rem; line-height: 1.4; }
+    .modal-footer { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;
+      margin: 4px -20px -20px; padding: 16px 20px; border-top: 1px solid var(--border); }
 
-    /* DELETE MODAL */
-    .delete-modal .modal { max-width: 400px; }
-    .delete-icon { width: 52px; height: 52px; border-radius: 50%; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
-    .delete-body { text-align: center; padding: 32px 28px 28px; }
-    .delete-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
-    .delete-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.5; }
-    .delete-footer { display: flex; gap: 10px; justify-content: center; padding-top: 20px; }
+    /* Delete dialog */
+    .delete-modal .modal { max-width: 420px; }
+    .delete-body { padding: 20px 20px 0; }
+    .delete-title { margin-bottom: 8px; font-size: 1rem; font-weight: 600; line-height: 1.35; }
+    .delete-desc { color: var(--ds-text-secondary); font-size: .875rem; line-height: 1.55; }
+    .delete-desc strong { color: var(--text); font-weight: 600; }
+    .delete-footer { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center;
+      margin: 20px -20px 0; padding: 16px 20px; border-top: 1px solid var(--border); }
+    .delete-footer .btn-danger { background: var(--ds-danger); border-color: var(--ds-danger); color: #fff; }
+    .delete-footer .btn-danger:hover { background: var(--ds-danger-strong); border-color: var(--ds-danger-strong); }
 
     /* Empty state */
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-state svg { opacity: 0.3; margin: 0 auto 16px; display: block; }
-    .empty-state h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-    .empty-state p { font-size: 0.875rem; }
+    .empty-state { padding: 32px 20px; text-align: center; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .empty-state svg { width: 28px; height: 28px; margin: 0 auto 12px; display: block; color: var(--dim); }
+    .empty-state h3 { margin-bottom: 4px; color: var(--text); font-size: .9375rem; font-weight: 600; }
+    .empty-state p { font-size: .875rem; }
+
+    @media (max-width: 900px) {
+      .topbar { min-height: 56px; padding: 8px 20px; }
+      .content { padding: 24px 20px 40px; }
+    }
+    @media (max-width: 640px) {
+      .topbar { padding: 8px 16px; }
+      .content { padding: 20px 16px 32px; gap: 16px; }
+      .search-box { flex: 1 1 100%; max-width: none; }
+      select.filter { flex: 1 1 140px; }
+      .toolbar > .btn { flex: 1 1 auto; }
+      .inst-card { padding: 16px; }
+      .form-row { grid-template-columns: minmax(0, 1fr); }
+      .modal-header { padding: 14px 16px; }
+      .modal-body { padding: 16px; }
+      .modal-footer { margin: 4px -16px -16px; padding: 14px 16px; }
+      .modal-footer .btn { flex: 1 1 auto; }
+      .delete-body { padding: 16px 16px 0; }
+      .delete-footer { margin: 16px -16px 0; padding: 14px 16px; }
+    }
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Institution Management', 'pageDescription' => 'Manage the institutions using DataSensei.'])
 </head>
 <body>
 
@@ -141,7 +200,7 @@
       </form>
 
       {{-- Summary line --}}
-      <p style="font-size:0.8rem;color:var(--muted);">
+      <p style="font-size:0.8125rem;color:var(--muted);">
         {{ $institutions->total() }} institution{{ $institutions->total() !== 1 ? 's' : '' }} found
       </p>
 
@@ -161,14 +220,14 @@
                 @if($inst->logo_path)
                   <img src="{{ Storage::url($inst->logo_path) }}" alt="{{ $inst->name }}">
                 @else
-                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="var(--accent2)" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 @endif
               </div>
               <div class="inst-info" style="flex:1;min-width:0;">
                 <div class="inst-name">{{ $inst->name }}</div>
                 <div class="inst-email">{{ $inst->email }}</div>
                 @if($inst->website)
-                  <a href="{{ $inst->website }}" target="_blank" style="font-size:0.75rem;color:var(--accent);text-decoration:none;">{{ $inst->website }}</a>
+                  <a href="{{ $inst->website }}" target="_blank" style="font-size:0.8125rem;color:var(--ds-accent-text);">{{ $inst->website }}</a>
                 @endif
               </div>
               <span class="pill {{ $inst->status === 'active' ? 'pill-active' : 'pill-disabled' }}">{{ $inst->status }}</span>
@@ -176,15 +235,15 @@
 
             <div class="inst-stats">
               <div class="inst-stat">
-                <span class="inst-stat-val" style="color:var(--accent);">{{ number_format($inst->student_count) }}</span>
+                <span class="inst-stat-val">{{ number_format($inst->student_count) }}</span>
                 <span class="inst-stat-lbl">Students</span>
               </div>
               <div class="inst-stat">
-                <span class="inst-stat-val" style="color:var(--accent2);">{{ number_format($inst->admin_count) }}</span>
+                <span class="inst-stat-val">{{ number_format($inst->admin_count) }}</span>
                 <span class="inst-stat-lbl">Admins</span>
               </div>
               <div class="inst-stat" style="margin-left:auto;">
-                <span class="inst-stat-val" style="color:var(--muted);font-size:0.875rem;">{{ $inst->created_at->format('M Y') }}</span>
+                <span class="inst-stat-val" style="color:var(--ds-text-secondary);font-size:0.875rem;">{{ $inst->created_at->format('M Y') }}</span>
                 <span class="inst-stat-lbl">Joined</span>
               </div>
             </div>
@@ -286,8 +345,8 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Logo <span style="color:var(--dim)">(optional, max 2MB)</span></label>
-              <input class="form-control" type="file" name="logo" accept="image/*" style="padding:6px 14px;">
+              <label>Logo <span style="color:var(--muted)">(optional, max 2MB)</span></label>
+              <input class="form-control" type="file" name="logo" accept="image/*" style="padding:6px 8px;">
               @error('logo')<span class="form-error">{{ $message }}</span>@enderror
             </div>
           </div>
@@ -349,8 +408,8 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Replace Logo <span style="color:var(--dim)">(optional)</span></label>
-              <input class="form-control" type="file" name="logo" accept="image/*" style="padding:6px 14px;">
+              <label>Replace Logo <span style="color:var(--muted)">(optional)</span></label>
+              <input class="form-control" type="file" name="logo" accept="image/*" style="padding:6px 8px;">
             </div>
           </div>
           <div class="form-group">
@@ -370,15 +429,10 @@
   <div class="modal-overlay delete-modal" id="deleteModal">
     <div class="modal" style="max-width:420px;">
       <div class="delete-body">
-        <div class="delete-icon">
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="var(--warn)" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-          </svg>
-        </div>
         <div class="delete-title">Delete Institution?</div>
         <div class="delete-desc">
           You are about to permanently delete <strong id="deleteInstName"></strong>.
-          <span id="deleteWarning" style="display:none;color:var(--warn);font-weight:600;display:block;margin-top:8px;"></span>
+          <span id="deleteWarning" style="display:none;color:var(--ds-danger-text);font-weight:600;display:block;margin-top:8px;"></span>
           This action <strong>cannot be undone</strong>. All associated users will be unlinked.
         </div>
         <div class="delete-footer">

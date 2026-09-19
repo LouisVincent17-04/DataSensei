@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ $tos->title }} — Set Distribution</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  @include('instructor.tos.partials.styles')
+@include('instructor.tos.partials.styles')
+    @include('partials.page-head', ['pageDescription' => 'Build a table of specifications for a balanced assessment.'])
 </head>
 <body>
 <div class="layout">
@@ -14,9 +14,8 @@
     <div class="wrap">
       <div class="top">
         <div>
-          <div class="kicker">Step 2 of 3</div>
           <h1 class="title ds-page-title">Set Distribution</h1>
-          <p class="subtitle">{{ $tos->title }} · {{ $tos->classRoom->name ?? 'Template / no class' }} · {{ $tos->coverage_label }}{{ $module ? ' — '.$module->title : '' }}</p>
+          <p class="subtitle">{{ $tos->title }}, {{ $tos->classRoom->name ?? 'Template / no class' }}, {{ $tos->coverage_label }}{{ $module ? ' — '.$module->title : '' }}</p>
         </div>
         <div class="actions">
           <a class="btn secondary" href="{{ route('instructor.tos.index') }}">TOS Library</a>
@@ -51,7 +50,6 @@
         <div class="card" style="margin-top:16px">
           <div class="section-title">
             <div>
-              <div class="kicker">Auto-Fill TOS</div>
               <h2>Generate Suggested Distribution</h2>
               <div class="muted">Use a simple cognitive balance, then customize the matrix if needed.</div>
             </div>
@@ -78,19 +76,19 @@
                   </div>
                 @endforeach
               </div>
-              <div class="muted small" style="margin-top:7px">Weights are used proportionally. They do not need to total exactly 100 because DataSensei normalizes them automatically.</div>
+              <div class="muted small" style="margin-top:8px">Weights are used proportionally. They do not need to total exactly 100 because DataSensei normalizes them automatically.</div>
             </div>
 
-            <div class="actions" style="margin-top:14px">
+            <div class="actions" style="margin-top:16px">
               @if($tos->assessments_count === 0)
-                <button class="btn" type="submit">✨ Apply Suggested Distribution</button>
+                <button class="btn" type="submit">Apply suggested distribution</button>
                 <a class="btn secondary" href="#tos-matrix">Customize Matrix</a>
               @endif
               <span class="muted small">Percentages must total 100%.</span>
             </div>
           </form>
 
-          <details class="help" style="margin-top:14px">
+          <details class="help" style="margin-top:16px">
             <summary>What do these cognitive levels mean?</summary>
             <div class="definition-grid">
               @foreach($cognitiveLevels as $definition)
@@ -105,7 +103,6 @@
           @method('PATCH')
           <div class="section-title">
             <div>
-              <div class="kicker">TOS Matrix</div>
               <h2>Learning Competency Distribution</h2>
               <div class="muted">Weights and totals recalculate automatically as you edit item counts.</div>
             </div>
@@ -125,9 +122,9 @@
               <tbody>
               @foreach($matrix['groups'] as $groupIndex => $group)
                 <tr data-competency-row>
-                  <td style="min-width:260px">
+                  <td style="min-width:min(260px, 55vw)">
                     <strong>{{ $group['title'] }}</strong>
-                    @if($group['objective'])<div class="muted small" style="margin-top:5px">{{ $group['objective'] }}</div>@endif
+                    @if($group['objective'])<div class="muted small" style="margin-top:4px">{{ $group['objective'] }}</div>@endif
                   </td>
                   <td class="weight-cell"><strong data-row-weight>{{ $group['weight'] }}%</strong></td>
                   @foreach($cognitiveLevels as $slug => $definition)
@@ -166,7 +163,7 @@
             </table>
           </div>
 
-          <div class="callout" style="margin-top:14px">
+          <div class="callout" style="margin-top:16px">
             The TOS is only the blueprint. Question type, question text, choices, answers, images, and rubrics are handled later in the existing Question Builder.
           </div>
 

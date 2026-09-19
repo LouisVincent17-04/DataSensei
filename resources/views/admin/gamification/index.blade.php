@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Gamification Management')
-@section('eyebrow', 'Platform Motivation')
 @section('page_title', 'Gamification Management')
 @section('page_subtitle', 'Review ranks and maintain achievement and mission definitions. Editors stay collapsed until a record is selected, keeping the page easier to scan.')
 
@@ -11,7 +10,7 @@
       'blue' => ['label' => 'Blue', 'hex' => '#3b82f6'],
       'green' => ['label' => 'Green', 'hex' => '#10b981'],
       'amber' => ['label' => 'Amber', 'hex' => '#f59e0b'],
-      'purple' => ['label' => 'Purple', 'hex' => '#8b5cf6'],
+      'purple' => ['label' => 'Purple', 'hex' => '#3b82f6'],
       'teal' => ['label' => 'Teal', 'hex' => '#14b8a6'],
       'indigo' => ['label' => 'Indigo', 'hex' => '#6366f1'],
       'gold' => ['label' => 'Gold', 'hex' => '#eab308'],
@@ -145,7 +144,7 @@
                 </div>
               </div>
 
-              <div class="field" style="margin-top:14px">
+              <div class="field" style="margin-top:16px">
                 <label for="achievement-description-{{ $achievement->id }}">Description</label>
                 <textarea id="achievement-description-{{ $achievement->id }}" class="textarea" name="description">{{ $achievement->description }}</textarea>
               </div>
@@ -183,8 +182,8 @@
             </div>
 
             <div class="management-metric">
-              <strong>{{ ucfirst($mission->period_type) }} · {{ $mission->target_type }}</strong>
-              Target {{ number_format($mission->target_count) }} · {{ number_format($mission->xp_reward) }} XP
+              <strong>{{ ucfirst($mission->period_type) }}, {{ $mission->target_type }}</strong>
+              Target {{ number_format($mission->target_count) }}, {{ number_format($mission->xp_reward) }} XP
             </div>
 
             <div class="summary-status">
@@ -248,7 +247,7 @@
                 </div>
               </div>
 
-              <div class="field" style="margin-top:14px">
+              <div class="field" style="margin-top:16px">
                 <label for="mission-description-{{ $mission->id }}">Description</label>
                 <textarea id="mission-description-{{ $mission->id }}" class="textarea" name="description">{{ $mission->description }}</textarea>
               </div>

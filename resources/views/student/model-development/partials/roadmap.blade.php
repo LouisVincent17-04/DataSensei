@@ -52,7 +52,7 @@
                         : ($isCurrent ? 'current' : ($isCompleted ? 'complete' : 'locked')));
                 $stateLabel = match ($state) {
                     'complete' => '✓ Completed',
-                    'current-complete' => '✓ Completed · Current step',
+                    'current-complete' => '✓ Completed, Current step',
                     'current' => 'CURRENT STEP',
                     'error' => '⚠ Needs attention',
                     default => '🔒 Not available yet',
@@ -113,7 +113,7 @@
 
     const stateLabel = state => ({
         complete: '✓ Completed',
-        'current-complete': '✓ Completed · Current step',
+        'current-complete': '✓ Completed, Current step',
         current: 'CURRENT STEP',
         error: '⚠ Needs attention',
         locked: '🔒 Not available yet',

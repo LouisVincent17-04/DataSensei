@@ -10,6 +10,23 @@ use Illuminate\Support\Str;
 
 class PythonSandboxService
 {
+    /**
+     * The only variables a locally-run student program inherits.
+     *
+     * Symfony merges the parent environment into a child process, so without
+     * this the web server's own variables — APP_KEY, the database password, the
+     * mail credentials — would be readable from student code through
+     * os.environ or by opening /proc/self/environ. Everything outside this list
+     * and the DS_* runner settings is removed before the program starts.
+     */
+    private const RUNNER_ENV_ALLOWLIST = [
+        'PATH', 'HOME', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TMPDIR', 'TMP', 'TEMP',
+        'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT', 'USERPROFILE', 'APPDATA',
+        'LOCALAPPDATA', 'PROGRAMDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)',
+        'COMMONPROGRAMFILES', 'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE', 'OS',
+        'PYTHONHOME', 'PYTHONPATH', 'PYTHONIOENCODING', 'PYTHONUTF8',
+    ];
+
     private const INPUT_REQUIRED_MARKER = '__DATASENSEI_INPUT_REQUIRED__:';
 
     private const INPUTS_CONSUMED_MARKER = '__DATASENSEI_INPUTS_CONSUMED__:';
@@ -192,7 +209,7 @@ class PythonSandboxService
         try {
             $process = Process::timeout($timeout + 2)
                 ->path($workspacePath)
-                ->env($environment)
+                ->env($this->isolatedEnvironment($environment))
                 ->input($stdin)
                 ->run([$python, '-B', '-u', $runner, $entry]);
 
@@ -360,6 +377,38 @@ class PythonSandboxService
     }
 
     /** @return array<string, string> */
+    /**
+     * Drops every inherited variable that is not on the allowlist.
+     *
+     * Symfony removes a variable from the child process when its value is
+     * false, so the web server's secrets never reach the student's program.
+     * The Docker driver does not need this: a container starts with a clean
+     * environment and only receives the DS_* values passed with -e.
+     *
+     * @param  array<string, string>  $environment
+     * @return array<string, string|false>
+     */
+    private function isolatedEnvironment(array $environment): array
+    {
+        $inherited = getenv();
+
+        if (! is_array($inherited)) {
+            return $environment;
+        }
+
+        foreach (array_keys($inherited) as $name) {
+            $upper = strtoupper((string) $name);
+
+            if (array_key_exists($upper, $environment) || in_array($upper, self::RUNNER_ENV_ALLOWLIST, true)) {
+                continue;
+            }
+
+            $environment[(string) $name] = false;
+        }
+
+        return $environment;
+    }
+
     private function runnerEnvironment(string $workspacePath, string $inputPath, int $timeout, bool $interactiveInput = false): array
     {
         $maxOutput = (int) config('code_execution.python.max_stdout_bytes', 60000)

@@ -31,7 +31,10 @@
     </div>
 
     <div class="ds-notification-list" id="ds-notification-list" aria-live="polite">
-      <div class="ds-notification-loading">Loading notifications…</div>
+      <div class="ds-notification-loading ds-visually-hidden">Loading notifications…</div>
+      <div class="ds-notification-skeleton" aria-hidden="true"><span class="sk-avatar"></span><div><span class="sk-title"></span><span class="sk-line"></span></div></div>
+      <div class="ds-notification-skeleton" aria-hidden="true"><span class="sk-avatar"></span><div><span class="sk-title"></span><span class="sk-line"></span></div></div>
+      <div class="ds-notification-skeleton" aria-hidden="true"><span class="sk-avatar"></span><div><span class="sk-title"></span><span class="sk-line"></span></div></div>
     </div>
 
     <a href="{{ route('student.notifications.index') }}" class="ds-notification-see-all">See all notifications</a>
@@ -39,42 +42,55 @@
 </div>
 
 <style>
-  .ds-notification-center{position:relative;flex:0 0 auto;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-  .ds-notification-center--sidebar{position:fixed;top:14px;left:208px;z-index:5100}
-  .ds-notification-trigger{position:relative;width:38px;height:38px;border:1px solid var(--border,#26364d);border-radius:9px;background:var(--surface2,#182438);color:var(--muted,#8ca0bb);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.16s ease;padding:0}
-  .ds-notification-trigger:hover,.ds-notification-trigger[aria-expanded="true"]{color:var(--text,#f8fafc);border-color:var(--accent,#3b82f6);background:rgba(59,130,246,.12)}
-  .ds-notification-center--topbar .ds-notification-trigger{width:30px;height:30px;border-radius:6px;background:transparent}
-  .ds-notification-center--topbar .ds-notification-panel{top:50px;left:auto;right:12px;width:min(400px,calc(100vw - 24px))}
-  .ds-notification-badge{position:absolute;top:-7px;right:-7px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;border:2px solid var(--surface,#111c2d);font-size:10px;font-weight:800;line-height:15px;text-align:center}
-  .ds-notification-panel{position:fixed;top:68px;left:242px;width:min(400px,calc(100vw - 270px));max-height:min(640px,calc(100vh - 84px));background:#111c2d;border:1px solid #273a55;border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.48);z-index:5000;overflow:hidden;color:#f8fafc}
+  /* The bell sits in the sidebar header on desktop and in the mobile bar
+     on small screens; the panel opens beside it. */
+  .ds-notification-center{position:relative;flex:0 0 auto;font-family:var(--ds-font-sans,Inter,Arial,Helvetica,sans-serif)}
+  .ds-notification-center--sidebar{position:fixed;top:20px;left:206px;z-index:1250}
+  .ds-notification-trigger{position:relative;width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--ds-border-strong,#2c4168);border-radius:var(--ds-radius-sm,6px);background:var(--ds-surface-2,#1a2638);color:var(--ds-text-muted,#8aa0bd);cursor:pointer;transition:background .12s ease,color .12s ease,border-color .12s ease}
+  .ds-notification-trigger svg{width:18px;height:18px}
+  .ds-notification-trigger:hover,.ds-notification-trigger[aria-expanded="true"]{color:var(--ds-text,#f8fafc);border-color:var(--ds-accent-border,rgba(59,130,246,.4));background:var(--ds-accent-soft,rgba(59,130,246,.12))}
+  .ds-notification-center--topbar .ds-notification-trigger{width:32px;height:32px;background:transparent}
+  .ds-notification-center--topbar .ds-notification-panel{top:52px;left:auto;right:12px;width:min(400px,calc(100vw - 24px))}
+  .ds-notification-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border:2px solid var(--ds-surface,#111c2d);border-radius:9px;background:var(--ds-danger,#ef4444);color:#fff;font-size:11px;font-weight:700;line-height:14px;text-align:center}
+  .ds-notification-panel{position:fixed;top:68px;left:244px;z-index:1240;width:min(400px,calc(100vw - 268px));max-height:min(640px,calc(100vh - 84px));overflow:hidden;display:flex;flex-direction:column;background:var(--ds-surface,#111c2d);border:1px solid var(--ds-border-strong,#2c4168);border-radius:var(--ds-radius-lg,10px);box-shadow:var(--ds-shadow-lg);color:var(--ds-text,#f8fafc)}
   .ds-notification-panel[hidden]{display:none}
-  .ds-notification-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 18px 12px}
-  .ds-notification-panel-head h2{font-size:1.25rem;line-height:1.2;margin:0;font-weight:750;letter-spacing:-.025em}
-  .ds-notification-panel-head p{margin:4px 0 0;color:#8ca0bb;font-size:.76rem}
-  .ds-notification-text-btn{border:0;background:transparent;color:#60a5fa;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer;padding:4px 0;white-space:nowrap}
+  .ds-notification-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:16px 16px 12px}
+  .ds-notification-panel-head h2{margin:0;font-size:1rem;font-weight:600;line-height:1.3;letter-spacing:0}
+  .ds-notification-panel-head p{margin:2px 0 0;color:var(--ds-text-muted,#8aa0bd);font-size:.75rem}
+  .ds-notification-text-btn{padding:4px 0;border:0;background:transparent;color:var(--ds-accent-text,#93c5fd);font:inherit;font-size:.75rem;font-weight:500;white-space:nowrap;cursor:pointer}
   .ds-notification-text-btn:hover{text-decoration:underline}
-  .ds-notification-tabs{display:flex;gap:5px;padding:0 14px 12px;border-bottom:1px solid #22334b}
-  .ds-notification-tabs button{border:0;background:transparent;color:#8ca0bb;padding:7px 13px;border-radius:999px;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer}
-  .ds-notification-tabs button.active{background:rgba(59,130,246,.16);color:#93c5fd}
-  .ds-notification-list{overflow-y:auto;max-height:470px;min-height:120px}
-  .ds-notification-item{display:grid;grid-template-columns:40px minmax(0,1fr) 8px;gap:11px;align-items:start;padding:13px 15px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(39,58,85,.72);position:relative;transition:background .14s ease}
-  .ds-notification-item:hover{background:#17243a}
-  .ds-notification-item.unread{background:rgba(59,130,246,.075)}
-  .ds-notification-item.unread:hover{background:rgba(59,130,246,.13)}
-  .ds-notification-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#1d2b42;border:1px solid #2d4262;color:#93c5fd;flex-shrink:0}
-  .ds-notification-icon svg{width:18px;height:18px}
-  .ds-notification-item-title{font-size:.85rem;font-weight:750;line-height:1.35;margin:0 0 3px;color:#f8fafc}
-  .ds-notification-item-message{font-size:.78rem;line-height:1.45;color:#b0bfd2;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  .ds-notification-item-time{font-size:.7rem;color:#7186a3;margin-top:5px}
-  .ds-notification-unread-dot{width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-top:7px}
+  .ds-notification-tabs{display:flex;gap:16px;padding:0 16px;border-bottom:1px solid var(--ds-border,#1e2f47)}
+  .ds-notification-tabs button{margin-bottom:-1px;padding:8px 0;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--ds-text-muted,#8aa0bd);font:inherit;font-size:.8125rem;font-weight:500;cursor:pointer}
+  .ds-notification-tabs button:hover{color:var(--ds-text,#f8fafc)}
+  .ds-notification-tabs button.active{border-bottom-color:var(--ds-accent,#3b82f6);color:var(--ds-text,#f8fafc)}
+  .ds-notification-list{flex:1 1 auto;min-height:120px;max-height:470px;overflow-y:auto}
+  .ds-notification-item{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr) 8px;gap:12px;align-items:start;padding:12px 16px;border-bottom:1px solid var(--ds-border,#1e2f47);color:inherit;text-decoration:none;transition:background .12s ease}
+  .ds-notification-item:hover{background:var(--ds-surface-2,#1a2638)}
+  .ds-notification-item.unread{background:rgba(59,130,246,.06)}
+  .ds-notification-item.unread:hover{background:rgba(59,130,246,.11)}
+  .ds-notification-icon{width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--ds-border-strong,#2c4168);border-radius:var(--ds-radius-sm,6px);background:var(--ds-surface-2,#1a2638);color:var(--ds-accent-text,#93c5fd)}
+  .ds-notification-icon svg{width:16px;height:16px}
+  .ds-notification-item-title{display:block;margin:0 0 2px;color:var(--ds-text,#f8fafc);font-size:.8125rem;font-weight:600;line-height:1.35}
+  .ds-notification-item-message{margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--ds-text-secondary,#c8d5e8);font-size:.8125rem;line-height:1.45}
+  .ds-notification-item-time{display:block;margin-top:4px;color:var(--ds-text-dim,#68809f);font-size:.75rem}
+  .ds-notification-unread-dot{width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--ds-accent,#3b82f6)}
   .ds-notification-item:not(.unread) .ds-notification-unread-dot{visibility:hidden}
-  .ds-notification-loading,.ds-notification-empty,.ds-notification-error{min-height:140px;display:flex;align-items:center;justify-content:center;padding:28px;color:#8ca0bb;text-align:center;font-size:.82rem;line-height:1.5}
-  .ds-notification-see-all{display:flex;align-items:center;justify-content:center;min-height:46px;border-top:1px solid #273a55;color:#93c5fd;text-decoration:none;font-size:.8rem;font-weight:750;background:#101a2a}
-  .ds-notification-see-all:hover{background:#17243a}
-  @media(max-width:700px){
-    .ds-notification-center--sidebar{left:auto;right:14px;top:14px}
-    .ds-notification-panel{top:64px;left:12px;right:12px;width:auto;max-height:calc(100vh - 78px)}
-    .ds-notification-center--topbar .ds-notification-panel{top:50px;left:12px;right:12px;width:auto}
+  .ds-notification-loading,.ds-notification-empty,.ds-notification-error{min-height:140px;display:flex;align-items:center;justify-content:center;padding:28px;color:var(--ds-text-muted,#8aa0bd);font-size:.8125rem;line-height:1.5;text-align:center}
+  /* Placeholder rows keep the panel at its real size while the feed loads. */
+  .ds-notification-skeleton{display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--ds-border,#1e2f47)}
+  .ds-notification-skeleton span{display:block;border-radius:var(--ds-radius-xs,4px);background:linear-gradient(90deg,rgba(148,163,184,.10) 25%,rgba(148,163,184,.20) 37%,rgba(148,163,184,.10) 63%);background-size:400% 100%;animation:ds-notification-shimmer 1.4s ease infinite}
+  .ds-notification-skeleton .sk-avatar{width:32px;height:32px;border-radius:var(--ds-radius-sm,6px)}
+  .ds-notification-skeleton .sk-title{width:62%;height:10px;margin-bottom:8px}
+  .ds-notification-skeleton .sk-line{width:88%;height:8px}
+  @keyframes ds-notification-shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+  @media (prefers-reduced-motion: reduce){.ds-notification-skeleton span{animation:none}}
+  .ds-notification-see-all{display:flex;align-items:center;justify-content:center;min-height:44px;border-top:1px solid var(--ds-border,#1e2f47);background:var(--ds-surface-3,#0f1928);color:var(--ds-accent-text,#93c5fd);font-size:.8125rem;font-weight:500;text-decoration:none}
+  .ds-notification-see-all:hover{background:var(--ds-surface-2,#1a2638)}
+  @media (max-width:900px){
+    .ds-notification-center--sidebar{top:8px;left:auto;right:12px;z-index:910}
+    .ds-notification-panel{top:60px;left:12px;right:12px;width:auto;max-height:calc(100dvh - 72px)}
+    .ds-notification-center--topbar .ds-notification-panel{top:52px;left:12px;right:12px;width:auto}
+    html.ds-nav-open .ds-notification-center--sidebar{visibility:hidden}
   }
 </style>
 
@@ -195,7 +211,7 @@
   const loadFeed = async () => {
     if (loading) return;
     loading = true;
-    list.innerHTML = '<div class="ds-notification-loading">Loading notifications…</div>';
+    list.innerHTML = '<div class="ds-notification-loading ds-visually-hidden">Loading notifications…</div>' + '<div class="ds-notification-skeleton" aria-hidden="true"><span class="sk-avatar"></span><div><span class="sk-title"></span><span class="sk-line"></span></div></div>'.repeat(3);
     try {
       const data = await request(`${endpoints.feed}?filter=${encodeURIComponent(filter)}`);
       setCount(data.unread_count);

@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Training Roadmap - DataSensei</title>
+    <title>Training Roadmap — DataSensei</title>
     @include('student.model-development.partials.styles')
+    @include('partials.page-head', ['pageTitle' => 'Training Roadmap', 'pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
 </head>
 <body>
 @php
@@ -153,11 +154,11 @@
                             <div class="ml-recommended-inline" style="margin-top:16px">
                                 <strong>Suggested for this dataset: {{ $recommended['target'] }}</strong>
                                 <p class="ml-help" style="margin-top:4px">{{ $recommended['objective'] ?? '' }}</p>
-                                <button class="ml-btn small secondary use-recommended-setup" type="button" style="margin-top:10px">Use the whole recommended setup</button>
+                                <button class="ml-btn small secondary use-recommended-setup" type="button" style="margin-top:8px">Use the whole recommended setup</button>
                             </div>
                         @endif
 
-                        <div class="ml-field" style="margin-top:18px">
+                        <div class="ml-field" style="margin-top:16px">
                             <label class="ml-label" for="target_column">Target column</label>
                             <select class="ml-select" id="target_column" name="target_column">
                                 <option value="">No target – let the model discover groups (clustering)</option>
@@ -165,7 +166,7 @@
                                     @php
                                         $targetProfile = (array) ($columnProfiles[$column] ?? []);
                                         $targetType = (string) ($targetProfile['type'] ?? 'unknown');
-                                        $targetNote = ($targetProfile['is_identifier_like'] ?? false) ? ' · looks like an ID' : '';
+                                        $targetNote = ($targetProfile['is_identifier_like'] ?? false) ? ', looks like an ID' : '';
                                     @endphp
                                     <option
                                         value="{{ $column }}"
@@ -210,7 +211,7 @@
                         </div>
                         <div class="ml-inline-note" id="feature-mode-note" hidden></div>
 
-                        <div class="ml-check-grid" style="margin-top:14px">
+                        <div class="ml-check-grid" style="margin-top:16px">
                             @foreach($headers as $column)
                                 @php
                                     $columnProfile = (array) ($columnProfiles[$column] ?? []);
@@ -235,11 +236,11 @@
                                     <span>
                                         <strong>{{ $column }}</strong>
                                         @if(in_array($column, $recommendedFeatures, true))
-                                            <span class="ml-badge good" style="padding:2px 7px;margin-left:4px" title="Recommended feature">Recommended</span>
+                                            <span class="ml-badge good" style="padding:2px 8px;margin-left:4px" title="Recommended feature">Recommended</span>
                                         @endif
                                         <br>
                                         <span class="ml-type-chip {{ $isNumericColumn ? 'num' : (in_array($columnType, ['categorical', 'boolean'], true) ? 'cat' : '') }}">{{ $typeLabels[$columnType] ?? ucfirst($columnType) }}</span>
-                                        <span class="ml-muted" style="font-size:.72rem">{{ number_format((int) ($columnProfile['unique_count'] ?? 0)) }} different values</span>
+                                        <span class="ml-muted" style="font-size:.75rem">{{ number_format((int) ($columnProfile['unique_count'] ?? 0)) }} different values</span>
                                         <span class="ml-check-reason" data-feature-reason>{{ $unavailableReason }}</span>
                                     </span>
                                 </label>
@@ -258,7 +259,7 @@
                             'stepLead' => 'DataSensei picked a problem type from your target. Keep it unless you have a clear reason to change it.',
                         ])
 
-                        <div class="ml-grid" style="margin-top:18px">
+                        <div class="ml-grid" style="margin-top:16px">
                             @foreach([
                                 'classification' => ['Classification', 'Predict a category', 'The answer is a label such as Yes/No, Pass/Fail, or a species name.'],
                                 'regression' => ['Regression', 'Predict a number', 'The answer is a number on a scale, such as a price, a score, or a temperature.'],
@@ -269,8 +270,8 @@
                                         <strong>{{ $label }}</strong>
                                         <input type="radio" name="problem_type" value="{{ $key }}" @checked($selectedProblem === $key)>
                                     </div>
-                                    <strong style="display:block;margin:8px 0 5px;font-size:.84rem;color:#dbeafe">{{ $headline }}</strong>
-                                    <span class="ml-muted" style="font-size:.8rem">{{ $description }}</span>
+                                    <strong style="display:block;margin:8px 0 4px;font-size:.8125rem;font-weight:600;color:var(--ds-text)">{{ $headline }}</strong>
+                                    <span class="ml-muted" style="font-size:.8125rem">{{ $description }}</span>
                                     <div class="ml-badge-row">
                                         <span class="ml-badge blue" data-problem-suggested="{{ $key }}" hidden>Matches your target</span>
                                         @if($recommended && ($recommended['problem_type'] ?? null) === $key)
@@ -295,7 +296,7 @@
                         ])
 
                         <div id="split-field">
-                            <div class="ml-field" style="margin-top:18px">
+                            <div class="ml-field" style="margin-top:16px">
                                 <label class="ml-label" for="test_size">Training and testing data</label>
                                 <select class="ml-select" id="test_size" name="test_size">
                                     @foreach($allowedTestSizes as $size)
@@ -321,7 +322,7 @@
                         </div>
                         <div class="ml-alert" id="clustering-split-note" hidden>Clustering has no right answers to check, so it uses all usable rows and does not need a test split. You can continue.</div>
 
-                        <details class="ml-advanced" style="margin-top:18px">
+                        <details class="ml-advanced" style="margin-top:16px">
                             <summary>Advanced Options</summary>
                             <p class="ml-help">You can skip these for your first model. The defaults are safe.</p>
                             <div class="ml-grid two" style="margin-top:16px">
@@ -383,7 +384,7 @@
                         ])
 
                         @if($recommended)
-                            <div class="ml-recommended-model" id="recommended-model" data-recommended-problem="{{ $recommended['problem_type'] }}" style="margin-top:18px">
+                            <div class="ml-recommended-model" id="recommended-model" data-recommended-problem="{{ $recommended['problem_type'] }}" style="margin-top:16px">
                                 <div class="ml-recommended-model-head">
                                     <div>
                                         <h3>Recommended for this dataset: {{ $recommended['model_label'] }}</h3>
@@ -395,7 +396,7 @@
                             </div>
                         @endif
 
-                        <div class="ml-grid" id="algorithm-grid" style="margin-top:18px">
+                        <div class="ml-grid" id="algorithm-grid" style="margin-top:16px">
                             @foreach($allAlgorithms as $key => $algorithm)
                                 @php $guide = (array) ($allLearningGuides[$key] ?? []); @endphp
                                 <label class="ml-card ml-algorithm" data-algorithm-card data-problem="{{ $algorithm['problem_type'] }}">
@@ -409,7 +410,7 @@
                                             data-beginner="{{ ($guide['beginner_friendly'] ?? false) ? 'true' : 'false' }}"
                                             @checked($defaultAlgorithm === $key)>
                                     </div>
-                                    <div class="ml-badge-row" style="margin-top:6px">
+                                    <div class="ml-badge-row" style="margin-top:8px">
                                         @if($guide['beginner_friendly'] ?? false)
                                             <span class="ml-badge blue">Beginner friendly</span>
                                         @endif
@@ -439,14 +440,14 @@
                             @endforeach
                         </div>
 
-                        <details class="ml-advanced" style="margin-top:18px">
+                        <details class="ml-advanced" style="margin-top:16px">
                             <summary>Advanced Options</summary>
                             <p class="ml-help">Only the selected algorithm's settings are sent. Leave the defaults for your first model, then change one setting at a time.</p>
                             @foreach($allAlgorithms as $key => $algorithm)
                                 <div class="algorithm-parameters" data-parameters="{{ $key }}" hidden>
                                     <h3 class="ml-section-title" style="margin-top:16px">{{ $algorithm['label'] }} settings</h3>
                                     @if(empty($algorithm['parameters']))
-                                        <p class="ml-muted" style="font-size:.8rem">This algorithm has no settings to tune here.</p>
+                                        <p class="ml-muted" style="font-size:.8125rem">This algorithm has no settings to tune here.</p>
                                     @else
                                         <div class="ml-grid two">
                                             @foreach((array) $algorithm['parameters'] as $parameter => $schema)
@@ -508,7 +509,7 @@
                                 <select class="ml-select" id="class_id" name="class_id">
                                     <option value="">Keep private</option>
                                     @foreach($classes as $class)
-                                        <option value="{{ $class->id }}" @selected($defaultClassId == $class->id)>{{ $class->name }}{{ $class->section ? ' · '.$class->section : '' }}</option>
+                                        <option value="{{ $class->id }}" @selected($defaultClassId == $class->id)>{{ $class->name }}{{ $class->section ? ', '.$class->section : '' }}</option>
                                     @endforeach
                                 </select>
                                 <div class="ml-help">Linking a class lets your instructor see this experiment.</div>

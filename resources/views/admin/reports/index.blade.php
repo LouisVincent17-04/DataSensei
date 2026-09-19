@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Reports & Moderation')
-@section('eyebrow', 'Operational Review')
 @section('page_title', 'Reports & Moderation')
 @section('page_subtitle', 'Review recent submissions, code execution outcomes, account activity, and suspicious events for platform support.')
 
@@ -50,7 +49,7 @@
               <tr>
                 <td data-label="User"><strong>{{ $row['user_name'] ?? 'Unknown' }}</strong><br><span class="dim">{{ $row['user_email'] ?? 'No email' }}</span></td>
                 <td data-label="Assignment">{{ $row['assignment_title'] ?? 'Assignment' }}</td>
-                <td data-label="Event"><span class="badge disabled">{{ $row['event_type'] ?? 'event' }} · {{ $row['severity'] ?? 'info' }}</span></td>
+                <td data-label="Event"><span class="badge disabled">{{ $row['event_type'] ?? 'event' }}, {{ $row['severity'] ?? 'info' }}</span></td>
                 <td data-label="Date">{{ $row['occurred_at'] ?? $row['created_at'] ?? 'N/A' }}</td>
               </tr>
             @empty
@@ -76,7 +75,7 @@
               <tr>
                 <td data-label="User"><strong>{{ $row['user_name'] ?? 'Unknown' }}</strong><br><span class="dim">{{ $row['user_email'] ?? 'No email' }}</span></td>
                 <td data-label="Challenge">{{ $row['challenge_title'] ?? 'Challenge' }}</td>
-                <td data-label="Event"><span class="badge disabled">{{ $row['event_type'] ?? 'event' }} · {{ $row['severity'] ?? 'info' }}</span></td>
+                <td data-label="Event"><span class="badge disabled">{{ $row['event_type'] ?? 'event' }}, {{ $row['severity'] ?? 'info' }}</span></td>
                 <td data-label="Date">{{ $row['occurred_at'] ?? $row['created_at'] ?? 'N/A' }}</td>
               </tr>
             @empty

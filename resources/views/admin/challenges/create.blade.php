@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Create MCQ Challenge')
-@section('eyebrow', 'Platform Content')
 @section('page_title', 'Create MCQ Challenge')
 @section('page_subtitle', 'Create a versioned multiple-choice challenge. New challenges are inactive by default until reviewed and published.')
 

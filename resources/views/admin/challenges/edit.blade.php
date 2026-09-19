@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Edit MCQ Challenge')
-@section('eyebrow', 'Platform Content')
 @section('page_title', 'Edit MCQ Challenge')
 @section('page_subtitle', 'Update this challenge version without affecting coding challenges or completed attempt history.')
 

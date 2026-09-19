@@ -3,11 +3,122 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DataSensei — Instructor Dashboard</title>
+  <title>Instructor Dashboard — DataSensei</title>
   <style>
-    :root{--bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;--text:#fafafa;--muted:#8ca0bb;--accent:#3b82f6;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--radius:10px}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}.main{flex:1;min-width:0}.topbar{height:64px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}.topbar h1{font-size:1.05rem;margin:0}.link{color:var(--muted);text-decoration:none}.link:hover{color:var(--text)}.content{padding:28px;display:grid;gap:22px}.welcome,.card,.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}.welcome{padding:24px 26px;border-left:4px solid var(--accent);display:flex;justify-content:space-between;gap:20px;align-items:center}.welcome h2{margin:0 0 6px;font-size:1.45rem}.welcome p,.muted{color:var(--muted)}.welcome p{margin:0;line-height:1.5}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-flex;padding:9px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);text-decoration:none;font-weight:650;font-size:.84rem}.btn.primary{background:var(--text);color:var(--bg)}.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}.stat{padding:18px}.stat .label{color:var(--muted);font-size:.76rem}.stat strong{display:block;font-size:1.55rem;margin-top:10px}.stat small{display:block;color:var(--muted);margin-top:5px}.grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(310px,.8fr);gap:22px}.stack{display:grid;gap:22px}.card-head{padding:17px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:16px;align-items:center}.card-head h3{font-size:.96rem;margin:0}.card-body{padding:18px 20px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.82rem}th{text-align:left;color:var(--muted);font-weight:600;padding:10px;border-bottom:1px solid var(--border)}td{padding:12px 10px;border-bottom:1px solid var(--border)}tbody tr:last-child td{border-bottom:0}.work-list,.submission-list,.risk-list{display:grid;gap:11px}.item{border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:13px 14px;display:flex;justify-content:space-between;gap:14px;align-items:center;color:inherit;text-decoration:none}.item:hover{border-color:#35517a}.item-title{font-weight:700;font-size:.86rem}.meta{font-size:.75rem;color:var(--muted);margin-top:4px;line-height:1.45}.pill{display:inline-flex;padding:4px 7px;border-radius:999px;background:var(--surface2);color:var(--muted);font-size:.68rem;font-weight:700;text-transform:uppercase}.pill.green{color:#79e6bb}.pill.amber{color:#f8ca75}.pill.red{color:#fca5a5}.empty{padding:18px;border:1px dashed var(--border);border-radius:8px;color:var(--muted);font-size:.84rem;text-align:center}@media(max-width:1250px){.stats{grid-template-columns:repeat(3,1fr)}}@media(max-width:950px){.grid{grid-template-columns:1fr}}@media(max-width:760px){.content{padding:18px}.topbar{padding:0 18px}.stats{grid-template-columns:1fr 1fr}.welcome{align-items:flex-start;flex-direction:column}}@media(max-width:480px){.stats{grid-template-columns:1fr}.item{align-items:flex-start;flex-direction:column}}
+    /* Instructor dashboard layout. Colours, type and radius come from
+       partials.design-system. */
+    :root{--green:var(--ds-success);--amber:var(--ds-warning);--red:var(--ds-danger)}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:flex;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
+    .main{flex:1;min-width:0}
+
+    /* ── title bar ─────────────────────────────────────────────── */
+    .topbar{min-height:60px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;
+      background:var(--bg);border-bottom:1px solid var(--border)}
+    .topbar .link{color:var(--muted);font-size:.875rem;font-weight:500;overflow-wrap:anywhere}
+    .topbar .link:hover{color:var(--text);text-decoration:none}
+
+    .content{padding:28px 32px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+    .link{color:var(--ds-accent-text);text-decoration:none;font-size:.8125rem;font-weight:500;white-space:nowrap}
+    .link:hover{color:var(--text);text-decoration:underline}
+    .muted{color:var(--muted)}
+
+    /* ── lead-in ───────────────────────────────────────────────── */
+    .welcome{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px 24px}
+    .welcome > div:first-child{min-width:0;flex:1 1 320px}
+    .welcome h2{margin:0;font-size:1.125rem;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+    .welcome p{margin:4px 0 0;max-width:72ch;color:var(--muted);font-size:.875rem;line-height:1.5}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 16px;
+      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);
+      font-size:.875rem;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;
+      transition:background .12s ease,border-color .12s ease}
+    .btn:hover{background:var(--ds-surface-hover)}
+    .btn.primary{border-color:var(--accent);background:var(--accent);color:#fff}
+    .btn.primary:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
+
+    /* ── summary figures ───────────────────────────────────────── */
+    .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .stat{padding:16px 18px;display:flex;flex-direction:column;gap:4px;
+      border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+    .stat .label{color:var(--muted);font-size:.8125rem;font-weight:500;line-height:1.4}
+    .stat strong{display:block;margin-top:2px;font-size:1.5rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+    .stat small{display:block;color:var(--muted);font-size:.75rem;line-height:1.4}
+
+    /* ── two columns ───────────────────────────────────────────── */
+    .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,34%);gap:20px;align-items:start}
+    .stack{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;min-width:0}
+    .card{min-width:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+    .card-head{padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 16px;border-bottom:1px solid var(--border)}
+    .card-head h3{margin:0;font-size:.9375rem;font-weight:600;line-height:1.35}
+    .card-body{padding:16px 20px}
+    .card-body.actions{padding:16px 20px}
+
+    /* table */
+    .card-body.table-wrap{padding:0;overflow-x:auto}
+    table{width:100%;min-width:640px;border-collapse:collapse;font-variant-numeric:tabular-nums}
+    th{padding:10px 14px;background:var(--surface3);border-bottom:1px solid var(--border);color:var(--muted);
+      font-size:.75rem;font-weight:600;text-align:left;white-space:nowrap}
+    td{padding:12px 14px;border-bottom:1px solid var(--border);color:var(--ds-text-secondary);font-size:.875rem;vertical-align:middle}
+    td strong{color:var(--text);font-weight:600}
+    th:first-child,td:first-child{padding-left:20px}
+    th:last-child,td:last-child{padding-right:20px;text-align:right}
+    tbody tr:last-child td{border-bottom:0}
+    tbody tr:hover td{background:rgba(255,255,255,.02)}
+
+    /* list rows separated by rules */
+    .work-list,.submission-list,.risk-list{padding:0;display:grid}
+    .item{padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;
+      border-top:1px solid var(--border);color:inherit;text-decoration:none}
+    .card-body > .item:first-child{border-top:0}
+    .item > div:first-child{min-width:0;flex:1 1 auto}
+    a.item{transition:background .12s ease}
+    a.item:hover{background:var(--surface2)}
+    .item-title{font-size:.875rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+    .meta{margin-top:2px;color:var(--muted);font-size:.8125rem;line-height:1.45}
+    td .meta{font-size:.75rem}
+
+    /* status labels */
+    .pill{flex-shrink:0;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);
+      border-radius:var(--radius-xs);background:var(--surface2);color:var(--ds-text-secondary);
+      font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
+    .pill.status{text-transform:capitalize}
+    .pill.green{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
+    .pill.amber{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-text)}
+    .pill.red{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-text)}
+
+    .empty{padding:28px 20px;color:var(--muted);font-size:.875rem;line-height:1.5;text-align:center}
+
+    @media(max-width:1100px){
+      .grid{grid-template-columns:minmax(0,1fr)}
+    }
+    @media(max-width:900px){
+      .topbar{min-height:56px;padding:0 20px}
+      .content{padding:24px 20px 40px}
+      .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media(max-width:640px){
+      .content{padding:20px 16px 32px}
+      .welcome{align-items:flex-start;flex-direction:column}
+      .welcome > div:first-child{flex-basis:auto}
+      .welcome .actions{width:100%}
+      .welcome .actions .btn{flex:1 1 auto}
+      .topbar{padding:10px 16px}
+      .card-head{padding:12px 16px}
+      .card-body,.card-body.actions{padding:16px}
+      .card-body.work-list,.card-body.submission-list,.card-body.risk-list,.card-body.table-wrap{padding:0}
+      .item{padding:12px 16px}
+      .stat{padding:14px 16px}
+      th:first-child,td:first-child{padding-left:16px}
+      th:last-child,td:last-child{padding-right:16px}
+    }
+    @media(max-width:480px){
+      .item{align-items:flex-start;flex-direction:column;gap:8px}
+    }
+    @media(max-width:420px){.stats{grid-template-columns:minmax(0,1fr)}}
+    @media(prefers-reduced-motion:reduce){.btn,a.item{transition:none}}
   </style>
+    @include('partials.page-head', ['pageTitle' => 'Instructor Dashboard', 'pageDescription' => 'Your teaching dashboard: classes, submissions, and alerts.'])
 </head>
 <body>
   @include('partials.instructor-sidebar')
@@ -59,7 +170,7 @@
             <div class="card-head"><h3>Recently updated work</h3><a class="link" href="{{ route('instructor.assignments.index') }}">Manage work →</a></div>
             <div class="card-body work-list">
               @forelse ($recentWork as $work)
-                <a class="item" href="{{ $work['url'] }}"><div><div class="item-title">{{ $work['title'] }}</div><div class="meta">{{ $work['type'] }}{{ $work['class_name'] ? ' · '.$work['class_name'] : '' }} · {{ $work['at']->diffForHumans() }}</div></div><span class="pill {{ $work['status'] === 'published' ? 'green' : '' }}">{{ $work['status'] }}</span></a>
+                <a class="item" href="{{ $work['url'] }}"><div><div class="item-title">{{ $work['title'] }}</div><div class="meta">{{ $work['type'] }}{{ $work['class_name'] ? ', '.$work['class_name'] : '' }}, {{ $work['at']->diffForHumans() }}</div></div><span class="pill status {{ $work['status'] === 'published' ? 'green' : '' }}">{{ $work['status'] }}</span></a>
               @empty
                 <div class="empty">No assignments or assessments have been created.</div>
               @endforelse
@@ -70,7 +181,7 @@
             <div class="card-head"><h3>Recent submissions</h3><a class="link" href="{{ route('instructor.submissions.index') }}">All submissions →</a></div>
             <div class="card-body submission-list">
               @forelse ($recentSubmissions as $submission)
-                <div class="item"><div><div class="item-title">{{ $submission['student'] }} · {{ $submission['title'] }}</div><div class="meta">{{ $submission['type'] }} · {{ $submission['at']->diffForHumans() }}</div></div><span class="pill {{ $submission['status'] === 'late' ? 'amber' : 'green' }}">{{ $submission['status'] }}</span></div>
+                <div class="item"><div><div class="item-title">{{ $submission['student'] }}, {{ $submission['title'] }}</div><div class="meta">{{ $submission['type'] }}, {{ $submission['at']->diffForHumans() }}</div></div><span class="pill status {{ $submission['status'] === 'late' ? 'amber' : 'green' }}">{{ $submission['status'] }}</span></div>
               @empty
                 <div class="empty">No completed submissions are available.</div>
               @endforelse
@@ -83,7 +194,7 @@
             <div class="card-head"><h3>High-risk learners</h3><a class="link" href="{{ route('instructor.risk.index') }}">Risk report →</a></div>
             <div class="card-body risk-list">
               @forelse ($atRiskStudents->take(6) as $snapshot)
-                <div class="item"><div><div class="item-title">{{ $snapshot->student?->name ?? 'Deleted learner' }}</div><div class="meta">{{ $snapshot->classRoom?->name ?? 'Class removed' }} · score {{ number_format((float) $snapshot->average_score_percent, 1) }}% · engagement {{ number_format((float) $snapshot->engagement_score, 1) }}%</div></div><span class="pill red">High risk</span></div>
+                <div class="item"><div><div class="item-title">{{ $snapshot->student?->name ?? 'Deleted learner' }}</div><div class="meta">{{ $snapshot->classRoom?->name ?? 'Class removed' }}, score {{ number_format((float) $snapshot->average_score_percent, 1) }}%, engagement {{ number_format((float) $snapshot->engagement_score, 1) }}%</div></div><span class="pill red">High risk</span></div>
               @empty
                 <div class="empty">No learners are currently marked high risk.</div>
               @endforelse

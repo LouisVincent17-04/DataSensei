@@ -1,1 +1,4 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta http-equiv="refresh" content="0;url={{ route('student.model-development.index') }}"><title>Legacy Model Workspace</title></head><body><a href="{{ route('student.model-development.index') }}">Open Model Development</a></body></html>
+<!DOCTYPE html><html><head><meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0;url={{ route('student.model-development.index') }}"><title>Legacy Model Workspace — DataSensei</title>    @include('partials.page-head', ['pageTitle' => 'Legacy Model Workspace', 'pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
+<style>body{margin:0;padding:28px 32px;background:var(--ds-bg);color:var(--ds-text);font:400 .875rem/1.5 var(--ds-font-sans)}a{color:var(--ds-accent-text);font-weight:500}a:hover{color:var(--ds-text)}@media(max-width:640px){body{padding:20px 16px}}</style>
+</head><body><a href="{{ route('student.model-development.index') }}">Open Model Development</a></body></html>

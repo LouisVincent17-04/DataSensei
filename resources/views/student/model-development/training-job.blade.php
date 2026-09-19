@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Train Model - DataSensei</title>
+    <title>Train Model — DataSensei</title>
     @include('student.model-development.partials.styles')
+    @include('partials.page-head', ['pageTitle' => 'Train Model', 'pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
 </head>
 <body>
 @php
@@ -62,7 +63,7 @@
                     {{ $isComplete ? 'Model Trained Successfully' : ($hasFailed ? 'Training Needs Attention' : 'Training Your Model') }}
                 </h1>
                 <div class="ml-subtitle-row">
-                    <p class="ml-subtitle"><strong>{{ $algorithmLabel }}</strong> · {{ $job->model_name }}</p>
+                    <p class="ml-subtitle"><strong>{{ $algorithmLabel }}</strong>, {{ $job->model_name }}</p>
                     @if($isRecommendedModel)
                         <span class="ml-badge good">Recommended model</span>
                     @endif
@@ -107,11 +108,11 @@
                         @endif
                     </p>
 
-                    <div style="display:flex;justify-content:space-between;gap:14px;align-items:center;margin-top:18px">
+                    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;align-items:center;margin-top:16px">
                         <strong id="progress-label">{{ $job->progress }}% complete</strong>
                         <span class="ml-help" id="worker-stage">Worker status: {{ $job->stage }}</span>
                     </div>
-                    <div class="ml-progress" style="margin-top:9px">
+                    <div class="ml-progress" style="margin-top:8px">
                         <div id="progress-bar" style="width:{{ $job->progress }}%"></div>
                     </div>
 
@@ -151,7 +152,7 @@
                     <div id="error-box" class="ml-alert error" style="display:{{ $hasFailed ? 'block' : 'none' }}">
                         {{ $job->error_message ?: ($job->status === 'cancelled' ? 'Training was cancelled before a model was created.' : '') }}
                     </div>
-                    <div id="failure-help" class="ml-card" style="display:{{ $hasFailed ? 'block' : 'none' }};margin-bottom:14px">
+                    <div id="failure-help" class="ml-card" style="display:{{ $hasFailed ? 'block' : 'none' }};margin-bottom:16px">
                         <h3 class="ml-section-title">Common fixes</h3>
                         <ul class="ml-fix-list ml-muted">
                             <li>Make sure the target matches the problem type (a number for Regression, a category for Classification).</li>
@@ -160,7 +161,7 @@
                             <li>Check that the dataset still has at least 20 usable rows after empty targets are removed.</li>
                         </ul>
                     </div>
-                    <div id="failure-actions" class="ml-actions" style="display:{{ $hasFailed ? 'flex' : 'none' }};margin-bottom:18px">
+                    <div id="failure-actions" class="ml-actions" style="display:{{ $hasFailed ? 'flex' : 'none' }};margin-bottom:16px">
                         <a class="ml-btn" href="{{ route('student.model-development.wizard', array_merge($wizardParameters, ['step' => 7])) }}">Review Settings & Try Again</a>
                         <a class="ml-btn secondary" href="{{ route('student.model-development.wizard', array_merge($wizardParameters, ['step' => 2])) }}">Start From Target</a>
                     </div>
@@ -176,8 +177,8 @@
                     </div>
 
                     <section id="training-success" class="ml-success-milestone {{ $isComplete ? 'visible' : '' }}" aria-live="polite">
-                        <h2 class="ml-success-title">✓ MODEL TRAINED SUCCESSFULLY</h2>
-                        <p class="ml-muted" style="margin-top:7px">Your model finished learning and was tested on the rows it never saw. Next, find out what these scores mean.</p>
+                        <h2 class="ml-success-title">✓ Model trained successfully</h2>
+                        <p class="ml-muted" style="margin-top:8px">Your model finished learning and was tested on the rows it never saw. Next, find out what these scores mean.</p>
                         <div class="ml-success-metrics" id="success-metrics">
                             @if($durationSeconds !== null)
                                 <div class="ml-success-metric"><span>Duration</span><strong>{{ number_format($durationSeconds, 3) }} seconds</strong></div>

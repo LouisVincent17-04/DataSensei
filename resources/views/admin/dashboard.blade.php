@@ -1,19 +1,18 @@
 @extends('admin.layout')
 
 @section('title', 'Admin Dashboard')
-@section('eyebrow', 'Platform Operations')
 @section('page_title', 'Overview')
 @section('page_subtitle', 'Monitor DataSensei usage, support users, manage learning content, and review operational issues.')
 
 @section('content')
   <section class="welcome-banner">
     <div class="welcome-text">
-      <h2>Welcome back, {{ auth()->check() ? auth()->user()->name : 'Admin' }}!</h2>
+      <h2>Welcome back, {{ auth()->check() ? auth()->user()->name : 'Admin' }}</h2>
       <p>Monitor platform activity, maintain DataSensei learning resources, support user accounts, and review operational events from one workspace.</p>
-      <div class="welcome-cta">
-        <a class="btn" href="{{ route('admin.users.index') }}">Manage Users</a>
-        <a class="btn secondary" href="{{ route('admin.reports.index') }}">Open Reports</a>
-      </div>
+    </div>
+    <div class="welcome-cta">
+      <a class="btn" href="{{ route('admin.users.index') }}">Manage Users</a>
+      <a class="btn secondary" href="{{ route('admin.reports.index') }}">Open Reports</a>
     </div>
   </section>
 
@@ -22,15 +21,9 @@
       <article class="stat tone-{{ $card['tone'] }}">
         <div class="stat-header">
           <span class="label">{{ $card['label'] }}</span>
-          <span class="stat-icon" aria-hidden="true">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/>
-            </svg>
-          </span>
         </div>
         <div class="value">{{ number_format($card['value']) }}</div>
         <div class="sub">{{ $card['sub'] }}</div>
-        <div class="stat-bar"><span></span></div>
       </article>
     @endforeach
   </section>

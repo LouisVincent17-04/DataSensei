@@ -1,7 +1,7 @@
 @extends('layouts.auth-reset', ['title' => 'Verify Code', 'step' => 2])
 
 @section('content')
-  <h1 class="heading">Verify your email</h1>
+  <h1 class="heading ds-page-title">Verify your email</h1>
   <p class="subheading">Enter the {{ $otpLength }}-digit code sent to <strong>{{ $maskedEmail }}</strong>. The code expires after {{ config('password_otp.expires_minutes', 5) }} minutes and can be used only once.</p>
 
   @if ($errors->has('otp'))

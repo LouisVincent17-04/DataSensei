@@ -3,204 +3,168 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DataSensei — My Assignments</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-  <style>
-    /* ── TOKENS ── */
+  <title>My Assignments — DataSensei</title>
+<style>
+    /* Student assignment list. Colours, type and radius come from partials.design-system. */
     :root {
-      --bg:#0d1320; --surface:#111c2d; --surface2:#1a2638; --surface3:#0f1928;
-      --border:#1e2f47; --border-hover:#2c4168;
-      --accent:#3b82f6; --accent-hover:#2563eb;
-      --accent2:#8b5cf6; --accent3:#10b981;
-      --warn:#ef4444; --warn2:#f59e0b;
-      --text:#fafafa; --muted:#7f93b0; --dim:#3d5272;
-      --radius:14px; --radius-sm:10px;
+      --accent2: var(--ds-accent); --accent3: var(--ds-success);
+      --warn: var(--ds-danger); --warn2: var(--ds-warning);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       min-height: 100%;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background:
-        radial-gradient(circle at top left,  rgba(59,130,246,.12), transparent 34rem),
-        radial-gradient(circle at top right, rgba(139,92,246,.10), transparent 28rem),
-        var(--bg);
+      font-family: var(--ds-font-sans);
+      background: var(--bg);
       color: var(--text);
-      -webkit-font-smoothing: antialiased;
     }
 
     a { color: inherit; text-decoration: none; }
 
-    /* ── LAYOUT ── */
+    /* ── Layout ── */
     .ds-shell { display: flex; min-height: 100vh; }
-    .ds-main  { flex: 1; min-width: 0; padding: 28px; }
+    .ds-main  { flex: 1; min-width: 0; padding: 28px 32px 48px; }
     .wrap     { max-width: 1200px; margin: 0 auto; }
 
-    /* ── MOBILE HEADER ── */
+    /* ── Mobile bar (this page keeps its own menu button, #js-menu-btn;
+          it matches the shared mobile bar) ── */
     .mobile-header {
       display: none;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      height: 56px;
+      gap: 10px;
+      height: 52px;
+      padding: 0 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(64px, env(safe-area-inset-right));
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       position: sticky;
       top: 0;
-      z-index: 200;
-      gap: 12px;
+      z-index: 900;
     }
 
+    .mobile-header > [aria-hidden="true"] { display: none; }
+
     .hamburger {
-      flex-shrink: 0;
+      flex: 0 0 38px;
       width: 38px; height: 38px;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,.04);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0;
+      background: var(--surface2);
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--radius-sm);
       color: var(--text);
       cursor: pointer;
     }
+    .hamburger:hover { background: var(--ds-surface-hover); }
 
     .mobile-title {
-      font-size: .85rem;
-      font-weight: 800;
-      letter-spacing: -.02em;
-      flex: 1;
-      text-align: center;
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+      font-size: .9375rem;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    /* ── SIDEBAR OVERLAY ── */
+    /* ── Drawer backdrop (the drawer itself comes from the shared shell) ── */
     .sidebar-overlay {
       display: none;
       position: fixed; inset: 0;
-      background: rgba(0,0,0,.55);
-      backdrop-filter: blur(3px);
-      z-index: 150;
+      background: var(--ds-overlay);
+      z-index: 950;
     }
     .sidebar-overlay.open { display: block; }
 
-    /* ── PAGE HEADER ── */
+    /* ── Page header ── */
     .top-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 20px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
       margin-bottom: 24px;
-    }
-
-    .page-kicker {
-      display: inline-flex; align-items: center; gap: 8px;
-      color: var(--accent);
-      font-size: .72rem; font-weight: 900;
-      text-transform: uppercase; letter-spacing: .09em;
-      margin-bottom: 8px;
-    }
-    .page-kicker::before {
-      content: ""; width: 8px; height: 8px;
-      background: var(--accent3); border-radius: 50%;
-      box-shadow: 0 0 18px rgba(16,185,129,.8);
-    }
-
-    .page-title {
-      font-size: clamp(1.8rem, 3vw, 2.6rem);
-      font-weight: 900;
-      letter-spacing: -.06em;
-      line-height: 1.05;
     }
 
     .page-subtitle {
       color: var(--muted);
-      max-width: 680px;
-      line-height: 1.65;
-      margin-top: 10px;
-      font-size: .92rem;
+      max-width: 72ch;
+      margin-top: 4px;
+      font-size: .875rem;
+      line-height: 1.55;
     }
 
-    /* ── CARD ── */
+    /* ── Card ── */
     .card {
       border: 1px solid var(--border);
-      background: rgba(17,28,45,.92);
-      border-radius: 22px;
-      box-shadow: 0 18px 55px rgba(0,0,0,.22);
-      backdrop-filter: blur(12px);
+      background: var(--surface);
+      border-radius: var(--radius);
       overflow: hidden;
     }
 
-    /* ── TOOLBAR (filter bar) ── */
+    /* ── Filter bar ── */
     .toolbar {
       display: flex;
       align-items: flex-end;
       gap: 12px;
       flex-wrap: wrap;
-      padding: 16px 18px;
-      background: linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.015)), var(--surface);
+      padding: 16px 20px;
       border-bottom: 1px solid var(--border);
     }
 
     .field { display: flex; flex-direction: column; gap: 6px; }
     .field label {
-      color: var(--dim);
-      font-size: .68rem; font-weight: 900;
-      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--ds-text-secondary);
+      font-size: .8125rem; font-weight: 500;
+      line-height: 1.35;
     }
 
-    /* ── FORM CONTROLS ── */
+    /* ── Form controls ── */
     .input, .select {
-      min-height: 42px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
+      min-height: 38px;
+      border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm);
       background: var(--surface3);
       color: var(--text);
-      padding: 10px 12px;
-      font: inherit; font-size: .88rem;
+      padding: 8px 12px;
+      font-family: var(--ds-font-sans); font-size: .875rem;
       outline: none;
-      transition: border-color .15s, box-shadow .15s;
+      transition: border-color .12s ease, box-shadow .12s ease;
     }
     .select { min-width: 180px; cursor: pointer; }
     .input:focus, .select:focus {
-      border-color: rgba(59,130,246,.65);
-      box-shadow: 0 0 0 4px rgba(59,130,246,.10);
+      border-color: var(--accent);
+      box-shadow: var(--ds-focus-ring);
     }
 
-    /* ── BUTTONS ── */
+    /* ── Buttons ── */
     .btn {
-      min-height: 42px;
-      border-radius: 12px;
-      border: 1px solid transparent;
-      padding: 0 18px;
-      font: inherit; font-size: .82rem; font-weight: 900;
+      min-height: 38px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--ds-border-strong);
+      background: var(--surface2);
+      color: var(--text);
+      padding: 0 16px;
+      font-family: var(--ds-font-sans); font-size: .875rem; font-weight: 500; line-height: 1.2;
       cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      transition: transform .15s, background .15s;
+      transition: background .12s ease, border-color .12s ease;
       white-space: nowrap;
       text-decoration: none;
     }
-    .btn:hover { transform: translateY(-1px); }
 
-    .btn.primary {
-      background: var(--accent); color: #fff;
-      border-color: var(--accent);
-      box-shadow: 0 8px 22px rgba(59,130,246,.28);
-    }
-    .btn.primary:hover { background: var(--accent-hover); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
-    .btn.secondary {
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      border-color: var(--border);
-    }
-    .btn.secondary:hover { background: rgba(255,255,255,.07); }
+    .btn.secondary { background: var(--surface2); border-color: var(--ds-border-strong); color: var(--text); }
+    .btn.secondary:hover { background: var(--ds-surface-hover); }
 
-    .btn.good {
-      background: rgba(16,185,129,.12);
-      color: #a7f3d0;
-      border-color: rgba(16,185,129,.35);
-    }
+    .btn.good { background: transparent; border-color: var(--ds-success-border); color: var(--ds-success-text); }
+    .btn.good:hover { background: var(--ds-success-soft); }
 
-    /* ── TABLE ── */
+    /* ── Table ── */
     .table-scroll {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
@@ -209,111 +173,102 @@
     .table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 640px;
+      min-width: 680px;
     }
 
     .table th, .table td {
       text-align: left;
-      padding: 13px 16px;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
     }
 
     .table th {
-      font-size: .7rem;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      color: var(--dim);
-      background: rgba(255,255,255,.022);
+      padding: 10px 14px;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--surface3);
       white-space: nowrap;
     }
 
-    .table td { font-size: .87rem; color: var(--muted); }
-    .table td strong { color: var(--text); display: block; margin-bottom: 2px; }
-    .table td .sub { font-size: .78rem; color: var(--dim); }
+    .table td { padding: 12px 14px; font-size: .875rem; color: var(--ds-text-secondary); }
+    .table td strong { color: var(--text); display: block; margin-bottom: 2px; font-weight: 600; overflow-wrap: anywhere; }
+    .table td .sub { font-size: .8125rem; color: var(--muted); }
 
     .table tbody tr:last-child td { border-bottom: none; }
-    .table tbody tr:hover td { background: rgba(255,255,255,.014); }
+    .table tbody tr:hover td { background: rgba(255,255,255,.02); }
 
-    /* ── BADGES ── */
+    /* ── Status labels ── */
     .pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: .72rem; font-weight: 900;
-      color: var(--muted);
+      display: inline-flex; align-items: center; gap: 4px;
+      border: 1px solid var(--ds-border-strong);
+      background: var(--surface2);
+      border-radius: var(--radius-xs);
+      padding: 2px 8px;
+      font-size: .75rem; font-weight: 600; line-height: 1.4;
+      color: var(--ds-text-secondary);
       white-space: nowrap;
+      font-variant-numeric: tabular-nums;
     }
-    .pill.good   { color:#a7f3d0; border-color:rgba(16,185,129,.35);  background:rgba(16,185,129,.09); }
-    .pill.warn   { color:#fde68a; border-color:rgba(245,158,11,.35);  background:rgba(245,158,11,.09); }
-    .pill.danger { color:#fecaca; border-color:rgba(239,68,68,.35);   background:rgba(239,68,68,.09);  }
+    .pill.good   { color: var(--ds-success-text); border-color: var(--ds-success-border); background: var(--ds-success-soft); }
+    .pill.warn   { color: var(--ds-warning-text); border-color: var(--ds-warning-border); background: var(--ds-warning-soft); }
+    .pill.danger { color: var(--ds-danger-text);  border-color: var(--ds-danger-border);  background: var(--ds-danger-soft); }
 
-    /* ── ALERTS ── */
+    /* ── Alerts ── */
     .alert {
-      border-radius: 14px;
-      padding: 13px 16px;
-      font-weight: 700;
-      line-height: 1.5;
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: .875rem;
+      line-height: 1.55;
       margin-bottom: 16px;
-      border: 1px solid transparent;
+      border: 1px solid var(--ds-accent-border);
+      background: var(--ds-accent-soft);
+      color: #dbeafe;
     }
-    .alert.success { background:rgba(16,185,129,.10); border-color:rgba(16,185,129,.30); color:#a7f3d0; }
-    .alert.danger  { background:rgba(239,68,68,.10);  border-color:rgba(239,68,68,.30);  color:#fecaca; }
+    .alert.success { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: #d1fae5; }
+    .alert.danger  { background: var(--ds-danger-soft);  border-color: var(--ds-danger-border);  color: #fee2e2; }
 
-    /* ── PAGINATION ── */
-    .pagination { padding: 14px 18px; display: flex; justify-content: flex-end; }
+    /* ── Pagination ── */
+    .pagination { padding: 14px 20px; border-top: 1px solid var(--border); }
+    .pagination:empty { display: none; }
 
-    /* ──────────────────────────────────────────────
-       EMPTY STATE  (was the broken part — now fixed)
-       ────────────────────────────────────────────── */
+    /* ── Empty state ── */
     .empty {
-      /* Use flex column so every child stacks vertically */
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      padding: 52px 24px 44px;
-      gap: 12px;
-    }
-
-    .empty-icon {
-      width: 56px; height: 56px;
-      background: rgba(59,130,246,.10);
-      border: 1px solid rgba(59,130,246,.22);
-      border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--accent);
-      margin-bottom: 4px;
+      padding: 40px 20px;
+      gap: 8px;
     }
 
     .empty h3 {
       font-size: 1rem;
-      font-weight: 800;
+      font-weight: 600;
       color: var(--text);
     }
 
     .empty p {
       color: var(--muted);
-      font-size: .88rem;
-      max-width: 400px;
-      line-height: 1.65;
+      font-size: .875rem;
+      max-width: 440px;
+      line-height: 1.6;
     }
 
-    /* Stats panel inside empty state — block-level, not inline */
+    .empty p strong { color: var(--text); font-weight: 600; }
+
+    /* Enrollment figures under the explanation */
     .empty-stats {
-      display: grid;                    /* block-level grid, NOT inline-grid */
+      display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px 20px;
-      margin-top: 8px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.025);
-      border-radius: 14px;
-      padding: 14px 20px;
+      gap: 4px 24px;
+      margin-top: 12px;
+      background: var(--surface3);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
       text-align: left;
       width: 100%;
-      max-width: 340px;
+      max-width: 360px;
     }
 
     .empty-stat {
@@ -321,38 +276,41 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      font-size: .78rem;
-      color: var(--dim);
-      padding: 3px 0;
+      font-size: .8125rem;
+      color: var(--muted);
+      padding: 4px 0;
     }
 
     .empty-stat .val {
       color: var(--text);
-      font-weight: 700;
-      font-size: .82rem;
+      font-weight: 600;
       flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
     }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 800px) {
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
       .mobile-header { display: flex; }
-      .ds-main { padding: 16px; }
-      .page-title { font-size: 1.55rem; }
-      .page-subtitle { font-size: .87rem; }
+      .ds-main { padding: 24px 20px 40px; }
+    }
 
-      /* Table → card list on small screens */
-      .table-scroll { overflow-x: visible; }
-      .table         { min-width: unset; }
+    @media (min-width: 901px) {
+      .sidebar-overlay.open { display: none; }
+    }
+
+    @media (max-width: 720px) {
+      /* Table becomes a list of rows on small screens */
+      /* (the global 640px minimum for wide tables does not apply to the row list) */
+      .card table.table { min-width: 0; }
       .table thead   { display: none; }
       .table, .table tbody { display: block; width: 100%; }
 
       .table tr {
         display: grid;
-        grid-template-columns: 1fr auto;
-        grid-template-rows: auto auto auto auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         column-gap: 12px;
-        row-gap: 6px;
-        padding: 16px;
+        row-gap: 8px;
+        padding: 14px 16px;
         border-bottom: 1px solid var(--border);
       }
       .table tr:last-child { border-bottom: none; }
@@ -361,44 +319,42 @@
       .table td {
         padding: 0;
         border: none;
-        font-size: .85rem;
+        font-size: .875rem;
       }
 
-      /* Assignment name — full width, row 1 */
+      /* Assignment name, row 1 */
       .table td:nth-child(1) { grid-column: 1 / -1; grid-row: 1; }
-
-      /* Class name — row 2 col 1 */
-      .table td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: .77rem; color: var(--dim); }
-
-      /* Type badge — row 2 col 2 */
+      /* Class, row 2 left; type, row 2 right */
+      .table td:nth-child(2) { grid-column: 1; grid-row: 2; align-self: center; font-size: .8125rem; color: var(--muted); }
       .table td:nth-child(3) { grid-column: 2; grid-row: 2; justify-self: end; }
-
-      /* Due date — row 3 col 1 */
-      .table td:nth-child(4) { grid-column: 1; grid-row: 3; font-size: .77rem; color: var(--dim); }
-
-      /* Status — row 3 col 2 */
+      /* Due, row 3 left; status, row 3 right */
+      .table td:nth-child(4) { grid-column: 1; grid-row: 3; align-self: center; font-size: .8125rem; color: var(--muted); }
       .table td:nth-child(5) { grid-column: 2; grid-row: 3; justify-self: end; }
-
-      /* Action button — full width, row 4 */
+      /* Action, row 4 */
       .table td:nth-child(6) { grid-column: 1 / -1; grid-row: 4; }
       .table td:nth-child(6) .btn { width: 100%; margin-top: 4px; }
-
-      .empty-stats { grid-template-columns: 1fr; max-width: 280px; }
-      .toolbar .select { min-width: unset; width: 100%; }
-      .toolbar { gap: 10px; }
-      .toolbar .btn { flex: 0 0 auto; }
-
-      .pagination { justify-content: center; }
-      .card { border-radius: 16px; }
     }
 
-    @media (max-width: 480px) {
-      .ds-main { padding: 12px; }
-      .card { border-radius: 14px; }
-      .empty { padding: 40px 16px 36px; }
+    @media (max-width: 640px) {
+      .ds-main { padding: 20px 16px 32px; }
+      .toolbar { padding: 14px 16px; gap: 8px; }
+      .toolbar .field { flex: 1 1 180px; }
+      .toolbar .select { min-width: 0; width: 100%; }
+      .pagination { padding: 14px 16px; }
+      .empty { padding: 32px 16px; }
+    }
+
+    @media (max-width: 420px) {
+      .empty-stats { grid-template-columns: 1fr; max-width: 280px; }
+      .toolbar .btn { flex: 1 1 auto; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .input, .select { transition: none; }
     }
   </style>
   @include('partials.admin-inspired-page-style')
+    @include('partials.page-head', ['pageTitle' => 'My Assignments', 'pageDescription' => 'See the assignments your instructor set, submit work, and review feedback.'])
 </head>
 <body class="ds-admin-inspired">
 
@@ -474,12 +430,7 @@
                     <tr>
                       <td>
                         <strong>{{ $assignment->title }}</strong>
-                        <span class="sub">
-                          {{ $assignment->libraryItem?->topic_title }}
-                          @if($assignment->libraryItem?->version_name)
-                            · {{ $assignment->libraryItem->version_name }}
-                          @endif
-                        </span>
+                        <span class="sub">{{ $assignment->libraryItem?->topic_title }}@if($assignment->libraryItem?->version_name), {{ $assignment->libraryItem->version_name }}@endif</span>
                       </td>
 
                       <td>{{ $assignment->classRoom?->name ?? '—' }}</td>
@@ -490,7 +441,7 @@
 
                       <td>
                         {{ $assignment->due_at
-                          ? $assignment->due_at->format('M d, Y · h:i A')
+                          ? $assignment->due_at->format('M d, Y, h:i A')
                           : '—' }}
                       </td>
 
@@ -500,9 +451,9 @@
                         @elseif($submission->status === 'in_progress')
                           <span class="pill warn">In Progress</span>
                         @elseif($submission->status === 'late')
-                          <span class="pill danger">Late · {{ $submission->score }}/{{ $submission->total_points }}</span>
+                          <span class="pill danger">Late, {{ $submission->score }}/{{ $submission->total_points }}</span>
                         @else
-                          <span class="pill good">{{ ucfirst($submission->status) }} · {{ $submission->score }}/{{ $submission->total_points }}</span>
+                          <span class="pill good">{{ ucfirst($submission->status) }}, {{ $submission->score }}/{{ $submission->total_points }}</span>
                         @endif
                       </td>
 
@@ -582,26 +533,6 @@
     </main>
   </div>
 
-  {{-- ── SIDEBAR MOBILE BEHAVIOR OVERRIDE ──
-       The sidebar partial hides itself via display:none at ≤700px.
-       We override that here to use a slide-in drawer instead. --}}
-  <style>
-    @media (max-width: 800px) {
-      .sidebar {
-        display: flex !important;     /* un-hide */
-        position: fixed;
-        top: 0; left: 0;
-        height: 100vh;
-        z-index: 160;
-        transform: translateX(-100%);
-        transition: transform .25s cubic-bezier(.4,0,.2,1);
-        box-shadow: 4px 0 32px rgba(0,0,0,.35);
-      }
-      .sidebar.is-open {
-        transform: translateX(0);
-      }
-    }
-  </style>
 
   <script>
     (function () {

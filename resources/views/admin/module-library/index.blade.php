@@ -1,7 +1,6 @@
 @extends('admin.layout')
 
 @section('title', 'Learning Modules')
-@section('eyebrow', 'Platform Content')
 @section('page_title', 'Learning Modules')
 @section('page_subtitle', 'Create, version, publish, and maintain the module-library content used by students and instructors.')
 
@@ -38,7 +37,7 @@
     </form>
   </section>
 
-  <section class="panel" style="margin-top:24px">
+  <section class="panel">
     <div class="table-wrap">
       <table>
         <thead>
@@ -56,11 +55,11 @@
             <tr>
               <td>
                 <strong>{{ $module->title }}</strong>
-                <div class="dim">Module {{ $module->module_no }} · {{ $module->module_code }}</div>
+                <div class="dim">Module {{ $module->module_no }}, {{ $module->module_code }}</div>
               </td>
               <td>
                 <strong>{{ $module->version_name }}</strong>
-                <div class="dim">{{ $module->version_code }} · V{{ $module->version_no }}</div>
+                <div class="dim">{{ $module->version_code }}, V{{ $module->version_no }}</div>
               </td>
               <td>{{ $module->year_level }}</td>
               <td>

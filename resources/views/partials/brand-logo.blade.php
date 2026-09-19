@@ -20,147 +20,119 @@
       align-items: center;
       gap: 10px;
       min-width: 0;
-      color: var(--text, #fafafa);
+      color: var(--ds-text, #f8fafc);
       text-decoration: none;
       line-height: 1;
     }
 
     .ds-brand-logo__mark {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 14px;
       overflow: hidden;
-      background:
-        radial-gradient(circle at 30% 18%, rgba(255,255,255,0.16), transparent 30%),
-        linear-gradient(145deg, rgba(59,130,246,0.16), rgba(139,92,246,0.08));
-      border: 1px solid rgba(127,147,176,0.22);
-      box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+      border: 1px solid var(--ds-border-strong, #2c4168);
+      border-radius: var(--ds-radius-md, 8px);
+      background: var(--ds-surface-2, #1a2638);
     }
 
     .ds-brand-logo__image {
       width: 100%;
       height: 100%;
-      object-fit: contain;
       display: block;
-      padding: 5px;
+      padding: 4px;
+      object-fit: contain;
     }
 
     .ds-brand-logo__copy {
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .ds-brand-logo__name {
       display: block;
-      color: var(--text, #fafafa);
-      font-size: 1.08rem;
-      font-weight: 850;
-      letter-spacing: -0.035em;
+      color: var(--ds-text, #f8fafc);
+      font-family: var(--ds-font-sans, Inter, Arial, Helvetica, sans-serif);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
       white-space: nowrap;
     }
 
     .ds-brand-logo__accent {
-      color: var(--accent, #3b82f6);
+      color: var(--ds-accent, #3b82f6);
     }
 
     .ds-brand-logo__subtext {
       display: block;
-      color: var(--muted, #7f93b0);
-      font-size: 0.72rem;
-      font-weight: 650;
-      letter-spacing: 0.01em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
       max-width: 180px;
+      color: var(--ds-text-muted, #8aa0bd);
+      font-size: 0.75rem;
+      font-weight: 500;
+      line-height: 1.3;
+      overflow-wrap: break-word;
     }
 
-    .ds-brand-logo--compact {
-      gap: 7px;
-    }
+    .ds-brand-logo--compact { gap: 8px; }
 
     .ds-brand-logo--compact .ds-brand-logo__mark {
-      width: 26px;
-      height: 26px;
-      border-radius: 9px;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--ds-radius-sm, 6px);
     }
 
-    .ds-brand-logo--compact .ds-brand-logo__image {
-      padding: 3px;
-    }
+    .ds-brand-logo--compact .ds-brand-logo__image { padding: 3px; }
 
     .ds-brand-logo--compact .ds-brand-logo__name {
-      font-size: 0.9rem;
-      font-weight: 800;
+      font-size: 0.9375rem;
     }
 
-    .ds-brand-logo--large {
-      gap: 13px;
-    }
+    .ds-brand-logo--large { gap: 12px; }
 
     .ds-brand-logo--large .ds-brand-logo__mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 18px;
-      border-color: rgba(59,130,246,0.26);
+      width: 44px;
+      height: 44px;
+      border-radius: var(--ds-radius-lg, 10px);
     }
 
-    .ds-brand-logo--large .ds-brand-logo__image {
-      padding: 6px;
-    }
+    .ds-brand-logo--large .ds-brand-logo__image { padding: 6px; }
 
     .ds-brand-logo--large .ds-brand-logo__name {
-      font-size: 1.35rem;
-      font-weight: 900;
+      font-size: 1.25rem;
     }
 
     .ds-brand-logo--large .ds-brand-logo__subtext {
-      font-size: 0.78rem;
       max-width: 240px;
+      font-size: 0.8125rem;
     }
 
     .ds-brand-logo--icon-only .ds-brand-logo__mark {
-      width: 34px;
-      height: 34px;
-      border-radius: 12px;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--ds-radius-sm, 6px);
     }
 
-    .ds-brand-logo--icon-only .ds-brand-logo__copy {
-      display: none;
-    }
+    .ds-brand-logo--icon-only .ds-brand-logo__copy { display: none; }
 
-    .ds-brand-logo--sidebar {
-      width: 100%;
-    }
+    .ds-brand-logo--sidebar { width: 100%; }
 
     .ds-brand-logo--topbar .ds-brand-logo__mark {
-      width: 24px;
-      height: 24px;
-      border-radius: 8px;
-      box-shadow: none;
+      width: 26px;
+      height: 26px;
+      border-radius: var(--ds-radius-sm, 6px);
     }
 
-    .ds-brand-logo--topbar .ds-brand-logo__image {
-      padding: 3px;
-    }
+    .ds-brand-logo--topbar .ds-brand-logo__image { padding: 3px; }
 
-    .ds-brand-logo--topbar .ds-brand-logo__name {
-      font-size: 0.9rem;
-    }
+    .ds-brand-logo--topbar .ds-brand-logo__name { font-size: 0.9375rem; }
 
-    .ds-brand-logo--auth {
-      align-items: center;
-    }
+    .ds-brand-logo--auth { align-items: center; }
 
-    .ds-brand-logo--admin-card {
-      margin-bottom: 18px;
-    }
+    .ds-brand-logo--admin-card { margin-bottom: 16px; }
   </style>
 @endonce
 

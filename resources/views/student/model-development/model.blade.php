@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>{{ $model->name }} - DataSensei</title>
+    <title>{{ $model->name }} — DataSensei</title>
     @include('student.model-development.partials.styles')
+    @include('partials.page-head', ['pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
 </head>
 <body>
 @php
@@ -63,9 +64,9 @@
             <div>
                 <h1 class="ml-title ds-page-title">{{ $model->name }}</h1>
                 <div class="ml-subtitle-row">
-                    <p class="ml-subtitle">{{ $algorithmLabel }} · {{ ucfirst($problemType) }} · Active {{ $version->version_label }}</p>
+                    <p class="ml-subtitle">{{ $algorithmLabel }}, {{ ucfirst($problemType) }}, Active {{ $version->version_label }}</p>
                     <span class="ml-badge {{ $model->isSystemModel() ? 'good' : '' }}">
-                        {{ $model->isSystemModel() ? 'System benchmark · Read-only' : 'Your model · Private' }}
+                        {{ $model->isSystemModel() ? 'System benchmark, read-only' : 'Your model, private' }}
                     </span>
                 </div>
             </div>
@@ -160,15 +161,15 @@
                                 <div><span>Training time</span><strong>{{ number_format(($version->training_time_ms ?? 0) / 1000, 3) }} seconds</strong></div>
                                 <div><span>Features used</span><strong>{{ count((array) $version->feature_names) }}</strong></div>
                                 <div><span>Target</span><strong>{{ $version->target_column ?: 'No target' }}</strong></div>
-                                <div><span>Runtime</span><strong>Python {{ $version->python_version ?: 'Unknown' }} · sklearn {{ $version->sklearn_version ?: 'Unknown' }}</strong></div>
+                                <div><span>Runtime</span><strong>Python {{ $version->python_version ?: 'Unknown' }}, sklearn {{ $version->sklearn_version ?: 'Unknown' }}</strong></div>
                             </div>
                         </div>
 
                         @if($importance !== [] || $problemType !== 'clustering')
                         <div class="ml-card">
                             <h3 class="ml-section-title">Which columns mattered most?</h3>
-                            <p class="ml-muted" style="font-size:.78rem">Longer bars had more influence on this model's decisions. Influence is not the same as cause.</p>
-                            <div class="ml-table-wrap" style="margin-top:14px">
+                            <p class="ml-muted" style="font-size:.8125rem">Longer bars had more influence on this model's decisions. Influence is not the same as cause.</p>
+                            <div class="ml-table-wrap" style="margin-top:16px">
                                 <table class="ml-table">
                                     <thead><tr><th>Feature</th><th>Influence</th><th>Method</th></tr></thead>
                                     <tbody>
@@ -197,7 +198,7 @@
                     @if($confusionLabels !== [] && $confusionValues !== [])
                         <section class="ml-section ml-card">
                             <h3 class="ml-section-title">Where did the model get confused?</h3>
-                            <p class="ml-muted" style="font-size:.8rem">Each row is the real class and each column is what the model predicted. Green cells are correct; red cells are mistakes.</p>
+                            <p class="ml-muted" style="font-size:.8125rem">Each row is the real class and each column is what the model predicted. Green cells are correct; red cells are mistakes.</p>
                             <div class="ml-cm-wrap">
                                 <table class="ml-cm">
                                     <thead>
@@ -226,7 +227,7 @@
                     @if($clusterSizes !== [])
                         <section class="ml-section ml-card">
                             <h3 class="ml-section-title">How big is each group?</h3>
-                            <p class="ml-muted" style="font-size:.8rem">Cluster numbers are just names. Look at the rows in each group to decide what they have in common.</p>
+                            <p class="ml-muted" style="font-size:.8125rem">Cluster numbers are just names. Look at the rows in each group to decide what they have in common.</p>
                             <div class="ml-meta">
                                 @foreach($clusterSizes as $clusterName => $clusterCount)
                                     <div><span>{{ $clusterName }}</span><strong>{{ number_format((int) $clusterCount) }} rows</strong></div>
@@ -310,9 +311,9 @@
                         @if($predictionSchema === [])
                             <div class="ml-alert error" style="margin-top:16px">This model version does not contain a prediction schema.</div>
                         @else
-                            <form method="POST" action="{{ route('student.model-development.models.predict', $model) }}" style="margin-top:18px" id="prediction-form">
+                            <form method="POST" action="{{ route('student.model-development.models.predict', $model) }}" style="margin-top:16px" id="prediction-form">
                                 @csrf
-                                <div class="ml-toolbar" style="margin:0 0 14px">
+                                <div class="ml-toolbar" style="margin:0 0 16px">
                                     <button class="ml-btn small secondary" type="button" id="fill-typical">Fill with typical values</button>
                                     <button class="ml-btn small secondary" type="button" id="clear-values">Clear all</button>
                                     <span class="ml-counter">Empty fields are filled in automatically, just like during training.</span>
@@ -336,7 +337,7 @@
                                                         <option value="{{ $option }}" @selected((string) old('input_values.'.$feature) === (string) $option)>{{ $option }}</option>
                                                     @endforeach
                                                 </select>
-                                                <div class="ml-help">Category · most common: {{ $options[0] ?? '—' }}</div>
+                                                <div class="ml-help">Category, most common: {{ $options[0] ?? '—' }}</div>
                                             @else
                                                 <input
                                                     class="ml-input"
@@ -372,14 +373,14 @@
                     <section class="ml-section ml-card">
                         <h3 class="ml-section-title">Your recent predictions</h3>
                         <p class="ml-muted">Only predictions made under your account are shown here. Confidence shows how sure the model was, not a guarantee.</p>
-                        <div class="ml-table-wrap" style="margin-top:14px">
+                        <div class="ml-table-wrap" style="margin-top:16px">
                             <table class="ml-table">
                                 <thead><tr><th>Result</th><th>Confidence / probabilities</th><th>Response time</th><th>Date</th></tr></thead>
                                 <tbody>
                                 @forelse($predictions as $prediction)
                                     <tr>
                                         <td><strong>{{ $prediction->predicted_value }}</strong></td>
-                                        <td>{{ $prediction->probabilities ? collect($prediction->probabilities)->map(fn ($value, $key) => $key.': '.number_format((float) $value, 2).'%')->implode(' · ') : 'Not available' }}</td>
+                                        <td>{{ $prediction->probabilities ? collect($prediction->probabilities)->map(fn ($value, $key) => $key.': '.number_format((float) $value, 2).'%')->implode(', ') : 'Not available' }}</td>
                                         <td>{{ $prediction->latency_ms }} ms</td>
                                         <td>{{ $prediction->created_at->format('M j, Y g:i A') }}</td>
                                     </tr>
@@ -445,7 +446,7 @@
                                 <div><span>Algorithm</span><strong>{{ $algorithmLabel }}</strong></div>
                                 <div><span>Recent predictions</span><strong>{{ $predictions->count() }}</strong></div>
                             </div>
-                            <p class="ml-muted" style="font-size:.8rem">Ideas to keep learning: train the same setup with a different algorithm, or remove one feature and see how the score changes.</p>
+                            <p class="ml-muted" style="font-size:.8125rem">Ideas to keep learning: train the same setup with a different algorithm, or remove one feature and see how the score changes.</p>
                             <div class="ml-actions" style="margin-top:12px">
                                 <a class="ml-btn secondary" href="{{ route('student.model-development.models.report', $model) }}" target="_blank" rel="noopener">Open Report</a>
                                 @if(! $model->isSystemModel())
@@ -458,7 +459,7 @@
                         <div class="ml-card">
                             <h3 class="ml-section-title">Version History</h3>
                             <p class="ml-muted">Earlier versions remain saved when you change a configuration and train again.</p>
-                            <div class="ml-table-wrap" style="margin-top:14px">
+                            <div class="ml-table-wrap" style="margin-top:16px">
                                 <table class="ml-table">
                                     <thead><tr><th>Version</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
                                     <tbody>
@@ -491,7 +492,7 @@
                         <details class="ml-advanced ml-section">
                             <summary>Model Management</summary>
                             <p class="ml-help">Deleting removes this model and every saved version. This does not delete the source dataset.</p>
-                            <form method="POST" action="{{ route('student.model-development.models.destroy', $model) }}" onsubmit="return confirm('Delete this model and every saved version? This cannot be undone.')" style="margin-top:14px">
+                            <form method="POST" action="{{ route('student.model-development.models.destroy', $model) }}" onsubmit="return confirm('Delete this model and every saved version? This cannot be undone.')" style="margin-top:16px">
                                 @csrf
                                 @method('DELETE')
                                 <button class="ml-btn danger" type="submit">Delete Model</button>

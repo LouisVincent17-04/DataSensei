@@ -28,7 +28,16 @@ class AuthController extends Controller
             return $this->redirectUserByRole($request->user());
         }
 
-        return view('auth.login');
+        // A sign-in page can remain open longer than its guest session.
+        // Let it obtain the current token immediately before submitting.
+        if ($request->expectsJson()) {
+            return response()->json([
+                'csrf_token' => $request->session()->token(),
+            ])->header('Cache-Control', 'no-store, private');
+        }
+
+        return response()->view('auth.login')
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function login(Request $request)

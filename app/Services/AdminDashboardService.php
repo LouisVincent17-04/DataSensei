@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 class AdminDashboardService
 {
@@ -648,8 +650,10 @@ class AdminDashboardService
     /**
      * Check whether a table exists.
      *
-     * This avoids Laravel's newer schema-inspection query and remains
-     * compatible with MySQL 5.5.
+     * The information_schema query keeps MySQL 5.5 working, where Laravel's
+     * newer schema inspection fails. It is MySQL-only syntax, though, so every
+     * other driver (and any failure of the raw query) falls back to Laravel's
+     * own check instead of turning the dashboard into a 500.
      */
     private function tableExists(string $table): bool
     {
@@ -657,17 +661,29 @@ class AdminDashboardService
             return false;
         }
 
-        $result = DB::selectOne(
-            '
-                SELECT COUNT(*) AS aggregate_count
-                FROM information_schema.TABLES
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = ?
-            ',
-            [$table]
-        );
+        if ($this->usesMySql()) {
+            try {
+                $result = DB::selectOne(
+                    '
+                        SELECT COUNT(*) AS aggregate_count
+                        FROM information_schema.TABLES
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME = ?
+                    ',
+                    [$table]
+                );
 
-        return (int) ($result->aggregate_count ?? 0) > 0;
+                return (int) ($result->aggregate_count ?? 0) > 0;
+            } catch (Throwable) {
+                // Fall through to the portable check below.
+            }
+        }
+
+        try {
+            return Schema::hasTable($table);
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -687,18 +703,40 @@ class AdminDashboardService
             return false;
         }
 
-        $result = DB::selectOne(
-            '
-                SELECT COUNT(*) AS aggregate_count
-                FROM information_schema.COLUMNS
-                WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = ?
-                  AND COLUMN_NAME = ?
-            ',
-            [$table, $column]
-        );
+        if ($this->usesMySql()) {
+            try {
+                $result = DB::selectOne(
+                    '
+                        SELECT COUNT(*) AS aggregate_count
+                        FROM information_schema.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME = ?
+                          AND COLUMN_NAME = ?
+                    ',
+                    [$table, $column]
+                );
 
-        return (int) ($result->aggregate_count ?? 0) > 0;
+                return (int) ($result->aggregate_count ?? 0) > 0;
+            } catch (Throwable) {
+                // Fall through to the portable check below.
+            }
+        }
+
+        try {
+            return Schema::hasColumn($table, $column);
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /** information_schema with DATABASE() is MySQL/MariaDB syntax. */
+    private function usesMySql(): bool
+    {
+        try {
+            return DB::connection()->getDriverName() === 'mysql';
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
