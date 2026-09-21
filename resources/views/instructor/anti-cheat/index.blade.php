@@ -132,47 +132,82 @@
           <div class="stat"><div class="num">{{ $stats['critical_today'] }}</div><div class="label">Critical Today</div></div>
         </div>
 
-        <section class="card">
+        @php
+          // Create mode keeps the long-standing starting point. Edit mode shows
+          // what is actually stored, so saving cannot quietly reset a rule the
+          // form never displayed.
+          $acDefaults = [
+            'enabled' => true,
+            'allow_tab_switch' => false,
+            'block_on_tab_limit' => true,
+            'require_fullscreen' => false,
+            'detect_dual_monitor' => true,
+            'block_dual_monitor' => false,
+            'allow_copy' => true,
+            'allow_paste' => false,
+            'block_external_paste' => true,
+            'allow_right_click' => false,
+            'allow_devtools_shortcuts' => false,
+            'show_warnings' => true,
+            'auto_submit_mcq_on_violation' => false,
+            'lock_screen_on_violation' => true,
+          ];
+          $acValue = fn (string $key) => $editingSetting
+            ? (bool) $editingSetting->{$key}
+            : $acDefaults[$key];
+        @endphp
+
+        <section class="card" id="anti-cheat-form">
           <div class="card-head">
             <div>
-              <div class="card-title">Create or Update Configuration</div>
-              <div class="card-sub">Use “All classes” as your default assignment anti-cheat policy, or choose a specific class for a class-level override.</div>
+              <div class="card-title">{{ $editingSetting ? 'Edit Configuration' : 'Create or Update Configuration' }}</div>
+              <div class="card-sub">
+                @if($editingSetting)
+                  Editing the rules saved for {{ $editingSetting->classRoom?->name ?? 'all classes' }}. Every rule below shows what is stored right now.
+                @else
+                  Use “All classes” as your default assignment anti-cheat policy, or choose a specific class for a class-level override.
+                @endif
+              </div>
             </div>
+            @if($editingSetting)
+              <a class="btn" href="{{ route('instructor.anti-cheat.index') }}">Cancel Edit</a>
+            @endif
           </div>
           <div class="card-body">
-            <form method="POST" action="{{ route('instructor.anti-cheat.store') }}">
+            <form method="POST" action="{{ $editingSetting ? route('instructor.anti-cheat.update', $editingSetting) : route('instructor.anti-cheat.store') }}">
               @csrf
+              @if($editingSetting) @method('PUT') @endif
               <div class="form-grid">
                 <div class="field">
                   <label>Class</label>
                   <select class="select" name="class_id">
-                    <option value="">All classes / instructor default</option>
+                    <option value="" @selected($editingSetting && $editingSetting->class_id === null)>All classes / instructor default</option>
                     @foreach($classes as $class)
-                      <option value="{{ $class->id }}">{{ $class->name }} {{ $class->section ? '— '.$class->section : '' }}</option>
+                      <option value="{{ $class->id }}" @selected($editingSetting && (int) $editingSetting->class_id === (int) $class->id)>{{ $class->name }} {{ $class->section ? '— '.$class->section : '' }}{{ $class->is_archived ? ' (archived class, kept for this configuration)' : '' }}</option>
                     @endforeach
                   </select>
                 </div>
                 <div class="field">
                   <label>Allowed Tab Switches</label>
-                  <input class="input" type="number" min="0" max="20" name="max_tab_switches" value="2">
+                  <input class="input" type="number" min="0" max="20" name="max_tab_switches" value="{{ $editingSetting ? (int) $editingSetting->max_tab_switches : 2 }}">
                 </div>
               </div>
 
               <div class="toggles">
-                <label class="toggle"><input type="checkbox" name="enabled" value="1" checked><div><strong>Enable anti-cheat</strong><span>Apply monitoring to matching attempts.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="allow_tab_switch" value="1"><div><strong>Allow tab switching</strong><span>If off, switching tabs/focus is counted as a violation.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="block_on_tab_limit" value="1" checked><div><strong>Lock after tab limit</strong><span>Blocks attempt after the allowed count is exceeded.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="require_fullscreen" value="1"><div><strong>Require fullscreen</strong><span>Student must enter fullscreen before continuing.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="detect_dual_monitor" value="1" checked><div><strong>Detect dual monitor</strong><span>Logs multiple screens when browser support permits.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="block_dual_monitor" value="1"><div><strong>Block dual monitor</strong><span>Locks attempt when multiple screens are detected.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="allow_copy" value="1" checked><div><strong>Allow copying</strong><span>Permit copying text/code inside the attempt.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="allow_paste" value="1"><div><strong>Allow paste</strong><span>If off, all paste actions are blocked.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="block_external_paste" value="1" checked><div><strong>Block external paste</strong><span>Allows internal copy/paste only when paste is enabled.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="allow_right_click" value="1"><div><strong>Allow right click</strong><span>If off, context menu is blocked and logged.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="allow_devtools_shortcuts" value="1"><div><strong>Allow developer shortcuts</strong><span>If off, F12/Ctrl+Shift+I/Ctrl+U shortcuts are blocked.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="show_warnings" value="1" checked><div><strong>Show student warnings</strong><span>Display warning toasts for violations.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="auto_submit_mcq_on_violation" value="1"><div><strong>Auto-submit MCQ when locked</strong><span>For severe violations, submits current MCQ answers.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="lock_screen_on_violation" value="1" checked><div><strong>Lock screen on critical violation</strong><span>Disables inputs after a critical event.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="enabled" value="1" @checked($acValue('enabled'))><div><strong>Enable anti-cheat</strong><span>Apply monitoring to matching attempts.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="allow_tab_switch" value="1" @checked($acValue('allow_tab_switch'))><div><strong>Allow tab switching</strong><span>If off, switching tabs/focus is counted as a violation.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="block_on_tab_limit" value="1" @checked($acValue('block_on_tab_limit'))><div><strong>Lock after tab limit</strong><span>Blocks attempt after the allowed count is exceeded.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="require_fullscreen" value="1" @checked($acValue('require_fullscreen'))><div><strong>Require fullscreen</strong><span>Student must enter fullscreen before continuing.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="detect_dual_monitor" value="1" @checked($acValue('detect_dual_monitor'))><div><strong>Detect dual monitor</strong><span>Logs multiple screens when browser support permits.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="block_dual_monitor" value="1" @checked($acValue('block_dual_monitor'))><div><strong>Block dual monitor</strong><span>Locks attempt when multiple screens are detected.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="allow_copy" value="1" @checked($acValue('allow_copy'))><div><strong>Allow copying</strong><span>Permit copying text/code inside the attempt.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="allow_paste" value="1" @checked($acValue('allow_paste'))><div><strong>Allow paste</strong><span>If off, all paste actions are blocked.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="block_external_paste" value="1" @checked($acValue('block_external_paste'))><div><strong>Block external paste</strong><span>Allows internal copy/paste only when paste is enabled.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="allow_right_click" value="1" @checked($acValue('allow_right_click'))><div><strong>Allow right click</strong><span>If off, context menu is blocked and logged.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="allow_devtools_shortcuts" value="1" @checked($acValue('allow_devtools_shortcuts'))><div><strong>Allow developer shortcuts</strong><span>If off, F12/Ctrl+Shift+I/Ctrl+U shortcuts are blocked.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="show_warnings" value="1" @checked($acValue('show_warnings'))><div><strong>Show student warnings</strong><span>Display warning toasts for violations.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="auto_submit_mcq_on_violation" value="1" @checked($acValue('auto_submit_mcq_on_violation'))><div><strong>Auto-submit MCQ when locked</strong><span>For severe violations, submits current MCQ answers.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="lock_screen_on_violation" value="1" @checked($acValue('lock_screen_on_violation'))><div><strong>Lock screen on critical violation</strong><span>Disables inputs after a critical event.</span></div></label>
               </div>
 
               <div class="actions"><button class="btn primary" type="submit">Save Assignment Anti-Cheat</button></div>
@@ -197,10 +232,13 @@
                       <span class="pill {{ $setting->block_dual_monitor ? 'danger' : 'warn' }}">Dual monitor: {{ $setting->block_dual_monitor ? 'Blocked' : ($setting->detect_dual_monitor ? 'Logged' : 'Ignored') }}</span>
                     </td>
                     <td>
-                      <form method="POST" action="{{ route('instructor.anti-cheat.destroy', $setting) }}" onsubmit="return confirm('Remove this anti-cheat configuration?');">
-                        @csrf @method('DELETE')
-                        <button class="btn danger" type="submit">Delete</button>
-                      </form>
+                      <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <a class="btn" href="{{ route('instructor.anti-cheat.index', ['setting' => $setting->id]) }}#anti-cheat-form">Edit</a>
+                        <form method="POST" action="{{ route('instructor.anti-cheat.destroy', $setting) }}" onsubmit="return confirm('Remove this anti-cheat configuration?');">
+                          @csrf @method('DELETE')
+                          <button class="btn danger" type="submit">Delete</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 @endforeach

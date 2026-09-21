@@ -31,3 +31,10 @@ Schedule::command('code-review:warm --timeout=120')
     ->name('warm-code-review-model')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Keeps the warm Python sandbox pool full and removes abandoned containers.
+Schedule::command('python-sandbox:pool maintain')
+    ->everyMinute()
+    ->name('maintain-python-sandbox-pool')
+    ->withoutOverlapping()
+    ->runInBackground();

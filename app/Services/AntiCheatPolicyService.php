@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class AntiCheatPolicyService
 {
+    public const INVALID_IDENTITY_MESSAGE = 'The protected attempt identity is invalid. Reload the assignment and try again.';
+
     /**
      * Backward-compatible entry point. Public MCQ and coding challenges intentionally return disabled settings.
      */
@@ -92,19 +94,85 @@ class AntiCheatPolicyService
             return null;
         }
 
-        $expectedSessionId = (string) ($submission->anti_cheat_session_id ?? '');
-        if ($expectedSessionId === '' || ! is_string($sessionId) || ! hash_equals($expectedSessionId, $sessionId)) {
-            return 'The protected attempt identity is invalid. Reload the assignment and try again.';
+        if (! $this->attemptIdentityMatches($submission, $sessionId)) {
+            return self::INVALID_IDENTITY_MESSAGE;
         }
 
+        return $this->blockedReason($this->attemptEventQuery($user, $assignment, $submission), $policy);
+    }
+
+    /**
+     * The protected-attempt identity is a per-attempt secret rendered into the
+     * take page. It never becomes optional, including after the timer expires.
+     */
+    public function attemptIdentityMatches(AssignmentSubmission $submission, ?string $sessionId): bool
+    {
+        $expectedSessionId = (string) ($submission->anti_cheat_session_id ?? '');
+
+        return $expectedSessionId !== ''
+            && is_string($sessionId)
+            && hash_equals($expectedSessionId, $sessionId);
+    }
+
+    /**
+     * Single authoritative integrity state of one assignment attempt. Used to
+     * render the take page, to answer every recorded event and to decide the
+     * submission outcome, so browser and server cannot drift apart.
+     *
+     * @return array{
+     *     enabled: bool,
+     *     blocked: bool,
+     *     reason: ?string,
+     *     focus_loss_count: int,
+     *     max_tab_switches: int,
+     *     remaining_allowance: ?int
+     * }
+     */
+    public function attemptIntegrityState(User $user, ClassAssignment $assignment, AssignmentSubmission $submission, ?array $policy = null): array
+    {
+        $policy = $policy ?? $this->settingsForAssignment($user, $assignment);
+        $maxTabSwitches = max(0, (int) ($policy['max_tab_switches'] ?? 0));
+
+        if (empty($policy['enabled'])) {
+            return [
+                'enabled' => false,
+                'blocked' => false,
+                'reason' => null,
+                'focus_loss_count' => 0,
+                'max_tab_switches' => $maxTabSwitches,
+                'remaining_allowance' => null,
+            ];
+        }
+
+        $query = $this->attemptEventQuery($user, $assignment, $submission);
+        $focusLossCount = $this->logicalFocusLossCount(clone $query);
+        $reason = $this->blockedReason($query, $policy, $focusLossCount);
+        $focusLimitApplies = ! ($policy['allow_tab_switch'] ?? true) && ($policy['block_on_tab_limit'] ?? true);
+
+        return [
+            'enabled' => true,
+            'blocked' => $reason !== null,
+            'reason' => $reason,
+            'focus_loss_count' => $focusLossCount,
+            'max_tab_switches' => $maxTabSwitches,
+            // Focus losses that may still happen without locking the attempt.
+            // null means the policy does not lock on focus loss at all.
+            'remaining_allowance' => $focusLimitApplies
+                ? max(0, $maxTabSwitches - $focusLossCount)
+                : null,
+        ];
+    }
+
+    private function attemptEventQuery(User $user, ClassAssignment $assignment, AssignmentSubmission $submission): Builder
+    {
         $query = AntiCheatEvent::where('user_id', $user->id)
             ->where('assessment_type', 'assignment')
             ->where('class_assignment_id', $assignment->id)
             ->where('assignment_submission_id', $submission->id);
 
-        $this->applySessionScope($query, $expectedSessionId);
+        $this->applySessionScope($query, (string) ($submission->anti_cheat_session_id ?? ''));
 
-        return $this->blockedReason($query, $policy);
+        return $query;
     }
 
     private function assignmentSettingsQuery(User $user, ?ClassAssignment $assignment): Builder
@@ -157,17 +225,23 @@ class AntiCheatPolicyService
         $query->where('attempt_session_id', $sessionId);
     }
 
-    private function blockedReason(Builder $query, array $policy): ?string
+    /**
+     * Every recorded event is judged against the policy flag that governs it.
+     * An event the configured policy only logs (warning-only dual monitor,
+     * right click) or does not restrict at all (fullscreen exit while
+     * fullscreen is optional, a forged event) never blocks the attempt.
+     */
+    private function blockedReason(Builder $query, array $policy, ?int $focusLossCount = null): ?string
     {
         if (! ($policy['allow_tab_switch'] ?? true) && ($policy['block_on_tab_limit'] ?? true)) {
-            $tabEvents = $this->logicalFocusLossCount(clone $query);
+            $tabEvents = $focusLossCount ?? $this->logicalFocusLossCount(clone $query);
 
             if ($tabEvents > (int) ($policy['max_tab_switches'] ?? 0)) {
                 return 'Your assignment attempt was locked because it exceeded the allowed tab-switch/focus-loss limit.';
             }
         }
 
-        if ($policy['block_dual_monitor'] ?? false) {
+        if (($policy['detect_dual_monitor'] ?? false) && ($policy['block_dual_monitor'] ?? false)) {
             $dualMonitorDetected = (clone $query)
                 ->where('event_type', 'dual_monitor_detected')
                 ->exists();
@@ -177,20 +251,16 @@ class AntiCheatPolicyService
             }
         }
 
-        $critical = (clone $query)
-            ->where('severity', 'critical')
-            ->whereIn('event_type', [
-                'devtools_shortcut',
-                'blocked_paste',
-                'fullscreen_exit',
-                'right_click',
-                'threshold_exceeded',
-                'dual_monitor_detected',
-            ])
-            ->exists();
+        $lockingEventTypes = AntiCheatEventContract::lockingEventTypesFor($policy);
 
-        if ($critical && ($policy['lock_screen_on_violation'] ?? true)) {
-            return 'Your assignment attempt was locked because a restricted action was detected.';
+        if ($lockingEventTypes !== []) {
+            $critical = (clone $query)
+                ->whereIn('event_type', $lockingEventTypes)
+                ->exists();
+
+            if ($critical) {
+                return 'Your assignment attempt was locked because a restricted action was detected.';
+            }
         }
 
         return null;

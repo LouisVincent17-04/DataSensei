@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Services\PythonSandboxService;
 
 class CodingQuizController extends Controller
@@ -87,7 +88,9 @@ class CodingQuizController extends Controller
         $this->ensureCodingPathIsUnlocked($slug);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
 
-        $challenge->load(['codingQuestions.visibleTestCases']);
+        // DS-14: visible test cases are loaded further down, and only for the
+        // questions whose timed content this learner is already entitled to.
+        $challenge->load(['codingQuestions']);
 
         abort_if($challenge->codingQuestions->isEmpty(), 404, 'No coding questions found.');
 
@@ -110,8 +113,11 @@ class CodingQuizController extends Controller
         // Rule:
         //   • Already passed      → state='done',   no attempt needed, no timer
         //   • Existing DB attempt → state='active',  restore it (clock was already running)
-        //   • First unsolved      → state='active',  create attempt NOW (stamp started_at)
-        //   • Later unsolved      → state='locked',  clock starts lazily via start()
+        //   • First unsolved      → state='active',  has_attempt=false. The page ships NO
+        //                           problem content for it; JavaScript calls the CSRF-protected
+        //                           start() POST, which stamps started_at and only then
+        //                           returns the content (DS-14).
+        //   • Later unsolved      → state='locked',  no content, clock starts lazily via start()
         $attempts            = [];
         $createdFirstAttempt = false;
 
@@ -186,6 +192,16 @@ class CodingQuizController extends Controller
             }
         }
 
+        // DS-14: timed content (description, starter code, sample cases) is rendered
+        // only when the question is solved or its server attempt already exists.
+        // Everything else receives the content from start() after started_at is stamped.
+        $questionContent = [];
+        foreach ($challenge->codingQuestions as $question) {
+            $state = $attempts[$question->id];
+            $entitled = $state['state'] === 'done' || $state['has_attempt'] === true;
+            $questionContent[$question->id] = $entitled ? $this->questionContent($question) : null;
+        }
+
         // Compute the index of the first 'active' question for the blade's ACTIVE_IDX
         $activeIdx = null;
         foreach ($challenge->codingQuestions as $i => $question) {
@@ -201,7 +217,7 @@ class CodingQuizController extends Controller
         // at all, so Back/Forward always fetches fresh server-rendered state.
         return response()
             ->view('student.coding-challenge-quiz', compact(
-                'slug', 'challenge', 'priorSubmissions', 'attempts', 'activeIdx'
+                'slug', 'challenge', 'priorSubmissions', 'attempts', 'activeIdx', 'questionContent'
             ))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate')
             ->header('Pragma', 'no-cache');
@@ -231,28 +247,72 @@ class CodingQuizController extends Controller
             return response()->json([
                 'remaining_seconds' => $question->time_limit_seconds,
                 'expired'           => false,
+                'question'          => $this->questionContent($question),
             ]);
         }
 
-        // firstOrCreate is safe against race conditions / double-clicks
+        // firstOrCreate is safe against race conditions / double-clicks: the
+        // (user_id, coding_question_id) unique key makes a concurrent second
+        // insert fall back to the row that won. A repeated start (refresh,
+        // double click, retry) therefore RESUMES the attempt — started_at and
+        // the attempt identity are never rewritten.
+        $generation = 1 + (int) CodingChallengeRetake::where('user_id', $userId)
+            ->where('challenge_id', $challenge->id)
+            ->value('retake_count');
+
         $attempt = CodingQuestionAttempt::firstOrCreate(
             [
                 'user_id'            => $userId,
                 'coding_question_id' => $question->id,
             ],
             [
-                'started_at' => now(),
-                'expired'    => false,
+                'started_at'    => now(),
+                'expired'       => false,
+                'attempt_token' => $this->newAttemptToken(),
+                'generation'    => $generation,
             ]
         );
 
         // FIX: use timestamp arithmetic, never diffInSeconds
         $remaining = $this->remainingSeconds($attempt, $question);
 
+        // DS-14: the content leaves the server only here, after the attempt row
+        // (and therefore started_at) is committed.
         return response()->json([
             'remaining_seconds' => $remaining,
             'expired'           => $remaining <= 0,
+            'started_at'        => $attempt->started_at->toIso8601String(),
+            'question'          => $this->questionContent($question),
         ]);
+    }
+
+    /**
+     * Student-visible content of one question. Hidden test cases never appear.
+     *
+     * @return array{id:int, problem_description:string, starter_code:string, test_cases:array<int, array{id:int, input:?string, expected_output:string}>}
+     */
+    private function questionContent(CodingQuestion $question): array
+    {
+        $question->loadMissing('visibleTestCases');
+
+        return [
+            'id'                  => (int) $question->id,
+            'problem_description' => (string) $question->problem_description,
+            'starter_code'        => (string) ($question->starter_code ?? ''),
+            'test_cases'          => $question->visibleTestCases
+                ->map(fn (TestCase $tc) => [
+                    'id'              => (int) $tc->id,
+                    'input'           => $tc->input,
+                    'expected_output' => (string) $tc->expected_output,
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    private function newAttemptToken(): string
+    {
+        return Str::random(40);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -354,13 +414,21 @@ class CodingQuizController extends Controller
             ], 403);
         }
 
+        // DS-15: capture the immutable identity of the attempt this request is
+        // graded for. It is re-validated under row locks before anything is
+        // committed, so a retake that lands while the sandbox is running cannot
+        // turn this result into an active result of the NEW run.
+        $identity = $this->attemptIdentity($attempt);
+
         // FIX: use timestamp arithmetic, never diffInSeconds
         $elapsedSeconds = $this->elapsedSeconds($attempt);
         $timeTaken      = $elapsedSeconds;
         $timeExpired    = $elapsedSeconds >= $question->time_limit_seconds;
 
         if ($timeExpired && !$attempt->expired) {
-            $attempt->update(['expired' => true]);
+            CodingQuestionAttempt::whereKey($attempt->id)
+                ->where('attempt_token', $identity['token'])
+                ->update(['expired' => true]);
         }
 
         $alreadyPassed = CodingSubmission::where('user_id', $userId)
@@ -382,9 +450,7 @@ class CodingQuizController extends Controller
         }
 
         if ($timeExpired) {
-            CodingSubmission::create([
-                'user_id'            => $userId,
-                'coding_question_id' => $question->id,
+            $commit = $this->commitSubmission($userId, $question, $identity, [
                 'code'               => $request->input('code'),
                 'language'           => $question->language,
                 'status'             => 'failed',
@@ -395,6 +461,10 @@ class CodingQuizController extends Controller
                 'test_results'       => [],
                 'error_message'      => 'Time limit exceeded.',
             ]);
+
+            if ($commit['outcome'] !== 'committed') {
+                return $this->rejectedCommitResponse($commit['outcome']);
+            }
 
             return response()->json([
                 'status'             => 'expired',
@@ -419,9 +489,7 @@ class CodingQuizController extends Controller
         );
 
         if (!empty($sourceErrors)) {
-            $submission = CodingSubmission::create([
-                'user_id'            => $userId,
-                'coding_question_id' => $question->id,
+            $commit = $this->commitSubmission($userId, $question, $identity, [
                 'code'               => $request->input('code'),
                 'language'           => $question->language,
                 'status'             => 'failed',
@@ -432,6 +500,12 @@ class CodingQuizController extends Controller
                 'test_results'       => [],
                 'error_message'      => 'Instruction check failed: ' . implode(' ', $sourceErrors),
             ]);
+
+            if ($commit['outcome'] !== 'committed') {
+                return $this->rejectedCommitResponse($commit['outcome']);
+            }
+
+            $submission = $commit['submission'];
 
             return response()->json([
                 'submission_id'       => $submission->id,
@@ -449,29 +523,37 @@ class CodingQuizController extends Controller
         }
 
         // ── Grade ─────────────────────────────────────────────────────────
-        $results = $question->testCases->map(
+        // Runs OUTSIDE any database transaction: the sandbox can take many
+        // seconds and must not hold row locks while it does.
+        $graded = $question->testCases->map(
             fn(TestCase $tc) => $this->runSingle($request->input('code'), $tc)
-        )->toArray();
+        );
 
+        // DS-13: $results is the ONLY per-test data that reaches the student or
+        // the student-visible test_results column. Detailed diagnostics of hidden
+        // cases go to the restricted grader_diagnostics column.
+        $results     = $graded->pluck('public')->values()->all();
+        $diagnostics = $graded->pluck('restricted')->filter()->values()->all();
+
+        // DS-12: a test counts only when it executed successfully AND matched.
         $passed = collect($results)->where('passed', true)->count();
         $total  = $question->testCases->count();
+        $hasExecutionError = collect($results)->contains('status', 'error');
 
         $status = match(true) {
-            $passed === $total                                                => 'passed',
-            collect($results)->contains('status', 'error') && $passed === 0  => 'error',
-            default                                                           => 'failed',
+            $total > 0 && $passed === $total && !$hasExecutionError => 'passed',
+            $hasExecutionError && $passed === 0                     => 'error',
+            default                                                 => 'failed',
         };
 
         $xp = 0;
         if ($passed > 0) {
             $rawXp  = (int) round($question->base_xp * ($passed / $total));
-            $bonus  = ($passed === $total && $timeTaken < $question->time_limit_seconds * 0.5) ? 1.2 : 1.0;
+            $bonus  = ($status === 'passed' && $timeTaken < $question->time_limit_seconds * 0.5) ? 1.2 : 1.0;
             $xp     = (int) round($rawXp * $bonus);
         }
 
-        $submission = CodingSubmission::create([
-            'user_id'            => $userId,
-            'coding_question_id' => $question->id,
+        $commit = $this->commitSubmission($userId, $question, $identity, [
             'code'               => $request->input('code'),
             'language'           => $question->language,
             'status'             => $status,
@@ -480,17 +562,15 @@ class CodingQuizController extends Controller
             'xp_earned'          => $xp,
             'time_taken_seconds' => $timeTaken,
             'test_results'       => $results,
-            'error_message'      => collect($results)->firstWhere('status', 'error')['stderr'] ?? null,
-        ]);
+            'error_message'      => $this->publicErrorMessage($results),
+            'grader_diagnostics' => $diagnostics ?: null,
+        ], awardXp: true);
 
-        $previousBest = CodingSubmission::where('user_id', $userId)
-            ->where('coding_question_id', $question->id)
-            ->where('id', '!=', $submission->id)
-            ->max('xp_earned') ?? 0;
-
-        if ($xp > $previousBest) {
-            Auth::user()->increment('xp', $xp - $previousBest);
+        if ($commit['outcome'] !== 'committed') {
+            return $this->rejectedCommitResponse($commit['outcome']);
         }
+
+        $submission = $commit['submission'];
 
         $questionIds = $challenge->codingQuestions()->pluck('id');
 
@@ -535,6 +615,157 @@ class CodingQuizController extends Controller
                 // The lock has a finite TTL if its backend becomes unavailable.
             }
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DS-15 — attempt identity + guarded commit
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Immutable identity of an attempt. Rows created before the identity columns
+     * existed have no token yet; one is stamped once (compare-and-set on NULL so
+     * two concurrent requests agree on the same value) and never changes again.
+     * retake() removes the row, so a new run always gets a different token — the
+     * auto-increment id alone is not enough because InnoDB before MySQL 8.0 can
+     * hand a deleted id out again after a server restart.
+     *
+     * @return array{token:string, generation:int}
+     */
+    private function attemptIdentity(CodingQuestionAttempt $attempt): array
+    {
+        if (blank($attempt->attempt_token)) {
+            CodingQuestionAttempt::whereKey($attempt->id)
+                ->whereNull('attempt_token')
+                ->update(['attempt_token' => $this->newAttemptToken()]);
+
+            $attempt->refresh();
+        }
+
+        return [
+            'token'      => (string) $attempt->attempt_token,
+            'generation' => max(1, (int) ($attempt->generation ?? 1)),
+        ];
+    }
+
+    /**
+     * Persist a graded submission only if the attempt it was graded for is still
+     * the learner's current attempt.
+     *
+     * Lock order is users row → attempt row, the same order retake() uses
+     * (users row → retake counter → attempt rows), so the two can never
+     * deadlock and always serialize per learner in the DATABASE. The cache lock
+     * in submit() is only a courtesy "already submitting" guard: the default
+     * file/array cache stores are not shared between servers, so correctness
+     * must not depend on it.
+     *
+     * Outcomes:
+     *   committed — active result (XP delta applied when $awardXp)
+     *   stale     — a retake replaced the attempt: the row is kept for history,
+     *               voided, bound to the OLD attempt, with no XP and no progress
+     *   duplicate — another request already recorded a pass for this attempt
+     *
+     * @return array{outcome:string, submission:?CodingSubmission}
+     */
+    private function commitSubmission(int $userId, CodingQuestion $question, array $identity, array $attributes, bool $awardXp = false): array
+    {
+        return DB::transaction(function () use ($userId, $question, $identity, $attributes, $awardXp): array {
+            DB::table('users')->where('id', $userId)->lockForUpdate()->first();
+
+            $current = CodingQuestionAttempt::where('user_id', $userId)
+                ->where('coding_question_id', $question->id)
+                ->lockForUpdate()
+                ->first();
+
+            $base = [
+                'user_id'            => $userId,
+                'coding_question_id' => $question->id,
+                'attempt_token'      => $identity['token'],
+                'attempt_generation' => $identity['generation'],
+            ];
+
+            if (!$current || !hash_equals((string) $current->attempt_token, $identity['token'])) {
+                $submission = CodingSubmission::create(array_merge($attributes, $base, [
+                    'xp_earned'   => 0,
+                    'voided'      => true,
+                    'void_reason' => 'stale_attempt',
+                ]));
+
+                return ['outcome' => 'stale', 'submission' => $submission];
+            }
+
+            $alreadyPassed = CodingSubmission::where('user_id', $userId)
+                ->where('coding_question_id', $question->id)
+                ->where('status', 'passed')
+                ->where('voided', false)
+                ->exists();
+
+            if ($alreadyPassed) {
+                return ['outcome' => 'duplicate', 'submission' => null];
+            }
+
+            $submission = CodingSubmission::create(array_merge($attributes, $base, ['voided' => false]));
+
+            if ($awardXp) {
+                $xp = (int) $submission->xp_earned;
+                $previousBest = CodingSubmission::where('user_id', $userId)
+                    ->where('coding_question_id', $question->id)
+                    ->where('id', '!=', $submission->id)
+                    ->max('xp_earned') ?? 0;
+
+                if ($xp > $previousBest) {
+                    Auth::user()->increment('xp', $xp - $previousBest);
+                }
+            }
+
+            return ['outcome' => 'committed', 'submission' => $submission];
+        }, 3);
+    }
+
+    private function rejectedCommitResponse(string $outcome): \Illuminate\Http\JsonResponse
+    {
+        if ($outcome === 'duplicate') {
+            return response()->json(['error' => 'Already solved.'], 422);
+        }
+
+        return response()->json([
+            'status'        => 'stale',
+            'stale_attempt' => true,
+            'error'         => 'This challenge was restarted while your code was being graded. The result was saved to your history but does not count for the new run. Please reload the page.',
+        ], 409);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DS-13 — what a student may see about failing tests
+    // ─────────────────────────────────────────────────────────────────────────
+    private const PUBLIC_TEXT_LIMIT = 4000;
+
+    private function boundText(?string $text, int $limit = self::PUBLIC_TEXT_LIMIT): ?string
+    {
+        if ($text === null || $text === '') {
+            return null;
+        }
+
+        return strlen($text) > $limit
+            ? substr($text, 0, $limit) . "\n[truncated]"
+            : $text;
+    }
+
+    /** Top-level message: never derived from a hidden case's output. */
+    private function publicErrorMessage(array $results): ?string
+    {
+        foreach ($results as $result) {
+            if (($result['status'] ?? null) === 'error' && !($result['is_hidden'] ?? false) && !empty($result['stderr'])) {
+                return $this->boundText((string) $result['stderr'], 2000);
+            }
+        }
+
+        foreach ($results as $result) {
+            if (($result['status'] ?? null) === 'error') {
+                return $result['message'] ?? 'A test case ended with an error.';
+            }
+        }
+
+        return null;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -671,7 +902,10 @@ class CodingQuizController extends Controller
     //
     // Rules:
     //   • Max 3 retakes per user per challenge (enforced here + in the map blade).
-    //   • Old CodingQuestionAttempt rows are DELETED so the server timer resets.
+    //   • Old CodingQuestionAttempt rows are archived to coding_question_attempt_archives
+    //     and then removed, so the server timer resets and every new run gets a new
+    //     attempt_token (DS-15). A submission still being graded for the old token is
+    //     stored voided and never counts for the new run.
     //   • Old CodingSubmission rows are marked voided = true (NOT deleted) so
     //     XP history / analytics are preserved, but all game-logic queries
     //     (alreadyPassed, previousBest, priorSubmissions) skip voided rows.
@@ -700,14 +934,49 @@ class CodingQuizController extends Controller
                 return false;
             }
 
-            CodingQuestionAttempt::where('user_id', $userId)
+            // DS-15: lock the attempt rows in the same order submit() does
+            // (users row first). An in-flight submission either committed before
+            // this point — and is voided below with the rest of the old run — or
+            // commits afterwards, finds its attempt token gone, and stores its
+            // result as voided history of the OLD run.
+            $oldAttempts = CodingQuestionAttempt::where('user_id', $userId)
                 ->whereIn('coding_question_id', $questionIds)
-                ->delete();
+                ->lockForUpdate()
+                ->get();
+
+            $hasActiveResults = CodingSubmission::where('user_id', $userId)
+                ->whereIn('coding_question_id', $questionIds)
+                ->where('voided', false)
+                ->exists();
+
+            // Retry safety: a double click / replayed POST right after a retake
+            // finds nothing left to reset. It must not burn another retake.
+            if ($oldAttempts->isEmpty() && !$hasActiveResults) {
+                return true;
+            }
+
+            // History is preserved: attempts are archived before the unique
+            // (user_id, coding_question_id) slot is freed for the new run.
+            foreach ($oldAttempts as $oldAttempt) {
+                DB::table('coding_question_attempt_archives')->insert([
+                    'user_id'            => $oldAttempt->user_id,
+                    'coding_question_id' => $oldAttempt->coding_question_id,
+                    'attempt_token'      => $oldAttempt->attempt_token,
+                    'generation'         => max(1, (int) ($oldAttempt->generation ?? 1)),
+                    'started_at'         => $oldAttempt->started_at,
+                    'expired'            => (bool) $oldAttempt->expired,
+                    'retaken_at'         => now(),
+                    'created_at'         => now(),
+                    'updated_at'         => now(),
+                ]);
+            }
+
+            CodingQuestionAttempt::whereIn('id', $oldAttempts->pluck('id'))->delete();
 
             CodingSubmission::where('user_id', $userId)
                 ->whereIn('coding_question_id', $questionIds)
                 ->where('voided', false)
-                ->update(['voided' => true]);
+                ->update(['voided' => true, 'void_reason' => 'retake']);
 
             $retakeRecord->increment('retake_count');
 
@@ -730,30 +999,84 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     // Run code against one TestCase
     // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * @return array{public: array<string, mixed>, restricted: ?array<string, mixed>}
+     *
+     * `public` is safe for the student (response + test_results column).
+     * `restricted` exists only for a non-passing HIDDEN case and is stored in
+     * the grader_diagnostics column, which no student route serializes.
+     */
     private function runSingle(string $code, TestCase $tc): array
     {
-        $base = [
-            'test_case_id' => $tc->id,
-            'input'        => $tc->is_hidden ? null : $tc->input,
-            'expected'     => $tc->is_hidden ? null : $tc->expected_output,
-            'actual'       => null,
-            'passed'       => false,
-            'status'       => 'error',
-            'stderr'       => null,
-            'is_hidden'    => $tc->is_hidden,
-        ];
+        $isHidden = (bool) $tc->is_hidden;
 
         $result   = $this->execute($code, $tc->input ?? '');
         $actual   = rtrim($result['stdout']);
         $expected = rtrim($tc->expected_output);
-        $passed   = ($actual === $expected);
 
-        return array_merge($base, [
-            'actual' => (!$tc->is_hidden || $passed) ? $actual : null,
-            'passed' => $passed,
-            'status' => $result['failed'] ? 'error' : ($passed ? 'passed' : 'failed'),
-            'stderr' => $result['stderr'] ?: null,
-        ]);
+        // DS-12: output equality alone is not a pass. A program that prints the
+        // expected answer and then raises, exits non-zero, is blocked by the
+        // sandbox policy or is killed by the time limit has FAILED this test.
+        $timedOut = (bool) $result['timed_out'];
+        $failed   = (bool) $result['failed'] || $timedOut;
+        $passed   = !$failed && $actual === $expected;
+
+        $category = match (true) {
+            $timedOut => 'time_limit',
+            $failed   => 'runtime_error',
+            !$passed  => 'wrong_answer',
+            default   => null,
+        };
+        $status = $failed ? 'error' : ($passed ? 'passed' : 'failed');
+
+        if ($isHidden) {
+            // DS-13: nothing the student's program wrote (stdout, stderr,
+            // traceback, exception text) and nothing from the test definition
+            // leaves the server for a hidden case — only pass/fail + category.
+            $public = [
+                'test_case_id' => $tc->id,
+                'input'        => null,
+                'expected'     => null,
+                'actual'       => null,
+                'passed'       => $passed,
+                'status'       => $status,
+                'category'     => $category,
+                'message'      => match ($category) {
+                    'time_limit'    => 'A hidden test case exceeded the time limit.',
+                    'runtime_error' => 'A hidden test case ended with a runtime error.',
+                    'wrong_answer'  => 'A hidden test case produced the wrong output.',
+                    default         => null,
+                },
+                'stderr'       => null,
+                'is_hidden'    => true,
+            ];
+
+            $restricted = $passed ? null : [
+                'test_case_id' => $tc->id,
+                'category'     => $category,
+                'exit_code'    => $result['exit_code'],
+                'stderr'       => $this->boundText($result['stderr']),
+                'stdout'       => $this->boundText($actual, 1000),
+            ];
+
+            return ['public' => $public, 'restricted' => $restricted];
+        }
+
+        return [
+            'public' => [
+                'test_case_id' => $tc->id,
+                'input'        => $tc->input,
+                'expected'     => $tc->expected_output,
+                'actual'       => $this->boundText($actual) ?? '',
+                'passed'       => $passed,
+                'status'       => $status,
+                'category'     => $category,
+                'message'      => null,
+                'stderr'       => $this->boundText($result['stderr']),
+                'is_hidden'    => false,
+            ],
+            'restricted' => null,
+        ];
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -768,7 +1091,10 @@ class CodingQuizController extends Controller
             'stderr' => ($result['stderr'] ?? '') !== '' ? $result['stderr'] : null,
             'image' => null,
             'plots' => $result['plots'] ?? [],
+            // Fail closed: a result without an explicit success flag is a failure.
             'failed' => (bool) ($result['failed'] ?? true),
+            'timed_out' => (bool) ($result['timed_out'] ?? false),
+            'exit_code' => isset($result['exit_code']) ? (int) $result['exit_code'] : null,
         ];
     }
 

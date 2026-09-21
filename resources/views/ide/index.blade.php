@@ -182,6 +182,25 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner { width: 14px; height: 14px; border: 2px solid var(--ds-border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+    /* Run progress: a small raised card in the middle of the window. It never
+       takes clicks, so Stop, the editor and the terminal stay usable. */
+    .run-progress { position: fixed; inset: 0; z-index: 8000; display: flex; align-items: center; justify-content: center; padding: 16px; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .16s ease, visibility 0s linear .16s; }
+    .run-progress.is-visible { opacity: 1; visibility: visible; transition: opacity .16s ease; }
+    .run-progress-card { display: flex; align-items: center; gap: 16px; min-width: 264px; max-width: min(360px, 100%); padding: 16px 20px 16px 16px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius); background: var(--surface);
+      box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 -1px 0 rgba(0,0,0,.25) inset, 0 18px 40px rgba(0,0,0,.45), 0 4px 10px rgba(0,0,0,.3);
+      transform: translateY(6px) scale(.98); transition: transform .18s ease; }
+    .run-progress.is-visible .run-progress-card { transform: none; }
+    .run-progress-dial { position: relative; flex: 0 0 64px; width: 64px; height: 64px; }
+    .run-progress-dial svg { display: block; width: 64px; height: 64px; transform: rotate(-90deg); }
+    .run-progress-track { fill: none; stroke: var(--surface3); stroke-width: 6; }
+    .run-progress-arc { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 163.36; stroke-dashoffset: 163.36; transition: stroke-dashoffset .2s linear; }
+    .run-progress-sweep { position: absolute; inset: 9px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--ds-accent-border); animation: spin .9s linear infinite; }
+    .run-progress-number { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text); font: 600 .9375rem/1 var(--ds-font-mono); font-variant-numeric: tabular-nums; }
+    .run-progress-text { min-width: 0; }
+    .run-progress-title { color: var(--text); font-size: .875rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+    .run-progress-hint { margin-top: 2px; color: var(--muted); font-size: .75rem; line-height: 1.4; }
+    @media (prefers-reduced-motion: reduce) { .run-progress, .run-progress-card, .run-progress-arc { transition: none; } .run-progress-sweep { animation: none; border-top-color: transparent; } }
+
     .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     /* The IDE fills the whole window. Page notifications float over it instead of
        pushing the editor down and back up again. */
@@ -493,6 +512,20 @@
   <div class="modal"><h3 id="modal-title">New File</h3><input type="text" id="modal-input" placeholder="filename.py" autocomplete="off" spellcheck="false" /><div class="modal-actions"><button class="modal-btn" onclick="IDE.closeModal()">Cancel</button><button class="modal-btn primary" onclick="IDE.confirmModal()">Create</button></div></div>
 </div>
 
+<div class="run-progress" id="run-progress" role="status" aria-live="polite" aria-hidden="true">
+  <div class="run-progress-card">
+    <div class="run-progress-dial">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="run-progress-track" cx="32" cy="32" r="26"/><circle class="run-progress-arc" id="run-progress-arc" cx="32" cy="32" r="26"/></svg>
+      <div class="run-progress-sweep"></div>
+      <div class="run-progress-number" id="run-progress-number">1%</div>
+    </div>
+    <div class="run-progress-text">
+      <div class="run-progress-title" id="run-progress-title">Running</div>
+      <div class="run-progress-hint">Press Esc or Stop to cancel</div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="program-input-modal">
   <div class="modal">
     <h3>Program Input</h3>
@@ -545,6 +578,7 @@
      REVIEW BOT JS MODULE (global — before IDE IIFE)
 ═══════════════════════════════════════════════════ --}}
 <script src="{{ asset('js/python-ide-input.js') }}"></script>
+<script src="{{ asset('js/ide-run-progress.js') }}"></script>
 <script>
 // ── ReviewBot ─────────────────────────────────────────────────────────────────
 // Laravel endpoint handled by CodeReviewController.
@@ -1145,6 +1179,83 @@ const IDE = (() => {
   let runStopRequested = false;
   let runAbortController = null;
 
+  // Centered run progress (1-100%). The number is an estimate paced by how
+  // long the same file took last time; see public/js/ide-run-progress.js.
+  const runProgressTools = window.DataSenseiRunProgress || null;
+  const runDurations = runProgressTools ? runProgressTools.createDurationMemory(50) : null;
+  const runProgressView = (() => {
+    const ARC_LENGTH = 163.36;
+    let model = null;
+    let fileName = '';
+    let frame = null;
+    let showTimer = null;
+
+    const el = (id) => document.getElementById(id);
+
+    function paint() {
+      if (!model) return;
+      const value = model.value();
+      const arc = el('run-progress-arc');
+      if (arc) arc.style.strokeDashoffset = String(ARC_LENGTH * (1 - value / 100));
+      setText('run-progress-number', value + '%');
+      setText('run-progress-title', runProgressTools.stageLabel(model.stage(), fileName));
+    }
+
+    function loop() {
+      paint();
+      frame = window.requestAnimationFrame(loop);
+    }
+
+    function reveal() {
+      const box = el('run-progress');
+      if (!box || !model) return;
+      box.classList.add('is-visible');
+      box.setAttribute('aria-hidden', 'false');
+      if (frame === null) loop();
+    }
+
+    function conceal() {
+      window.clearTimeout(showTimer);
+      showTimer = null;
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      frame = null;
+      const box = el('run-progress');
+      if (!box) return;
+      box.classList.remove('is-visible');
+      box.setAttribute('aria-hidden', 'true');
+    }
+
+    return {
+      // A request that answers at once (an input() answer on the warm
+      // sandbox) never flashes the card: it appears after a short delay.
+      begin(name, stage, delayMs) {
+        if (!runProgressTools) return;
+        fileName = name;
+        if (!model) model = runProgressTools.createRunProgress({ estimateMs: runDurations.estimate(name) });
+        model.setStage(stage);
+        window.clearTimeout(showTimer);
+        showTimer = window.setTimeout(reveal, delayMs);
+      },
+      stage(stage) { if (model) { model.setStage(stage); paint(); } },
+      // Waiting for the learner is not loading: get out of the way.
+      pause() { conceal(); },
+      end(completed) {
+        if (!model) { conceal(); return; }
+        const visible = el('run-progress')?.classList.contains('is-visible');
+        if (completed) { model.finish(); paint(); }
+        model = null;
+        if (completed && visible) {
+          window.clearTimeout(showTimer);
+          if (frame !== null) window.cancelAnimationFrame(frame);
+          frame = null;
+          showTimer = window.setTimeout(conceal, 260);
+        } else {
+          conceal();
+        }
+      },
+    };
+  })();
+
   function byId(id) { return document.getElementById(id); }
   function setText(id, value) { const node = byId(id); if (node) node.textContent = value ?? ''; }
   function setHtml(id, value) { const node = byId(id); if (node) node.innerHTML = value ?? ''; }
@@ -1690,10 +1801,20 @@ const IDE = (() => {
     runStopRequested = false;
     setRunButton('stop');
 
+    let runCompleted = false;
+    const progressName = (openTabs.find(t => t.id === activeTab) || {}).name || 'your program';
+
     try {
+      runProgressView.begin(progressName, 'saving', 120);
       if (!await save()) return;
       const tab = openTabs.find(t => t.id === activeTab);
       if (!tab) return;
+      const runStartedAt = Date.now();
+      let waitedForLearnerMs = 0;
+      // One token per click on Run. Answers to input() carry the same token,
+      // which lets the server continue the waiting program instead of
+      // starting it again for every answer.
+      const runToken = runProgressTools ? runProgressTools.createRunToken() : null;
 
       const code = tab.content || "";
       const inputBridge = window.DataSenseiPythonInput;
@@ -1711,12 +1832,14 @@ const IDE = (() => {
       while (true) {
         const stdin = inputBridge.buildStdin(inputValues);
         runAbortController = new AbortController();
+        runProgressView.begin(tab.name, inputValues.length === 0 ? 'sending' : 'resuming', inputValues.length === 0 ? 0 : 140);
+        const stageTimer = window.setTimeout(() => runProgressView.stage('running'), inputValues.length === 0 ? 350 : 200);
 
         try {
           res = await api(
             `${NODES_URL}/${encodeURIComponent(tab.id)}/run`,
             'POST',
-            { stdin, content: tab.content },
+            { stdin, content: tab.content, run_token: runToken },
             { signal: runAbortController.signal }
           );
         } catch (error) {
@@ -1728,6 +1851,7 @@ const IDE = (() => {
 
           throw error;
         } finally {
+          window.clearTimeout(stageTimer);
           runAbortController = null;
         }
 
@@ -1764,7 +1888,10 @@ const IDE = (() => {
         }
 
         setStatus('Waiting for program input…');
+        runProgressView.pause();
+        const askedAt = Date.now();
         const value = await termReadLine(terminalStream);
+        waitedForLearnerMs += Date.now() - askedAt;
 
         if (value === null) {
           termPrint('info', runStopRequested ? 'Run stopped.' : 'Run canceled.');
@@ -1782,6 +1909,10 @@ const IDE = (() => {
         setStatus('Running…');
       }
 
+      runCompleted = true;
+      if (runDurations) runDurations.remember(tab.name, Date.now() - runStartedAt - waitedForLearnerMs);
+      runProgressView.end(true);
+
       if (res.error) termPrint('error', res.error);
       if (res.plots && res.plots.length > 0) res.plots.forEach(b64 => termPrintImage(b64));
       if (!terminalStream.textContent && !res.error && (!res.plots || res.plots.length === 0)) termPrint('info', '(No output)');
@@ -1798,6 +1929,7 @@ const IDE = (() => {
       ReviewBot.autoReview(code, 'python', tab.name, reviewOutput);
     } catch(e) { termPrint('error', 'Request failed: ' + e.message); setStatus('Run failed');
     } finally {
+      if (!runCompleted) runProgressView.end(false);
       runInProgress = false;
       runStopRequested = false;
       runAbortController = null;
@@ -2046,7 +2178,55 @@ plt.show()
   async function createNode(type, parentId, name) { setStatus('Creating…'); try { const res = await api(NODES_URL, 'POST', { workspace_id: WORKSPACE_ID, parent_id: parentId, type, name, content: type === 'file' ? '' : null, language: 'python' }); await refreshTree(); setStatus('Created'); if (type === 'file') openFile(res.node.id, res.node.name, res.node.content ?? ''); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
   async function renameNode(id, name) { setStatus('Renaming…'); try { await api(`${NODES_URL}/${encodeURIComponent(id)}/rename`, 'PATCH', { name }); const tab = openTabs.find(t => t.id === id); if (tab) { tab.name = name; renderTabBar(); setText('breadcrumb-file', name); } await refreshTree(); setStatus('Renamed'); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
   function confirmDelete(id, name) { if (!confirm(`Delete "${name}"? This cannot be undone.`)) return; deleteNode(id); }
-  async function deleteNode(id) { setStatus('Deleting…'); try { await api(`${NODES_URL}/${encodeURIComponent(id)}`, 'DELETE'); openTabs = openTabs.filter(t => t.id !== id); if (activeTab === id) { activeTab = openTabs.length ? openTabs[openTabs.length - 1].id : null; if (activeTab) loadTabContent(activeTab); else { document.getElementById('editor-empty').style.display = 'flex'; document.getElementById('cm-host').style.display = 'none'; } } renderTabBar(); await refreshTree(); setStatus('Deleted'); } catch(e) { termPrint('error', e.message); setStatus('Error'); } }
+  // Ids with a delete request in flight. While the explorer is still being
+  // refreshed the old row stays clickable, and a second click used to send a
+  // second DELETE for a node that was already gone ("No query results for
+  // model [App\\Models\\IdeNode]").
+  const deletingNodeIds = new Set();
+
+  function showEmptyEditor() {
+    document.getElementById('editor-empty').style.display = 'flex';
+    document.getElementById('cm-host').style.display = 'none';
+    setText('breadcrumb-file', '');
+    setDisplay('breadcrumb-sep', 'none');
+  }
+
+  async function deleteNode(id) {
+    if (deletingNodeIds.has(id)) return;
+    deletingNodeIds.add(id);
+    setStatus('Deleting…');
+
+    try {
+      try {
+        await api(`${NODES_URL}/${encodeURIComponent(id)}`, 'DELETE');
+      } catch (error) {
+        // 404: it is already gone (deleted with its folder, or in another
+        // tab). That is the result the learner asked for, so clean up as usual.
+        if (error.status !== 404) throw error;
+      }
+
+      // A deleted folder takes its files with it: close their tabs too, so a
+      // later Save or Run does not target a file that no longer exists.
+      const removedIds = new Set([id]);
+      const collect = (node) => (node?.children || []).forEach(child => { removedIds.add(child.id); collect(child); });
+      collect(findNode(treeData, id));
+
+      openTabs = openTabs.filter(t => !removedIds.has(t.id));
+      if (removedIds.has(activeTab)) {
+        activeTab = openTabs.length ? openTabs[openTabs.length - 1].id : null;
+        if (activeTab) loadTabContent(activeTab); else showEmptyEditor();
+      }
+
+      renderTabBar();
+      await refreshTree();
+      setStatus('Deleted');
+    } catch (e) {
+      termPrint('error', e.message);
+      setStatus('Error');
+    } finally {
+      deletingNodeIds.delete(id);
+    }
+  }
   async function refreshTree() { const res = await api(TREE_URL, 'GET'); treeData = res.tree; renderTree(); }
   function showCtxMenu(x, y, id, type, name) { const menu = document.getElementById('ctx-menu'); menu.innerHTML = ''; const items = type === 'folder' ? [{ label: 'New File', action: () => promptCreate('file', id) }, { label: 'New Folder', action: () => promptCreate('folder', id) }, { sep: true }, { label: 'Rename', action: () => promptRename(id, name) }, { label: 'Delete', action: () => confirmDelete(id, name), danger: true }] : [{ label: 'Open', action: () => { const node = findNode(treeData, id); if (node) openFile(node.id, node.name, node.content ?? ''); } }, { sep: true }, { label: 'Rename', action: () => promptRename(id, name) }, { label: 'Delete', action: () => confirmDelete(id, name), danger: true }]; items.forEach(item => { if (item.sep) { const sep = document.createElement('div'); sep.className = 'ctx-sep'; menu.appendChild(sep); } else { const el = document.createElement('div'); el.className = 'ctx-item' + (item.danger ? ' danger' : ''); el.textContent = item.label; el.addEventListener('click', () => { closeCtxMenu(); item.action(); }); menu.appendChild(el); } }); menu.style.left = x + 'px'; menu.style.top = y + 'px'; menu.classList.add('open'); setTimeout(() => document.addEventListener('click', closeCtxMenu, { once: true }), 10); }
   function closeCtxMenu() { document.getElementById('ctx-menu').classList.remove('open'); }
@@ -2079,7 +2259,15 @@ plt.show()
 
       if (!res.ok) {
           const validationMessage = json.errors ? Object.values(json.errors).flat()[0] : null;
-          const err = new Error(json.error || validationMessage || json.message || 'Request failed');
+          // A 404 here means the file or folder is gone (deleted a moment ago,
+          // from another tab, or together with its folder). Say that instead of
+          // Laravel's internal "No query results for model [...]" text.
+          const missing = res.status === 404;
+          const err = new Error(missing
+              ? 'This item no longer exists. The explorer was refreshed.'
+              : (json.error || validationMessage || json.message || 'Request failed'));
+          err.status = res.status;
+          if (missing) { Promise.resolve().then(() => refreshTree()).catch(() => {}); }
           err.collision = Boolean(json.collision);
           err.errors = json.errors || {};
           throw err;

@@ -496,8 +496,10 @@
                   </div>
 
                   <div class="page-profile-form-group">
-                    <label>Institution ID</label>
-                    <input type="text" value="{{ $currentUser->institution_id }}" readonly>
+                    <label>Institution</label>
+                    {{-- This field used to print the raw institution_id, which
+                         told the account holder nothing. --}}
+                    <input type="text" value="{{ $currentUser->institution?->name ?? 'Unknown Institution' }}" readonly>
                   </div>
 
                   <span class="page-profile-status-pill page-profile-status-approved">

@@ -144,6 +144,12 @@ def make_preprocessor(frame: pd.DataFrame, features: list[str], config: dict[str
     return ColumnTransformer(transformers=transformers, remainder="drop"), numeric, categorical
 
 
+def optional_depth(value: Any, default: int) -> int | None:
+    """A depth of 0 (or less) means "no limit" so a search can try unrestricted trees."""
+    depth = int(value if value is not None else default)
+    return depth if depth > 0 else None
+
+
 def classifier(config: dict[str, Any], train_rows: int):
     key = config["algorithm_key"]
     params = config.get("parameters", {})
@@ -165,7 +171,7 @@ def classifier(config: dict[str, Any], train_rows: int):
     if key == "random_forest":
         return RandomForestClassifier(
             n_estimators=int(params.get("n_estimators", 150)),
-            max_depth=int(params.get("max_depth", 10)),
+            max_depth=optional_depth(params.get("max_depth"), 10),
             min_samples_split=int(params.get("min_samples_split", 2)),
             random_state=seed,
             class_weight="balanced" if bool(config.get("class_weight_balanced", False)) else None,
@@ -204,7 +210,7 @@ def regressor(config: dict[str, Any]):
     if key == "random_forest_regressor":
         return RandomForestRegressor(
             n_estimators=int(params.get("n_estimators", 150)),
-            max_depth=int(params.get("max_depth", 12)),
+            max_depth=optional_depth(params.get("max_depth"), 12),
             min_samples_split=int(params.get("min_samples_split", 2)),
             random_state=seed,
             n_jobs=1,
@@ -446,11 +452,18 @@ def prediction_schema(frame: pd.DataFrame, features: list[str]) -> dict[str, Any
         series = frame[feature]
         if pd.api.types.is_numeric_dtype(series):
             values = pd.to_numeric(series, errors="coerce").dropna()
+            whole = bool(not values.empty and np.all(np.equal(np.mod(values, 1), 0)))
+            distinct = sorted(set(values.tolist()))
             schema[feature] = {
                 "type": "number",
                 "minimum": float(values.min()) if not values.empty else None,
                 "maximum": float(values.max()) if not values.empty else None,
                 "median": float(values.median()) if not values.empty else None,
+                "low": float(values.quantile(0.25)) if not values.empty else None,
+                "high": float(values.quantile(0.75)) if not values.empty else None,
+                "whole": whole,
+                # A handful of whole-number codes (0/1, 1/2/3) reads better as a short list.
+                "choices": [int(item) for item in distinct] if whole and 0 < len(distinct) <= 10 else None,
             }
         else:
             values = [str(value) for value in series.dropna().astype(str).value_counts().head(50).index.tolist()]
@@ -476,6 +489,212 @@ def cross_validation_metrics(pipeline: Pipeline, X: pd.DataFrame, y: pd.Series, 
         scoring = "neg_root_mean_squared_error"
     scores = cross_val_score(clone(pipeline), X, y, cv=cv, scoring=scoring, n_jobs=1)
     return {"folds": folds, "mean": float(scores.mean()), "std": float(scores.std()), "scoring": scoring}
+
+
+# --------------------------------------------------------------------------
+# Automatic model search
+#
+# Every candidate is scored with cross-validation on the TRAINING rows only.
+# The held-out test rows are never looked at while choosing, so the reported
+# test score stays an honest estimate.
+# --------------------------------------------------------------------------
+
+AUTO_KEYS = {"auto_classification": "classification", "auto_regression": "regression"}
+
+# Ordered from simplest to most complex. When two candidates score about the
+# same, the earlier (simpler, easier to explain) one wins.
+AUTO_CANDIDATES = {
+    "classification": ["logistic_regression", "decision_tree", "knn", "random_forest", "gradient_boosting", "svm"],
+    "regression": ["linear_regression", "decision_tree_regressor", "random_forest_regressor", "gradient_boosting_regressor"],
+}
+
+ALGORITHM_LABELS = {
+    "logistic_regression": "Logistic Regression",
+    "decision_tree": "Decision Tree",
+    "random_forest": "Random Forest",
+    "gradient_boosting": "Gradient Boosting",
+    "knn": "K-Nearest Neighbors",
+    "naive_bayes": "Naive Bayes",
+    "svm": "Support Vector Machine",
+    "linear_regression": "Linear Regression",
+    "decision_tree_regressor": "Decision Tree Regressor",
+    "random_forest_regressor": "Random Forest Regressor",
+    "gradient_boosting_regressor": "Gradient Boosting Regressor",
+}
+
+SCALE_SENSITIVE = {"logistic_regression", "knn", "svm", "linear_regression"}
+
+# Candidates within this many score points of the best count as a tie.
+TIE_MARGIN = 0.005
+
+
+def parameter_grid(key: str) -> list[dict[str, Any]]:
+    """A deliberately small set of settings to try for one algorithm."""
+    grids: dict[str, list[dict[str, Any]]] = {
+        "logistic_regression": [{"c": 0.1}, {"c": 1.0}, {"c": 10.0}, {"c": 100.0}],
+        "decision_tree": [{"max_depth": 3}, {"max_depth": 5}, {"max_depth": 8}, {"max_depth": 12}],
+        "random_forest": [
+            {"n_estimators": 200, "max_depth": 6},
+            {"n_estimators": 200, "max_depth": 12},
+            {"n_estimators": 200, "max_depth": 0},
+        ],
+        "gradient_boosting": [
+            {"n_estimators": 100, "learning_rate": 0.1, "max_depth": 3},
+            {"n_estimators": 200, "learning_rate": 0.05, "max_depth": 3},
+            {"n_estimators": 150, "learning_rate": 0.1, "max_depth": 2},
+        ],
+        "knn": [
+            {"n_neighbors": 3, "weights": "distance"},
+            {"n_neighbors": 5, "weights": "distance"},
+            {"n_neighbors": 9, "weights": "distance"},
+            {"n_neighbors": 15, "weights": "distance"},
+        ],
+        "naive_bayes": [{}],
+        "svm": [
+            {"c": 0.5, "kernel": "rbf", "gamma": "scale"},
+            {"c": 2.0, "kernel": "rbf", "gamma": "scale"},
+            {"c": 10.0, "kernel": "rbf", "gamma": "scale"},
+        ],
+        "linear_regression": [{}],
+        "decision_tree_regressor": [{"max_depth": 3}, {"max_depth": 5}, {"max_depth": 8}, {"max_depth": 12}],
+        "random_forest_regressor": [
+            {"n_estimators": 200, "max_depth": 8},
+            {"n_estimators": 200, "max_depth": 14},
+            {"n_estimators": 200, "max_depth": 0},
+        ],
+        "gradient_boosting_regressor": [
+            {"n_estimators": 100, "learning_rate": 0.1, "max_depth": 3},
+            {"n_estimators": 200, "learning_rate": 0.05, "max_depth": 3},
+            {"n_estimators": 150, "learning_rate": 0.1, "max_depth": 2},
+        ],
+    }
+    return grids.get(key, [{}])
+
+
+def should_balance_classes(config: dict[str, Any], y: pd.Series) -> bool:
+    """Rare classes are only weighted up when the configuration asks for it.
+
+    Weighting trades overall accuracy for fewer missed rare cases, so it is an
+    explicit choice rather than something that silently lowers the headline score.
+    """
+    return config.get("class_weight_balanced", False) is True
+
+
+def build_pipeline(frame: pd.DataFrame, features: list[str], config: dict[str, Any], key: str, params: dict[str, Any], problem_type: str, train_rows: int) -> Pipeline:
+    candidate = dict(config)
+    candidate["algorithm_key"] = key
+    candidate["parameters"] = params
+    preprocessing = dict(config.get("preprocessing", {}))
+    if str(preprocessing.get("scale_mode", "auto")) == "auto":
+        preprocessing["apply_scaling"] = key in SCALE_SENSITIVE
+    candidate["preprocessing"] = preprocessing
+    preprocessor, _, _ = make_preprocessor(frame, features, candidate)
+    model = classifier(candidate, train_rows) if problem_type == "classification" else regressor(candidate)
+    return Pipeline([("preprocessor", preprocessor), ("model", model)])
+
+
+def search_best_model(
+    frame: pd.DataFrame,
+    features: list[str],
+    config: dict[str, Any],
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    problem_type: str,
+    output_dir: Path,
+) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    """Return (algorithm key, parameters, search report)."""
+    requested = str(config["algorithm_key"])
+    automatic = requested in AUTO_KEYS
+    keys = list(AUTO_CANDIDATES[problem_type]) if automatic else [requested]
+    seed = int(config.get("random_state", 42))
+    budget = float(config.get("search_budget_seconds", 90))
+
+    X_search, y_search = X_train, y_train
+    if len(X_search) > 4000:
+        X_search = X_train.sample(n=4000, random_state=seed)
+        y_search = y_train.loc[X_search.index]
+
+    if problem_type == "classification":
+        smallest = int(y_search.value_counts().min())
+        folds = min(5 if len(X_search) < 2000 else 3, smallest)
+        if folds < 2:
+            folds = 0
+        else:
+            cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=seed)
+        scoring = "accuracy"
+    else:
+        folds = min(5 if len(X_search) < 2000 else 3, max(2, len(y_search) // 10))
+        cv = KFold(n_splits=folds, shuffle=True, random_state=seed)
+        scoring = "r2"
+
+    if automatic and len(X_search) > 3000 and "svm" in keys:
+        keys.remove("svm")  # too slow for the classroom time limit
+
+    user_params = dict(config.get("parameters", {}))
+    report: dict[str, Any] = {
+        "mode": "automatic" if automatic else "tuned",
+        "scoring": scoring,
+        "folds": folds,
+        "candidates": [],
+        "stopped_early": False,
+    }
+    if folds < 2:
+        # Too few rows per class to compare fairly; fall back to a safe default.
+        fallback = keys[0]
+        return fallback, (parameter_grid(fallback)[len(parameter_grid(fallback)) // 2] if automatic else user_params), report
+
+    started = time.perf_counter()
+    results: list[tuple[int, str, dict[str, Any], float]] = []
+    for index, key in enumerate(keys):
+        if results and (time.perf_counter() - started) > budget:
+            report["stopped_early"] = True
+            break
+        update_progress(
+            output_dir,
+            20 + int(14 * index / max(1, len(keys))),
+            f"Trying {ALGORITHM_LABELS.get(key, key)} ({index + 1} of {len(keys)})" if automatic else f"Fine-tuning {ALGORITHM_LABELS.get(key, key)}",
+        )
+        grid = parameter_grid(key)
+        if not automatic and user_params:
+            grid = [user_params] + [item for item in grid if item != user_params]
+        best_score = -math.inf
+        best_params: dict[str, Any] = grid[0]
+        for params in grid:
+            merged = {**user_params, **params} if not automatic else params
+            try:
+                pipeline = build_pipeline(frame, features, config, key, merged, problem_type, len(X_search))
+                scores = cross_val_score(pipeline, X_search, y_search, cv=cv, scoring=scoring, n_jobs=1)
+                score = float(np.mean(scores))
+            except Exception:
+                continue
+            if math.isfinite(score) and score > best_score + 1e-9:
+                best_score, best_params = score, merged
+            if (time.perf_counter() - started) > budget and math.isfinite(best_score):
+                report["stopped_early"] = True
+                break
+        if math.isfinite(best_score):
+            results.append((index, key, best_params, best_score))
+            report["candidates"].append({
+                "algorithm_key": key,
+                "label": ALGORITHM_LABELS.get(key, key),
+                "score": best_score * 100 if scoring == "accuracy" else best_score,
+                "parameters": best_params,
+            })
+
+    if not results:
+        fallback = keys[0]
+        return fallback, user_params, report
+
+    top = max(score for _, _, _, score in results)
+    # Simplest candidate that is practically as good as the best one.
+    _, chosen_key, chosen_params, chosen_score = next(item for item in results if item[3] >= top - TIE_MARGIN)
+    for entry in report["candidates"]:
+        entry["selected"] = entry["algorithm_key"] == chosen_key
+    report["selected_algorithm"] = chosen_key
+    report["selected_label"] = ALGORITHM_LABELS.get(chosen_key, chosen_key)
+    report["selected_score"] = chosen_score * 100 if scoring == "accuracy" else chosen_score
+    report["search_seconds"] = round(time.perf_counter() - started, 2)
+    return chosen_key, chosen_params, report
 
 
 def train_supervised(frame: pd.DataFrame, config: dict[str, Any], output_dir: Path):
@@ -523,11 +742,30 @@ def train_supervised(frame: pd.DataFrame, config: dict[str, Any], output_dir: Pa
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=seed, stratify=stratify
     )
+    config = dict(config)
+    if problem_type == "classification":
+        config["class_weight_balanced"] = should_balance_classes(config, y_train)
+
+    search_report: dict[str, Any] | None = None
+    requested_algorithm = str(config["algorithm_key"])
+    if requested_algorithm in AUTO_KEYS or bool(config.get("tune", False)):
+        if requested_algorithm in AUTO_KEYS and AUTO_KEYS[requested_algorithm] != problem_type:
+            raise ValueError("The automatic model choice does not match the problem type.")
+        chosen_key, chosen_params, search_report = search_best_model(
+            working, features, config, X_train, y_train, problem_type, output_dir
+        )
+        config["algorithm_key"] = chosen_key
+        config["parameters"] = chosen_params
+        preprocessing = dict(config.get("preprocessing", {}))
+        if str(preprocessing.get("scale_mode", "auto")) == "auto":
+            preprocessing["apply_scaling"] = chosen_key in SCALE_SENSITIVE
+        config["preprocessing"] = preprocessing
+
     preprocessor, numeric, categorical = make_preprocessor(working, features, config)
     model = classifier(config, len(X_train)) if problem_type == "classification" else regressor(config)
     pipeline = Pipeline([("preprocessor", preprocessor), ("model", model)])
 
-    update_progress(output_dir, 35, "Training the selected algorithm")
+    update_progress(output_dir, 35, "Training " + ALGORITHM_LABELS.get(str(config["algorithm_key"]), "the selected algorithm"))
     started = time.perf_counter()
     pipeline.fit(X_train, y_train)
     training_ms = int((time.perf_counter() - started) * 1000)
@@ -548,6 +786,10 @@ def train_supervised(frame: pd.DataFrame, config: dict[str, Any], output_dir: Pa
             "average_precision": None,
             "confusion_matrix": {"labels": labels, "values": matrix.tolist()},
         }
+        # What "always answer the most common class" would score on the same test rows.
+        majority_label = str(y_train.value_counts().idxmax())
+        metrics["baseline_accuracy"] = float((y_test.astype(str) == majority_label).mean()) * 100
+        metrics["baseline_label"] = majority_label
 
         probabilities = pipeline.predict_proba(X_test) if hasattr(pipeline, "predict_proba") else None
         if probabilities is not None:
@@ -614,6 +856,9 @@ def train_supervised(frame: pd.DataFrame, config: dict[str, Any], output_dir: Pa
             "rmse": math.sqrt(mse),
             "r2": r2_score(y_test, predicted),
         }
+        # What "always answer the average" would miss by on the same test rows.
+        metrics["baseline_mae"] = float(mean_absolute_error(y_test, np.full(len(y_test), float(y_train.mean()))))
+        metrics["target_mean"] = float(y_train.mean())
         plt.figure(figsize=(6, 5))
         plt.scatter(y_test, predicted, alpha=0.65)
         minimum = min(float(np.min(y_test)), float(np.min(predicted)))
@@ -655,6 +900,8 @@ def train_supervised(frame: pd.DataFrame, config: dict[str, Any], output_dir: Pa
 
     cv = cross_validation_metrics(pipeline, X, y, problem_type, int(config.get("cross_validation", 0)), seed)
     metrics["cross_validation"] = cv
+    if search_report is not None:
+        metrics["model_search"] = search_report
     summary = {
         "rows_total": int(len(frame)),
         "rows_used": int(len(working)),
@@ -668,6 +915,11 @@ def train_supervised(frame: pd.DataFrame, config: dict[str, Any], output_dir: Pa
         "transformed_feature_count": len(transformed_feature_names(pipeline)),
         "scaling_applied": bool(config.get("preprocessing", {}).get("apply_scaling", False)),
         "stratified_split": stratify is not None,
+        "class_weight_balanced": bool(config.get("class_weight_balanced", False)) if problem_type == "classification" else False,
+        "requested_algorithm": requested_algorithm,
+        "selected_algorithm": str(config["algorithm_key"]),
+        "selected_label": ALGORITHM_LABELS.get(str(config["algorithm_key"]), str(config["algorithm_key"])),
+        "selected_parameters": dict(config.get("parameters", {})),
         "class_labels": [str(label) for label in pipeline.named_steps["model"].classes_] if problem_type == "classification" else [],
     }
     return pipeline, metrics, charts, summary, importance, prediction_schema(working, features)
@@ -774,6 +1026,7 @@ def train(dataset_path: Path, config_path: Path, output_dir: Path) -> None:
         "pipeline": pipeline,
         "problem_type": config["problem_type"],
         "algorithm_key": config["algorithm_key"],
+        "selected_algorithm": summary.get("selected_algorithm", config["algorithm_key"]),
         "features": list(config["features"]),
         "target_column": config.get("target_column"),
         "prediction_schema": schema,
@@ -793,8 +1046,10 @@ def train(dataset_path: Path, config_path: Path, output_dir: Path) -> None:
         "algorithm_key": config["algorithm_key"],
         "features": list(config["features"]),
         "target_column": config.get("target_column"),
-        "parameters": config.get("parameters", {}),
-        "preprocessing": config.get("preprocessing", {}),
+        "selected_algorithm": summary.get("selected_algorithm", config["algorithm_key"]),
+        "selected_label": summary.get("selected_label"),
+        "parameters": summary.get("selected_parameters", config.get("parameters", {})),
+        "preprocessing": {**config.get("preprocessing", {}), "apply_scaling": bool(summary.get("scaling_applied", False))},
         "python_version": platform.python_version(),
         "sklearn_version": sklearn.__version__,
         "training_time_ms": total_ms,

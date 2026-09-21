@@ -434,13 +434,13 @@ fig, (ax1, ax2) = plt.<span style="color:#93c5fd;">subplots</span>(<span style="
 
 <span style="color:#6b7280;"># Box Plot: concise five-number summary, clear outlier dots</span>
 sns.<span style="color:#93c5fd;">boxplot</span>(data=df, x=<span style="color:#a7f3d0;">"department"</span>, y=<span style="color:#a7f3d0;">"salary"</span>,
-            palette=<span style="color:#a7f3d0;">"Set2"</span>, ax=ax1)
+            hue="department", palette="Set2", legend=False, ax=ax1)
 ax1.<span style="color:#93c5fd;">set_title</span>(<span style="color:#a7f3d0;">"Box Plot: Salary by Department"</span>, fontweight=<span style="color:#a7f3d0;">"bold"</span>)
 ax1.<span style="color:#93c5fd;">set_ylabel</span>(<span style="color:#a7f3d0;">"Annual Salary ($)"</span>)
 
 <span style="color:#6b7280;"># Violin Plot: shows FULL distribution shape + box plot inside</span>
 sns.<span style="color:#93c5fd;">violinplot</span>(data=df, x=<span style="color:#a7f3d0;">"department"</span>, y=<span style="color:#a7f3d0;">"salary"</span>,
-               palette=<span style="color:#a7f3d0;">"Set2"</span>, inner=<span style="color:#a7f3d0;">"box"</span>, ax=ax2)
+               hue="department", palette="Set2", legend=False, inner="box", ax=ax2)
 ax2.<span style="color:#93c5fd;">set_title</span>(<span style="color:#a7f3d0;">"Violin Plot: Same Data"</span>, fontweight=<span style="color:#a7f3d0;">"bold"</span>)
 ax2.<span style="color:#93c5fd;">set_ylabel</span>(<span style="color:#a7f3d0;">"Annual Salary ($)"</span>)
 
@@ -883,7 +883,7 @@ axes[<span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">1</span
 
 <span style="color:#6b7280;"># Bottom-left: Box Plot</span>
 sns.<span style="color:#93c5fd;">boxplot</span>(data=tips, x=<span style="color:#a7f3d0;">"day"</span>, y=<span style="color:#a7f3d0;">"total_bill"</span>,
-            palette=<span style="color:#a7f3d0;">"Set3"</span>, ax=axes[<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">0</span>])
+            hue="day", palette="Set3", legend=False, ax=axes[1, 0])
 axes[<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">0</span>].<span style="color:#93c5fd;">set_title</span>(<span style="color:#a7f3d0;">"Bill by Day of Week"</span>, fontweight=<span style="color:#a7f3d0;">"bold"</span>)
 
 <span style="color:#6b7280;"># Bottom-right: Bar Chart</span>
@@ -916,7 +916,9 @@ Bottom-right: Bar chart of average tip by day of week.</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># After building your chart...</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+
+<span style="color:#6b7280;"># After building your chart...</span>
 plt.<span style="color:#93c5fd;">tight_layout</span>()
 
 <span style="color:#6b7280;"># Save BEFORE show() — show() clears the figure buffer</span>
@@ -962,7 +964,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Plotly Express Interactive Charts</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs plotly, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> plotly.express <span style="color:#c4b5fd;">as</span> px
@@ -1018,7 +1020,7 @@ fig2: Same chart with Play button — watch bubbles move right+up over 55 years.
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Plotly Interactive Bar & Line</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs plotly, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> plotly.express <span style="color:#c4b5fd;">as</span> px

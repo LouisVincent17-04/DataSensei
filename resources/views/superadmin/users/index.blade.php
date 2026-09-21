@@ -269,18 +269,24 @@
                 <td>
                   <div class="tbl-actions">
 
-                    {{-- Edit (name / email / status only) --}}
-                    <button class="btn btn-ghost btn-sm"
-                      onclick="openEditModal(
-                        {{ $user->id }},
-                        '{{ addslashes($user->name) }}',
-                        '{{ $user->email }}',
-                        {{ $user->role }},
-                        '{{ $user->status }}'
-                      )">Edit</button>
+                    {{-- Edit (name / email / status only). The controller
+                         refuses an edit of another Super Admin, so the form is
+                         not offered for one. --}}
+                    @if(! $user->isSuperAdmin() || $user->id === auth()->id())
+                      <button class="btn btn-ghost btn-sm"
+                        onclick="openEditModal(
+                          {{ $user->id }},
+                          '{{ addslashes($user->name) }}',
+                          '{{ $user->email }}',
+                          {{ $user->role }},
+                          '{{ $user->status }}'
+                        )">Edit</button>
+                    @endif
 
-                    {{-- Toggle Status (cannot self-disable) --}}
-                    @if($user->id !== auth()->id())
+                    {{-- Toggle Status. The controller refuses your own account
+                         and another Super Admin, so neither is offered here;
+                         demote a Super Admin first. --}}
+                    @if($user->id !== auth()->id() && ! $user->isSuperAdmin())
                       <form method="POST" action="{{ route('superadmin.users.toggleStatus', $user) }}">
                         @csrf @method('PATCH')
                         <button type="submit"
@@ -526,13 +532,15 @@
           <p style="font-size:0.875rem;color:var(--ds-text-secondary);line-height:1.55;">
             Designate <strong id="assign_inst_name" style="color:var(--text);"></strong>
             as the administrator of an institution.
-            Their role will be set to <strong style="color:var(--text);">Admin</strong> and they will be linked to the chosen institution.
+            Their role will be set to <strong style="color:var(--text);">Institution Admin</strong> and they will be linked to the chosen institution.
           </p>
           <div class="form-group">
             <label>Institution *</label>
+            {{-- Only active institutions: the controller rejects a disabled one,
+                 so offering it here only produced a validation error. --}}
             <select class="form-control" name="institution_id" id="assign_inst_select" required>
               <option value="">— Select Institution —</option>
-              @foreach($institutions as $inst)
+              @foreach($activeInstitutions as $inst)
                 <option value="{{ $inst->id }}">{{ $inst->name }}</option>
               @endforeach
             </select>

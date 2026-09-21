@@ -144,6 +144,8 @@ HTML;
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_breast_cancer
 <span style="color:#c4b5fd;">from</span> sklearn.model_selection <span style="color:#c4b5fd;">import</span> train_test_split
 <span style="color:#c4b5fd;">from</span> sklearn.linear_model <span style="color:#c4b5fd;">import</span> LogisticRegression
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+<span style="color:#c4b5fd;">from</span> sklearn.pipeline <span style="color:#c4b5fd;">import</span> make_pipeline
 
 <span style="color:#6b7280;"># Load a real dataset (breast cancer: malignant vs benign)</span>
 data = <span style="color:#93c5fd;">load_breast_cancer</span>()
@@ -164,7 +166,8 @@ X_train, X_test, y_train, y_test = <span style="color:#93c5fd;">train_test_split
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Test set      :  {X_test.shape[0]} samples"</span>)
 
 <span style="color:#6b7280;"># Train ONLY on training data — never peek at test set during training</span>
-model = <span style="color:#93c5fd;">LogisticRegression</span>(max_iter=<span style="color:#fcd34d;">10000</span>).<span style="color:#93c5fd;">fit</span>(X_train, y_train)
+<span style="color:#6b7280;"># Scaling first lets the solver converge in a few iterations</span>
+<span style="color:#93c5fd;">model</span> = make_pipeline(StandardScaler(), LogisticRegression(max_iter=<span style="color:#fcd34d;">1000</span>)).fit(X_train, y_train)
 
 <span style="color:#6b7280;"># Evaluate ONLY on the held-out test set</span>
 train_acc = model.<span style="color:#93c5fd;">score</span>(X_train, y_train)
@@ -194,6 +197,8 @@ Test  accuracy: 0.9649</div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.model_selection <span style="color:#c4b5fd;">import</span> cross_val_score, StratifiedKFold
 <span style="color:#c4b5fd;">from</span> sklearn.linear_model <span style="color:#c4b5fd;">import</span> LogisticRegression
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+<span style="color:#c4b5fd;">from</span> sklearn.pipeline <span style="color:#c4b5fd;">import</span> make_pipeline
 <span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_breast_cancer
 <span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
 
@@ -201,7 +206,8 @@ X, y = <span style="color:#93c5fd;">load_breast_cancer</span>(return_X_y=<span s
 
 <span style="color:#6b7280;"># StratifiedKFold preserves the class ratio in every fold</span>
 cv = <span style="color:#93c5fd;">StratifiedKFold</span>(n_splits=<span style="color:#fcd34d;">5</span>, shuffle=<span style="color:#fca5a5;">True</span>, random_state=<span style="color:#fcd34d;">42</span>)
-model = <span style="color:#93c5fd;">LogisticRegression</span>(max_iter=<span style="color:#fcd34d;">10000</span>)
+<span style="color:#6b7280;"># Scaling inside the pipeline is re-fitted on every training fold (no leakage)</span>
+<span style="color:#93c5fd;">model</span> = make_pipeline(StandardScaler(), LogisticRegression(max_iter=<span style="color:#fcd34d;">1000</span>))
 
 <span style="color:#6b7280;"># cross_val_score runs the full train/test cycle once per fold</span>
 scores = <span style="color:#93c5fd;">cross_val_score</span>(model, X, y, cv=cv, scoring=<span style="color:#a7f3d0;">'accuracy'</span>)
@@ -317,7 +323,17 @@ Top features by absolute weight:
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.linear_model <span style="color:#c4b5fd;">import</span> Ridge, Lasso
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_diabetes
+<span style="color:#c4b5fd;">from</span> sklearn.model_selection <span style="color:#c4b5fd;">import</span> train_test_split
+<span style="color:#93c5fd;">data</span> = load_diabetes()
+X, y = data.data, data.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span style="color:#fcd34d;">0.2</span>, random_state=<span style="color:#fcd34d;">42</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> sklearn.linear_model <span style="color:#c4b5fd;">import</span> Ridge, Lasso
 <span style="color:#c4b5fd;">from</span> sklearn.metrics <span style="color:#c4b5fd;">import</span> r2_score
 
 <span style="color:#6b7280;"># alpha is the regularization strength — larger = stronger penalty</span>
@@ -408,7 +424,21 @@ Sample 3: predicted=1 (malignant prob=0.003, benign prob=0.997)</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.metrics <span style="color:#c4b5fd;">import</span> (confusion_matrix, classification_report,
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_breast_cancer
+<span style="color:#c4b5fd;">from</span> sklearn.linear_model <span style="color:#c4b5fd;">import</span> LogisticRegression
+<span style="color:#c4b5fd;">from</span> sklearn.model_selection <span style="color:#c4b5fd;">import</span> train_test_split
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+X, y = load_breast_cancer(return_X_y=<span style="color:#fca5a5;">True</span>)
+<span style="color:#93c5fd;">scaler</span> = StandardScaler()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span style="color:#fcd34d;">0.2</span>, random_state=<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">X_train_s</span> = scaler.fit_transform(X_train)    <span style="color:#6b7280;"># fit on train ONLY</span>
+<span style="color:#93c5fd;">X_test_s</span>  = scaler.transform(X_test)          <span style="color:#6b7280;"># apply same transform to test</span>
+<span style="color:#93c5fd;">model</span> = LogisticRegression().fit(X_train_s, y_train)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> sklearn.metrics <span style="color:#c4b5fd;">import</span> (confusion_matrix, classification_report,
                               precision_score, recall_score, f1_score)
 
 y_pred = model.<span style="color:#93c5fd;">predict</span>(X_test_s)
@@ -588,13 +618,13 @@ X, y = <span style="color:#93c5fd;">load_wine</span>(return_X_y=<span style="col
 models = {
     <span style="color:#a7f3d0;">"Single Decision Tree"</span>: <span style="color:#93c5fd;">DecisionTreeClassifier</span>(random_state=<span style="color:#fcd34d;">42</span>),
     <span style="color:#a7f3d0;">"Random Forest  100"</span>:   <span style="color:#93c5fd;">RandomForestClassifier</span>(n_estimators=<span style="color:#fcd34d;">100</span>, random_state=<span style="color:#fcd34d;">42</span>),
-    <span style="color:#a7f3d0;">"Random Forest  500"</span>:   <span style="color:#93c5fd;">RandomForestClassifier</span>(n_estimators=<span style="color:#fcd34d;">500</span>, random_state=<span style="color:#fcd34d;">42</span>),
+    <span style="color:#a7f3d0;">"Random Forest  300"</span>:   RandomForestClassifier(n_estimators=<span style="color:#fcd34d;">300</span>, random_state=<span style="color:#fcd34d;">42</span>),
 }
 
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"{'Model':<26}  {'CV Mean':>8}  {'CV Std':>7}"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">"-"</span> * <span style="color:#fcd34d;">46</span>)
 <span style="color:#c4b5fd;">for</span> name, m <span style="color:#c4b5fd;">in</span> models.items():
-    scores = <span style="color:#93c5fd;">cross_val_score</span>(m, X, y, cv=<span style="color:#fcd34d;">5</span>, scoring=<span style="color:#a7f3d0;">'accuracy'</span>)
+    <span style="color:#93c5fd;">scores</span> = cross_val_score(m, X, y, cv=<span style="color:#fcd34d;">3</span>, scoring=<span style="color:#a7f3d0;">'accuracy'</span>)
     <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"{name:<26}  {scores.mean():>8.4f}  {scores.std():>7.4f}"</span>)</div>
     <div style="color:#9ca3af;font-size:0.85rem;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;">
 <span style="color:var(--dim);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;display:block;margin-bottom:8px;font-family:'Inter',sans-serif;font-weight:600;">Console Output</span>Model                       CV Mean   CV Std
@@ -971,16 +1001,16 @@ HTML;
 X, y = <span style="color:#93c5fd;">load_breast_cancer</span>(return_X_y=<span style="color:#fca5a5;">True</span>)
 
 models = {
-    <span style="color:#a7f3d0;">"Random Forest"</span>:       <span style="color:#93c5fd;">RandomForestClassifier</span>(n_estimators=<span style="color:#fcd34d;">200</span>, random_state=<span style="color:#fcd34d;">42</span>),
+    <span style="color:#a7f3d0;">"Random Forest"</span>:       RandomForestClassifier(n_estimators=<span style="color:#fcd34d;">60</span>, random_state=<span style="color:#fcd34d;">42</span>),
     <span style="color:#a7f3d0;">"Gradient Boosting"</span>:   <span style="color:#93c5fd;">GradientBoostingClassifier</span>(
-                                n_estimators=<span style="color:#fcd34d;">200</span>, learning_rate=<span style="color:#fcd34d;">0.1</span>,
+                                <span style="color:#93c5fd;">n_estimators</span>=<span style="color:#fcd34d;">60</span>, learning_rate=<span style="color:#fcd34d;">0.1</span>,
                                 max_depth=<span style="color:#fcd34d;">3</span>, random_state=<span style="color:#fcd34d;">42</span>),
 }
 
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"{'Model':<22}  {'CV Acc':>7}  {'Std':>6}"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">"-"</span> * <span style="color:#fcd34d;">40</span>)
 <span style="color:#c4b5fd;">for</span> name, m <span style="color:#c4b5fd;">in</span> models.items():
-    scores = <span style="color:#93c5fd;">cross_val_score</span>(m, X, y, cv=<span style="color:#fcd34d;">5</span>)
+    <span style="color:#93c5fd;">scores</span> = cross_val_score(m, X, y, cv=<span style="color:#fcd34d;">3</span>)
     <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"{name:<22}  {scores.mean():>7.4f}  {scores.std():>6.4f}"</span>)</div>
     <div style="color:#9ca3af;font-size:0.85rem;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;">
 <span style="color:var(--dim);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;display:block;margin-bottom:8px;font-family:'Inter',sans-serif;font-weight:600;">Console Output</span>Model                   CV Acc     Std
@@ -1009,10 +1039,10 @@ Gradient Boosting       0.9736  0.0106</div>
 <span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
 
 X, y = <span style="color:#93c5fd;">load_breast_cancer</span>(return_X_y=<span style="color:#fca5a5;">True</span>)
-model = <span style="color:#93c5fd;">GradientBoostingClassifier</span>(n_estimators=<span style="color:#fcd34d;">100</span>, random_state=<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">model</span> = GradientBoostingClassifier(n_estimators=<span style="color:#fcd34d;">40</span>, random_state=<span style="color:#fcd34d;">42</span>)
 
 train_sizes, train_scores, val_scores = <span style="color:#93c5fd;">learning_curve</span>(
-    model, X, y, cv=<span style="color:#fcd34d;">5</span>,
+    model, X, y, cv=<span style="color:#fcd34d;">3</span>,
     train_sizes=np.<span style="color:#93c5fd;">linspace</span>(<span style="color:#fcd34d;">0.1</span>, <span style="color:#fcd34d;">1.0</span>, <span style="color:#fcd34d;">6</span>),
     scoring=<span style="color:#a7f3d0;">'accuracy'</span>
 )

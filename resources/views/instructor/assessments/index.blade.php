@@ -112,6 +112,7 @@
               <a class="btn" href="{{ route('instructor.assessments.builder', ['assessment' => $assessment, 'item' => $assessment->status === 'draft' ? $assessment->draft_last_item : null]) }}">
                 {{ $assessment->status === 'draft' ? 'Continue Draft' : 'View Builder' }}
               </a>
+              <a class="btn secondary" href="{{ route('instructor.assessments.submissions', $assessment) }}">Submissions</a>
               <a class="btn secondary" href="{{ route('instructor.assessments.analytics', $assessment) }}">Diagnostics</a>
             </div>
           </article>

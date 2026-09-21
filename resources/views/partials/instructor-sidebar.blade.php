@@ -91,7 +91,7 @@
 
 
     <a href="{{ $safeRoute('instructor.anti-cheat.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.anti-cheat.*') ? 'active' : '' }}">
+       class="nav-item {{ request()->routeIs('instructor.anti-cheat.*') && ! request()->routeIs('instructor.anti-cheat.events') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z"/>
         <path d="M9 12l2 2 4-5"/>

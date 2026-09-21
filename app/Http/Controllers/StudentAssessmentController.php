@@ -281,15 +281,23 @@ class StudentAssessmentController extends Controller
             // JavaScript cannot extend the assessment by delaying submission.
             $timedOut = $this->remainingSeconds($lockedAssessment, $lockedSubmission) === 0;
 
-            $submittedAnswers = array_replace(
-                $this->filterKnownAnswers(
-                    $lockedAssessment,
-                    is_array($lockedSubmission->draft_answers)
-                        ? $lockedSubmission->draft_answers
-                        : []
-                ),
-                $this->filterKnownAnswers($lockedAssessment, $answers)
+            $savedAnswers = $this->filterKnownAnswers(
+                $lockedAssessment,
+                is_array($lockedSubmission->draft_answers)
+                    ? $lockedSubmission->draft_answers
+                    : []
             );
+
+            // Answers freeze at the server deadline. After expiry only the last
+            // draft the server accepted before the deadline is graded; anything
+            // posted with this late request is ignored (autosave refuses late
+            // snapshots as well), so a late change can never alter the score.
+            $submittedAnswers = $timedOut
+                ? $savedAnswers
+                : array_replace(
+                    $savedAnswers,
+                    $this->filterKnownAnswers($lockedAssessment, $answers)
+                );
 
             if (! $timedOut) {
                 $this->validateRequiredAnswers($lockedAssessment, $submittedAnswers);
@@ -387,7 +395,7 @@ class StudentAssessmentController extends Controller
     private function grade(AssessmentQuestion $question, mixed $raw): array
     {
         if ($question->question_type === 'multiple_choice') {
-            $selected = $raw ? (int) $raw : null;
+            $selected = ($raw === null || trim((string) $raw) === '') ? null : (int) $raw;
             $selectedOption = $selected
                 ? $question->options->firstWhere('id', $selected)
                 : null;
@@ -404,10 +412,11 @@ class StudentAssessmentController extends Controller
 
         $accepted = collect(preg_split('/\r\n|\r|\n/', (string) $question->correct_answer))
             ->map(fn ($answer) => mb_strtolower(trim($answer)))
-            ->filter();
+            // Only blank lines are dropped. A bare filter() would also drop "0".
+            ->filter(fn ($answer) => $answer !== '');
 
         $normalized = mb_strtolower($answerText);
-        $isCorrect = $accepted->contains($normalized);
+        $isCorrect = $normalized !== '' && $accepted->contains($normalized);
 
         return [null, $answerText, $isCorrect, $isCorrect ? (float) $question->points : 0.0];
     }

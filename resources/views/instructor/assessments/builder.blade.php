@@ -228,6 +228,7 @@
         </div>
         <div class="actions">
           <a class="btn secondary" href="{{ route('instructor.assessments.index') }}">Assessments</a>
+          <a class="btn secondary" href="{{ route('instructor.assessments.submissions', $assessment) }}">Submissions</a>
           @if($isDraft)
             <button class="btn secondary" type="submit" form="current-question-form" name="intent" value="draft_exit">Save Draft & Exit</button>
             <form method="POST" action="{{ route('instructor.assessments.publish', $assessment) }}" onsubmit="return confirm('Publish this assessment to students? Questions can no longer be edited after publishing.');">

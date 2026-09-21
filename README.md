@@ -53,6 +53,24 @@ php artisan datasensei:preflight
 
 Fix every `FAIL` before the defense. `WARN` means the main system can start, but the named optional feature may not be ready.
 
+## The first superadmin account
+
+`php artisan db:seed` loads reference data only. It creates no accounts, and the sign-up form always creates a learner, so an empty database has nobody who can open the superadmin or admin workspace. Create the first superadmin once, from the DataSensei folder:
+
+```text
+php artisan tinker
+```
+
+Then paste one line and press Enter:
+
+```text
+App\Models\User::create(['name' => 'Platform Owner', 'email' => 'owner@example.com', 'password' => Illuminate\Support\Facades\Hash::make('ChangeThisPassword!1'), 'role' => App\Models\User::ROLE_SUPERADMIN, 'status' => 'active']);
+```
+
+Type `exit` to leave tinker, sign in with that email, and change the password from the Profile page. Everything else is done from the interface: the superadmin creates institutions, appoints an institution admin with the `Inst. Admin` button on the Users page, and promotes an account to Admin with the `Promote` button.
+
+Use `php artisan db:seed --class=DefenseDemoSeeder` instead if you want the ready-made demo accounts described below. That seeder refuses to run on a database that already has accounts, so it cannot be used to add a superadmin to a live installation.
+
 ## Easiest defense-day start
 
 Double-click:
@@ -98,10 +116,13 @@ Demo accounts:
 ```text
 superadmin@datasensei.test
 admin@datasensei.test
+instadmin@datasensei.test
 instructor@datasensei.test
 learner@datasensei.test
 sample@datasensei.test
 ```
+
+`instadmin@datasensei.test` is the institution admin of DataSensei Demo University, whose institution code is `DEMO26`. The seeded learners already belong to that institution, so to show the instructor application flow, register a new account on the sign-up form, open Profile, then Institution, and enter `DEMO26`. The institution admin can then approve or reject it.
 
 These credentials are intentionally public demo credentials. Never reuse this password for a real account.
 

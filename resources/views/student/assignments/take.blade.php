@@ -94,7 +94,7 @@
         <div class="top-row">
           <div>
             <h1 class="page-title ds-page-title">{{ $assignment->title }}</h1>
-            <p class="page-subtitle">Attempt #{{ $submission->attempt_no }}. Answer every item. The timer is enforced by the server and does not reset if you refresh the page.</p>
+            <p class="page-subtitle">Attempt #{{ $submission->attempt_no }}. Answer every item. The timer is enforced by the server and does not reset if you refresh the page. When time runs out, only the answers already saved before the deadline are graded.</p>
           </div>
           @if($remainingSeconds !== null)
             <div class="timer-box" role="timer" aria-live="polite"><span>Time remaining</span><strong id="assignment-timer" data-remaining="{{ $remainingSeconds }}">—</strong></div>
@@ -105,6 +105,9 @@
 
         <form id="assignmentForm" data-protected-assessment="1" class="card card-pad" method="POST" action="{{ route('student.assignments.submit', [$assignment, $submission]) }}">
           @csrf
+          @if(!empty($antiCheatSettings['enabled']))
+            <input type="hidden" name="_anti_cheat_session_id" value="{{ $antiCheatSessionId }}">
+          @endif
           @foreach($assignment->libraryItem->questions as $question)
             <div class="question-card" data-assignment-question-id="{{ $question->id }}">
               <div class="badge-pill">{{ $question->type_label }}, {{ $question->points }} pt</div>
@@ -149,6 +152,7 @@
       'assignmentSubmissionId' => $submission->id,
       'antiCheatSettings' => $antiCheatSettings ?? [],
       'antiCheatSessionId' => $antiCheatSessionId,
+      'antiCheatState' => $antiCheatState ?? null,
   ])
 
   @include('student.partials.timed-answer-autosave', [
@@ -183,9 +187,13 @@
           finish();
           return;
         }
+        // Answers posted after the server deadline are ignored, so the last
+        // edits are pushed into the saved draft just before time runs out.
+        const flushDraft = () => form.dispatchEvent(new Event('datasensei:flush-autosave'));
         const interval = window.setInterval(() => {
           remaining -= 1;
           render();
+          if (remaining === 3 || remaining === 1) flushDraft();
           if (remaining <= 0) {
             window.clearInterval(interval);
             finish();

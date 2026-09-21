@@ -211,6 +211,8 @@
           $yStep       = 380; 
           $yStart      = 240;
           $positions   = [];
+          // Positions are looked up by list position, so the keys must run 0, 1, 2…
+          $challenges  = collect($challenges)->values();
 
           foreach ($challenges as $i => $ch) {
               $row   = intval($i / $nodesPerRow);
@@ -227,11 +229,20 @@
           $totalRows = ceil($challenges->count() / $nodesPerRow);
           $contentHeight = $yStart + ($totalRows * $yStep) + 200; // Extra padding at bottom
           
-          $maxX = max(array_column($positions, 'x'));
+          // A path with no published challenges yet has no positions; max([]) would throw.
+          $maxX = $positions === [] ? $xSlots[0] : max(array_column($positions, 'x'));
           $contentWidth = $maxX + 350; // Extra padding on the right
         @endphp
 
-        <div class="challenge-map-content" style="height: {{ $contentHeight }}px; width: {{ $contentWidth }}px;">
+        @if($challenges->isEmpty())
+          <div style="padding:48px 24px;text-align:center;color:var(--ds-text-muted, #8aa0bd)">
+            <p style="margin:0 0 6px;color:var(--ds-text, #f8fafc);font-size:1rem;font-weight:600">No challenges here yet</p>
+            <p style="margin:0 0 16px;font-size:.875rem">This path has no published challenges. Pick another path or check back later.</p>
+            <a href="{{ route('challenges') }}" style="color:var(--ds-accent-text, #93c5fd);font-weight:500">Back to all paths</a>
+          </div>
+        @endif
+
+        <div class="challenge-map-content" style="height: {{ $contentHeight }}px; width: {{ $contentWidth }}px;@if($challenges->isEmpty()) display:none;@endif">
 
           {{-- ── SVG CONNECTOR PATHS ── --}}
           <svg class="challenge-map-svg-paths" xmlns="http://www.w3.org/2000/svg">

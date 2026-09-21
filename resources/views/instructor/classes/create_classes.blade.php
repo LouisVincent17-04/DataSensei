@@ -466,19 +466,19 @@
               <div class="card-header">
                 <div>
                   <div class="card-title">Class Code</div>
-                  <div class="card-subtitle">Students use this to join</div>
+                  <div class="card-subtitle">Reference code for this class</div>
                 </div>
               </div>
               <div class="card-body" style="gap:12px;">
                 <div class="code-preview">
                   <div class="code-value">{{ $class->class_code }}</div>
-                  <div class="code-label">Join Code</div>
+                  <div class="code-label">Class Code</div>
                 </div>
 
                 <form method="POST" action="{{ route('instructor.classes.regenerate-code', $class) }}">
                   @csrf @method('PATCH')
                   <button type="submit" class="btn btn-ghost btn-block"
-                    onclick="return confirm('Regenerate code? The old code will stop working immediately.')">
+                    onclick="return confirm('Regenerate code? The old code is replaced immediately.')">
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
@@ -493,7 +493,7 @@
               <div class="card-header">
                 <div>
                   <div class="card-title">Auto-Generated Code</div>
-                  <div class="card-subtitle">How joining works</div>
+                  <div class="card-subtitle">How enrolment works</div>
                 </div>
               </div>
               <div class="card-body">
@@ -501,19 +501,19 @@
                   <div class="info-row">
                     <div class="info-text">
                       <div class="info-title">Unique 7-letter code</div>
-                      <div class="info-desc">Generated automatically when you create the class.</div>
+                      <div class="info-desc">Generated automatically when you create the class, so you can tell your classes apart and search for them.</div>
                     </div>
                   </div>
                   <div class="info-row">
                     <div class="info-text">
-                      <div class="info-title">Students self-enrol</div>
-                      <div class="info-desc">Share the code and students can join instantly.</div>
+                      <div class="info-title">You add the students</div>
+                      <div class="info-desc">Open the class roster and add each student by the email they registered with. Students cannot enrol themselves.</div>
                     </div>
                   </div>
                   <div class="info-row">
                     <div class="info-text">
                       <div class="info-title">Regenerate anytime</div>
-                      <div class="info-desc">Old codes expire immediately when regenerated.</div>
+                      <div class="info-desc">A new code replaces the old one immediately.</div>
                     </div>
                   </div>
                 </div>

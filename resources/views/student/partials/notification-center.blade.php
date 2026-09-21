@@ -261,7 +261,7 @@
   readAll.addEventListener('click', async () => {
     readAll.disabled = true;
     try {
-      await request(endpoints.readAll, {method: 'POST', body: '{}'});
+      await request(endpoints.readAll, {method: 'PATCH', body: '{}'});
       setCount(0);
       await loadFeed();
     } catch (error) {

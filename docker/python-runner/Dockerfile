@@ -27,15 +27,23 @@ RUN apt-get update \
         fontconfig \
     && python -m pip install --upgrade pip setuptools wheel \
     && pip install --no-cache-dir \
-        numpy \
-        pandas \
-        matplotlib \
+        # Pinned to the release lines every lesson example was run against.
+        # Unpinned, a rebuild silently pulled pandas 3, whose import reads the
+        # time zone database and failed inside the sandbox.
+        "numpy~=2.4.0" \
+        "pandas~=3.0.0" \
+        "matplotlib~=3.11.0" \
         packaging \
         pillow \
-        scipy \
+        "scipy~=1.17.0" \
         scikit-learn==1.8.0 \
         joblib \
         threadpoolctl \
+        # Used by the visualisation, statistics and time-series lessons.
+        "seaborn~=0.13.2" \
+        "statsmodels~=0.15.0" \
+        # Time zone data for pandas, independent of what the base image ships.
+        tzdata \
     && apt-get purge -y --auto-remove \
         gcc \
         g++ \
@@ -48,6 +56,11 @@ RUN apt-get update \
     && chown -R runner:runner /workspace /tmp/matplotlib /tmp/.cache
 
 COPY datasensei_runner.py /opt/datasensei/datasensei_runner.py
+
+# Tells Laravel this image understands the warm-sandbox protocol
+# (--standby, JSON jobs, input() without replay). Keep in sync with
+# RUNNER_PROTOCOL in datasensei_runner.py and PythonWarmSandbox.php.
+LABEL datasensei.runner.protocol="4"
 
 RUN chmod 0555 /opt/datasensei/datasensei_runner.py
 

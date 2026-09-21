@@ -6,6 +6,8 @@ final class AntiCheatEventContract
 {
     public const FOCUS_LOSS_EVENT = 'focus_loss';
 
+    public const LOCKED_ATTEMPT_FINALIZED_EVENT = 'locked_attempt_finalized';
+
     public const FOCUS_CORRELATION_WINDOW_SECONDS = 2;
 
     /** @var list<int> */
@@ -40,6 +42,11 @@ final class AntiCheatEventContract
             'classification' => 'violation',
         ],
         'threshold_exceeded' => [
+            'severity' => 'critical',
+            'classification' => 'violation',
+        ],
+        // Written by the server when a locked browser finalizes an attempt.
+        self::LOCKED_ATTEMPT_FINALIZED_EVENT => [
             'severity' => 'critical',
             'classification' => 'violation',
         ],
@@ -127,6 +134,44 @@ final class AntiCheatEventContract
             'window_blur',
             'tab_switch',
         ];
+    }
+
+    /**
+     * Event types that lock an attempt under the given policy. Each type is
+     * tied to the setting that makes it a restricted action, and all of them
+     * require "Lock screen on critical violation".
+     *
+     * Deliberately absent:
+     *  - dual_monitor_detected: governed only by detect + block dual monitor.
+     *  - right_click: the setting promises "blocked and logged", never a lock.
+     *  - threshold_exceeded / locked_attempt_finalized: outcomes reported by
+     *    the browser; the server derives the focus limit from the focus events
+     *    themselves and handles finalization explicitly.
+     *
+     * @param  array<string, mixed>  $policy
+     * @return list<string>
+     */
+    public static function lockingEventTypesFor(array $policy): array
+    {
+        if (empty($policy['enabled']) || ! ($policy['lock_screen_on_violation'] ?? true)) {
+            return [];
+        }
+
+        $types = [];
+
+        if (! ($policy['allow_devtools_shortcuts'] ?? false)) {
+            $types[] = 'devtools_shortcut';
+        }
+
+        if (! ($policy['allow_paste'] ?? false) || ($policy['block_external_paste'] ?? true)) {
+            $types[] = 'blocked_paste';
+        }
+
+        if ($policy['require_fullscreen'] ?? false) {
+            $types[] = 'fullscreen_exit';
+        }
+
+        return $types;
     }
 
     public static function isFocusEvent(string $eventType): bool

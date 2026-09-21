@@ -411,6 +411,8 @@ Route::middleware(['auth', 'active', 'instructor'])->prefix('instructor')->name(
         Route::patch('/{assignment}/publish', [InstructorAssignmentController::class, 'publish'])->name('publish');
         Route::patch('/{assignment}/close', [InstructorAssignmentController::class, 'close'])->name('close');
         Route::patch('/{assignment}/archive', [InstructorAssignmentController::class, 'archive'])->name('archive');
+        Route::patch('/{assignment}/submissions/{submission}/release', [InstructorAssignmentController::class, 'releaseHeldSubmission'])->name('submissions.release');
+        Route::patch('/{assignment}/submissions/{submission}/keep-blocked', [InstructorAssignmentController::class, 'keepSubmissionBlocked'])->name('submissions.keep-blocked');
     });
 
     Route::prefix('classes')->name('classes.')->group(function () {

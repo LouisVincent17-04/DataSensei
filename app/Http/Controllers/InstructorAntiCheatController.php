@@ -23,6 +23,8 @@ class InstructorAntiCheatController extends Controller
             ->orderBy('name')
             ->get();
 
+        $classIds = $classes->pluck('id');
+
         $settings = AntiCheatSetting::with('classRoom')
             ->where('instructor_id', $instructorId)
             ->where('assessment_type', 'assignment')
@@ -30,7 +32,20 @@ class InstructorAntiCheatController extends Controller
             ->orderBy('class_id')
             ->get();
 
-        $classIds = $classes->pluck('id');
+        // Only a configuration this instructor already owns can be loaded back
+        // into the form, because $settings is scoped to the signed-in user.
+        $editingSetting = $request->filled('setting')
+            ? $settings->firstWhere('id', (int) $request->integer('setting'))
+            : null;
+
+        // A configuration written for a class that was archived afterwards must
+        // keep that class in the picker, or saving the edit would quietly move
+        // the rules to the all-classes default.
+        if ($editingSetting?->classRoom
+            && (int) $editingSetting->classRoom->instructor_id === (int) $instructorId
+            && ! $classes->contains('id', $editingSetting->class_id)) {
+            $classes = $classes->push($editingSetting->classRoom)->sortBy('name')->values();
+        }
 
         $recentEvents = AntiCheatEvent::with(['user', 'classRoom', 'classAssignment', 'assignmentSubmission', 'assignmentQuestion'])
             ->where('assessment_type', 'assignment')
@@ -52,7 +67,7 @@ class InstructorAntiCheatController extends Controller
                 ->count(),
         ];
 
-        return view('instructor.anti-cheat.index', compact('classes', 'settings', 'recentEvents', 'stats'));
+        return view('instructor.anti-cheat.index', compact('classes', 'settings', 'recentEvents', 'stats', 'editingSetting'));
     }
 
     public function store(Request $request): RedirectResponse

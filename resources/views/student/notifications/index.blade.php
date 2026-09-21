@@ -100,7 +100,7 @@
         </div>
         <div class="head-actions">
           @if($unreadCount > 0)
-            <form method="POST" action="{{ route('student.notifications.read-all') }}">@csrf<button class="btn" type="submit">Mark all as read</button></form>
+            <form method="POST" action="{{ route('student.notifications.read-all') }}">@csrf @method('PATCH')<button class="btn" type="submit">Mark all as read</button></form>
           @endif
           <form method="POST" action="{{ route('student.notifications.clear-read') }}">@csrf @method('DELETE')<button class="btn subtle" type="submit">Clear read</button></form>
         </div>
@@ -138,7 +138,7 @@
               @if($notification->is_read)
                 <form method="POST" action="{{ route('student.notifications.unread', $notification) }}">@csrf @method('PATCH')<button class="icon-btn" type="submit" title="Mark as unread" aria-label="Mark as unread"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8l9 6 9-6"/><path d="M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button></form>
               @else
-                <form method="POST" action="{{ route('student.notifications.read', $notification) }}">@csrf<button class="icon-btn" type="submit" title="Mark as read" aria-label="Mark as read"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></button></form>
+                <form method="POST" action="{{ route('student.notifications.read', $notification) }}">@csrf @method('PATCH')<button class="icon-btn" type="submit" title="Mark as read" aria-label="Mark as read"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></button></form>
               @endif
               <form method="POST" action="{{ route('student.notifications.destroy', $notification) }}">@csrf @method('DELETE')<button class="icon-btn danger" type="submit" title="Delete notification" aria-label="Delete notification"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg></button></form>
             </div>

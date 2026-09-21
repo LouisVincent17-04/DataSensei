@@ -919,8 +919,8 @@ HTML;
     <span style="color:#c4b5fd;">return</span> samples, n_accepted / n_samples
 
 np.random.seed(<span style="color:#fcd34d;">42</span>)
-<span style="color:#93c5fd;">samples</span>, <span style="color:#93c5fd;">accept_rate</span> = metropolis_hastings(n_samples=<span style="color:#fcd34d;">20000</span>)
-<span style="color:#93c5fd;">burnin</span> = <span style="color:#fcd34d;">2000</span>  <span style="color:#6b7280;"># Discard initial samples</span>
+samples, accept_rate = metropolis_hastings(n_samples=<span style="color:#fcd34d;">6000</span>)
+<span style="color:#93c5fd;">burnin</span> = <span style="color:#fcd34d;">1000</span>  <span style="color:#6b7280;"># Discard initial samples</span>
 <span style="color:#93c5fd;">posterior_samples</span> = samples[burnin:]
 
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Acceptance rate: {accept_rate:.3f}  (target: 0.2–0.5)"</span>)
@@ -949,7 +949,46 @@ Analytical mean: 0.6250  ← should match MCMC</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">from</span> scipy <span style="color:#c4b5fd;">import</span> stats
+n_flips, n_heads = <span style="color:#fcd34d;">12</span>, <span style="color:#fcd34d;">8</span>
+<span style="color:#c4b5fd;">def</span> log_prior(theta):
+    <span style="color:#c4b5fd;">if</span> theta &lt;= <span style="color:#fcd34d;">0</span> <span style="color:#c4b5fd;">or</span> theta &gt;= <span style="color:#fcd34d;">1</span>:
+        <span style="color:#c4b5fd;">return</span> -np.inf  <span style="color:#6b7280;"># Impossible values</span>
+    <span style="color:#c4b5fd;">return</span> stats.beta.logpdf(theta, <span style="color:#fcd34d;">2</span>, <span style="color:#fcd34d;">2</span>)
+<span style="color:#c4b5fd;">def</span> log_likelihood(theta):
+    <span style="color:#c4b5fd;">return</span> stats.binom.logpmf(n_heads, n_flips, theta)
+<span style="color:#c4b5fd;">def</span> log_posterior(theta):
+    <span style="color:#c4b5fd;">return</span> log_prior(theta) + log_likelihood(theta)  <span style="color:#6b7280;"># log(A×B) = log(A)+log(B)</span>
+<span style="color:#c4b5fd;">def</span> metropolis_hastings(n_samples=<span style="color:#fcd34d;">10000</span>, step_size=<span style="color:#fcd34d;">0.05</span>):
+    <span style="color:#93c5fd;">samples</span>    = np.zeros(n_samples)
+    <span style="color:#93c5fd;">theta_curr</span> = <span style="color:#fcd34d;">0.5</span>  <span style="color:#6b7280;"># Starting value</span>
+    <span style="color:#93c5fd;">n_accepted</span> = <span style="color:#fcd34d;">0</span>
+
+    <span style="color:#c4b5fd;">for</span> i <span style="color:#c4b5fd;">in</span> range(n_samples):
+        <span style="color:#6b7280;"># Propose a new value from Gaussian centered at current</span>
+        <span style="color:#93c5fd;">theta_prop</span> = theta_curr + np.random.normal(<span style="color:#fcd34d;">0</span>, step_size)
+
+        <span style="color:#6b7280;"># Acceptance ratio in log-space (numerically stable)</span>
+        <span style="color:#93c5fd;">log_ratio</span> = log_posterior(theta_prop) - log_posterior(theta_curr)
+
+        <span style="color:#6b7280;"># Accept with probability min(1, ratio)</span>
+        <span style="color:#c4b5fd;">if</span> np.log(np.random.uniform()) &lt; log_ratio:
+            <span style="color:#93c5fd;">theta_curr</span> = theta_prop
+            n_accepted += <span style="color:#fcd34d;">1</span>
+
+        samples[i] = theta_curr
+
+    <span style="color:#c4b5fd;">return</span> samples, n_accepted / n_samples
+np.random.seed(<span style="color:#fcd34d;">42</span>)
+samples, accept_rate = metropolis_hastings(n_samples=<span style="color:#fcd34d;">6000</span>)
+<span style="color:#93c5fd;">burnin</span> = <span style="color:#fcd34d;">1000</span>  <span style="color:#6b7280;"># Discard initial samples</span>
+<span style="color:#93c5fd;">posterior_samples</span> = samples[burnin:]
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
 
 <span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">effective_sample_size</span>(samples):
     <span style="color:#a7f3d0;">"""Estimate ESS using autocorrelation."""</span>
@@ -1079,7 +1118,7 @@ np.random.seed(<span style="color:#fcd34d;">42</span>)
     <span style="color:#c4b5fd;">return</span> lp
 
 <span style="color:#6b7280;"># ── Metropolis-Hastings (3D) ──────────────────────────────────</span>
-<span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">run_mcmc</span>(n_samples=<span style="color:#fcd34d;">15000</span>):
+<span style="color:#c4b5fd;">def</span> run_mcmc(n_samples=<span style="color:#fcd34d;">5000</span>):
     current = np.array([<span style="color:#fcd34d;">0.0</span>, <span style="color:#fcd34d;">0.0</span>, np.log(<span style="color:#fcd34d;">1.0</span>)])
     samples = np.zeros((n_samples, <span style="color:#fcd34d;">3</span>))
     step    = np.array([<span style="color:#fcd34d;">0.15</span>, <span style="color:#fcd34d;">0.10</span>, <span style="color:#fcd34d;">0.10</span>])
@@ -1093,7 +1132,7 @@ np.random.seed(<span style="color:#fcd34d;">42</span>)
     <span style="color:#c4b5fd;">return</span> samples
 
 <span style="color:#93c5fd;">raw</span>     = run_mcmc()
-<span style="color:#93c5fd;">burnin</span>  = <span style="color:#fcd34d;">3000</span>
+<span style="color:#93c5fd;">burnin</span>  = <span style="color:#fcd34d;">1000</span>
 <span style="color:#93c5fd;">samples</span> = raw[burnin:]
 
 <span style="color:#93c5fd;">alpha_s</span> = samples[:, <span style="color:#fcd34d;">0</span>]
@@ -1122,7 +1161,51 @@ True: α=2.0, β=1.5, σ=1.0
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Posterior predictive: predict y at a new x_new = 3.0
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">from</span> scipy <span style="color:#c4b5fd;">import</span> stats
+np.random.seed(<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">n</span>         = <span style="color:#fcd34d;">50</span>
+<span style="color:#93c5fd;">true_alpha</span> = <span style="color:#fcd34d;">2.0</span>
+<span style="color:#93c5fd;">true_beta</span>  = <span style="color:#fcd34d;">1.5</span>
+<span style="color:#93c5fd;">true_sigma</span> = <span style="color:#fcd34d;">1.0</span>
+<span style="color:#93c5fd;">x</span>  = np.linspace(-<span style="color:#fcd34d;">2</span>, <span style="color:#fcd34d;">2</span>, n)
+<span style="color:#93c5fd;">y</span>  = true_alpha + true_beta * x + np.random.normal(<span style="color:#fcd34d;">0</span>, true_sigma, n)
+<span style="color:#c4b5fd;">def</span> log_posterior(params):
+    alpha, beta, log_sigma = params
+    <span style="color:#93c5fd;">sigma</span> = np.exp(log_sigma)  <span style="color:#6b7280;"># Transform to enforce σ &gt; 0</span>
+
+    <span style="color:#6b7280;"># Priors</span>
+    <span style="color:#93c5fd;">lp</span>  = stats.norm.logpdf(alpha, <span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">10</span>)
+    lp += stats.norm.logpdf(beta,  <span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">10</span>)
+    lp += stats.halfnorm.logpdf(sigma, scale=<span style="color:#fcd34d;">2</span>)
+
+    <span style="color:#6b7280;"># Likelihood: y ~ Normal(alpha + beta*x, sigma)</span>
+    <span style="color:#93c5fd;">mu</span>   = alpha + beta * x
+    lp  += stats.norm.logpdf(y, mu, sigma).sum()
+    <span style="color:#c4b5fd;">return</span> lp
+<span style="color:#c4b5fd;">def</span> run_mcmc(n_samples=<span style="color:#fcd34d;">5000</span>):
+    <span style="color:#93c5fd;">current</span> = np.array([<span style="color:#fcd34d;">0.0</span>, <span style="color:#fcd34d;">0.0</span>, np.log(<span style="color:#fcd34d;">1.0</span>)])
+    <span style="color:#93c5fd;">samples</span> = np.zeros((n_samples, <span style="color:#fcd34d;">3</span>))
+    <span style="color:#93c5fd;">step</span>    = np.array([<span style="color:#fcd34d;">0.15</span>, <span style="color:#fcd34d;">0.10</span>, <span style="color:#fcd34d;">0.10</span>])
+
+    <span style="color:#c4b5fd;">for</span> i <span style="color:#c4b5fd;">in</span> range(n_samples):
+        <span style="color:#93c5fd;">proposed</span> = current + np.random.normal(<span style="color:#fcd34d;">0</span>, step, <span style="color:#fcd34d;">3</span>)
+        <span style="color:#93c5fd;">log_r</span>    = log_posterior(proposed) - log_posterior(current)
+        <span style="color:#c4b5fd;">if</span> np.log(np.random.uniform()) &lt; log_r:
+            <span style="color:#93c5fd;">current</span> = proposed
+        samples[i] = current
+    <span style="color:#c4b5fd;">return</span> samples
+<span style="color:#93c5fd;">raw</span>     = run_mcmc()
+<span style="color:#93c5fd;">burnin</span>  = <span style="color:#fcd34d;">1000</span>
+<span style="color:#93c5fd;">samples</span> = raw[burnin:]
+<span style="color:#93c5fd;">alpha_s</span> = samples[:, <span style="color:#fcd34d;">0</span>]
+<span style="color:#93c5fd;">beta_s</span>  = samples[:, <span style="color:#fcd34d;">1</span>]
+<span style="color:#93c5fd;">sigma_s</span> = np.exp(samples[:, <span style="color:#fcd34d;">2</span>])
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># Posterior predictive: predict y at a new x_new = 3.0
 # For each posterior sample (α, β, σ), draw a predicted y</span>
 <span style="color:#93c5fd;">x_new</span> = <span style="color:#fcd34d;">3.0</span>
 <span style="color:#93c5fd;">mu_pred</span>  = alpha_s + beta_s * x_new

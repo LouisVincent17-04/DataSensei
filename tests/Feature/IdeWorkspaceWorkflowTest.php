@@ -211,7 +211,8 @@ class IdeWorkspaceWorkflowTest extends TestCase
                 && $entryPath === 'practice.py'
                 && $code === 'name = input("Enter your name: ")'
                 && $stdin === ''
-                && $options === ['interactive_input' => true])
+                && ($options['interactive_input'] ?? null) === true
+                && str_starts_with((string) ($options['session']['key'] ?? ''), 'ide-user-'))
             ->andReturn([
                 'stdout' => 'Enter your name:',
                 'stderr' => '',
@@ -251,7 +252,8 @@ class IdeWorkspaceWorkflowTest extends TestCase
                 && $entryPath === 'practice.py'
                 && $code === 'name = input(); age = input(); print(name, age)'
                 && $stdin === "Ada\n21\n"
-                && $options === ['interactive_input' => true])
+                && ($options['interactive_input'] ?? null) === true
+                && str_starts_with((string) ($options['session']['key'] ?? ''), 'ide-user-'))
             ->andReturn([
                 'stdout' => 'Ada 21',
                 'stderr' => '',

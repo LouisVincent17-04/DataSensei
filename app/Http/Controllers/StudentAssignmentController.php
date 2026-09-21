@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AntiCheatEvent;
 use App\Models\AssignmentBlankAnswer;
 use App\Models\AssignmentQuestion;
 use App\Models\AssignmentSubmission;
@@ -11,6 +12,7 @@ use App\Services\AntiCheatPolicyService;
 use App\Services\GamificationService;
 use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
+use App\Support\AntiCheatEventContract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,13 @@ use Illuminate\Validation\ValidationException;
 
 class StudentAssignmentController extends Controller
 {
+    /**
+     * Explicit network grace after the server deadline during which posted
+     * answers are still accepted. Zero: the deadline is exact. The take page
+     * flushes a final autosave shortly before expiry instead.
+     */
+    private const SUBMISSION_GRACE_SECONDS = 0;
+
     public function index(Request $request)
     {
         $student = Auth::user();
@@ -276,13 +285,23 @@ class StudentAssignmentController extends Controller
         $draftAnswers = is_array($submission->draft_answers) ? $submission->draft_answers : [];
         $draftVersion = (int) ($submission->draft_version ?? 0);
 
-        $antiCheatSettings = app(AntiCheatPolicyService::class)
-            ->settingsForAssignment(Auth::user(), $assignment);
+        $antiCheatPolicy = app(AntiCheatPolicyService::class);
+        $antiCheatSettings = $antiCheatPolicy->settingsForAssignment(Auth::user(), $assignment);
+
+        // Authoritative blocked state and logical focus-loss count, so a
+        // reload can neither unlock a blocked attempt nor reset its warnings.
+        $antiCheatState = $antiCheatPolicy->attemptIntegrityState(
+            Auth::user(),
+            $assignment,
+            $submission,
+            $antiCheatSettings
+        );
 
         return view('student.assignments.take', compact(
             'assignment',
             'submission',
             'antiCheatSettings',
+            'antiCheatState',
             'antiCheatSessionId',
             'remainingSeconds',
             'draftAnswers',
@@ -388,11 +407,13 @@ class StudentAssignmentController extends Controller
             'answers' => ['nullable', 'array', 'max:500'],
             'answers.*' => ['nullable', 'string', 'max:30000'],
             '_anti_cheat_session_id' => ['nullable', 'string', 'max:120'],
+            '_anti_cheat_finalize' => ['nullable', 'boolean'],
         ]);
 
         $answers = $validated['answers'] ?? [];
+        $finalizeLockedAttempt = (bool) ($validated['_anti_cheat_finalize'] ?? false);
 
-        $processedSubmission = DB::transaction(function () use ($assignment, $submission, $answers, $validated) {
+        $processedSubmission = DB::transaction(function () use ($assignment, $submission, $answers, $validated, $finalizeLockedAttempt) {
             $lockedSubmission = AssignmentSubmission::whereKey($submission->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -431,33 +452,35 @@ class StudentAssignmentController extends Controller
             ]);
             abort_unless($lockedAssignment->libraryItem, 422, 'This assignment no longer has a question source.');
 
-            // The server clock is authoritative for timeout status. A timed-out
-            // attempt still grades its current/saved answers so expiry cannot
-            // erase learner work; the separate timed_out_at field records it.
-            $timedOut = $this->remainingSeconds($lockedAssignment, $lockedSubmission) === 0;
+            // The server clock is authoritative. Once the deadline (plus the
+            // explicit grace below) has passed, the answers posted with this
+            // request are ignored completely: only the draft the server stored
+            // before the deadline is graded. Autosave refuses new snapshots
+            // after expiry, so that draft cannot change any more either.
+            $timedOut = $this->deadlinePassed($lockedAssignment, $lockedSubmission);
 
-            $submittedAnswers = array_replace(
-                $this->filterKnownAnswers(
-                    $lockedAssignment,
-                    is_array($lockedSubmission->draft_answers)
-                        ? $lockedSubmission->draft_answers
-                        : []
-                ),
-                $this->filterKnownAnswers($lockedAssignment, $answers)
+            $savedDraft = $this->filterKnownAnswers(
+                $lockedAssignment,
+                is_array($lockedSubmission->draft_answers)
+                    ? $lockedSubmission->draft_answers
+                    : []
             );
 
-            if (! $timedOut) {
-                $blockedReason = app(AntiCheatPolicyService::class)->assignmentSubmissionBlocked(
-                    Auth::user(),
-                    $lockedAssignment,
-                    $lockedSubmission,
-                    $validated['_anti_cheat_session_id'] ?? null
-                );
+            $submittedAnswers = $timedOut
+                ? $savedDraft
+                : array_replace($savedDraft, $this->filterKnownAnswers($lockedAssignment, $answers));
 
-                if ($blockedReason) {
-                    throw ValidationException::withMessages(['anti_cheat' => $blockedReason]);
-                }
-            }
+            // The integrity decision is independent of the timer: an attempt
+            // that is blocked, or that cannot prove its protected identity,
+            // never turns into an ordinary graded attempt by waiting.
+            $integrity = $this->integrityOutcome(
+                $lockedAssignment,
+                $lockedSubmission,
+                $validated['_anti_cheat_session_id'] ?? null,
+                $timedOut,
+                $finalizeLockedAttempt
+            );
+            $held = $integrity['status'] !== AssignmentSubmission::INTEGRITY_CLEAR;
 
             $totalPoints = (int) $lockedAssignment->libraryItem->questions->sum('points');
             $score = 0;
@@ -468,6 +491,8 @@ class StudentAssignmentController extends Controller
                 $pointsAwarded = $isCorrect ? (int) $question->points : 0;
                 $score += $pointsAwarded;
 
+                // A held attempt keeps the learner's work and its correctness
+                // for the instructor, but carries no credit until released.
                 AssignmentSubmissionAnswer::updateOrCreate(
                     [
                         'assignment_submission_id' => $lockedSubmission->id,
@@ -477,7 +502,7 @@ class StudentAssignmentController extends Controller
                         'selected_option_id' => $selectedOptionId,
                         'answer_text' => $answerText,
                         'is_correct' => $isCorrect,
-                        'points_awarded' => $pointsAwarded,
+                        'points_awarded' => $held ? 0 : $pointsAwarded,
                     ]
                 );
             }
@@ -486,20 +511,28 @@ class StudentAssignmentController extends Controller
 
             $completedAt = now();
             $lockedSubmission->update([
-                'status' => $isLate ? 'late' : 'graded',
-                'score' => $score,
+                'status' => $held ? 'submitted' : ($isLate ? 'late' : 'graded'),
+                'score' => $held ? 0 : $score,
+                'provisional_score' => $held ? $score : null,
+                'integrity_status' => $integrity['status'],
+                'integrity_reason' => $integrity['reason'],
                 'total_points' => $totalPoints,
                 'submitted_at' => $completedAt,
-                'graded_at' => $completedAt,
+                'graded_at' => $held ? null : $completedAt,
                 'draft_answers' => $submittedAnswers,
                 'draft_version' => ((int) ($lockedSubmission->draft_version ?? 0)) + 1,
                 'draft_saved_at' => $completedAt,
                 'timed_out_at' => $timedOut ? $completedAt : null,
             ]);
 
+            if ($integrity['record_client_lock']) {
+                $this->recordLockedAttemptFinalized($lockedAssignment, $lockedSubmission);
+            }
+
             return [
                 'submission' => $lockedSubmission,
                 'timed_out' => $timedOut,
+                'held' => $held,
             ];
         }, 3);
 
@@ -509,6 +542,23 @@ class StudentAssignmentController extends Controller
 
         $submission = $processedSubmission['submission']->fresh();
         $timedOut = (bool) $processedSubmission['timed_out'];
+
+        if ($processedSubmission['held']) {
+            // No mastery refresh, XP or "graded" notice: nothing was credited.
+            $notifications->send(
+                Auth::user(),
+                'assignment_held_for_review',
+                'Assignment attempt held for review',
+                'Your attempt for “' . $assignment->title . '” was saved, but it is held for instructor review and has no credit yet.',
+                route('student.assignments.result', [$assignment, $submission]),
+                ['assignment_id' => $assignment->id, 'submission_id' => $submission->id],
+                'assignment-held:' . $submission->id
+            );
+
+            return redirect()
+                ->route('student.assignments.result', [$assignment, $submission])
+                ->with('error', 'Your saved answers were submitted, but this attempt is held for instructor review and has no credit yet.');
+        }
 
         app(IloMasteryService::class)->refreshForAssignmentSubmission($submission);
 
@@ -528,7 +578,7 @@ class StudentAssignmentController extends Controller
         );
 
         $message = $timedOut
-            ? 'Time expired. Your saved answers were submitted and graded.'
+            ? 'Time expired. The answers saved before the deadline were submitted and graded.'
             : 'Assignment submitted successfully.';
 
         if (!empty($achievements)) {
@@ -541,6 +591,111 @@ class StudentAssignmentController extends Controller
         return redirect()
             ->route('student.assignments.result', [$assignment, $submission])
             ->with('success', $message);
+    }
+
+    /**
+     * Decide whether the attempt may be credited.
+     *
+     * @return array{status: string, reason: ?string, record_client_lock: bool}
+     */
+    private function integrityOutcome(
+        ClassAssignment $assignment,
+        AssignmentSubmission $submission,
+        ?string $postedSessionId,
+        bool $timedOut,
+        bool $finalizeLockedAttempt
+    ): array {
+        $policyService = app(AntiCheatPolicyService::class);
+        $state = $policyService->attemptIntegrityState(Auth::user(), $assignment, $submission);
+
+        if (! $state['enabled']) {
+            return [
+                'status' => AssignmentSubmission::INTEGRITY_CLEAR,
+                'reason' => null,
+                'record_client_lock' => false,
+            ];
+        }
+
+        $identityValid = $policyService->attemptIdentityMatches($submission, $postedSessionId);
+
+        // Before the deadline the learner can still reload the page and send
+        // the correct identity, so the request is simply rejected.
+        if (! $identityValid && ! $timedOut) {
+            throw ValidationException::withMessages([
+                'anti_cheat' => AntiCheatPolicyService::INVALID_IDENTITY_MESSAGE,
+            ]);
+        }
+
+        if ($state['blocked']) {
+            // An ordinary manual submit of a blocked attempt is still refused.
+            // It is finalized only by the deadline or by the explicit
+            // "Submit for review" action of the locked page.
+            if (! $timedOut && ! $finalizeLockedAttempt) {
+                throw ValidationException::withMessages(['anti_cheat' => $state['reason']]);
+            }
+
+            return [
+                'status' => AssignmentSubmission::INTEGRITY_BLOCKED,
+                'reason' => Str::limit((string) $state['reason'], 250, ''),
+                'record_client_lock' => false,
+            ];
+        }
+
+        if (! $identityValid) {
+            return [
+                'status' => AssignmentSubmission::INTEGRITY_REVIEW_REQUIRED,
+                'reason' => 'The attempt was finalized after the deadline without a valid protected attempt identity.',
+                'record_client_lock' => false,
+            ];
+        }
+
+        if ($finalizeLockedAttempt) {
+            // The browser locked itself but the violation event never reached
+            // the server (blocked or failed request). Withholding the event
+            // must not produce a clean graded result.
+            return [
+                'status' => AssignmentSubmission::INTEGRITY_REVIEW_REQUIRED,
+                'reason' => 'The browser locked this attempt, but no blocking violation event reached the server.',
+                'record_client_lock' => true,
+            ];
+        }
+
+        return [
+            'status' => AssignmentSubmission::INTEGRITY_CLEAR,
+            'reason' => null,
+            'record_client_lock' => false,
+        ];
+    }
+
+    private function recordLockedAttemptFinalized(ClassAssignment $assignment, AssignmentSubmission $submission): void
+    {
+        $sessionId = (string) $submission->anti_cheat_session_id;
+        $hash = md5('locked-attempt-finalized:' . $submission->id);
+        // Deterministic identifier: one row per attempt, however often asked.
+        $eventUuid = substr($hash, 0, 8) . '-' . substr($hash, 8, 4) . '-4' . substr($hash, 13, 3)
+            . '-8' . substr($hash, 17, 3) . '-' . substr($hash, 20, 12);
+
+        $alreadyRecorded = AntiCheatEvent::query()
+            ->where('attempt_session_id', $sessionId)
+            ->where('event_uuid', $eventUuid)
+            ->exists();
+        if ($alreadyRecorded) {
+            return;
+        }
+
+        AntiCheatEvent::create([
+            'user_id' => (int) $submission->student_id,
+            'class_id' => (int) $assignment->class_id,
+            'class_assignment_id' => (int) $assignment->id,
+            'assignment_submission_id' => (int) $submission->id,
+            'assessment_type' => 'assignment',
+            'event_type' => AntiCheatEventContract::LOCKED_ATTEMPT_FINALIZED_EVENT,
+            'severity' => AntiCheatEventContract::severityFor(AntiCheatEventContract::LOCKED_ATTEMPT_FINALIZED_EVENT),
+            'attempt_session_id' => $sessionId,
+            'event_uuid' => $eventUuid,
+            'details' => ['source' => 'server', 'reason' => 'finalize_without_recorded_violation'],
+            'occurred_at' => now(),
+        ]);
     }
 
     public function result(ClassAssignment $assignment, AssignmentSubmission $submission)
@@ -702,6 +857,21 @@ class StudentAssignmentController extends Controller
             ->addMinutes($timeLimitMinutes);
 
         return max(0, (int) ceil(now()->diffInSeconds($expiresAt, false)));
+    }
+
+    private function deadlinePassed(ClassAssignment $assignment, AssignmentSubmission $submission): bool
+    {
+        $timeLimitMinutes = (int) ($assignment->libraryItem?->time_limit_minutes ?? 0);
+        if ($timeLimitMinutes < 1 || ! $submission->started_at) {
+            return false;
+        }
+
+        $cutoff = $submission->started_at
+            ->copy()
+            ->addMinutes($timeLimitMinutes)
+            ->addSeconds(self::SUBMISSION_GRACE_SECONDS);
+
+        return now()->greaterThanOrEqualTo($cutoff);
     }
 
     private function filterKnownAnswers(ClassAssignment $assignment, array $answers): array

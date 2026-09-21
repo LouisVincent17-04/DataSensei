@@ -323,7 +323,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">BASH — HDFS Core Commands</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Shell commands. Run them in a terminal.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># HDFS uses the same command structure as Unix, prefixed with hdfs dfs</span>
@@ -367,7 +367,7 @@ Replication 2 set: /user/datasensei/sales/sales_2024.csv</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Interacting with AWS S3 using boto3</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs boto3, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> boto3
@@ -418,7 +418,7 @@ transaction_ts    datetime64[ns]</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — CSV vs Parquet: File Size & Read Speed Comparison</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. It writes a 5-million-row file and needs pyarrow, so run it on your own machine.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">pd</span>
@@ -493,7 +493,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — PySpark: DataFrame Operations & Spark SQL</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs pyspark, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> pyspark.sql <span style="color:#c4b5fd;">import</span> SparkSession
@@ -555,7 +555,7 @@ Spark processed 4,181,641 rows across 200 partitions</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Spark SQL, Partitioning & Writing Optimised Output</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs pyspark, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Register DataFrame as a temporary SQL view</span>
@@ -637,7 +637,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Kafka Producer & Consumer with kafka-python</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs kafka, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> kafka <span style="color:#c4b5fd;">import</span> KafkaProducer, KafkaConsumer
@@ -698,7 +698,7 @@ Sent txn_00005 → topic=transactions partition=5 offset=112044
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">BASH — Kafka Admin: Creating Topics & Inspecting Consumer Lag</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Shell commands. Run them in a terminal.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Create a topic with 12 partitions and replication factor 3</span>
@@ -820,7 +820,7 @@ EMEA    2024-03-01  27,128,441.83   25,891,044.67       4.78</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — BigQuery: Python Client, Cost Estimation & Partitioned Tables</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs google, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> google.cloud <span style="color:#c4b5fd;">import</span> bigquery
@@ -908,7 +908,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Airflow DAG: Daily Sales Pipeline with Sensors & Operators</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs airflow, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> airflow <span style="color:#c4b5fd;">import</span> DAG
@@ -1022,7 +1022,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Delta Lake: ACID Writes, MERGE & Time Travel with PySpark</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs pyspark, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> pyspark.sql <span style="color:#c4b5fd;">import</span> SparkSession
@@ -1113,7 +1113,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — AWS IAM: Least-Privilege Role Policy & S3 Bucket Hardening</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs boto3, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> json, boto3
@@ -1276,7 +1276,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — MLflow: Experiment Tracking, Model Registry & Serving</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs mlflow, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> mlflow
@@ -1334,7 +1334,7 @@ Model registered in MLflow Model Registry → 'churn-predictor' v3</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Serving an MLflow Model via FastAPI REST Endpoint</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs fastapi, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> fastapi <span style="color:#c4b5fd;">import</span> FastAPI

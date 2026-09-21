@@ -481,7 +481,7 @@ HTML;
 <span style="color:#6b7280;"># Re-use GridWorld from lesson 24.1</span>
 <span style="color:#c4b5fd;">class</span> <span style="color:#fcd34d;">GridWorld</span>:
     <span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">__init__</span>(self):
-        self.size=(self.goal:=(<span style="color:#fcd34d;">3</span>,<span style="color:#fcd34d;">3</span>)) <span style="color:#c4b5fd;">and</span> <span style="color:#fcd34d;">4</span>
+        self.size=<span style="color:#fcd34d;">4</span>
         self.goal=(<span style="color:#fcd34d;">3</span>,<span style="color:#fcd34d;">3</span>); self.trap=(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">3</span>); self.moves=[(-<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">0</span>,-<span style="color:#fcd34d;">1</span>),(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">1</span>)]
     <span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">reset</span>(self): self.s=(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">0</span>); <span style="color:#c4b5fd;">return</span> self.s
     <span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">step</span>(self, a):
@@ -585,7 +585,22 @@ V(S_t) ← V(S_t) + α · δ_t
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">class</span> GridWorld:
+    <span style="color:#c4b5fd;">def</span> __init__(self):
+        self.size=<span style="color:#fcd34d;">4</span>
+        self.goal=(<span style="color:#fcd34d;">3</span>,<span style="color:#fcd34d;">3</span>); self.trap=(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">3</span>); self.moves=[(-<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">0</span>,-<span style="color:#fcd34d;">1</span>),(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">1</span>)]
+    <span style="color:#c4b5fd;">def</span> reset(self): self.s=(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">0</span>); <span style="color:#c4b5fd;">return</span> self.s
+    <span style="color:#c4b5fd;">def</span> step(self, a):
+        r,c=self.s; dr,dc=self.moves[a]
+        self.s=(max(<span style="color:#fcd34d;">0</span>,min(<span style="color:#fcd34d;">3</span>,r+dr)),max(<span style="color:#fcd34d;">0</span>,min(<span style="color:#fcd34d;">3</span>,c+dc)))
+        <span style="color:#c4b5fd;">if</span> self.s==self.goal: <span style="color:#c4b5fd;">return</span> self.s,<span style="color:#fcd34d;">1.0</span>,<span style="color:#fca5a5;">True</span>
+        <span style="color:#c4b5fd;">if</span> self.s==self.trap:  <span style="color:#c4b5fd;">return</span> self.s,-<span style="color:#fcd34d;">1.0</span>,<span style="color:#fca5a5;">True</span>
+        <span style="color:#c4b5fd;">return</span> self.s,-<span style="color:#fcd34d;">0.04</span>,<span style="color:#fca5a5;">False</span>
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
 <span style="color:#93c5fd;">from</span> collections <span style="color:#93c5fd;">import</span> defaultdict
 
 <span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">q_learning</span>(env, n_episodes=<span style="color:#fcd34d;">5000</span>, alpha=<span style="color:#fcd34d;">0.1</span>, gamma=<span style="color:#fcd34d;">0.95</span>,
@@ -892,7 +907,22 @@ HTML;
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">class</span> GridWorld:
+    <span style="color:#c4b5fd;">def</span> __init__(self):
+        self.size=<span style="color:#fcd34d;">4</span>
+        self.goal=(<span style="color:#fcd34d;">3</span>,<span style="color:#fcd34d;">3</span>); self.trap=(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">3</span>); self.moves=[(-<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">0</span>,-<span style="color:#fcd34d;">1</span>),(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">1</span>)]
+    <span style="color:#c4b5fd;">def</span> reset(self): self.s=(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">0</span>); <span style="color:#c4b5fd;">return</span> self.s
+    <span style="color:#c4b5fd;">def</span> step(self, a):
+        r,c=self.s; dr,dc=self.moves[a]
+        self.s=(max(<span style="color:#fcd34d;">0</span>,min(<span style="color:#fcd34d;">3</span>,r+dr)),max(<span style="color:#fcd34d;">0</span>,min(<span style="color:#fcd34d;">3</span>,c+dc)))
+        <span style="color:#c4b5fd;">if</span> self.s==self.goal: <span style="color:#c4b5fd;">return</span> self.s,<span style="color:#fcd34d;">1.0</span>,<span style="color:#fca5a5;">True</span>
+        <span style="color:#c4b5fd;">if</span> self.s==self.trap:  <span style="color:#c4b5fd;">return</span> self.s,-<span style="color:#fcd34d;">1.0</span>,<span style="color:#fca5a5;">True</span>
+        <span style="color:#c4b5fd;">return</span> self.s,-<span style="color:#fcd34d;">0.04</span>,<span style="color:#fca5a5;">False</span>
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
 
 <span style="color:#c4b5fd;">class</span> <span style="color:#fcd34d;">SoftmaxPolicy</span>:
     <span style="color:#a7f3d0;">"""Linear softmax policy: π(a|s;θ) = softmax(θ·φ(s))[a]."""</span>
@@ -1018,7 +1048,53 @@ w ← w + α_w · δ_t · ∇_w V(s_t; w)
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">class</span> GridWorld:
+    <span style="color:#c4b5fd;">def</span> __init__(self):
+        self.size=<span style="color:#fcd34d;">4</span>
+        self.goal=(<span style="color:#fcd34d;">3</span>,<span style="color:#fcd34d;">3</span>); self.trap=(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">3</span>); self.moves=[(-<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>),(<span style="color:#fcd34d;">0</span>,-<span style="color:#fcd34d;">1</span>),(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">1</span>)]
+    <span style="color:#c4b5fd;">def</span> reset(self): self.s=(<span style="color:#fcd34d;">0</span>,<span style="color:#fcd34d;">0</span>); <span style="color:#c4b5fd;">return</span> self.s
+    <span style="color:#c4b5fd;">def</span> step(self, a):
+        r,c=self.s; dr,dc=self.moves[a]
+        self.s=(max(<span style="color:#fcd34d;">0</span>,min(<span style="color:#fcd34d;">3</span>,r+dr)),max(<span style="color:#fcd34d;">0</span>,min(<span style="color:#fcd34d;">3</span>,c+dc)))
+        <span style="color:#c4b5fd;">if</span> self.s==self.goal: <span style="color:#c4b5fd;">return</span> self.s,<span style="color:#fcd34d;">1.0</span>,<span style="color:#fca5a5;">True</span>
+        <span style="color:#c4b5fd;">if</span> self.s==self.trap:  <span style="color:#c4b5fd;">return</span> self.s,-<span style="color:#fcd34d;">1.0</span>,<span style="color:#fca5a5;">True</span>
+        <span style="color:#c4b5fd;">return</span> self.s,-<span style="color:#fcd34d;">0.04</span>,<span style="color:#fca5a5;">False</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">class</span> SoftmaxPolicy:
+    <span style="color:#a7f3d0;">"""Linear softmax policy: π(a|s;θ) = softmax(θ·φ(s))[a]."""</span>
+    <span style="color:#c4b5fd;">def</span> __init__(self, n_features, n_actions, lr=<span style="color:#fcd34d;">0.01</span>):
+        self.theta  = np.zeros((n_actions, n_features))
+        self.lr     = lr
+        self.n_acts = n_actions
+
+    <span style="color:#c4b5fd;">def</span> _softmax(self, x):
+        <span style="color:#93c5fd;">e</span> = np.exp(x - x.max())
+        <span style="color:#c4b5fd;">return</span> e / e.sum()
+
+    <span style="color:#c4b5fd;">def</span> get_probs(self, phi_s):
+        <span style="color:#93c5fd;">logits</span> = self.theta @ phi_s
+        <span style="color:#c4b5fd;">return</span> self._softmax(logits)
+
+    <span style="color:#c4b5fd;">def</span> select_action(self, phi_s):
+        <span style="color:#93c5fd;">probs</span> = self.get_probs(phi_s)
+        <span style="color:#c4b5fd;">return</span> np.random.choice(self.n_acts, p=probs), probs
+
+    <span style="color:#c4b5fd;">def</span> update(self, phi_s, action, G_t):
+        <span style="color:#a7f3d0;">"""
+        REINFORCE update:
+        ∇_θ log π(a|s;θ) = φ(s) - E_{a'~π}[φ(s)] (for softmax)
+        θ ← θ + α · G_t · ∇_θ log π(a|s;θ)
+        """</span>
+        <span style="color:#93c5fd;">probs</span> = self.get_probs(phi_s)
+        <span style="color:#c4b5fd;">for</span> a_idx <span style="color:#c4b5fd;">in</span> range(self.n_acts):
+            <span style="color:#93c5fd;">indicator</span> = <span style="color:#fcd34d;">1.0</span> <span style="color:#c4b5fd;">if</span> a_idx == action <span style="color:#c4b5fd;">else</span> <span style="color:#fcd34d;">0.0</span>
+            self.theta[a_idx] += self.lr * G_t * (indicator - probs[a_idx]) * phi_s
+np.random.seed(<span style="color:#fcd34d;">42</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#93c5fd;">import</span> numpy <span style="color:#93c5fd;">as</span> np
 
 <span style="color:#c4b5fd;">class</span> <span style="color:#fcd34d;">LinearCritic</span>:
     <span style="color:#a7f3d0;">"""Linear value function V(s;w) = w · φ(s)."""</span>

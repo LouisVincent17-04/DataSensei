@@ -50,7 +50,10 @@ class EnsureActiveUser
             return new JsonResponse(['message' => $reason], 403);
         }
 
-        return (new RedirectResponse(route('login')))
+        // redirect() binds the session store to the response. A bare
+        // RedirectResponse has none, so withErrors() fataled here and the
+        // signed-out user saw a 500 page instead of the sign-in page.
+        return redirect()->route('login')
             ->withErrors(['email' => $reason]);
     }
 

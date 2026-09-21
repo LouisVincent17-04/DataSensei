@@ -81,7 +81,17 @@ Mean: 269.2 | Std: 42.1 | Range: 195–340</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Step 1: Split into train / test — NEVER shuffle time series data!</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#93c5fd;">dates</span> = pd.date_range(start=<span style="color:#a7f3d0;">'2023-01-01'</span>, periods=<span style="color:#fcd34d;">12</span>, freq=<span style="color:#a7f3d0;">'MS'</span>)
+<span style="color:#93c5fd;">sales</span> = [<span style="color:#fcd34d;">210</span>, <span style="color:#fcd34d;">195</span>, <span style="color:#fcd34d;">230</span>, <span style="color:#fcd34d;">245</span>, <span style="color:#fcd34d;">270</span>, <span style="color:#fcd34d;">290</span>,
+          <span style="color:#fcd34d;">310</span>, <span style="color:#fcd34d;">305</span>, <span style="color:#fcd34d;">280</span>, <span style="color:#fcd34d;">260</span>, <span style="color:#fcd34d;">295</span>, <span style="color:#fcd34d;">340</span>]
+<span style="color:#93c5fd;">ts</span> = pd.Series(sales, index=dates, name=<span style="color:#a7f3d0;">'Monthly Sales'</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># Step 1: Split into train / test — NEVER shuffle time series data!</span>
 <span style="color:#93c5fd;">train</span> = ts[:<span style="color:#fcd34d;">9</span>]   <span style="color:#6b7280;"># Jan–Sep 2023 (9 months for training)</span>
 <span style="color:#93c5fd;">test</span>  = ts[<span style="color:#fcd34d;">9</span>:]   <span style="color:#6b7280;"># Oct–Dec 2023 (3 months held out for evaluation)</span>
 
@@ -176,7 +186,22 @@ Residual std: 14.87</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># A quick heuristic: compute the coefficient of variation of seasonal ranges
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">periods</span> = <span style="color:#fcd34d;">36</span>
+<span style="color:#93c5fd;">t</span>       = np.arange(periods)
+<span style="color:#93c5fd;">trend</span>   = <span style="color:#fcd34d;">200</span> + <span style="color:#fcd34d;">3.5</span> * t                              <span style="color:#6b7280;"># Linear upward trend</span>
+<span style="color:#93c5fd;">season</span>  = <span style="color:#fcd34d;">40</span> * np.sin(<span style="color:#fcd34d;">2</span> * np.pi * t / <span style="color:#fcd34d;">12</span>)            <span style="color:#6b7280;"># Annual seasonal cycle</span>
+<span style="color:#93c5fd;">noise</span>   = np.random.normal(<span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">15</span>, periods)               <span style="color:#6b7280;"># Random residual</span>
+<span style="color:#93c5fd;">y</span>       = trend + season + noise
+<span style="color:#93c5fd;">dates</span> = pd.date_range(<span style="color:#a7f3d0;">'2021-01-01'</span>, periods=periods, freq=<span style="color:#a7f3d0;">'MS'</span>)
+<span style="color:#93c5fd;">ts</span>    = pd.Series(y, index=dates)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># A quick heuristic: compute the coefficient of variation of seasonal ranges
 # If it grows with the trend level, multiplicative is better</span>
 
 <span style="color:#6b7280;"># Split series into yearly chunks and compute peak-to-trough range</span>
@@ -204,7 +229,22 @@ Residual std: 14.87</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> statsmodels.tsa.seasonal <span style="color:#c4b5fd;">import</span> STL
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">periods</span> = <span style="color:#fcd34d;">36</span>
+<span style="color:#93c5fd;">t</span>       = np.arange(periods)
+<span style="color:#93c5fd;">trend</span>   = <span style="color:#fcd34d;">200</span> + <span style="color:#fcd34d;">3.5</span> * t                              <span style="color:#6b7280;"># Linear upward trend</span>
+<span style="color:#93c5fd;">season</span>  = <span style="color:#fcd34d;">40</span> * np.sin(<span style="color:#fcd34d;">2</span> * np.pi * t / <span style="color:#fcd34d;">12</span>)            <span style="color:#6b7280;"># Annual seasonal cycle</span>
+<span style="color:#93c5fd;">noise</span>   = np.random.normal(<span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">15</span>, periods)               <span style="color:#6b7280;"># Random residual</span>
+<span style="color:#93c5fd;">y</span>       = trend + season + noise
+<span style="color:#93c5fd;">dates</span> = pd.date_range(<span style="color:#a7f3d0;">'2021-01-01'</span>, periods=periods, freq=<span style="color:#a7f3d0;">'MS'</span>)
+<span style="color:#93c5fd;">ts</span>    = pd.Series(y, index=dates)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.seasonal <span style="color:#c4b5fd;">import</span> STL
 
 <span style="color:#93c5fd;">stl</span>    = STL(ts, period=<span style="color:#fcd34d;">12</span>, robust=<span style="color:#fca5a5;">True</span>)
 <span style="color:#93c5fd;">result</span> = stl.fit()
@@ -285,7 +325,17 @@ Rolling std  range: 0.67 to 2.04
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> statsmodels.tsa.stattools <span style="color:#c4b5fd;">import</span> adfuller
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">0</span>)
+<span style="color:#93c5fd;">T</span> = <span style="color:#fcd34d;">100</span>
+<span style="color:#93c5fd;">y</span> = np.cumsum(np.random.randn(T) + <span style="color:#fcd34d;">0.3</span>)   <span style="color:#6b7280;"># drift=0.3 → trending upward</span>
+<span style="color:#93c5fd;">ts</span> = pd.Series(y)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.stattools <span style="color:#c4b5fd;">import</span> adfuller
 
 <span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">adf_report</span>(series, label):
     result = adfuller(series.dropna(), autolag=<span style="color:#a7f3d0;">'AIC'</span>)
@@ -319,7 +369,23 @@ Second difference: ADF stat=-14.31, p=0.0000 → STATIONARY ✓</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># When variance grows with the level (multiplicative behaviour), take log first</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">0</span>)
+<span style="color:#93c5fd;">T</span> = <span style="color:#fcd34d;">100</span>
+<span style="color:#93c5fd;">y</span> = np.cumsum(np.random.randn(T) + <span style="color:#fcd34d;">0.3</span>)   <span style="color:#6b7280;"># drift=0.3 → trending upward</span>
+<span style="color:#93c5fd;">ts</span> = pd.Series(y)
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.stattools <span style="color:#c4b5fd;">import</span> adfuller
+<span style="color:#c4b5fd;">def</span> adf_report(series, label):
+    <span style="color:#93c5fd;">result</span> = adfuller(series.dropna(), autolag=<span style="color:#a7f3d0;">'AIC'</span>)
+    <span style="color:#93c5fd;">p</span> = result[<span style="color:#fcd34d;">1</span>]
+    <span style="color:#93c5fd;">verdict</span> = <span style="color:#a7f3d0;">"STATIONARY ✓"</span> <span style="color:#c4b5fd;">if</span> p &lt; <span style="color:#fcd34d;">0.05</span> <span style="color:#c4b5fd;">else</span> <span style="color:#a7f3d0;">"NON-STATIONARY ✗"</span>
+    <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"{label}: ADF stat={result[0]:.3f}, p={p:.4f} → {verdict}"</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># When variance grows with the level (multiplicative behaviour), take log first</span>
 <span style="color:#93c5fd;">ts_log</span>       = np.log(ts - ts.min() + <span style="color:#fcd34d;">1</span>)   <span style="color:#6b7280;"># shift to ensure positivity</span>
 <span style="color:#93c5fd;">ts_log_diff</span>  = ts_log.diff()
 
@@ -410,7 +476,14 @@ HTML;
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># ─────────────────────────────────────────────────────────────
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.stattools <span style="color:#c4b5fd;">import</span> acf, pacf
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">1</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># ─────────────────────────────────────────────────────────────
 # Model     | ACF pattern           | PACF pattern
 # ─────────────────────────────────────────────────────────────
 # AR(p)     | Tails off (gradual)   | Cuts off after lag p
@@ -505,7 +578,14 @@ MAE:             2.47</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> statsmodels.tsa.holtwinters <span style="color:#c4b5fd;">import</span> ExponentialSmoothing
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">5</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.holtwinters <span style="color:#c4b5fd;">import</span> ExponentialSmoothing
 
 <span style="color:#6b7280;"># Trending series</span>
 <span style="color:#93c5fd;">np.random.seed</span>(<span style="color:#fcd34d;">7</span>)
@@ -545,7 +625,15 @@ MAE:             2.47</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Build a series with trend + additive annual seasonality</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">5</span>)
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.holtwinters <span style="color:#c4b5fd;">import</span> ExponentialSmoothing
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># Build a series with trend + additive annual seasonality</span>
 <span style="color:#93c5fd;">np.random.seed</span>(<span style="color:#fcd34d;">9</span>)
 <span style="color:#93c5fd;">t</span>    = np.arange(<span style="color:#fcd34d;">48</span>)
 <span style="color:#93c5fd;">sea</span>  = np.tile([<span style="color:#fcd34d;">-30</span>,<span style="color:#fcd34d;">-20</span>,<span style="color:#fcd34d;">-5</span>,<span style="color:#fcd34d;">10</span>,<span style="color:#fcd34d;">25</span>,<span style="color:#fcd34d;">35</span>,<span style="color:#fcd34d;">40</span>,<span style="color:#fcd34d;">30</span>,<span style="color:#fcd34d;">10</span>,<span style="color:#fcd34d;">-5</span>,<span style="color:#fcd34d;">-20</span>,<span style="color:#fcd34d;">-30</span>], <span style="color:#fcd34d;">4</span>)
@@ -653,7 +741,13 @@ First 5 forecasts with 95% PI:
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> itertools
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+np.random.seed(<span style="color:#fcd34d;">42</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">import</span> itertools
 
 <span style="color:#93c5fd;">best_aic</span> = np.inf
 <span style="color:#93c5fd;">best_order</span> = <span style="color:#fca5a5;">None</span>
@@ -823,7 +917,15 @@ MASE:  0.1727 (MASE<1 beats naïve ✓)</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Mean Error detects systematic bias (positive = consistently over-forecast,
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#93c5fd;">actual</span>   = np.array([<span style="color:#fcd34d;">210</span>, <span style="color:#fcd34d;">245</span>, <span style="color:#fcd34d;">278</span>, <span style="color:#fcd34d;">310</span>, <span style="color:#fcd34d;">295</span>, <span style="color:#fcd34d;">330</span>])
+<span style="color:#93c5fd;">forecast</span> = np.array([<span style="color:#fcd34d;">205</span>, <span style="color:#fcd34d;">252</span>, <span style="color:#fcd34d;">271</span>, <span style="color:#fcd34d;">318</span>, <span style="color:#fcd34d;">288</span>, <span style="color:#fcd34d;">345</span>])
+<span style="color:#c4b5fd;">def</span> mae(a, f):  <span style="color:#c4b5fd;">return</span> np.mean(np.abs(a - f))
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># Mean Error detects systematic bias (positive = consistently over-forecast,
 # negative = consistently under-forecast). Accuracy metrics alone won't catch this.</span>
 
 <span style="color:#c4b5fd;">def</span> <span style="color:#93c5fd;">me</span>(a, f): <span style="color:#c4b5fd;">return</span> np.mean(f - a)   <span style="color:#6b7280;"># positive = over-forecasting</span>
@@ -918,7 +1020,19 @@ First 5 absolute errors:  [5.21, 9.87, 3.44, 12.31, 6.78]</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> statsmodels.tsa.holtwinters <span style="color:#c4b5fd;">import</span> SimpleExpSmoothing
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.holtwinters <span style="color:#c4b5fd;">import</span> ExponentialSmoothing
+np.random.seed(<span style="color:#fcd34d;">11</span>)
+<span style="color:#93c5fd;">n</span>   = <span style="color:#fcd34d;">60</span>
+<span style="color:#93c5fd;">y</span>   = pd.Series(<span style="color:#fcd34d;">200</span> + <span style="color:#fcd34d;">2</span>*np.arange(n) + np.random.randn(n)*<span style="color:#fcd34d;">10</span>)
+<span style="color:#93c5fd;">initial_window</span> = <span style="color:#fcd34d;">36</span>   <span style="color:#6b7280;"># minimum training size</span>
+<span style="color:#93c5fd;">h</span>              = <span style="color:#fcd34d;">1</span>     <span style="color:#6b7280;"># one-step-ahead forecast</span>
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.holtwinters <span style="color:#c4b5fd;">import</span> SimpleExpSmoothing
 
 <span style="color:#93c5fd;">errors_ses</span>  = []
 <span style="color:#93c5fd;">errors_holt</span> = []
@@ -976,7 +1090,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Prophet: Basic Fit & Forecast</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs prophet, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> prophet <span style="color:#c4b5fd;">import</span> Prophet
@@ -1025,7 +1139,7 @@ Prophet MAE (6-month horizon): 11.43</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Adding Custom Holidays & Inspecting Components</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs prophet, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Add a custom holiday (e.g., company's annual sale event)</span>

@@ -18,6 +18,7 @@ use App\Services\HybridMl\PredictionService;
 use App\Services\HybridMl\PredefinedDatasetRecommendationService;
 use App\Services\HybridMl\SystemDatasetLibrary;
 use App\Services\HybridMl\UserDatasetService;
+use App\Support\ModelDevelopmentOutcome;
 use App\Support\ModelDevelopmentRoadmap;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -209,6 +210,15 @@ class StudentModelDevelopmentController extends Controller
             'resumeJob' => $resumeJob,
             'resumeConfiguration' => $resumeConfiguration,
             'requestedStep' => ModelDevelopmentRoadmap::normalizeAuthoringStep($request->query('step'), 2),
+            'automaticKeys' => [
+                'classification' => $algorithms->automaticKey('classification'),
+                'regression' => $algorithms->automaticKey('regression'),
+            ],
+            'wording' => ModelDevelopmentOutcome::wording(
+                $type === 'system' ? (string) $dataset->slug : null,
+                $problemType,
+                (string) ($recommendation['target'] ?? $dataset->target_column ?? ''),
+            ),
         ]);
     }
 
@@ -219,27 +229,36 @@ class StudentModelDevelopmentController extends Controller
         PredefinedDatasetRecommendationService $recommendations,
     ): RedirectResponse {
         [$type, $dataset, $version, $profile] = $this->resolveDatasetSelection($request, $access, true);
+        // Only the model name, the answer column and the clue columns are required.
+        // Everything else has a safe default, so a beginner never has to open "More options".
         $input = $request->validate([
             'model_name' => ['required', 'string', 'max:160'],
             'class_id' => ['nullable', 'integer', 'exists:classes,id'],
-            'problem_type' => ['required', Rule::in(['classification', 'regression', 'clustering'])],
-            'algorithm_key' => ['required', 'string', 'max:64'],
+            'problem_type' => ['nullable', Rule::in(['classification', 'regression', 'clustering'])],
+            'algorithm_key' => ['nullable', 'string', 'max:64'],
             'features' => ['required', 'array', 'min:1', 'max:50'],
             'features.*' => ['required', 'string', 'max:120'],
             'target_column' => ['nullable', 'string', 'max:120'],
             'test_size' => ['nullable', 'numeric'],
-            'random_state' => ['required', 'integer'],
-            'cross_validation' => ['required', 'integer'],
-            'scale_mode' => ['required', Rule::in(['auto', 'standard', 'none'])],
-            'numeric_imputation' => ['required', Rule::in(['median', 'mean'])],
+            'random_state' => ['nullable', 'integer'],
+            'cross_validation' => ['nullable', 'integer'],
+            'scale_mode' => ['nullable', Rule::in(['auto', 'standard', 'none'])],
+            'numeric_imputation' => ['nullable', Rule::in(['median', 'mean'])],
             'remove_duplicates' => ['nullable', 'boolean'],
+            'tune' => ['nullable', 'boolean'],
             'parameters' => ['nullable', 'array'],
+        ], [
+            'model_name.required' => 'Give your model a name.',
+            'features.required' => 'Tick at least one clue column.',
         ]);
+        $input = $algorithms->applyBeginnerDefaults($input, $profile);
 
         $classId = isset($input['class_id']) ? (int) $input['class_id'] : null;
         abort_unless($access->canUseClass($request->user(), $classId), 403);
         $configuration = $algorithms->normalizeTrainingConfiguration($input, $profile);
-        $configuration['generate_extended_charts'] = true;
+        // The data-exploration charts belong to the EDA toolkit. Leaving them out
+        // here keeps training quick and the results page focused on the model.
+        $configuration['generate_extended_charts'] = false;
 
         if ($type === 'system') {
             $recommendation = $recommendations->forDataset($dataset, $profile);
@@ -305,7 +324,7 @@ class StudentModelDevelopmentController extends Controller
             'evaluation_url' => $trainingJob->ml_model_id
                 ? route('student.model-development.models.show', [
                     'model' => $trainingJob->ml_model_id,
-                    'step' => 'evaluate',
+                    'step' => 'results',
                 ])
                 : null,
             'metrics' => (array) data_get($trainingJob->result, 'metrics', []),
@@ -330,27 +349,123 @@ class StudentModelDevelopmentController extends Controller
             'currentVersion.trainingJob',
             'versions.trainingJob',
             'trainingJobs',
-            'currentVersion.predictions' => fn ($query) => $query
-                ->where('user_id', Auth::id())
-                ->latest()
-                ->limit(10),
         ]);
         abort_unless($model->currentVersion, 404);
 
-        $hasPrediction = $model->currentVersion->predictions->isNotEmpty();
-        $requestedResultStep = (string) $request->query('step', 'evaluate');
-        $roadmapCurrent = ModelDevelopmentRoadmap::resultStep($requestedResultStep, $hasPrediction);
+        // A limit inside an eager load makes Laravel build a "rows per parent"
+        // query. On MySQL older than 8 that query filters a user variable in
+        // HAVING, which MySQL 5.5 rejects (error 1463) under the strict SQL
+        // mode this application uses. There is exactly one parent here, so an
+        // ordinary LIMIT query gives the same ten rows on every MySQL version.
+        $model->currentVersion->setRelation(
+            'predictions',
+            $model->currentVersion->predictions()
+                ->where('user_id', Auth::id())
+                ->latest()
+                ->limit(10)
+                ->get()
+        );
+
+        $version = $model->currentVersion;
+        $hasPrediction = $version->predictions->isNotEmpty();
+        $roadmapCurrent = ModelDevelopmentRoadmap::resultStep((string) $request->query('step', 'results'), $hasPrediction);
+        $wording = $this->wordingFor($model, $version);
 
         return view('student.model-development.model', [
             'model' => $model,
-            'version' => $model->currentVersion,
-            'comparison' => $model->isSystemModel() ? null : $comparisons->compare($model->currentVersion),
+            'version' => $version,
+            'comparison' => $model->isSystemModel() ? null : $comparisons->compare($version),
             'hasPrediction' => $hasPrediction,
             'roadmapCurrent' => $roadmapCurrent,
-            'roadmapNotice' => $requestedResultStep === 'save' && ! $hasPrediction
-                ? 'Make at least one prediction before completing the Save Model stage.'
-                : null,
+            'roadmapNotice' => null,
+            'wording' => $wording,
+            'resultSummary' => ModelDevelopmentOutcome::summarizeResults($wording, (string) $model->problem_type, (array) $version->metrics),
+            'examples' => $roadmapCurrent === ModelDevelopmentRoadmap::STEP_PREDICT
+                ? $this->exampleRows($model, $version, $wording)
+                : [],
         ]);
+    }
+
+    /** @return array<string,mixed> */
+    private function wordingFor(MlModel $model, ModelVersion $version): array
+    {
+        $labels = (array) (data_get($version->explanations, 'training_summary.class_labels')
+            ?: data_get($version->metrics, 'confusion_matrix.labels', []));
+
+        return ModelDevelopmentOutcome::wording(
+            $model->dataset?->slug,
+            (string) $model->problem_type,
+            $version->target_column,
+            array_map('strval', $labels),
+        );
+    }
+
+    /**
+     * A few real rows a student can load into the prediction form, so they can
+     * compare the model's answer with what really happened.
+     *
+     * @param array<string,mixed> $wording
+     * @return array<int,array{title:string,answer:?string,raw_answer:?string,values:array<string,string>}>
+     */
+    private function exampleRows(MlModel $model, ModelVersion $version, array $wording): array
+    {
+        $features = array_keys((array) data_get($version->explanations, 'prediction_schema', []));
+        if ($features === []) {
+            return [];
+        }
+
+        try {
+            $rows = $model->dataset
+                ? app(SystemDatasetLibrary::class)->preview($model->dataset, 400)
+                : ($model->userDataset ? app(UserDatasetService::class)->readRows(storage_path('app/'.$model->userDataset->storage_path), 400) : []);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return [];
+        }
+
+        $target = (string) $version->target_column;
+        $examples = [];
+        $seenAnswers = [];
+        // Spread the picks across the file so they are not all from the first few rows.
+        $stride = max(1, (int) floor(count($rows) / 40));
+        foreach ($rows as $index => $row) {
+            if ($index % $stride !== 0 || ! is_array($row)) {
+                continue;
+            }
+            $answer = $target !== '' && isset($row[$target]) && $row[$target] !== '' ? (string) $row[$target] : null;
+            $bucket = $model->problem_type === 'classification' ? (string) $answer : (string) count($examples);
+            if (isset($seenAnswers[$bucket])) {
+                continue;
+            }
+
+            $values = [];
+            foreach ($features as $feature) {
+                $values[$feature] = isset($row[$feature]) ? trim((string) $row[$feature]) : '';
+            }
+            if (implode('', $values) === '') {
+                continue;
+            }
+
+            $seenAnswers[$bucket] = true;
+            $readable = $answer;
+            if ($answer !== null && $model->problem_type === 'classification') {
+                $readable = (string) ($wording['labels'][$answer]['short'] ?? $answer);
+            } elseif ($answer !== null && is_numeric($answer)) {
+                $readable = ModelDevelopmentOutcome::formatNumber((float) $answer);
+            }
+            $examples[] = [
+                'title' => 'Example '.chr(65 + count($examples)),
+                'answer' => $readable,
+                'raw_answer' => $answer,
+                'values' => $values,
+            ];
+            if (count($examples) >= 3) {
+                break;
+            }
+        }
+
+        return $examples;
     }
 
 
@@ -379,7 +494,7 @@ class StudentModelDevelopmentController extends Controller
         abort_unless($access->canViewModel($request->user(), $model), 403);
         $version = $model->currentVersion()->firstOrFail();
         $input = $request->validate(
-            ['input_values' => ['required', 'array']],
+            ['input_values' => ['required', 'array'], 'known_answer' => ['nullable', 'string', 'max:120']],
             ['input_values.required' => 'Enter at least one value before generating a prediction.']
         );
 
@@ -397,10 +512,31 @@ class StudentModelDevelopmentController extends Controller
                 ->withErrors(['prediction' => 'The prediction could not be completed right now. Check your values and try again. If it keeps failing, ask your instructor to confirm the machine-learning worker is running.']);
         }
 
+        $model->loadMissing('dataset');
+        $result['described'] = ModelDevelopmentOutcome::describePrediction(
+            $this->wordingFor($model, $version),
+            (string) $model->problem_type,
+            $result,
+            (array) $version->metrics,
+        );
+
+        // A loaded example carries its real answer, so the student can see whether the model agrees.
+        $known = trim((string) ($input['known_answer'] ?? ''));
+        if ($known !== '') {
+            $wording = $this->wordingFor($model, $version);
+            $isCategory = $model->problem_type === 'classification';
+            $result['known_answer'] = $isCategory
+                ? (string) ($wording['labels'][$known]['short'] ?? $known)
+                : (is_numeric($known) ? ModelDevelopmentOutcome::formatNumber((float) $known) : $known);
+            $result['agrees'] = $isCategory ? ((string) ($result['predicted_value'] ?? '') === $known) : null;
+        }
+
+        // Back to the same page with the values still filled in, so the student
+        // can change one value and immediately see how the answer moves.
         return redirect()
-            ->route('student.model-development.models.show', ['model' => $model, 'step' => 'save'])
-            ->with('prediction_result', $result)
-            ->with('success', 'Prediction completed. Your trained model is saved in Model History.');
+            ->to(route('student.model-development.models.show', ['model' => $model, 'step' => 'predict']).'#answer')
+            ->withInput()
+            ->with('prediction_result', $result);
     }
 
     public function visualization(Request $request, ModelVersion $version, string $chart, MlAccessService $access): BinaryFileResponse

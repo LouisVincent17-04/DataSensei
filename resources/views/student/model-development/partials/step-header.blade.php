@@ -1,6 +1,5 @@
 @php
     $headerStep = (int) ($stepNumber ?? 1);
-    $headerTotal = \App\Support\ModelDevelopmentRoadmap::totalSteps();
 @endphp
 
 <div class="ml-step-head">
@@ -11,5 +10,4 @@
             <p class="ml-muted">{{ $stepLead }}</p>
         @endif
     </div>
-    <span class="ml-step-count">Step {{ $headerStep }} of {{ $headerTotal }}</span>
 </div>

@@ -2,61 +2,44 @@
 
 namespace App\Support;
 
+/**
+ * The four stops of Model Development.
+ *
+ * The earlier ten-stage roadmap asked a beginner to make six decisions before
+ * anything happened. Those decisions still exist, but they now live on one
+ * set-up page with safe defaults, so the journey is: choose data, set up,
+ * read the results, make a prediction. Trained models are saved automatically.
+ */
 final class ModelDevelopmentRoadmap
 {
+    public const STEP_DATA = 1;
+    public const STEP_SETUP = 2;
+    public const STEP_RESULTS = 3;
+    public const STEP_PREDICT = 4;
+
     /** @return array<int, array{key:string,label:string,description:string}> */
     public static function steps(): array
     {
         return [
-            1 => [
-                'key' => 'dataset',
-                'label' => 'Dataset',
-                'description' => 'Choose the data you want to use for your model.',
+            self::STEP_DATA => [
+                'key' => 'data',
+                'label' => 'Choose data',
+                'description' => 'Pick the table of examples your model will learn from.',
             ],
-            2 => [
-                'key' => 'target',
-                'label' => 'Target',
-                'description' => 'Choose what you want the model to predict.',
+            self::STEP_SETUP => [
+                'key' => 'setup',
+                'label' => 'Set up',
+                'description' => 'Say what you want to predict, then press Train.',
             ],
-            3 => [
-                'key' => 'features',
-                'label' => 'Features',
-                'description' => 'Choose the information the model will use to make predictions.',
+            self::STEP_RESULTS => [
+                'key' => 'results',
+                'label' => 'Results',
+                'description' => 'See how often the model is right on rows it never saw.',
             ],
-            4 => [
-                'key' => 'problem_type',
-                'label' => 'Problem Type',
-                'description' => 'Choose whether the result is a category, number, or discovered group.',
-            ],
-            5 => [
-                'key' => 'split',
-                'label' => 'Train/Test Split',
-                'description' => 'Reserve unseen data so model performance can be checked fairly.',
-            ],
-            6 => [
-                'key' => 'algorithm',
-                'label' => 'Algorithm',
-                'description' => 'Choose the machine-learning method you want to use.',
-            ],
-            7 => [
-                'key' => 'train',
-                'label' => 'Train Model',
-                'description' => 'Allow the model to learn patterns from the training data.',
-            ],
-            8 => [
-                'key' => 'evaluate',
-                'label' => 'Evaluate',
-                'description' => 'Check how well the model performs on unseen data.',
-            ],
-            9 => [
+            self::STEP_PREDICT => [
                 'key' => 'predict',
                 'label' => 'Predict',
-                'description' => 'Use the trained model to make a new prediction.',
-            ],
-            10 => [
-                'key' => 'save',
-                'label' => 'Save Model',
-                'description' => 'Keep the trained version in Model History for later use.',
+                'description' => 'Type in new values and read the model\'s answer.',
             ],
         ];
     }
@@ -79,51 +62,65 @@ final class ModelDevelopmentRoadmap
         ];
     }
 
-    public static function normalizeAuthoringStep(mixed $step, int $fallback = 2): int
+    /** Every set-up decision is on one page, so old ?step=2..7 links all land there. */
+    public static function normalizeAuthoringStep(mixed $step, int $fallback = self::STEP_SETUP): int
     {
-        $step = is_numeric($step) ? (int) $step : $fallback;
+        return self::STEP_SETUP;
+    }
 
-        return max(2, min(7, $step));
+    /**
+     * Which part of the set-up page a validation error belongs to, so the page
+     * can open that part and scroll to it.
+     *
+     * @param array<int, string> $fields
+     */
+    public static function sectionForValidationFields(array $fields): ?string
+    {
+        $sections = [
+            'target_column' => 'target',
+            'problem_type' => 'target',
+            'features' => 'columns',
+            'algorithm_key' => 'method',
+            'parameters' => 'method',
+            'tune' => 'method',
+            'test_size' => 'method',
+            'random_state' => 'method',
+            'cross_validation' => 'method',
+            'scale_mode' => 'method',
+            'numeric_imputation' => 'method',
+            'remove_duplicates' => 'method',
+            'model_name' => 'name',
+            'class_id' => 'name',
+        ];
+        $order = ['target', 'columns', 'method', 'name'];
+
+        $found = [];
+        foreach ($fields as $field) {
+            $root = explode('.', (string) $field)[0];
+            if (isset($sections[$root])) {
+                $found[] = array_search($sections[$root], $order, true);
+            }
+        }
+
+        return $found === [] ? null : $order[min($found)];
     }
 
     /** @param array<int, string> $fields */
     public static function stepForValidationFields(array $fields): ?int
     {
-        $fieldSteps = [
-            'target_column' => 2,
-            'features' => 3,
-            'problem_type' => 4,
-            'test_size' => 5,
-            'random_state' => 5,
-            'cross_validation' => 5,
-            'scale_mode' => 5,
-            'numeric_imputation' => 5,
-            'remove_duplicates' => 5,
-            'algorithm_key' => 6,
-            'parameters' => 6,
-            'model_name' => 7,
-            'class_id' => 7,
-        ];
-
-        $steps = [];
-        foreach ($fields as $field) {
-            $root = explode('.', (string) $field)[0];
-            if (isset($fieldSteps[$root])) {
-                $steps[] = $fieldSteps[$root];
-            }
-        }
-
-        return $steps === [] ? null : min($steps);
+        return self::sectionForValidationFields($fields) === null ? null : self::STEP_SETUP;
     }
 
-    public static function resultStep(?string $requested, bool $hasPrediction): int
+    /**
+     * "save" and "evaluate" are accepted so bookmarks from the ten-stage
+     * version keep working. Models are saved as soon as training finishes, so
+     * there is no separate save stage to unlock any more.
+     */
+    public static function resultStep(?string $requested, bool $hasPrediction = false): int
     {
-        $step = match ($requested) {
-            'predict' => 9,
-            'save' => 10,
-            default => 8,
+        return match ($requested) {
+            'predict', 'save' => self::STEP_PREDICT,
+            default => self::STEP_RESULTS,
         };
-
-        return $step === 10 && ! $hasPrediction ? 9 : $step;
     }
 }

@@ -173,9 +173,174 @@
     });
   }
 
+  const SNAPSHOT_MARKER = 'data-ds-ac-snapshot';
+  const FINALIZE_FIELD = '_anti_cheat_finalize';
+  const IDENTITY_FIELD = '_anti_cheat_session_id';
+
+  function controlType(control) {
+    return String(control.type || '').toLowerCase();
+  }
+
+  function isHiddenControl(control) {
+    return controlType(control) === 'hidden';
+  }
+
+  function isButtonControl(control) {
+    const tag = String(control.tagName || '').toLowerCase();
+    return tag === 'button' || ['submit', 'button', 'reset', 'image'].includes(controlType(control));
+  }
+
+  function formControls(form) {
+    return Array.from(form.elements || []);
+  }
+
+  /*
+   * The name/value pairs a native submission of this form would send now.
+   * Mirrors the browser rules that matter here: unnamed and disabled controls
+   * are skipped, radios/checkboxes count only when checked, buttons never.
+   */
+  function successfulEntries(form) {
+    const entries = [];
+
+    formControls(form).forEach(control => {
+      if (!control.name || control.disabled || isButtonControl(control)) return;
+      const type = controlType(control);
+      if ((type === 'radio' || type === 'checkbox') && !control.checked) return;
+      if (type === 'file') return;
+
+      if (type === 'select-multiple' && control.options) {
+        Array.from(control.options).forEach(option => {
+          if (option.selected) entries.push([control.name, String(option.value)]);
+        });
+        return;
+      }
+
+      entries.push([control.name, String(control.value ?? '')]);
+    });
+
+    return entries;
+  }
+
+  function setHiddenField(form, doc, name, value, marker = null) {
+    let field = formControls(form).find(control => control.name === name && isHiddenControl(control));
+
+    if (!field) {
+      field = doc.createElement('input');
+      field.type = 'hidden';
+      field.name = name;
+      form.appendChild(field);
+    }
+
+    field.value = String(value);
+    field.disabled = false;
+    if (marker && typeof field.setAttribute === 'function') field.setAttribute(marker, '1');
+
+    return field;
+  }
+
+  /*
+   * Lock the visible controls of a protected form WITHOUT losing anything a
+   * later submission needs. Hidden inputs (_token, _method, the protected
+   * attempt identity) are never disabled. The current value of every visible
+   * answer control is first copied into a hidden input of the same name, and
+   * only then is the visible control disabled, so a native form.submit() and
+   * new FormData(form) still carry the CSRF token, the identity and the
+   * latest answers. Calling it again is harmless.
+   */
+  function snapshotAndLockForm(form, options = {}) {
+    const doc = options.document || global.document;
+    const keepEnabled = options.keepEnabled || (() => false);
+    const controls = formControls(form);
+    const visibleAnswers = [];
+
+    controls.forEach(control => {
+      if (isHiddenControl(control) || isButtonControl(control)) return;
+      if (!control.name || control.disabled) return;
+      visibleAnswers.push(control);
+    });
+
+    const snapshot = successfulEntries({ elements: visibleAnswers });
+
+    snapshot.forEach(([name, value]) => {
+      const field = doc.createElement('input');
+      field.type = 'hidden';
+      field.name = name;
+      field.value = value;
+      if (typeof field.setAttribute === 'function') field.setAttribute(SNAPSHOT_MARKER, '1');
+      form.appendChild(field);
+    });
+
+    controls.forEach(control => {
+      if (isHiddenControl(control) || keepEnabled(control)) return;
+      control.disabled = true;
+      if (typeof control.setAttribute === 'function') control.setAttribute('aria-disabled', 'true');
+    });
+
+    return snapshot;
+  }
+
+  /*
+   * Finalize a locked attempt: wait (bounded) until the violation event has
+   * been delivered so the server records the outcome first, then submit the
+   * form with the explicit finalize flag. The server does not depend on the
+   * event having arrived: the flag alone already withholds credit.
+   */
+  async function finalizeLockedAttempt(options = {}) {
+    const form = options.form;
+    const doc = options.document || global.document;
+    const timeoutMs = Math.max(0, Number(options.timeoutMs ?? 3000));
+    const wait = options.wait || (delay => new Promise(resolve => global.setTimeout(resolve, delay)));
+    const submit = options.submit || (target => global.HTMLFormElement.prototype.submit.call(target));
+
+    if (!form) return { submitted: false, eventSettled: false, entries: [] };
+
+    let eventSettled = false;
+    if (options.eventDelivery) {
+      const delivery = Promise.resolve(options.eventDelivery)
+        .catch(() => null)
+        .then(() => { eventSettled = true; });
+      await Promise.race([delivery, wait(timeoutMs)]);
+    } else {
+      eventSettled = true;
+    }
+
+    setHiddenField(form, doc, FINALIZE_FIELD, '1');
+    if (options.sessionId) setHiddenField(form, doc, IDENTITY_FIELD, options.sessionId);
+
+    if (typeof options.beforeSubmit === 'function') options.beforeSubmit(form);
+    const entries = successfulEntries(form);
+    submit(form);
+
+    return { submitted: true, eventSettled, entries };
+  }
+
+  /*
+   * Normalise the authoritative integrity state sent by the server, both when
+   * the page is rendered and in every event response.
+   */
+  function normalizeIntegrityState(state) {
+    if (!state || typeof state !== 'object') return null;
+
+    const remaining = state.remaining_allowance;
+
+    return {
+      blocked: Boolean(state.blocked),
+      reason: typeof state.reason === 'string' && state.reason !== '' ? state.reason : null,
+      focusLossCount: Math.max(0, Number(state.focus_loss_count ?? 0) || 0),
+      remainingAllowance: remaining === null || remaining === undefined
+        ? null
+        : Math.max(0, Number(remaining) || 0),
+    };
+  }
+
   global.DataSenseiAntiCheatClient = Object.freeze({
     createEventUuid,
     createFocusLossCoordinator,
+    finalizeLockedAttempt,
+    normalizeIntegrityState,
     postJsonWithRetry,
+    setHiddenField,
+    snapshotAndLockForm,
+    successfulEntries,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

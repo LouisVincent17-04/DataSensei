@@ -886,6 +886,24 @@ HTML;
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> sqlite3
+
+<span style="color:#6b7280;"># Sample data so this example runs on its own</span>
+<span style="color:#93c5fd;">_conn</span> = sqlite3.connect(<span style="color:#a7f3d0;">"data_science.db"</span>)
+_conn.executescript(<span style="color:#a7f3d0;">"""
+    CREATE TABLE IF NOT EXISTS customers (customer_id INTEGER PRIMARY KEY, name TEXT, email TEXT);
+    CREATE TABLE IF NOT EXISTS orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, total_amount REAL);
+"""</span>)
+<span style="color:#c4b5fd;">if</span> _conn.execute(<span style="color:#a7f3d0;">"SELECT COUNT(*) FROM customers"</span>).fetchone()[<span style="color:#fcd34d;">0</span>] == <span style="color:#fcd34d;">0</span>:
+    _conn.executemany(<span style="color:#a7f3d0;">"INSERT INTO customers VALUES (?, ?, ?)"</span>, [
+        (<span style="color:#fcd34d;">1</span>, <span style="color:#a7f3d0;">"Ana Reyes"</span>, <span style="color:#a7f3d0;">"ana@example.com"</span>), (<span style="color:#fcd34d;">2</span>, <span style="color:#a7f3d0;">"Ben Cruz"</span>, <span style="color:#a7f3d0;">"ben@example.com"</span>), (<span style="color:#fcd34d;">3</span>, <span style="color:#a7f3d0;">"Carla Lim"</span>, <span style="color:#a7f3d0;">"carla@example.com"</span>)])
+    _conn.executemany(<span style="color:#a7f3d0;">"INSERT INTO orders VALUES (?, ?, ?)"</span>, [
+        (<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">2500.00</span>), (<span style="color:#fcd34d;">2</span>, <span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">1200.50</span>), (<span style="color:#fcd34d;">3</span>, <span style="color:#fcd34d;">2</span>, <span style="color:#fcd34d;">899.00</span>), (<span style="color:#fcd34d;">4</span>, <span style="color:#fcd34d;">3</span>, <span style="color:#fcd34d;">4300.75</span>), (<span style="color:#fcd34d;">5</span>, <span style="color:#fcd34d;">3</span>, <span style="color:#fcd34d;">150.00</span>)])
+_conn.commit()
+_conn.close()
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">import</span> sqlite3
 <span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
 
 <span style="color:#6b7280;"># Connect to the database</span>
@@ -924,7 +942,7 @@ Top spender: Carmen Diaz — ₱14,250.00</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — SQLAlchemy + pandas</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs sqlalchemy, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sqlalchemy <span style="color:#c4b5fd;">import</span> create_engine, text
@@ -968,7 +986,25 @@ Model results written to database!</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># ❌ DANGEROUS — never do this with user input</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> sqlite3
+
+<span style="color:#6b7280;"># Sample data so this example runs on its own</span>
+<span style="color:#93c5fd;">_conn</span> = sqlite3.connect(<span style="color:#a7f3d0;">"data_science.db"</span>)
+_conn.executescript(<span style="color:#a7f3d0;">"""
+    CREATE TABLE IF NOT EXISTS customers (customer_id INTEGER PRIMARY KEY, name TEXT, email TEXT);
+    CREATE TABLE IF NOT EXISTS orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER, total_amount REAL);
+"""</span>)
+<span style="color:#c4b5fd;">if</span> _conn.execute(<span style="color:#a7f3d0;">"SELECT COUNT(*) FROM customers"</span>).fetchone()[<span style="color:#fcd34d;">0</span>] == <span style="color:#fcd34d;">0</span>:
+    _conn.executemany(<span style="color:#a7f3d0;">"INSERT INTO customers VALUES (?, ?, ?)"</span>, [
+        (<span style="color:#fcd34d;">1</span>, <span style="color:#a7f3d0;">"Ana Reyes"</span>, <span style="color:#a7f3d0;">"ana@example.com"</span>), (<span style="color:#fcd34d;">2</span>, <span style="color:#a7f3d0;">"Ben Cruz"</span>, <span style="color:#a7f3d0;">"ben@example.com"</span>), (<span style="color:#fcd34d;">3</span>, <span style="color:#a7f3d0;">"Carla Lim"</span>, <span style="color:#a7f3d0;">"carla@example.com"</span>)])
+    _conn.executemany(<span style="color:#a7f3d0;">"INSERT INTO orders VALUES (?, ?, ?)"</span>, [
+        (<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">2500.00</span>), (<span style="color:#fcd34d;">2</span>, <span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">1200.50</span>), (<span style="color:#fcd34d;">3</span>, <span style="color:#fcd34d;">2</span>, <span style="color:#fcd34d;">899.00</span>), (<span style="color:#fcd34d;">4</span>, <span style="color:#fcd34d;">3</span>, <span style="color:#fcd34d;">4300.75</span>), (<span style="color:#fcd34d;">5</span>, <span style="color:#fcd34d;">3</span>, <span style="color:#fcd34d;">150.00</span>)])
+_conn.commit()
+_conn.close()
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># ❌ DANGEROUS — never do this with user input</span>
 user_email = <span style="color:#93c5fd;">input</span>(<span style="color:#a7f3d0;">"Enter email: "</span>)
 query = <span style="color:#a7f3d0;">f"SELECT * FROM customers WHERE email = '{user_email}'"</span>
 <span style="color:#6b7280;"># If user types: ' OR '1'='1 — ALL rows are returned!  (SQL injection)</span>
@@ -1018,7 +1054,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — MongoDB (Document Store)</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs pymongo, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># MongoDB stores data as JSON-like documents (no fixed schema required)</span>
@@ -1060,7 +1096,7 @@ results = products.<span style="color:#93c5fd;">find</span>({
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Redis Key-Value Cache</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs redis, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> redis

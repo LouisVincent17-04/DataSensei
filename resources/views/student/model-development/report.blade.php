@@ -56,7 +56,7 @@ li + li{margin-top:4px}
 }
 @media(prefers-reduced-motion:reduce){.print{transition:none}}
 </style>
-    @include('partials.page-head', ['pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
+    @include('partials.page-head', ['pageDescription' => 'Train a real machine-learning model in four short steps and use it to make predictions.'])
 </head>
 <body>
 @php
@@ -84,7 +84,7 @@ li + li{margin-top:4px}
 @endphp
 <button class="print" onclick="window.print()">Print Report</button>
 <h1 class="ds-page-title">{{ $model->name }}</h1>
-<div class="muted">{{ $model->isSystemModel() ? 'Read-only system benchmark' : 'User-trained model' }}, {{ str($model->algorithm_key)->replace('_',' ')->title() }}, {{ $version->version_label }}, Generated {{ now()->format('F j, Y g:i A') }}</div>
+<div class="muted">{{ $model->isSystemModel() ? 'Read-only system benchmark' : 'User-trained model' }}, {{ data_get($version->explanations, 'training_summary.selected_label') ?: str($model->algorithm_key)->replace('_',' ')->title() }}{{ str_starts_with((string) $model->algorithm_key, 'auto_') ? ' (chosen automatically)' : '' }}, {{ $version->version_label }}, Generated {{ now()->format('F j, Y g:i A') }}</div>
 
 <h2>Educational Benchmark Summary</h2>
 <div class="grid">

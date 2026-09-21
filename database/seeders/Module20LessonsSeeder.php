@@ -1049,7 +1049,7 @@ HTML;
     """</span>
     <span style="color:#c4b5fd;">def</span> <span style="color:#fbcfe8;">fit</span>(self, X, y):
         <span style="color:#93c5fd;">self.classes_</span> = <span style="color:#93c5fd;">sorted</span>(<span style="color:#93c5fd;">set</span>(y))
-        <span style="color:#93c5fd;">self.word_counts_</span>  = defaultdict(<span style="color:#c4b5fd;">lambda</span>: defaultdict(<span style="color:#fcd34d;">0</span>.__class__))
+        self.word_counts_  = defaultdict(<span style="color:#c4b5fd;">lambda</span>: defaultdict(int))
         <span style="color:#93c5fd;">self.class_counts_</span> = Counter(y)
         <span style="color:#93c5fd;">self.vocab_</span> = <span style="color:#93c5fd;">set</span>()
 

@@ -234,6 +234,7 @@
   </div>
 </div>
 
+<script src="{{ asset('js/challenge-quiz-client.js') }}"></script>
 <script>
   const CSRF = document.querySelector('meta[name="csrf-token"]').content;
   const totalQuestions = {{ $challenge->questions->count() }};
@@ -242,10 +243,14 @@
   const autosaveUrl = @json(route('challenges.quiz.autosave', ['slug' => $slug, 'challenge' => $challenge->id]));
   const heartbeatUrl = @json(route('challenges.quiz.heartbeat', ['slug' => $slug, 'challenge' => $challenge->id]));
   const eventUrl = @json(route('challenges.quiz.events', ['slug' => $slug, 'challenge' => $challenge->id]));
-  let serverNowMs = {{ (int) $serverNowMs }};
-  let expiresAtMs = {{ (int) $expiresAtMs }};
-  const clientLoadedMs = Date.now();
   const answeredQuestions = new Set(@json(array_map('intval', array_keys($savedAnswers ?? []))));
+
+  // The server time reference and its local anchor live together inside the
+  // clock and are only replaced as a pair (see public/js/challenge-quiz-client.js).
+  const quizClock = DataSenseiChallengeQuizClient.createQuizClock({
+    serverNowMs: {{ (int) $serverNowMs }},
+    expiresAtMs: {{ (int) $expiresAtMs }},
+  });
 
   const timerDisplay = document.getElementById('timerDisplay');
   const timeText = document.getElementById('timeText');
@@ -258,12 +263,8 @@
 
   function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
 
-  function trustedNowMs() {
-    return serverNowMs + (Date.now() - clientLoadedMs);
-  }
-
   function remainingSeconds() {
-    return Math.max(0, Math.floor((expiresAtMs - trustedNowMs()) / 1000));
+    return quizClock.remainingSeconds();
   }
 
   function updateProgress() {
@@ -292,29 +293,49 @@
         'Accept': 'application/json',
       },
       body: JSON.stringify(payload),
+      keepalive: true,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || 'Request failed.');
+    if (!res.ok) {
+      const error = new Error(data.message || 'Request failed.');
+      error.status = res.status;
+      error.body = data;
+      throw error;
+    }
     return data;
   }
 
-  let autosaveTimer = null;
   function setSaveState(text, cls) {
     saveState.textContent = text;
     saveState.className = 'save-state ' + (cls || '');
   }
 
-  function autosaveAnswer(questionId, optionId) {
-    clearTimeout(autosaveTimer);
-    setSaveState('Saving answer...', '');
-    autosaveTimer = setTimeout(async () => {
-      try {
-        await postJson(autosaveUrl, { attempt_id: attemptId, question_id: questionId, option_id: optionId });
+  let submitting = false;
+
+  const autosaveQueue = DataSenseiChallengeQuizClient.createAutosaveQueue({
+    seqBase: {{ (int) ($autosaveSeqBase ?? 0) }},
+    send: payload => postJson(autosaveUrl, Object.assign({ attempt_id: attemptId }, payload)),
+    onState: state => {
+      if (submitting) return;
+      if (state === 'saving') {
+        setSaveState('Saving answer...', '');
+      } else if (state === 'saved') {
         setSaveState('Saved. You can safely refresh or return later.', 'saved');
-      } catch (error) {
-        setSaveState('Connection issue. Your visible selection will still submit when the page reconnects.', 'error');
+      } else if (state === 'error') {
+        setSaveState('Connection issue. Your answer is not saved yet. Retrying automatically, keep this page open.', 'error');
       }
-    }, 180);
+    },
+    onClosed: reason => {
+      if (reason === 'expired') {
+        submitDueToTime();
+      } else if (!submitting) {
+        setSaveState('This attempt is already finished. New changes were not saved.', 'error');
+      }
+    },
+  });
+
+  function autosaveAnswer(questionId, optionId) {
+    autosaveQueue.set(questionId, optionId);
   }
 
   async function logAttemptEvent(eventType, details = {}) {
@@ -326,17 +347,26 @@
   }
 
   async function heartbeat() {
+    const ticket = quizClock.beginSync();
     try {
       const data = await postJson(heartbeatUrl, { attempt_id: attemptId });
-      if (data.server_now_ms) serverNowMs = Number(data.server_now_ms);
-      if (data.expires_at_ms) expiresAtMs = Number(data.expires_at_ms);
-      if (data.should_submit) submitDueToTime();
+      quizClock.completeSync(ticket, data);
+      if (data.should_submit || (data.status && data.status !== 'in_progress')) {
+        submitDueToTime();
+        return;
+      }
+      updateTimer();
     } catch (error) {
       // If offline, the client timer keeps counting down using the latest known server expiry.
     }
   }
 
   function updateTimer() {
+    if (quizClock.detectSuspension()) {
+      // The device slept or the tab was frozen: ask the server instead of guessing.
+      heartbeat();
+    }
+
     const left = remainingSeconds();
     const m = Math.floor(left / 60);
     const s = left % 60;
@@ -350,7 +380,6 @@
     }
   }
 
-  let submitting = false;
   function submitDueToTime() {
     if (submitting) return;
     submitting = true;
@@ -367,12 +396,32 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && !submitting) {
+      autosaveQueue.flush();
       logAttemptEvent('tab_hidden_or_app_switched', { answered: answeredQuestions.size });
+    } else if (!document.hidden && !submitting) {
+      heartbeat();
+      autosaveQueue.flush();
+    }
+  });
+
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && !submitting) heartbeat();
+  });
+
+  window.addEventListener('pagehide', () => {
+    if (!submitting) autosaveQueue.flush();
+  });
+
+  window.addEventListener('online', () => {
+    if (!submitting) {
+      autosaveQueue.flush();
+      heartbeat();
     }
   });
 
   window.addEventListener('beforeunload', (e) => {
     if (!submitting) {
+      autosaveQueue.flush();
       logAttemptEvent('page_leave_or_refresh', { answered: answeredQuestions.size });
       e.preventDefault();
       e.returnValue = '';
@@ -383,6 +432,7 @@
   updateTimer();
   setInterval(updateTimer, 1000);
   setInterval(heartbeat, 30000);
+  heartbeat();
 </script>
 </body>
 </html>

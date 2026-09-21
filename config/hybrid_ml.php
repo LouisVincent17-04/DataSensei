@@ -29,7 +29,40 @@ return [
     'system_manifest_path' => 'ml/system/manifest.json',
     'system_manifest' => storage_path('app/ml/system/manifest.json'),
 
+    // Seconds the automatic model search may spend comparing candidates.
+    'search_budget_seconds' => (int) env('ML_SEARCH_BUDGET', 90),
+
     'algorithms' => [
+        // "Automatic" is not one algorithm. The trusted runner compares several
+        // with cross-validation on the training rows and keeps the best one.
+        'auto_classification' => [
+            'problem_type' => 'classification',
+            'label' => 'Automatic (best of several)',
+            'description' => 'DataSensei tries several algorithms on your training rows and keeps the one that scores best.',
+            'strengths' => ['Usually the most accurate choice', 'Nothing to configure', 'Shows every algorithm it compared'],
+            'weaknesses' => ['Takes a little longer to train', 'You learn less about any single algorithm'],
+            'when_not_to_use' => ['Your lesson asks you to study one particular algorithm'],
+            'expected_training_time' => 'Usually 10 to 40 seconds for classroom-sized datasets.',
+            'supports_probability' => true,
+            'supports_feature_importance' => true,
+            'is_automatic' => true,
+            'defaults' => [],
+            'parameters' => [],
+        ],
+        'auto_regression' => [
+            'problem_type' => 'regression',
+            'label' => 'Automatic (best of several)',
+            'description' => 'DataSensei tries several algorithms on your training rows and keeps the one that scores best.',
+            'strengths' => ['Usually the most accurate choice', 'Nothing to configure', 'Shows every algorithm it compared'],
+            'weaknesses' => ['Takes a little longer to train', 'You learn less about any single algorithm'],
+            'when_not_to_use' => ['Your lesson asks you to study one particular algorithm'],
+            'expected_training_time' => 'Usually 10 to 40 seconds for classroom-sized datasets.',
+            'supports_probability' => false,
+            'supports_feature_importance' => true,
+            'is_automatic' => true,
+            'defaults' => [],
+            'parameters' => [],
+        ],
         'logistic_regression' => [
             'problem_type' => 'classification',
             'label' => 'Logistic Regression',

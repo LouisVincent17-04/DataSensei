@@ -14,6 +14,24 @@ class AlgorithmCatalogService
         return (array) config('hybrid_ml.algorithms', []);
     }
 
+    /** The "let DataSensei choose" entry for a problem type, when one exists. */
+    public function automaticKey(string $problemType): ?string
+    {
+        foreach ($this->active($problemType) as $key => $definition) {
+            if ($definition['is_automatic'] ?? false) {
+                return (string) $key;
+            }
+        }
+
+        return null;
+    }
+
+    /** Label of a concrete or automatic algorithm key. */
+    public function label(string $algorithmKey): string
+    {
+        return (string) ($this->definitions()[$algorithmKey]['label'] ?? str($algorithmKey)->replace('_', ' ')->title());
+    }
+
     public function active(?string $problemType = null): array
     {
         $definitions = $this->definitions();
@@ -55,6 +73,66 @@ class AlgorithmCatalogService
             throw ValidationException::withMessages(['algorithm_key' => 'Choose a supported machine-learning algorithm.']);
         }
         return $definition;
+    }
+
+    /**
+     * Fills in everything the short set-up form leaves out: the kind of problem
+     * (worked out from the answer column), "Automatic" as the learning method,
+     * an 80/20 split, 5-fold cross-validation and automatic scaling.
+     *
+     * @param array<string,mixed> $input
+     * @param array<string,mixed> $schemaProfile
+     * @return array<string,mixed>
+     */
+    public function applyBeginnerDefaults(array $input, array $schemaProfile): array
+    {
+        $target = trim((string) ($input['target_column'] ?? ''));
+        if (empty($input['problem_type'])) {
+            $input['problem_type'] = $this->inferProblemType($target, $schemaProfile);
+        }
+        $problemType = (string) $input['problem_type'];
+
+        if (empty($input['algorithm_key'])) {
+            $input['algorithm_key'] = $this->automaticKey($problemType)
+                ?? (string) array_key_first($this->active($problemType));
+        }
+
+        $input['test_size'] = $input['test_size'] ?? 0.20;
+        $input['random_state'] = $input['random_state'] ?? 42;
+        $input['cross_validation'] = $input['cross_validation'] ?? 5;
+        $input['scale_mode'] = $input['scale_mode'] ?? 'auto';
+        $input['numeric_imputation'] = $input['numeric_imputation'] ?? 'median';
+        $input['remove_duplicates'] = $input['remove_duplicates'] ?? true;
+        $input['tune'] = $input['tune'] ?? true;
+
+        return $input;
+    }
+
+    /**
+     * Same rule the dataset profiler uses: text and yes/no answers, or numbers
+     * with only a few different values, are categories; other numbers are amounts.
+     *
+     * @param array<string,mixed> $schemaProfile
+     */
+    public function inferProblemType(string $target, array $schemaProfile): string
+    {
+        $column = $schemaProfile['columns'][$target] ?? null;
+        if ($target === '' || ! is_array($column)) {
+            return 'clustering';
+        }
+
+        $type = (string) ($column['type'] ?? 'text');
+        $unique = (int) ($column['unique_count'] ?? 0);
+        $rows = max(1, (int) ($schemaProfile['row_count'] ?? 0));
+
+        if (in_array($type, ['boolean', 'categorical', 'text'], true)) {
+            return 'classification';
+        }
+        if ($unique >= 2 && $unique <= min(20, max(2, (int) floor($rows * 0.10)))) {
+            return 'classification';
+        }
+
+        return 'regression';
     }
 
     /**
@@ -152,12 +230,20 @@ class AlgorithmCatalogService
             $scaleMode = 'auto';
         }
 
-        $scaleSensitive = in_array($algorithmKey, ['logistic_regression', 'knn', 'svm', 'kmeans'], true);
+        $scaleSensitive = in_array($algorithmKey, ['logistic_regression', 'knn', 'svm', 'kmeans', 'linear_regression'], true);
         $applyScaling = $scaleMode === 'standard' || ($scaleMode === 'auto' && $scaleSensitive);
+
+        // "Automatic" always compares candidates. A named algorithm is fine-tuned
+        // unless the student switched that off to study their own settings.
+        $isAutomatic = (bool) ($definition['is_automatic'] ?? false);
+        $tune = $problemType !== 'clustering'
+            && ($isAutomatic || filter_var($input['tune'] ?? true, FILTER_VALIDATE_BOOL));
 
         return [
             'problem_type' => $problemType,
             'algorithm_key' => $algorithmKey,
+            'tune' => $tune,
+            'search_budget_seconds' => max(10, (int) config('hybrid_ml.search_budget_seconds', 90)),
             'features' => $features,
             'target_column' => $target,
             'test_size' => $testSize,
@@ -215,6 +301,7 @@ class AlgorithmCatalogService
             'svm' => 'SVM is suitable for a medium-sized classification dataset and can model nonlinear boundaries after standardization.',
             'knn' => 'KNN is useful for demonstrating similarity-based prediction. Feature scaling is enabled because distance is central to the algorithm.',
             'kmeans' => 'K-Means is appropriate for exploratory grouping because no target is required and the selected features are numeric.',
+            'auto_classification', 'auto_regression' => 'DataSensei compares several algorithms on your training rows and keeps the most accurate one, so you do not have to guess which fits this dataset.',
             default => "This {$problemType} algorithm is available as a controlled educational baseline for the detected dataset structure.",
         };
     }
@@ -231,6 +318,7 @@ class AlgorithmCatalogService
             'naive_bayes' => 'Expect a very fast probabilistic baseline. It can work well even when its feature-independence assumption is only approximate.',
             'svm' => 'Expect a flexible decision boundary after scaling. Training may slow substantially as row count increases.',
             'kmeans' => 'Expect groups based on distance to learned centers. Cluster numbers are labels, not predefined real-world categories.',
+            'auto_classification', 'auto_regression' => 'Expect a slightly longer training run. The results page lists every algorithm that was compared and which one won.',
             default => 'Expect a controlled baseline whose behavior depends on the selected features, preprocessing, and hyperparameters.',
         };
     }

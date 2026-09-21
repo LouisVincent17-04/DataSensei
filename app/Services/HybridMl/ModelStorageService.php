@@ -100,7 +100,8 @@ class ModelStorageService
             $qualitySummary = $this->qualitySummary($job);
             $educational = $this->explanations->explain(
                 $job->problem_type,
-                $job->algorithm_key,
+                // With "Automatic" the explanation should describe the algorithm that won.
+                (string) ($result['selected_algorithm'] ?? $job->algorithm_key),
                 (array) ($result['metrics'] ?? []),
                 $qualitySummary,
                 (array) ($result['training_summary'] ?? [])

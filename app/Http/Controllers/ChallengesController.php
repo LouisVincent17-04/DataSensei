@@ -297,7 +297,10 @@ class ChallengesController extends Controller
         $this->ensurePathIsUnlocked($slug, 'mcq', $unlockService);
 
         $challenge = Challenge::with('category')->findOrFail($challenge_id);
-        $this->ensureChallengeBelongsToSlug($challenge, $slug, false);
+        // An inactive version accepts no NEW attempts, but getOrCreateMcqAttempt()
+        // still resumes an in-progress attempt that was started before a newer
+        // version was published, so that learner can finish on the original version.
+        $this->ensureChallengeBelongsToSlug($challenge, $slug, false, false);
 
         $attempt = $this->getOrCreateMcqAttempt($challenge);
 
@@ -318,7 +321,9 @@ class ChallengesController extends Controller
             ->map(fn ($value) => (int) $value)
             ->all();
 
-        $serverNowMs = (now()->getTimestamp() * 1000);
+        $autosaveSeqBase = (int) $attempt->answers()->max('client_seq');
+
+        $serverNowMs = (int) now()->getTimestampMs();
         $expiresAtMs = ($attempt->expires_at->getTimestamp() * 1000);
         $remainingSeconds = max(0, (int) floor(($expiresAtMs - $serverNowMs) / 1000));
 
@@ -327,6 +332,7 @@ class ChallengesController extends Controller
             'challenge',
             'attempt',
             'savedAnswers',
+            'autosaveSeqBase',
             'serverNowMs',
             'expiresAtMs',
             'remainingSeconds'
@@ -399,15 +405,19 @@ class ChallengesController extends Controller
             'attempt_id' => ['required', 'integer'],
             'question_id' => ['required', 'integer'],
             'option_id' => ['nullable', 'integer'],
+            'seq' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
         ]);
 
         $challenge = Challenge::findOrFail($challenge_id);
-        $this->ensureChallengeBelongsToSlug($challenge, $slug, false);
+        // Attempt-scoped endpoint: the owned attempt row below is the gate, so an
+        // attempt started before its version was deactivated keeps autosaving.
+        $this->ensureChallengeBelongsToSlug($challenge, $slug, false, false);
 
         $questionId = (int) $request->input('question_id');
         $optionId = $request->filled('option_id') ? (int) $request->input('option_id') : null;
+        $clientSeq = $request->filled('seq') ? (int) $request->input('seq') : null;
 
-        return DB::transaction(function () use ($request, $challenge, $questionId, $optionId) {
+        return DB::transaction(function () use ($request, $challenge, $questionId, $optionId, $clientSeq) {
             $attempt = ChallengeAttempt::where('id', (int) $request->input('attempt_id'))
                 ->where('challenge_id', $challenge->id)
                 ->where('user_id', Auth::id())
@@ -440,21 +450,33 @@ class ChallengesController extends Controller
                 abort_unless($validOption, 422, 'Selected option does not belong to this question.');
             }
 
-            ChallengeAttemptAnswer::updateOrCreate(
-                [
-                    'challenge_attempt_id' => $attempt->id,
-                    'challenge_question_id' => $questionId,
-                ],
-                [
-                    'selected_option_id' => $optionId,
-                    'answered_at' => $optionId ? now() : null,
-                ]
-            );
+            // Answers are one row per question, and the attempt row lock above
+            // serializes every writer of this attempt, so concurrent saves of
+            // different questions cannot overwrite each other.
+            $answer = ChallengeAttemptAnswer::firstOrNew([
+                'challenge_attempt_id' => $attempt->id,
+                'challenge_question_id' => $questionId,
+            ]);
+
+            // A delayed request that arrives after a newer edit of the same
+            // question must not roll the answer back.
+            $stale = $clientSeq !== null && $answer->exists && $clientSeq < (int) $answer->client_seq;
+
+            if (! $stale) {
+                $answer->selected_option_id = $optionId;
+                $answer->answered_at = $optionId ? now() : null;
+                if ($clientSeq !== null) {
+                    $answer->client_seq = $clientSeq;
+                }
+                $answer->save();
+            }
 
             $attempt->forceFill(['last_seen_at' => now()])->save();
 
             return response()->json([
                 'ok' => true,
+                'stale' => $stale,
+                'seq' => (int) $answer->client_seq,
                 'answered_count' => $attempt->answers()->whereNotNull('selected_option_id')->count(),
                 'remaining_seconds' => max(0, now()->diffInSeconds($attempt->expires_at, false)),
             ]);
@@ -468,7 +490,7 @@ class ChallengesController extends Controller
         ]);
 
         $challenge = Challenge::findOrFail($challenge_id);
-        $this->ensureChallengeBelongsToSlug($challenge, $slug, false);
+        $this->ensureChallengeBelongsToSlug($challenge, $slug, false, false);
 
         $attempt = $this->currentUserAttempt($challenge, (int) $request->input('attempt_id'));
         $attempt->forceFill(['last_seen_at' => now()])->save();
@@ -476,7 +498,7 @@ class ChallengesController extends Controller
         return response()->json([
             'ok' => true,
             'status' => $attempt->status,
-            'server_now_ms' => (now()->getTimestamp() * 1000),
+            'server_now_ms' => (int) now()->getTimestampMs(),
             'expires_at_ms' => ($attempt->expires_at->getTimestamp() * 1000),
             'remaining_seconds' => max(0, now()->diffInSeconds($attempt->expires_at, false)),
             'should_submit' => $attempt->status === 'in_progress' && now()->greaterThanOrEqualTo($attempt->expires_at),
@@ -493,7 +515,7 @@ class ChallengesController extends Controller
         ]);
 
         $challenge = Challenge::findOrFail($challenge_id);
-        $this->ensureChallengeBelongsToSlug($challenge, $slug, false);
+        $this->ensureChallengeBelongsToSlug($challenge, $slug, false, false);
 
         return DB::transaction(function () use ($request, $challenge) {
             $attempt = ChallengeAttempt::where('id', (int) $request->input('attempt_id'))
@@ -541,7 +563,11 @@ class ChallengesController extends Controller
         $this->ensurePathIsUnlocked($slug, 'mcq', $unlockService);
 
         $challenge = Challenge::with('questions.options', 'category')->findOrFail($challenge_id);
-        $this->ensureChallengeBelongsToSlug($challenge, $slug, false);
+        // The owned attempt row is the gate: an attempt started before this
+        // version was deactivated can still be submitted (and re-submitted
+        // idempotently). New attempts on an inactive version are refused in
+        // getOrCreateMcqAttempt().
+        $this->ensureChallengeBelongsToSlug($challenge, $slug, false, false);
 
         $request->validate([
             'attempt_id' => ['required', 'integer'],
@@ -563,11 +589,16 @@ class ChallengesController extends Controller
                 ];
             }
 
-            $this->persistPostedAnswers($attempt, $request->input('answers', []));
+            // Decide expiry from the server clock BEFORE touching answers. After
+            // the deadline the posted answers are ignored and the attempt is
+            // graded from what autosave stored while the attempt was still open.
+            $expired = now()->greaterThanOrEqualTo($attempt->expires_at);
 
-            $status = now()->greaterThanOrEqualTo($attempt->expires_at) ? 'expired' : 'submitted';
+            if (! $expired) {
+                $this->persistPostedAnswers($attempt, $request->input('answers', []));
+            }
 
-            return $this->finalizeMcqAttempt($attempt, $status, $unlockService, $gamification);
+            return $this->finalizeMcqAttempt($attempt, $expired ? 'expired' : 'submitted', $unlockService, $gamification);
         });
 
         return redirect()->route('challenges.quiz.result', [
@@ -640,7 +671,6 @@ class ChallengesController extends Controller
             $challenge = Challenge::query()
                 ->whereKey($challenge->id)
                 ->where('is_coding_challenge', false)
-                ->where('is_active', true)
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -652,8 +682,14 @@ class ChallengesController extends Controller
                 ->first();
 
             if ($activeAttempt) {
+                // Continuing an existing attempt is allowed even when a newer
+                // version was published in the meantime.
                 return $activeAttempt;
             }
+
+            // Only the active version accepts NEW attempts. The flag is read
+            // from the row locked above, so it cannot race with publication.
+            abort_unless((bool) $challenge->is_active, 404);
 
             $hasRankedAttempt = ChallengeAttempt::where('user_id', $userId)
                 ->where('challenge_id', $challenge->id)

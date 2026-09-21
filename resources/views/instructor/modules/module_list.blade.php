@@ -42,8 +42,10 @@
       padding: 28px 32px 48px;
     }
 
+    /* Fills whatever room is left beside the sidebar; the card grid adds columns as it grows. */
     .library-wrap {
-      max-width: 1500px;
+      width: 100%;
+      max-width: none;
     }
 
     /* ── Page header ────────────────────────────────────── */

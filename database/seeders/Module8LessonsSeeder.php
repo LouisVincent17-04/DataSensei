@@ -139,40 +139,38 @@ class Module8LessonsSeeder extends Seeder
 <h3>The Research Process: A Statistical Roadmap</h3>
 <p>Every rigorous study follows a systematic process. Skipping steps — especially planning sample size before collecting data — is one of the most common and costly mistakes in research.</p>
 
-<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:32px;">
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
-    <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:14px;text-align:center;">
-      <div style="font-size:1.4rem;margin-bottom:6px;">❓</div>
-      <div style="font-weight:700;font-size:0.8rem;color:var(--text);margin-bottom:4px;">1. Research Question</div>
-      <div style="font-size:0.72rem;color:var(--muted);">Define the problem precisely</div>
-    </div>
-    <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:14px;text-align:center;">
-      <div style="font-size:1.4rem;margin-bottom:6px;">📐</div>
-      <div style="font-weight:700;font-size:0.8rem;color:var(--text);margin-bottom:4px;">2. Study Design</div>
-      <div style="font-size:0.72rem;color:var(--muted);">Choose method, plan sample</div>
-    </div>
-    <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:14px;text-align:center;">
-      <div style="font-size:1.4rem;margin-bottom:6px;">📊</div>
-      <div style="font-weight:700;font-size:0.8rem;color:var(--text);margin-bottom:4px;">3. Data Collection</div>
-      <div style="font-size:0.72rem;color:var(--muted);">Execute sampling protocol</div>
-    </div>
-    <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:14px;text-align:center;">
-      <div style="font-size:1.4rem;margin-bottom:6px;">🔍</div>
-      <div style="font-weight:700;font-size:0.8rem;color:var(--text);margin-bottom:4px;">4. EDA</div>
-      <div style="font-size:0.72rem;color:var(--muted);">Explore, visualize, summarize</div>
-    </div>
-    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:14px;text-align:center;">
-      <div style="font-size:1.4rem;margin-bottom:6px;">⚙️</div>
-      <div style="font-weight:700;font-size:0.8rem;color:var(--text);margin-bottom:4px;">5. Analysis</div>
-      <div style="font-size:0.72rem;color:var(--muted);">Apply chosen tests</div>
-    </div>
-    <div style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:14px;text-align:center;">
-      <div style="font-size:1.4rem;margin-bottom:6px;">📝</div>
-      <div style="font-weight:700;font-size:0.8rem;color:var(--text);margin-bottom:4px;">6. Interpret & Report</div>
-      <div style="font-size:0.72rem;color:var(--muted);">Contextualize findings</div>
-    </div>
-  </div>
-</div>
+<ol style="list-style:none;margin:0 0 32px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 12px 28px rgba(0,0,0,0.28);">
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">01</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Research Question</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Define the problem precisely</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">02</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Study Design</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Choose method, plan sample</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">03</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Data Collection</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Execute sampling protocol</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">04</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">EDA</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Explore, visualize, summarize</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">05</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Analysis</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Apply chosen tests</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">06</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Interpret & Report</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Contextualize findings</div>
+  </li>
+</ol>
 
 <h3>Coding: Statistical Thinking in Python</h3>
 <p>Let's put statistical thinking into practice by simulating the difference between a population and a sample, and observing how sample statistics vary around the true population parameter. This is the core intuition behind inferential statistics.</p>
@@ -1050,7 +1048,7 @@ np.random.seed(<span style="color:#fcd34d;">55</span>)
 
 <span style="color:#6b7280;"># Boxplot</span>
 <span style="color:#93c5fd;">fig</span>, ax = plt.subplots(figsize=(<span style="color:#fcd34d;">8</span>, <span style="color:#fcd34d;">4</span>))
-ax.boxplot([fert_A, fert_B, fert_C, fert_D], labels=[<span style="color:#a7f3d0;">'Fert A'</span>, <span style="color:#a7f3d0;">'Fert B'</span>, <span style="color:#a7f3d0;">'Fert C'</span>, <span style="color:#a7f3d0;">'Fert D'</span>],
+ax.boxplot([fert_A, fert_B, fert_C, fert_D], tick_labels=['Fert A', 'Fert B', 'Fert C', 'Fert D'],
            patch_artist=<span style="color:#fca5a5;">True</span>, boxprops=<span style="color:#93c5fd;">dict</span>(facecolor=<span style="color:#a7f3d0;">"#a78bfa"</span>, alpha=<span style="color:#fcd34d;">0.5</span>))
 ax.set_title(<span style="color:#a7f3d0;">f"Crop Yield by Fertilizer  (F={F_stat:.2f}, p={p_anova:.4f})"</span>)
 ax.set_ylabel(<span style="color:#a7f3d0;">"Yield (kg/plot)"</span>)
@@ -1540,7 +1538,7 @@ axes[<span style="color:#fcd34d;">0</span>].legend()
 <span style="color:#6b7280;"># Boxplot per cell</span>
 <span style="color:#93c5fd;">df</span>[<span style="color:#a7f3d0;">'Group'</span>] = df[<span style="color:#a7f3d0;">'Temperature'</span>] + <span style="color:#a7f3d0;">"\nP="</span> + df[<span style="color:#a7f3d0;">'Pressure'</span>]
 <span style="color:#93c5fd;">groups</span> = [<span style="color:#93c5fd;">list</span>(df[df[<span style="color:#a7f3d0;">'Group'</span>]==g][<span style="color:#a7f3d0;">'Yield'</span>]) <span style="color:#c4b5fd;">for</span> g <span style="color:#c4b5fd;">in</span> df[<span style="color:#a7f3d0;">'Group'</span>].unique()]
-axes[<span style="color:#fcd34d;">1</span>].boxplot(groups, labels=df[<span style="color:#a7f3d0;">'Group'</span>].unique(),
+axes[1].boxplot(groups, tick_labels=df['Group'].unique(),
                patch_artist=<span style="color:#fca5a5;">True</span>, boxprops=<span style="color:#93c5fd;">dict</span>(facecolor=<span style="color:#a7f3d0;">"#a78bfa"</span>, alpha=<span style="color:#fcd34d;">0.5</span>))
 axes[<span style="color:#fcd34d;">1</span>].set_title(<span style="color:#a7f3d0;">"Yield by Treatment Cell"</span>)
 axes[<span style="color:#fcd34d;">1</span>].set_ylabel(<span style="color:#a7f3d0;">"Yield (%)"</span>)

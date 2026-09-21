@@ -10,6 +10,12 @@ class SuperAdminAnalyticsService
 {
     private const MAX_RANGE_DAYS = 366;
 
+    /** @var array<string, bool> */
+    private array $tableExistsCache = [];
+
+    /** @var array<string, bool> */
+    private array $columnExistsCache = [];
+
     private const ROLE_LABELS = [
         1 => 'Student',
         2 => 'Admin',
@@ -813,20 +819,62 @@ class SuperAdminAnalyticsService
         return [];
     }
 
+    /**
+     * MySQL cannot prepare "SHOW TABLES LIKE ?" or "SHOW COLUMNS ... LIKE ?":
+     * the placeholder is a syntax error, the exception was swallowed, and every
+     * existence check answered "no", so the whole analytics page and all of its
+     * exports reported zero on a populated database. information_schema accepts
+     * bound parameters and exposes only the basic columns the MySQL 5.5
+     * deployment has. Every query in this service is MySQL SQL, so another
+     * driver still reports nothing rather than failing halfway down the page.
+     */
     private function tableExists(string $table): bool
     {
-        try {
-            return ! empty(DB::select('SHOW TABLES LIKE ?', [$table]));
-        } catch (\Throwable $e) {
-            return false;
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
         }
+
+        return $this->tableExistsCache[$table] = $this->schemaObjectExists(
+            'SELECT COUNT(*) AS aggregate
+             FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = ?',
+            [$table]
+        );
     }
 
     private function columnExists(string $table, string $column): bool
     {
+        $cacheKey = $table . '.' . $column;
+
+        if (array_key_exists($cacheKey, $this->columnExistsCache)) {
+            return $this->columnExistsCache[$cacheKey];
+        }
+
+        return $this->columnExistsCache[$cacheKey] = $this->tableExists($table)
+            && $this->schemaObjectExists(
+                'SELECT COUNT(*) AS aggregate
+                 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = ?
+                   AND COLUMN_NAME = ?',
+                [$table, $column]
+            );
+    }
+
+    /**
+     * @param  array<int, string>  $bindings
+     */
+    private function schemaObjectExists(string $sql, array $bindings): bool
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return false;
+        }
+
         try {
-            $safeTable = str_replace('`', '``', $table);
-            return ! empty(DB::select("SHOW COLUMNS FROM `{$safeTable}` LIKE ?", [$column]));
+            $result = DB::selectOne($sql, $bindings);
+
+            return (int) ($result->aggregate ?? 0) > 0;
         } catch (\Throwable $e) {
             return false;
         }

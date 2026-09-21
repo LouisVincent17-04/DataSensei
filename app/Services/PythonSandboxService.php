@@ -10,6 +10,9 @@ use Illuminate\Support\Str;
 
 class PythonSandboxService
 {
+    /** Printed by the runner when it stopped the learner's own code. */
+    public const TIME_LIMIT_MARKER = '__DATASENSEI_TIME_LIMIT__';
+
     /**
      * The only variables a locally-run student program inherits.
      *
@@ -31,8 +34,10 @@ class PythonSandboxService
 
     private const INPUTS_CONSUMED_MARKER = '__DATASENSEI_INPUTS_CONSUMED__:';
 
-    public function __construct(private readonly PythonCodePolicyService $policy)
-    {
+    public function __construct(
+        private readonly PythonCodePolicyService $policy,
+        private readonly ?PythonWarmSandbox $warmSandbox = null,
+    ) {
     }
 
     public function runInline(string $code, string $stdin = '', array $options = []): array
@@ -115,7 +120,7 @@ class PythonSandboxService
             );
         }
 
-        $executionSlot = $this->acquireExecutionSlot($timeout + 10);
+        $executionSlot = $this->acquireExecutionSlot($timeout + $this->startupGraceSeconds() + 5);
 
         if (!$executionSlot) {
             return $this->failure(
@@ -129,7 +134,22 @@ class PythonSandboxService
                 $this->makeWorkspaceDockerReadable($workspacePath);
             }
 
+            // Warm sandbox first: a pre-started container (and, in the IDE, the
+            // still-running program waiting in input()). It returns null when
+            // it cannot serve this run, and the classic path below takes over.
             $result = $driver === 'docker'
+                ? ($this->warmSandbox ?? app(PythonWarmSandbox::class))->run(
+                    $this,
+                    $workspacePath,
+                    $entryRelativePath,
+                    $stdin,
+                    $timeout,
+                    $interactiveInput,
+                    is_array($options['session'] ?? null) ? $options['session'] : null
+                )
+                : null;
+
+            $result ??= $driver === 'docker'
                 ? $this->runWithDocker($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput)
                 : $this->runLocally($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput);
         } finally {
@@ -167,9 +187,21 @@ class PythonSandboxService
         $inputRequest = $this->extractInputRequest((string) ($result['stderr'] ?? ''), (int) ($result['exit_code'] ?? 1));
         $stderr = $this->truncate($inputRequest['stderr'], (int) config('code_execution.python.max_stderr_bytes', 60000));
 
-        if (($result['timed_out'] ?? false) === true) {
-            $stderr = trim($stderr . "\nExecution stopped after {$timeout} seconds. The program may contain an infinite loop or a task that is too expensive for the learning sandbox.");
+        $hitTimeLimit = $this->programHitTimeLimit((string) ($result['stderr'] ?? ''))
+            || $this->programHitTimeLimit($stdout);
+
+        if ($hitTimeLimit) {
+            // The runner already printed a full explanation; drop the marker.
+            $stderr = trim(str_replace(self::TIME_LIMIT_MARKER, '', $stderr));
+            $result['timed_out'] = true;
+        } elseif (($result['timed_out'] ?? false) === true) {
+            // The program never reached its own limit, so the sandbox itself
+            // was too slow to start. Saying "infinite loop" here sends the
+            // learner hunting for a bug that is not in their code.
+            $stderr = trim($stderr."\nThe sandbox did not finish starting in time, so this run was cancelled. Your code was not the problem. Press Run again; if it keeps happening, ask your instructor to check that Docker is running and that the warm sandbox pool is filled (php artisan python-sandbox:pool doctor).");
         }
+
+        $stdout = str_replace(self::TIME_LIMIT_MARKER, '', $stdout);
 
         return [
             // Only trailing newlines are dropped. Leading indentation and a
@@ -233,6 +265,26 @@ class PythonSandboxService
         }
     }
 
+    /**
+     * How long the sandbox may take to start before the learner's code runs.
+     * Docker Desktop on Windows is the slow case: a cold "docker run" of this
+     * image is routinely 3-8 seconds, and the warm pool exists to avoid it.
+     */
+    public function startupGraceSeconds(): int
+    {
+        return max(4, min(60, (int) config('code_execution.python.startup_grace_seconds', 20)));
+    }
+
+    /**
+     * The runner prints a marker when it stopped the learner's own code. Its
+     * absence on a timeout means the sandbox never got that far, which is an
+     * environment problem and must not be reported as an infinite loop.
+     */
+    public function programHitTimeLimit(string $stderr): bool
+    {
+        return str_contains($stderr, self::TIME_LIMIT_MARKER);
+    }
+
     private function runWithDocker(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactiveInput): array
     {
         $docker = (string) config('code_execution.python.docker.binary', 'docker');
@@ -256,54 +308,23 @@ class PythonSandboxService
         // files work without allowing code to alter Laravel's persisted workspace.
         $inputMount = 'type=bind,source='.$bindSource.',target=/input,readonly';
 
-        $command = [
-            $docker, 'run', '--rm',
-            // Without --interactive the container's stdin is /dev/null, so every
-            // input() call reached EOF no matter what the learner typed and the
-            // IDE asked for the same value forever. No --tty: the runner needs a
-            // plain pipe, not a terminal.
-            '--interactive',
-            '--name', $containerName,
-            '--network', (string) config('code_execution.python.docker.network', 'none'),
-            '--memory', (string) config('code_execution.python.docker.memory', '512m'),
-            '--memory-swap', (string) config('code_execution.python.docker.memory_swap', '512m'),
-            '--cpus', (string) config('code_execution.python.docker.cpus', '0.50'),
-            '--pids-limit', (string) config('code_execution.python.docker.pids_limit', 64),
-            '--ulimit', 'nofile=64:64',
-            '--ipc', 'none',
-            '--stop-timeout', '1',
-            '--tmpfs', '/tmp:rw,nosuid,nodev,noexec,size=' . (string) config('code_execution.python.docker.tmpfs_size', '64m') . ',mode=1777',
-            '--tmpfs', '/workspace:rw,nosuid,nodev,noexec,size=' . (string) config('code_execution.python.docker.workspace_tmpfs_size', '32m') . ',mode=0770,uid=1000,gid=1000',
-            '--mount', $inputMount,
-            '-w', '/workspace',
-        ];
-
-        if ((bool) config('code_execution.python.docker.cap_drop_all', true)) {
-            array_push($command, '--cap-drop', 'ALL');
-        }
-
-        if ((bool) config('code_execution.python.docker.no_new_privileges', true)) {
-            array_push($command, '--security-opt', 'no-new-privileges');
-        }
-
-        $runAsUser = trim((string) config('code_execution.python.docker.run_as_user', '1000:1000'));
-        if ($runAsUser !== '') {
-            array_push($command, '--user', $runAsUser);
-        }
-
-        if ((bool) config('code_execution.python.docker.read_only_root', true)) {
-            $command[] = '--read-only';
-        }
-
-        foreach ($this->runnerEnvironment('/workspace', '/input', $timeout, $interactiveInput) as $key => $value) {
-            array_push($command, '-e', $key . '=' . $value);
-        }
+        $command = $this->dockerRunCommand(
+            $containerName,
+            $this->runnerEnvironment('/workspace', '/input', $timeout, $interactiveInput),
+            $inputMount,
+            false
+        );
 
         $command[] = $image;
         $command[] = '/workspace/' . $this->normalizeRelativePath($entryRelativePath);
 
         try {
-            $process = Process::timeout($timeout + 4)
+            // The container has to boot before the learner's clock starts, and
+            // on a busy laptop "docker run" alone can take several seconds. The
+            // runner stops the program itself at DS_WALL_SECONDS, so this outer
+            // limit only needs to be generous enough that a slow start is never
+            // mistaken for the learner's infinite loop.
+            $process = Process::timeout($timeout + $this->startupGraceSeconds())
                 ->input($stdin)
                 ->run($command);
 
@@ -327,6 +348,98 @@ class PythonSandboxService
                 'timed_out' => false,
             ];
         }
+    }
+
+    /**
+     * The one place that defines how a sandbox container is confined. The
+     * classic run and the warm pool both build their command here, so a warm
+     * container can never be less restricted than a classic one.
+     *
+     * @param  array<string, string>  $environment
+     * @return list<string>
+     */
+    public function dockerRunCommand(string $containerName, array $environment, ?string $inputMount, bool $detached): array
+    {
+        $docker = (string) config('code_execution.python.docker.binary', 'docker');
+
+        $command = $detached
+            // Standby container: kept after exit so its log can still be read,
+            // removed explicitly by the warm sandbox, never given a host mount.
+            ? [
+                $docker, 'run', '--detach',
+                '--label', 'datasensei.sandbox=warm',
+                '--label', 'datasensei.protocol='.PythonWarmSandbox::RUNNER_PROTOCOL,
+                // Below the default of 1024: while a standby container imports
+                // its libraries it yields the CPU to classic runs and to the
+                // rest of the machine. It changes nothing when the CPU is idle.
+                '--cpu-shares', (string) max(2, (int) config('code_execution.python.warm.cpu_shares', 512)),
+            ]
+            // Without --interactive the container's stdin is /dev/null, so every
+            // input() call reached EOF no matter what the learner typed and the
+            // IDE asked for the same value forever. No --tty: the runner needs a
+            // plain pipe, not a terminal.
+            : [$docker, 'run', '--rm', '--interactive'];
+
+        array_push(
+            $command,
+            '--name', $containerName,
+            '--network', (string) config('code_execution.python.docker.network', 'none'),
+            '--memory', (string) config('code_execution.python.docker.memory', '512m'),
+            '--memory-swap', (string) config('code_execution.python.docker.memory_swap', '512m'),
+            '--cpus', (string) config('code_execution.python.docker.cpus', '0.50'),
+            '--pids-limit', (string) config('code_execution.python.docker.pids_limit', 64),
+            '--ulimit', 'nofile=64:64',
+            '--ipc', 'none',
+            '--stop-timeout', '1',
+            '--tmpfs', '/tmp:rw,nosuid,nodev,noexec,size=' . (string) config('code_execution.python.docker.tmpfs_size', '64m') . ',mode=1777',
+            '--tmpfs', '/workspace:rw,nosuid,nodev,noexec,size=' . (string) config('code_execution.python.docker.workspace_tmpfs_size', '32m') . ',mode=0770,uid=1000,gid=1000',
+            '-w', '/workspace'
+        );
+
+        if ($inputMount !== null) {
+            array_push($command, '--mount', $inputMount);
+        }
+
+        if ((bool) config('code_execution.python.docker.cap_drop_all', true)) {
+            array_push($command, '--cap-drop', 'ALL');
+        }
+
+        if ((bool) config('code_execution.python.docker.no_new_privileges', true)) {
+            array_push($command, '--security-opt', 'no-new-privileges');
+        }
+
+        $runAsUser = trim((string) config('code_execution.python.docker.run_as_user', '1000:1000'));
+        if ($runAsUser !== '') {
+            array_push($command, '--user', $runAsUser);
+        }
+
+        if ((bool) config('code_execution.python.docker.read_only_root', true)) {
+            $command[] = '--read-only';
+        }
+
+        foreach ($environment as $key => $value) {
+            array_push($command, '-e', $key . '=' . $value);
+        }
+
+        return $command;
+    }
+
+    /**
+     * Limits shared by every job of a standby container. The per-run values
+     * (CPU seconds, interactive input) travel inside the job instead.
+     *
+     * @return array<string, string>
+     */
+    public function containerEnvironment(): array
+    {
+        $environment = $this->runnerEnvironment(
+            '/workspace',
+            '/input',
+            (int) config('code_execution.python.timeout_seconds', 10)
+        );
+        unset($environment['DS_CPU_SECONDS']);
+
+        return $environment;
     }
 
     private function forceRemoveDockerContainer(string $docker, string $containerName): void
@@ -418,7 +531,12 @@ class PythonSandboxService
         $environment = [
             'DS_WORKSPACE' => $workspacePath,
             'DS_INPUT' => $inputPath,
+            // RLIMIT_CPU, kept as the hard backstop against a busy loop.
             'DS_CPU_SECONDS' => (string) max(1, $timeout),
+            // The learner's wall-clock budget, measured by the runner from
+            // their first statement so "docker run" and "import pandas" are
+            // not billed to them.
+            'DS_WALL_SECONDS' => (string) max(1, $timeout),
             'DS_MAX_OUTPUT_BYTES' => (string) max(60000, $maxOutput),
             'DS_MAX_FILE_BYTES' => (string) config('code_execution.python.max_generated_file_bytes', 8 * 1024 * 1024),
             'DS_MAX_PLOT_BYTES' => (string) config('code_execution.python.max_plot_bytes', 1500000),

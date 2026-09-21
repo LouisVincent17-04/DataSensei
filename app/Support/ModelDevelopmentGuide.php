@@ -26,7 +26,8 @@ final class ModelDevelopmentGuide
     private const INTEGER_METRICS = ['cluster_count', 'training_time_ms'];
 
     /**
-     * Beginner explanation for every roadmap step.
+     * A short "new here?" note for each of the four stops. Two sentences and
+     * one warning each; anything longer was not being read.
      *
      * @return array<int, array{what:string,why:string,example:string,tip:string,mistake:string}>
      */
@@ -34,74 +35,32 @@ final class ModelDevelopmentGuide
     {
         return [
             1 => [
-                'what' => 'Pick the table of data your model will learn from. Each row is one example, and each column is one piece of information about that example.',
-                'why' => 'A model can only learn patterns that exist in its data. Clean, relevant data matters more than a clever algorithm.',
-                'example' => 'The Iris dataset has 150 flowers. Each row lists petal and sepal sizes plus the flower species.',
-                'tip' => 'New to this? Start with a built-in dataset. They are already cleaned and come with a recommended setup.',
-                'mistake' => 'Uploading a file with merged header cells or notes above the table. Keep one header row and one record per row.',
+                'what' => 'Pick a table of examples. Each row is one example and each column is one fact about it.',
+                'why' => 'A model can only learn patterns that are in its data.',
+                'example' => 'The breast cancer table has 569 tumours, twelve measurements for each, and whether it was cancer.',
+                'tip' => 'Start with a built-in dataset. They are already clean.',
+                'mistake' => 'Uploading a sheet with notes or merged cells above the header row.',
             ],
             2 => [
-                'what' => 'Choose the one column you want the model to predict. This column is called the target (or label).',
-                'why' => 'The target tells the model what the "right answer" looks like during training.',
-                'example' => 'In a student dataset, final_score could be the target, because that is what we want to predict.',
-                'tip' => 'Ask yourself: "What question do I want answered?" The answer to that question is your target column.',
-                'mistake' => 'Choosing an ID or name column as the target. IDs are unique labels, not something a model can learn.',
+                'what' => 'Choose the column you want predicted. DataSensei picks the clue columns and the learning method for you.',
+                'why' => 'The answer column shows the model what "right" looks like while it studies.',
+                'example' => 'To predict whether a tumour is cancer, the answer column is "diagnosis" and the measurements are the clues.',
+                'tip' => 'Leave everything else on automatic for your first model, then change one thing at a time.',
+                'mistake' => 'Leaving in a clue column that is really the answer in disguise. The score looks perfect, but the model is cheating.',
             ],
             3 => [
-                'what' => 'Tick the columns the model is allowed to look at when it makes a prediction. These are called features.',
-                'why' => 'Good features carry clues about the target. Irrelevant features add noise and can make results worse.',
-                'example' => 'To predict a house price, size, number of rooms, and location are useful features. The listing ID is not.',
-                'tip' => 'Start with the recommended features, train once, then experiment by removing or adding one feature at a time.',
-                'mistake' => 'Including a column that directly contains the answer (for example "passed" when predicting "final_grade"). That makes results look unrealistically good.',
+                'what' => 'Read how often the model was right on rows that were hidden from it during training.',
+                'why' => 'A score on hidden rows tells you how the model should do on brand-new data.',
+                'example' => '"Right 96 times out of 100" means about 4 in every 100 new tumours would be labelled wrongly.',
+                'tip' => 'Compare the score with "always guess the most common answer". A useful model beats that clearly.',
+                'mistake' => 'Trusting one number. Check which kind of mistake the model makes, because some mistakes cost more than others.',
             ],
             4 => [
-                'what' => 'Tell DataSensei what kind of answer you expect: a category, a number, or groups discovered without a target.',
-                'why' => 'Each problem type uses different algorithms and different ways of measuring success.',
-                'example' => 'Yes/No or species names → Classification. A price or a score → Regression. No target at all → Clustering.',
-                'tip' => 'DataSensei suggests a problem type from your target column. Keep the suggestion unless you have a clear reason to change it.',
-                'mistake' => 'Using classification for a number with hundreds of different values, such as a price. That is a regression problem.',
-            ],
-            5 => [
-                'what' => 'Hide part of the data from the model during training so it can be tested on rows it has never seen.',
-                'why' => 'A model that is tested on its own training data can simply memorize answers. The test set shows how it behaves on new data.',
-                'example' => 'An 80/20 split trains on 80 out of every 100 rows and keeps 20 rows for the final exam.',
-                'tip' => '80% training / 20% testing is a reliable default. Leave the Advanced Options alone for your first model.',
-                'mistake' => 'Using a very small test set on a small dataset. The score then depends heavily on which few rows were picked.',
-            ],
-            6 => [
-                'what' => 'Choose the learning method. Only methods that fit your problem type are shown.',
-                'why' => 'Different algorithms find patterns in different ways. Simple ones are easier to explain; complex ones can capture more detail.',
-                'example' => 'A Decision Tree learns a list of yes/no questions, like "Is petal length below 2.5 cm?"',
-                'tip' => 'Pick one marked "Beginner friendly" first. Then train a second model with a different algorithm and compare the results.',
-                'mistake' => 'Changing many advanced parameters at once. If the result changes, you will not know which setting caused it.',
-            ],
-            7 => [
-                'what' => 'Review your choices, name the model, and start training. The model studies the training rows and learns patterns.',
-                'why' => 'Training turns your choices into a real, reusable model that can be evaluated and used for predictions.',
-                'example' => 'Name it something you will recognise later, such as "Iris – Decision Tree – 80/20".',
-                'tip' => 'Training runs in the background. You can leave the page open and watch the real progress update.',
-                'mistake' => 'Clicking Train many times. Each click creates a new job, so wait for the progress page to appear.',
-            ],
-            8 => [
-                'what' => 'Read the scores and charts that were measured on the hidden test rows.',
-                'why' => 'Evaluation tells you whether the model is actually useful before anyone relies on its predictions.',
-                'example' => 'An accuracy of 90% means 9 out of 10 test rows were predicted correctly.',
-                'tip' => 'Look at more than one number. For classification, compare accuracy with F1; for regression, check R² and the typical error together.',
-                'mistake' => 'Treating a single high score as proof. Check the charts for patterns the number hides.',
-            ],
-            9 => [
-                'what' => 'Type in values for a new example and let the trained model predict the answer.',
-                'why' => 'This is how a model is used in real life: new information goes in, a prediction comes out.',
-                'example' => 'Enter the measurements of a new flower and the model predicts its species.',
-                'tip' => 'Use "Fill with typical values" first, then change one field at a time to see how the prediction reacts.',
-                'mistake' => 'Entering values far outside the training range. Models are least reliable on examples unlike anything they have seen.',
-            ],
-            10 => [
-                'what' => 'Your trained version is stored in Model History with its settings, scores, and charts.',
-                'why' => 'Saved versions let you compare experiments, return to earlier results, and print a report.',
-                'example' => 'Train v2 with different features, compare it with v1, and keep whichever version performs better.',
-                'tip' => 'Open the report to review everything on one page, or train a new version to keep improving.',
-                'mistake' => 'Deleting an older version before comparing it with the new one.',
+                'what' => 'Type in values for a new example and read the model\'s answer in plain words.',
+                'why' => 'This is what models are for: answering a question about something they have never seen.',
+                'example' => 'Enter a tumour\'s measurements and the model answers "likely breast cancer" or "likely not", and how sure it is.',
+                'tip' => 'Load a real example first. You can compare the model\'s answer with what really happened.',
+                'mistake' => 'Treating "very sure" as proof. The model gives an estimate based on past examples.',
             ],
         ];
     }
@@ -115,17 +74,18 @@ final class ModelDevelopmentGuide
     }
 
     /**
-     * The three big phases shown on the start page.
+     * The journey in one line each, shown on the start page.
      *
      * @return array<int, array{title:string,steps:string,text:string}>
      */
     public static function phases(): array
     {
-        return [
-            ['title' => 'Prepare', 'steps' => 'Steps 1–6', 'text' => 'Pick a dataset, decide what to predict, and choose how the model should learn.'],
-            ['title' => 'Train', 'steps' => 'Step 7', 'text' => 'DataSensei trains a real scikit-learn model in a secure worker.'],
-            ['title' => 'Use', 'steps' => 'Steps 8–10', 'text' => 'Check the scores, try a prediction, and keep the version in your history.'],
-        ];
+        $phases = [];
+        foreach (ModelDevelopmentRoadmap::steps() as $number => $step) {
+            $phases[] = ['title' => $step['label'], 'steps' => 'Step '.$number, 'text' => $step['description']];
+        }
+
+        return $phases;
     }
 
     public static function isBeginnerAlgorithm(string $algorithmKey): bool
@@ -149,6 +109,7 @@ final class ModelDevelopmentGuide
             'random_forest_regressor' => 'Averages the predictions of many different decision trees.',
             'gradient_boosting_regressor' => 'Adds small trees one after another, each reducing the remaining error.',
             'kmeans' => 'Places group centres and assigns every row to the nearest centre.',
+            'auto_classification', 'auto_regression' => 'Holds a small contest between several algorithms on your training rows and keeps the winner.',
             default => 'Learns patterns from the training rows using a controlled configuration.',
         };
     }
@@ -265,9 +226,16 @@ final class ModelDevelopmentGuide
     public static function verdict(string $problemType, array $metrics): array
     {
         if ($problemType === 'classification') {
-            $key = is_numeric($metrics['f1'] ?? null) ? 'f1' : 'accuracy';
+            // Accuracy is the number a beginner can picture ("right 96 times in 100").
+            $key = is_numeric($metrics['accuracy'] ?? null) ? 'accuracy' : 'f1';
             $value = is_numeric($metrics[$key] ?? null) ? (float) $metrics[$key] : null;
             $level = self::level($value, 85.0, 70.0);
+
+            // A high score means little when always giving the most common answer scores the same.
+            $baseline = is_numeric($metrics['baseline_accuracy'] ?? null) ? (float) $metrics['baseline_accuracy'] : null;
+            if ($key === 'accuracy' && $value !== null && $baseline !== null && $value - $baseline < 3.0 && $level !== 'weak') {
+                $level = $level === 'strong' ? 'fair' : 'weak';
+            }
 
             return self::buildVerdict($level, $key, $value, [
                 'strong' => 'The model classified most unseen test rows correctly.',
@@ -375,7 +343,7 @@ final class ModelDevelopmentGuide
     {
         $titles = [
             'strong' => 'Strong result',
-            'fair' => 'Fair result – room to improve',
+            'fair' => 'Fair result, room to improve',
             'weak' => 'Needs improvement',
             'unknown' => 'Result not rated',
         ];

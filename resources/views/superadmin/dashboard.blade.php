@@ -206,17 +206,24 @@
                     </div>
                   </td>
                   <td>
+                  {{-- Instructors and institution admins are listed here too.
+                       Without their cases the role cell rendered empty. --}}
                   <span class="pill 
                       @switch($user->role)
                           @case(1) pill-student @break
                           @case(2) pill-admin @break
                           @case(3) pill-super-admin @break
+                          @case(4) pill-instructor @break
+                          @case(5) pill-institution-admin @break
                       @endswitch
                   ">
                       @switch($user->role)
                           @case(1) Student @break
                           @case(2) Admin @break
                           @case(3) Super Admin @break
+                          @case(4) Instructor @break
+                          @case(5) Institution Admin @break
+                          @default {{ $user->roleName() }}
                       @endswitch
                   </span>
                   </td>

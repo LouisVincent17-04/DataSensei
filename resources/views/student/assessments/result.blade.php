@@ -107,7 +107,7 @@
       @foreach($submission->answers->sortBy(fn($answer) => $answer->question->item_number) as $answer)
         <div class="card">
           <h3>{{ $answer->question->item_number }}. {{ $answer->question->question_text }}</h3>
-          <p><strong>Your answer:</strong> {{ $answer->selectedOption->option_text ?? $answer->answer_text ?: 'No answer' }}</p>
+          <p><strong>Your answer:</strong> {{ $answer->selectedOption->option_text ?? (trim((string) $answer->answer_text) !== '' ? $answer->answer_text : 'No answer') }}</p>
 
           @if($answer->is_correct !== null)
             <p class="muted">{{ $answer->is_correct ? 'Correct' : 'Incorrect' }}, {{ $answer->points_awarded }}/{{ $answer->question->points }}</p>

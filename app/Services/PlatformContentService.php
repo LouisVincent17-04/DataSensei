@@ -69,18 +69,46 @@ class PlatformContentService
         return ((int) Challenge::where('content_code', $contentCode)->max('version_no')) + 1;
     }
 
-    public function publishChallengeVersion(Challenge $challenge): void
+    /**
+     * Publish one version and stop every other version with the same content
+     * code from accepting NEW attempts.
+     *
+     * Learners who already started an attempt on a version that is deactivated
+     * here are not interrupted: the student endpoints let an owned in-progress
+     * attempt resume, autosave, heartbeat and submit against its original
+     * version. The return value is the number of such in-progress attempts
+     * across ALL deactivated versions, so the caller can tell the administrator.
+     *
+     * Every version row is locked first. Starting an attempt locks the same
+     * challenge row, so a start either commits before publication (and is
+     * counted here) or runs afterwards and sees the version as inactive.
+     */
+    public function publishChallengeVersion(Challenge $challenge): int
     {
-        DB::transaction(function () use ($challenge): void {
-            $versionIds = Challenge::query()
+        return (int) DB::transaction(function () use ($challenge): int {
+            $versions = Challenge::query()
                 ->where('content_code', $challenge->content_code)
                 ->where('is_coding_challenge', (bool) $challenge->is_coding_challenge)
                 ->orderBy('id')
                 ->lockForUpdate()
+                ->get(['id', 'is_active']);
+
+            $deactivatedIds = $versions
+                ->filter(fn (Challenge $version): bool => (int) $version->id !== (int) $challenge->getKey()
+                    && (bool) $version->is_active)
                 ->pluck('id');
 
+            $continuingAttempts = 0;
+            if ($deactivatedIds->isNotEmpty() && ! $challenge->is_coding_challenge) {
+                $continuingAttempts = DB::table('challenge_attempts')
+                    ->whereIn('challenge_id', $deactivatedIds->all())
+                    ->where('status', 'in_progress')
+                    ->where('expires_at', '>', now())
+                    ->count();
+            }
+
             Challenge::query()
-                ->whereIn('id', $versionIds)
+                ->whereIn('id', $versions->pluck('id'))
                 ->where('id', '<>', $challenge->getKey())
                 ->update(['is_active' => false]);
 
@@ -89,6 +117,8 @@ class PlatformContentService
                 ->update(['is_active' => true]);
 
             $challenge->forceFill(['is_active' => true])->syncOriginalAttribute('is_active');
+
+            return $continuingAttempts;
         }, 3);
     }
 

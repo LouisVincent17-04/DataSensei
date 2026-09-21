@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\AntiCheatEvent;
+use App\Models\AssignmentSubmission;
+use App\Models\ClassAssignment;
+use App\Services\AntiCheatPolicyService;
 use App\Support\AntiCheatEventContract;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -101,6 +104,9 @@ class AntiCheatEventController extends Controller
         $event = $result['event'];
 
         return response()->json([
+            // The browser locks exactly when the server considers the attempt
+            // blocked and shows the server's deduplicated focus-loss count.
+            'integrity' => $this->integrityState((int) $data['class_assignment_id'], (int) $data['assignment_submission_id']),
             'ok' => true,
             'event_id' => $event->id,
             'event_uuid' => $event->event_uuid,
@@ -108,6 +114,30 @@ class AntiCheatEventController extends Controller
             'classification' => AntiCheatEventContract::classificationFor($event->event_type),
             'deduplicated' => $result['deduplicated'],
         ]);
+    }
+
+    /**
+     * @return array{blocked: bool, reason: ?string, focus_loss_count: int, max_tab_switches: int, remaining_allowance: ?int}|null
+     */
+    private function integrityState(int $classAssignmentId, int $submissionId): ?array
+    {
+        $assignment = ClassAssignment::find($classAssignmentId);
+        $submission = AssignmentSubmission::find($submissionId);
+        $user = Auth::user();
+
+        if (! $assignment || ! $submission || ! $user) {
+            return null;
+        }
+
+        $state = app(AntiCheatPolicyService::class)->attemptIntegrityState($user, $assignment, $submission);
+
+        return [
+            'blocked' => $state['blocked'],
+            'reason' => $state['reason'],
+            'focus_loss_count' => $state['focus_loss_count'],
+            'max_tab_switches' => $state['max_tab_switches'],
+            'remaining_allowance' => $state['remaining_allowance'],
+        ];
     }
 
     private function duplicateEvent(array $data, string $eventUuid, int $userId): ?AntiCheatEvent

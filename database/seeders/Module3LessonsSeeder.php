@@ -39,40 +39,38 @@ class Module3LessonsSeeder extends Seeder
 <h3>The Data Science Pipeline</h3>
 <p>Every real-world data science project follows a lifecycle. Understanding this pipeline is the single most important conceptual framework you can internalize:</p>
 
-<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:32px;">
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
-    <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:16px;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:8px;">🎯</div>
-      <div style="font-weight:700;font-size:0.85rem;color:var(--text);margin-bottom:4px;">1. Define</div>
-      <div style="font-size:0.75rem;color:var(--muted);">Business problem → data question</div>
-    </div>
-    <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:16px;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:8px;">🗄️</div>
-      <div style="font-weight:700;font-size:0.85rem;color:var(--text);margin-bottom:4px;">2. Collect</div>
-      <div style="font-size:0.75rem;color:var(--muted);">APIs, scraping, databases, sensors</div>
-    </div>
-    <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:16px;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:8px;">🧹</div>
-      <div style="font-weight:700;font-size:0.85rem;color:var(--text);margin-bottom:4px;">3. Clean</div>
-      <div style="font-size:0.75rem;color:var(--muted);">Missing values, outliers, encoding</div>
-    </div>
-    <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:16px;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:8px;">🔍</div>
-      <div style="font-weight:700;font-size:0.85rem;color:var(--text);margin-bottom:4px;">4. Explore</div>
-      <div style="font-size:0.75rem;color:var(--muted);">EDA, distributions, correlations</div>
-    </div>
-    <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:16px;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:8px;">⚙️</div>
-      <div style="font-weight:700;font-size:0.85rem;color:var(--text);margin-bottom:4px;">5. Model</div>
-      <div style="font-size:0.75rem;color:var(--muted);">Train, validate, tune</div>
-    </div>
-    <div style="background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:16px;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:8px;">📊</div>
-      <div style="font-weight:700;font-size:0.85rem;color:var(--text);margin-bottom:4px;">6. Communicate</div>
-      <div style="font-size:0.75rem;color:var(--muted);">Visualize, present, deploy</div>
-    </div>
-  </div>
-</div>
+<ol style="list-style:none;margin:0 0 32px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 12px 28px rgba(0,0,0,0.28);">
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">01</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Define</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Business problem → data question</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">02</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Collect</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">APIs, scraping, databases, sensors</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">03</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Clean</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Missing values, outliers, encoding</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">04</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Explore</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">EDA, distributions, correlations</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">05</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Model</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Train, validate, tune</div>
+  </li>
+  <li style="margin:0;padding:18px 20px 20px;box-shadow:1px 0 0 var(--border),0 1px 0 var(--border);">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--accent);margin-bottom:12px;">06</div>
+    <div style="font-weight:700;font-size:0.95rem;color:var(--text);margin-bottom:6px;">Communicate</div>
+    <div style="font-size:0.8rem;line-height:1.55;color:var(--muted);">Visualize, present, deploy</div>
+  </li>
+</ol>
 
 <h3>Types of Data Science Problems</h3>
 <p>Data science problems fall into broad categories. Knowing which type you're facing determines which algorithms and evaluation metrics to use:</p>
@@ -202,7 +200,9 @@ Ndim: 2
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">prices</span> = np.array([<span style="color:#fcd34d;">120.0</span>, <span style="color:#fcd34d;">85.5</span>, <span style="color:#fcd34d;">300.0</span>, <span style="color:#fcd34d;">45.0</span>, <span style="color:#fcd34d;">200.0</span>])
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+
+<span style="color:#93c5fd;">prices</span> = np.array([<span style="color:#fcd34d;">120.0</span>, <span style="color:#fcd34d;">85.5</span>, <span style="color:#fcd34d;">300.0</span>, <span style="color:#fcd34d;">45.0</span>, <span style="color:#fcd34d;">200.0</span>])
 
 <span style="color:#6b7280;"># Arithmetic on every element — no for loop!</span>
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">"With 10% discount:"</span>, prices * <span style="color:#fcd34d;">0.9</span>)
@@ -240,7 +240,9 @@ Square roots: [10.954  9.247 17.321  6.708 14.142]</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">scores</span> = np.array([<span style="color:#fcd34d;">78</span>, <span style="color:#fcd34d;">92</span>, <span style="color:#fcd34d;">61</span>, <span style="color:#fcd34d;">85</span>, <span style="color:#fcd34d;">54</span>, <span style="color:#fcd34d;">95</span>, <span style="color:#fcd34d;">73</span>, <span style="color:#fcd34d;">88</span>])
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+
+<span style="color:#93c5fd;">scores</span> = np.array([<span style="color:#fcd34d;">78</span>, <span style="color:#fcd34d;">92</span>, <span style="color:#fcd34d;">61</span>, <span style="color:#fcd34d;">85</span>, <span style="color:#fcd34d;">54</span>, <span style="color:#fcd34d;">95</span>, <span style="color:#fcd34d;">73</span>, <span style="color:#fcd34d;">88</span>])
 
 <span style="color:#6b7280;"># Standard slicing — same syntax as lists</span>
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">"First 3:"</span>,  scores[:<span style="color:#fcd34d;">3</span>])
@@ -282,7 +284,9 @@ Grades: ['PASS' 'PASS' 'FAIL' 'PASS' 'FAIL' 'PASS' 'FAIL' 'PASS']</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">data</span> = np.array([<span style="color:#fcd34d;">23</span>, <span style="color:#fcd34d;">45</span>, <span style="color:#fcd34d;">12</span>, <span style="color:#fcd34d;">67</span>, <span style="color:#fcd34d;">34</span>, <span style="color:#fcd34d;">89</span>, <span style="color:#fcd34d;">56</span>, <span style="color:#fcd34d;">78</span>, <span style="color:#fcd34d;">90</span>, <span style="color:#fcd34d;">11</span>])
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+
+<span style="color:#93c5fd;">data</span> = np.array([<span style="color:#fcd34d;">23</span>, <span style="color:#fcd34d;">45</span>, <span style="color:#fcd34d;">12</span>, <span style="color:#fcd34d;">67</span>, <span style="color:#fcd34d;">34</span>, <span style="color:#fcd34d;">89</span>, <span style="color:#fcd34d;">56</span>, <span style="color:#fcd34d;">78</span>, <span style="color:#fcd34d;">90</span>, <span style="color:#fcd34d;">11</span>])
 
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Mean:     {data.mean():.2f}"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Median:   {np.median(data):.2f}"</span>)
@@ -324,7 +328,9 @@ Row means (axis=1): [20. 50.]</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">rng</span> = np.random.default_rng(seed=<span style="color:#fcd34d;">42</span>)   <span style="color:#6b7280;"># Reproducible: seed locks the sequence</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+
+<span style="color:#93c5fd;">rng</span> = np.random.default_rng(seed=<span style="color:#fcd34d;">42</span>)   <span style="color:#6b7280;"># Reproducible: seed locks the sequence</span>
 
 <span style="color:#6b7280;"># Uniform distribution: values between low and high</span>
 <span style="color:#93c5fd;">uniform</span> = rng.uniform(<span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">100</span>, size=<span style="color:#fcd34d;">5</span>)
@@ -431,7 +437,9 @@ dtype: object</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Method 1: From a dict of lists (most common)</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+
+<span style="color:#6b7280;"># Method 1: From a dict of lists (most common)</span>
 <span style="color:#93c5fd;">df</span> = pd.DataFrame({
     <span style="color:#a7f3d0;">"student"</span>  : [<span style="color:#a7f3d0;">"Ana"</span>, <span style="color:#a7f3d0;">"Ben"</span>, <span style="color:#a7f3d0;">"Clara"</span>, <span style="color:#a7f3d0;">"Diego"</span>, <span style="color:#a7f3d0;">"Eve"</span>],
     <span style="color:#a7f3d0;">"math"</span>     : [<span style="color:#fcd34d;">88</span>, <span style="color:#fcd34d;">72</span>, <span style="color:#fcd34d;">95</span>, <span style="color:#fcd34d;">61</span>, <span style="color:#fcd34d;">83</span>],
@@ -473,7 +481,18 @@ grade      object</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Select a single column (returns a Series)</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#93c5fd;">df</span> = pd.DataFrame({
+    <span style="color:#a7f3d0;">"student"</span>  : [<span style="color:#a7f3d0;">"Ana"</span>, <span style="color:#a7f3d0;">"Ben"</span>, <span style="color:#a7f3d0;">"Clara"</span>, <span style="color:#a7f3d0;">"Diego"</span>, <span style="color:#a7f3d0;">"Eve"</span>],
+    <span style="color:#a7f3d0;">"math"</span>     : [<span style="color:#fcd34d;">88</span>, <span style="color:#fcd34d;">72</span>, <span style="color:#fcd34d;">95</span>, <span style="color:#fcd34d;">61</span>, <span style="color:#fcd34d;">83</span>],
+    <span style="color:#a7f3d0;">"science"</span>  : [<span style="color:#fcd34d;">91</span>, <span style="color:#fcd34d;">68</span>, <span style="color:#fcd34d;">89</span>, <span style="color:#fcd34d;">74</span>, <span style="color:#fcd34d;">77</span>],
+    <span style="color:#a7f3d0;">"grade"</span>    : [<span style="color:#a7f3d0;">"A"</span>, <span style="color:#a7f3d0;">"C"</span>, <span style="color:#a7f3d0;">"A"</span>, <span style="color:#a7f3d0;">"D"</span>, <span style="color:#a7f3d0;">"B"</span>]
+})
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#6b7280;"># Select a single column (returns a Series)</span>
 <span style="color:#93c5fd;">print</span>(df[<span style="color:#a7f3d0;">"math"</span>].values)
 
 <span style="color:#6b7280;"># Select multiple columns (returns a DataFrame)</span>
@@ -518,7 +537,9 @@ grade      object</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
 
 <span style="color:#93c5fd;">messy</span> = pd.DataFrame({
     <span style="color:#a7f3d0;">"name"</span>  : [<span style="color:#a7f3d0;">"Alice"</span>, <span style="color:#a7f3d0;">"Bob"</span>, np.nan, <span style="color:#a7f3d0;">"Diana"</span>, <span style="color:#a7f3d0;">"Eve"</span>],
@@ -565,7 +586,9 @@ Total nulls: 4</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">sales</span> = pd.DataFrame({
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+
+<span style="color:#93c5fd;">sales</span> = pd.DataFrame({
     <span style="color:#a7f3d0;">"region"</span>  : [<span style="color:#a7f3d0;">"North"</span>, <span style="color:#a7f3d0;">"South"</span>, <span style="color:#a7f3d0;">"North"</span>, <span style="color:#a7f3d0;">"East"</span>, <span style="color:#a7f3d0;">"South"</span>, <span style="color:#a7f3d0;">"East"</span>],
     <span style="color:#a7f3d0;">"product"</span> : [<span style="color:#a7f3d0;">"A"</span>, <span style="color:#a7f3d0;">"B"</span>, <span style="color:#a7f3d0;">"B"</span>, <span style="color:#a7f3d0;">"A"</span>, <span style="color:#a7f3d0;">"A"</span>, <span style="color:#a7f3d0;">"B"</span>],
     <span style="color:#a7f3d0;">"revenue"</span> : [<span style="color:#fcd34d;">5200</span>, <span style="color:#fcd34d;">3100</span>, <span style="color:#fcd34d;">4800</span>, <span style="color:#fcd34d;">6200</span>, <span style="color:#fcd34d;">2900</span>, <span style="color:#fcd34d;">5500</span>],
@@ -659,7 +682,10 @@ plt.show()</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">rng</span>  = np.random.default_rng(<span style="color:#fcd34d;">42</span>)
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+
+<span style="color:#93c5fd;">rng</span>  = np.random.default_rng(<span style="color:#fcd34d;">42</span>)
 <span style="color:#93c5fd;">data</span> = rng.normal(<span style="color:#fcd34d;">100</span>, <span style="color:#fcd34d;">15</span>, <span style="color:#fcd34d;">500</span>)
 <span style="color:#93c5fd;">cats</span> = [<span style="color:#a7f3d0;">"Dogs"</span>, <span style="color:#a7f3d0;">"Cats"</span>, <span style="color:#a7f3d0;">"Birds"</span>, <span style="color:#a7f3d0;">"Fish"</span>]
 <span style="color:#93c5fd;">vals</span> = [<span style="color:#fcd34d;">45</span>, <span style="color:#fcd34d;">30</span>, <span style="color:#fcd34d;">15</span>, <span style="color:#fcd34d;">10</span>]
@@ -685,7 +711,7 @@ axes[<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">0</span>
 
 <span style="color:#6b7280;"># Boxplot</span>
 datasets = [rng.normal(mu, <span style="color:#fcd34d;">5</span>, <span style="color:#fcd34d;">50</span>) <span style="color:#c4b5fd;">for</span> mu <span style="color:#c4b5fd;">in</span> [<span style="color:#fcd34d;">60</span>, <span style="color:#fcd34d;">70</span>, <span style="color:#fcd34d;">80</span>, <span style="color:#fcd34d;">90</span>]]
-axes[<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">1</span>].boxplot(datasets, labels=[<span style="color:#a7f3d0;">"G1"</span>,<span style="color:#a7f3d0;">"G2"</span>,<span style="color:#a7f3d0;">"G3"</span>,<span style="color:#a7f3d0;">"G4"</span>])
+axes[<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">1</span>].boxplot(datasets, tick_labels=[<span style="color:#a7f3d0;">"G1"</span>,<span style="color:#a7f3d0;">"G2"</span>,<span style="color:#a7f3d0;">"G3"</span>,<span style="color:#a7f3d0;">"G4"</span>])
 axes[<span style="color:#fcd34d;">1</span>,<span style="color:#fcd34d;">1</span>].set_title(<span style="color:#a7f3d0;">"Group Boxplots"</span>)
 
 plt.suptitle(<span style="color:#a7f3d0;">"EDA Dashboard"</span>, fontsize=<span style="color:#fcd34d;">16</span>, fontweight=<span style="color:#a7f3d0;">"bold"</span>)
@@ -704,7 +730,9 @@ plt.show()</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> seaborn <span style="color:#c4b5fd;">as</span> sns
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+
+<span style="color:#c4b5fd;">import</span> seaborn <span style="color:#c4b5fd;">as</span> sns
 <span style="color:#c4b5fd;">import</span> pandas  <span style="color:#c4b5fd;">as</span> pd
 
 <span style="color:#6b7280;"># Load a built-in dataset (seaborn ships with famous datasets)</span>
@@ -808,7 +836,7 @@ HTML;
 <span style="color:#6b7280;"># Measures of Spread</span>
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"\nStd Dev:  {salaries.std():,.0f}"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Variance: {salaries.var():,.0f}"</span>)
-<span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Range:    {salaries.ptp():,.0f}"</span>)
+<span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Range:    {np.ptp(salaries):,.0f}"</span>)
 
 <span style="color:#93c5fd;">q1</span>, <span style="color:#93c5fd;">q3</span> = np.percentile(salaries, [<span style="color:#fcd34d;">25</span>, <span style="color:#fcd34d;">75</span>])
 <span style="color:#93c5fd;">iqr</span>    = q3 - q1
@@ -847,7 +875,9 @@ Kurtosis: 7.142</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> scipy <span style="color:#c4b5fd;">import</span> stats
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+
+<span style="color:#c4b5fd;">from</span> scipy <span style="color:#c4b5fd;">import</span> stats
 
 <span style="color:#6b7280;"># Normal distribution: 68-95-99.7 rule</span>
 <span style="color:#93c5fd;">norm</span> = stats.norm(loc=<span style="color:#fcd34d;">170</span>, scale=<span style="color:#fcd34d;">10</span>)  <span style="color:#6b7280;"># mean=170cm height, std=10</span>
@@ -887,7 +917,10 @@ P(8 tickets in one hour) = 0.0653</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">rng</span> = np.random.default_rng(<span style="color:#fcd34d;">42</span>)
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">from</span> scipy <span style="color:#c4b5fd;">import</span> stats
+
+<span style="color:#93c5fd;">rng</span> = np.random.default_rng(<span style="color:#fcd34d;">42</span>)
 
 <span style="color:#6b7280;"># Scenario: Do Model A and Model B have different accuracy distributions?</span>
 <span style="color:#93c5fd;">model_a</span> = rng.normal(<span style="color:#fcd34d;">0.88</span>, <span style="color:#fcd34d;">0.03</span>, <span style="color:#fcd34d;">30</span>)   <span style="color:#6b7280;"># 30 cross-val runs</span>
@@ -1040,7 +1073,10 @@ Ordinal encoded education:
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">df</span> = pd.DataFrame({
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+
+<span style="color:#93c5fd;">df</span> = pd.DataFrame({
     <span style="color:#a7f3d0;">"birth_year"</span>  : [<span style="color:#fcd34d;">1990</span>, <span style="color:#fcd34d;">1985</span>, <span style="color:#fcd34d;">2000</span>, <span style="color:#fcd34d;">1978</span>, <span style="color:#fcd34d;">1995</span>],
     <span style="color:#a7f3d0;">"height_cm"</span>   : [<span style="color:#fcd34d;">170</span>, <span style="color:#fcd34d;">165</span>, <span style="color:#fcd34d;">182</span>, <span style="color:#fcd34d;">158</span>, <span style="color:#fcd34d;">175</span>],
     <span style="color:#a7f3d0;">"weight_kg"</span>   : [<span style="color:#fcd34d;">70</span>, <span style="color:#fcd34d;">85</span>, <span style="color:#fcd34d;">78</span>, <span style="color:#fcd34d;">60</span>, <span style="color:#fcd34d;">90</span>],
@@ -1268,7 +1304,21 @@ Mean: 0.894 ± 0.013</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.linear_model    <span style="color:#c4b5fd;">import</span> LogisticRegression
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">from</span> sklearn.model_selection <span style="color:#c4b5fd;">import</span> train_test_split, cross_val_score
+<span style="color:#c4b5fd;">from</span> sklearn.datasets       <span style="color:#c4b5fd;">import</span> make_classification
+<span style="color:#c4b5fd;">from</span> sklearn.tree           <span style="color:#c4b5fd;">import</span> DecisionTreeClassifier
+X, y = make_classification(
+    <span style="color:#93c5fd;">n_samples</span>=<span style="color:#fcd34d;">1000</span>, n_features=<span style="color:#fcd34d;">10</span>, n_informative=<span style="color:#fcd34d;">5</span>,
+    <span style="color:#93c5fd;">random_state</span>=<span style="color:#fcd34d;">42</span>
+)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span style="color:#fcd34d;">0.2</span>, random_state=<span style="color:#fcd34d;">42</span>, stratify=y
+)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> sklearn.linear_model    <span style="color:#c4b5fd;">import</span> LogisticRegression
 <span style="color:#c4b5fd;">from</span> sklearn.ensemble        <span style="color:#c4b5fd;">import</span> RandomForestClassifier
 <span style="color:#c4b5fd;">from</span> sklearn.metrics         <span style="color:#c4b5fd;">import</span> (accuracy_score, classification_report,
                                           confusion_matrix, roc_auc_score)
@@ -1320,10 +1370,12 @@ Random Forest Report:
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.linear_model  <span style="color:#c4b5fd;">import</span> LinearRegression
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.model_selection <span style="color:#c4b5fd;">import</span> train_test_split, cross_val_score
+
+<span style="color:#c4b5fd;">from</span> sklearn.linear_model  <span style="color:#c4b5fd;">import</span> LinearRegression
 <span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> PolynomialFeatures
 <span style="color:#c4b5fd;">from</span> sklearn.pipeline      <span style="color:#c4b5fd;">import</span> Pipeline
-<span style="color:#c4b5fd;">from</span> sklearn.metrics       <span style="color:#c4b5fd;">import</span> mean_squared_error, r2_score
+<span style="color:#c4b5fd;">from</span> sklearn.metrics       <span style="color:#c4b5fd;">import</span> root_mean_squared_error, r2_score
 <span style="color:#c4b5fd;">from</span> sklearn.datasets      <span style="color:#c4b5fd;">import</span> make_regression
 
 <span style="color:#93c5fd;">X</span>, <span style="color:#93c5fd;">y</span> = make_regression(n_samples=<span style="color:#fcd34d;">200</span>, n_features=<span style="color:#fcd34d;">1</span>, noise=<span style="color:#fcd34d;">20</span>, random_state=<span style="color:#fcd34d;">42</span>)
@@ -1334,7 +1386,7 @@ Random Forest Report:
 <span style="color:#93c5fd;">lr</span>.fit(X_tr, y_tr)
 <span style="color:#93c5fd;">y_pred_lr</span> = lr.predict(X_te)
 
-<span style="color:#93c5fd;">rmse</span> = mean_squared_error(y_te, y_pred_lr, squared=<span style="color:#fca5a5;">False</span>)
+<span style="color:#93c5fd;">rmse</span> = root_mean_squared_error(y_te, y_pred_lr)
 <span style="color:#93c5fd;">r2</span>   = r2_score(y_te, y_pred_lr)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Linear Regression:  RMSE={rmse:.2f}, R²={r2:.4f}"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Coefficient: {lr.coef_[0]:.3f}, Intercept: {lr.intercept_:.3f}"</span>)
@@ -1345,7 +1397,7 @@ Random Forest Report:
     (<span style="color:#a7f3d0;">"lr"</span>,   LinearRegression())
 ])
 <span style="color:#93c5fd;">poly_pipe</span>.fit(X_tr, y_tr)
-<span style="color:#93c5fd;">rmse_p</span> = mean_squared_error(y_te, poly_pipe.predict(X_te), squared=<span style="color:#fca5a5;">False</span>)
+<span style="color:#93c5fd;">rmse_p</span> = root_mean_squared_error(y_te, poly_pipe.predict(X_te))
 <span style="color:#93c5fd;">r2_p</span>   = r2_score(y_te, poly_pipe.predict(X_te))
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"Polynomial Degree 2: RMSE={rmse_p:.2f}, R²={r2_p:.4f}"</span>)</div>
     <div style="color:#9ca3af;font-size:0.85rem;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;">
@@ -1438,7 +1490,9 @@ plt.tight_layout(); plt.show()
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.decomposition <span style="color:#c4b5fd;">import</span> PCA
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+
+<span style="color:#c4b5fd;">from</span> sklearn.decomposition <span style="color:#c4b5fd;">import</span> PCA
 <span style="color:#c4b5fd;">from</span> sklearn.datasets      <span style="color:#c4b5fd;">import</span> load_breast_cancer
 <span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
 <span style="color:#c4b5fd;">import</span> matplotlib.pyplot   <span style="color:#c4b5fd;">as</span> plt
@@ -1570,7 +1624,20 @@ DataFrame with lag features:
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> statsmodels.tsa.seasonal <span style="color:#c4b5fd;">import</span> seasonal_decompose
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+<span style="color:#c4b5fd;">import</span> numpy  <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+<span style="color:#93c5fd;">rng</span>     = np.random.default_rng(<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">dates</span>   = pd.date_range(start=<span style="color:#a7f3d0;">"2023-01-01"</span>, periods=<span style="color:#fcd34d;">365</span>, freq=<span style="color:#a7f3d0;">"D"</span>)
+<span style="color:#93c5fd;">trend</span>   = np.linspace(<span style="color:#fcd34d;">1000</span>, <span style="color:#fcd34d;">1500</span>, <span style="color:#fcd34d;">365</span>)                  <span style="color:#6b7280;"># upward trend</span>
+<span style="color:#93c5fd;">seasonal</span>= <span style="color:#fcd34d;">200</span> * np.sin(<span style="color:#fcd34d;">2</span> * np.pi * np.arange(<span style="color:#fcd34d;">365</span>) / <span style="color:#fcd34d;">30</span>) <span style="color:#6b7280;"># monthly cycle</span>
+<span style="color:#93c5fd;">noise</span>   = rng.normal(<span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">50</span>, <span style="color:#fcd34d;">365</span>)
+<span style="color:#93c5fd;">sales</span>   = pd.Series(trend + seasonal + noise, index=dates, name=<span style="color:#a7f3d0;">"sales"</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> statsmodels.tsa.seasonal <span style="color:#c4b5fd;">import</span> seasonal_decompose
 
 <span style="color:#6b7280;"># Decompose into trend + seasonal + residual</span>
 <span style="color:#93c5fd;">decomposition</span> = seasonal_decompose(sales, model=<span style="color:#a7f3d0;">"additive"</span>, period=<span style="color:#fcd34d;">30</span>)

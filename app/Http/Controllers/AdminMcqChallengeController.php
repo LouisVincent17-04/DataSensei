@@ -85,12 +85,14 @@ class AdminMcqChallengeController extends Controller
     {
         [$data, $questions] = $this->validatedData($request);
 
-        $challenge = DB::transaction(function () use ($data, $questions): Challenge {
+        $continuingAttempts = 0;
+
+        $challenge = DB::transaction(function () use ($data, $questions, &$continuingAttempts): Challenge {
             $challenge = Challenge::create($this->challengePayload($data));
             $this->syncQuestions($challenge, $questions);
 
             if ($challenge->is_active) {
-                $this->contentService->publishChallengeVersion($challenge);
+                $continuingAttempts = $this->contentService->publishChallengeVersion($challenge);
             }
 
             return $challenge;
@@ -98,7 +100,7 @@ class AdminMcqChallengeController extends Controller
 
         return redirect()
             ->route('admin.challenges.show', $challenge)
-            ->with('success', 'MCQ challenge version created successfully.');
+            ->with('success', 'MCQ challenge version created successfully.' . $this->continuingAttemptsNotice($continuingAttempts));
     }
 
     public function show(Challenge $challenge): View
@@ -136,7 +138,10 @@ class AdminMcqChallengeController extends Controller
         $this->ensureMcq($challenge);
         [$data, $questions] = $this->validatedData($request, $challenge);
 
-        DB::transaction(function () use ($challenge, $data, $questions): void {
+        $continuingAttempts = 0;
+
+        DB::transaction(function () use ($challenge, $data, $questions, &$continuingAttempts): void {
+            $continuingAttempts = 0;
             $lockedChallenge = Challenge::query()->whereKey($challenge->id)->lockForUpdate()->firstOrFail();
             $this->ensureMcq($lockedChallenge);
             $hasHistory = $this->contentService->challengeHasHistory($lockedChallenge);
@@ -158,13 +163,13 @@ class AdminMcqChallengeController extends Controller
             }
 
             if ($lockedChallenge->is_active) {
-                $this->contentService->publishChallengeVersion($lockedChallenge);
+                $continuingAttempts = $this->contentService->publishChallengeVersion($lockedChallenge);
             }
         }, 3);
 
         return redirect()
             ->route('admin.challenges.show', $challenge)
-            ->with('success', 'MCQ challenge version updated successfully.');
+            ->with('success', 'MCQ challenge version updated successfully.' . $this->continuingAttemptsNotice($continuingAttempts));
     }
 
     public function duplicate(Request $request, Challenge $challenge): RedirectResponse
@@ -191,7 +196,10 @@ class AdminMcqChallengeController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $copy = DB::transaction(function () use ($challenge, $data): Challenge {
+        $continuingAttempts = 0;
+
+        $copy = DB::transaction(function () use ($challenge, $data, &$continuingAttempts): Challenge {
+            $continuingAttempts = 0;
             $source = Challenge::query()
                 ->whereKey($challenge->id)
                 ->lockForUpdate()
@@ -231,7 +239,7 @@ class AdminMcqChallengeController extends Controller
             }
 
             if ($copy->is_active) {
-                $this->contentService->publishChallengeVersion($copy);
+                $continuingAttempts = $this->contentService->publishChallengeVersion($copy);
             }
 
             return $copy;
@@ -239,14 +247,17 @@ class AdminMcqChallengeController extends Controller
 
         return redirect()
             ->route('admin.challenges.edit', $copy)
-            ->with('success', 'Challenge duplicated as a new version. Review it before publishing.');
+            ->with('success', 'Challenge duplicated as a new version. Review it before publishing.' . $this->continuingAttemptsNotice($continuingAttempts));
     }
 
     public function toggleStatus(Challenge $challenge): RedirectResponse
     {
         $this->ensureMcq($challenge);
 
-        $result = DB::transaction(function () use ($challenge): string {
+        $continuingAttempts = 0;
+
+        $result = DB::transaction(function () use ($challenge, &$continuingAttempts): string {
+            $continuingAttempts = 0;
             $lockedChallenge = Challenge::query()->whereKey($challenge->id)->lockForUpdate()->firstOrFail();
             $this->ensureMcq($lockedChallenge);
 
@@ -261,7 +272,10 @@ class AdminMcqChallengeController extends Controller
                 return 'deactivated';
             }
 
-            $this->contentService->publishChallengeVersion($lockedChallenge);
+            // Publication looks at in-progress attempts on EVERY version with this
+            // content code. It is not deferred: those learners finish on the
+            // version they started, which only stops accepting new attempts.
+            $continuingAttempts = $this->contentService->publishChallengeVersion($lockedChallenge);
 
             return 'published';
         }, 3);
@@ -271,8 +285,21 @@ class AdminMcqChallengeController extends Controller
         }
 
         return back()->with('success', $result === 'published'
-            ? 'MCQ challenge version published. Other versions of this challenge were deactivated.'
+            ? 'MCQ challenge version published. Other versions of this challenge were deactivated.' . $this->continuingAttemptsNotice($continuingAttempts)
             : 'MCQ challenge version deactivated.');
+    }
+
+    private function continuingAttemptsNotice(int $continuingAttempts): string
+    {
+        if ($continuingAttempts < 1) {
+            return '';
+        }
+
+        $learners = $continuingAttempts === 1
+            ? '1 learner has an attempt in progress on the previous version and will finish it there'
+            : $continuingAttempts . ' learners have attempts in progress on the previous version and will finish them there';
+
+        return ' ' . $learners . '; their answers, timer and results are unaffected. New attempts start on the published version.';
     }
 
     public function destroy(Challenge $challenge): RedirectResponse

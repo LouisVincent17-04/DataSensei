@@ -102,18 +102,34 @@
               <select name="class_id" class="select" required>
                 <option value="">Choose class</option>
                 @foreach($classes as $class)
-                  <option value="{{ $class->id }}" @selected(old('class_id', $isEdit ? $classAssignment->class_id : '') == $class->id)>{{ $class->name }} {{ $class->section ? '— '.$class->section : '' }}</option>
+                  <option value="{{ $class->id }}" @selected(old('class_id', $isEdit ? $classAssignment->class_id : '') == $class->id)>{{ $class->name }} {{ $class->section ? '— '.$class->section : '' }}{{ $class->is_archived ? ' (archived class, kept for this assignment)' : '' }}</option>
                 @endforeach
               </select>
             </div>
 
             <div class="field">
               <label>Status</label>
-              <select name="status" class="select" required>
-                @foreach(['draft' => 'Draft', 'published' => 'Published', 'closed' => 'Closed'] as $value => $label)
-                  <option value="{{ $value }}" @selected(old('status', $isEdit ? $classAssignment->status : 'published') === $value)>{{ $label }}</option>
-                @endforeach
-              </select>
+              @if($isEdit)
+                {{-- Saving never changes the status. Publish and Close are the
+                     dedicated actions on the assignment page. --}}
+                <input type="hidden" name="status" value="{{ $classAssignment->status }}">
+                <input type="text" class="input" value="{{ ucfirst($classAssignment->status) }}" readonly aria-readonly="true">
+                <span style="display:block;margin-top:6px;color:var(--muted);font-size:.8125rem;line-height:1.5">
+                  @if($classAssignment->status === 'draft')
+                    Use Publish on the assignment page to release this draft to students.
+                  @elseif($classAssignment->status === 'published')
+                    Use Close on the assignment page to stop new attempts.
+                  @else
+                    A closed assignment cannot be reopened from this form.
+                  @endif
+                </span>
+              @else
+                <select name="status" class="select" required>
+                  @foreach(['draft' => 'Draft', 'published' => 'Published'] as $value => $label)
+                    <option value="{{ $value }}" @selected(old('status', 'published') === $value)>{{ $label }}</option>
+                  @endforeach
+                </select>
+              @endif
             </div>
 
             <div class="field span-2">
@@ -124,7 +140,7 @@
                   <optgroup label="{{ $year }}">
                     @foreach($items as $item)
                       <option value="{{ $item->id }}" data-title="{{ $item->title }}" @selected((string)$selectedLibrary === (string)$item->id)>
-                        Module {{ $item->module_no }} — {{ $item->topic_title }} / {{ $item->version_name }} / {{ $item->type_label }} / {{ $item->questions_count }} items
+                        Module {{ $item->module_no }} — {{ $item->topic_title }} / {{ $item->version_name }} / {{ $item->type_label }} / {{ $item->questions_count }} items{{ $item->is_active ? '' : ' (inactive version, kept for this assignment)' }}
                       </option>
                     @endforeach
                   </optgroup>

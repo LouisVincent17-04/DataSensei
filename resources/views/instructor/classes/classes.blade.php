@@ -584,7 +584,7 @@
             <p>Classes you archive will appear here. You can restore them at any time.</p>
           @else
             <h3>No classes yet</h3>
-            <p>Create your first class to get started — students can join with your unique class code.</p>
+            <p>Create your first class to get started, then add your students by their registered email from the class roster.</p>
             <a href="{{ route('instructor.classes.create') }}" class="btn btn-accent">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>

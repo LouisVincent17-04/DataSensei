@@ -198,7 +198,13 @@ Test Accuracy    : 0.9737
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.cluster <span style="color:#c4b5fd;">import</span> KMeans
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_iris
+<span style="color:#93c5fd;">iris</span> = load_iris()
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> sklearn.cluster <span style="color:#c4b5fd;">import</span> KMeans
 <span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">np</span>
 
 <span style="color:#6b7280;"># UNSUPERVISED LEARNING: no labels — discover hidden structure</span>
@@ -233,7 +239,20 @@ Adjusted Rand Index vs true labels: 0.7302
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"{'Depth':<8} {'Train Acc':>10} {'Test Acc':>10} {'Diagnosis'}"</span>)
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_iris
+<span style="color:#c4b5fd;">from</span> sklearn.model_selection <span style="color:#c4b5fd;">import</span> train_test_split
+<span style="color:#c4b5fd;">from</span> sklearn.tree <span style="color:#c4b5fd;">import</span> DecisionTreeClassifier
+<span style="color:#c4b5fd;">from</span> sklearn.metrics <span style="color:#c4b5fd;">import</span> accuracy_score, classification_report
+<span style="color:#93c5fd;">iris</span> = load_iris()
+X, y = iris.data, iris.target      <span style="color:#6b7280;"># features, labels</span>
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span style="color:#fcd34d;">0.25</span>, random_state=<span style="color:#fcd34d;">42</span>
+)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"{'Depth':<8} {'Train Acc':>10} {'Test Acc':>10} {'Diagnosis'}"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">"-" * 50</span>)
 
 <span style="color:#c4b5fd;">for</span> depth <span style="color:#c4b5fd;">in</span> [<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">2</span>, <span style="color:#fcd34d;">3</span>, <span style="color:#fcd34d;">5</span>, <span style="color:#fcd34d;">10</span>, <span style="color:#fca5a5;">None</span>]:
@@ -329,7 +348,7 @@ Decision    : PASS</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Building & Training an MLP with Keras</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs tensorflow, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">np</span>
@@ -409,7 +428,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Building a CNN for MNIST Digit Classification</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs tensorflow, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> tensorflow <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">tf</span>
@@ -460,7 +479,7 @@ Parameters:    93,322</div>
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Transfer Learning with MobileNetV2</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs tensorflow, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> tensorflow.keras.applications <span style="color:#c4b5fd;">import</span> MobileNetV2
@@ -576,7 +595,9 @@ Note: 'the','sat' get low scores (common); 'cat','mat' get higher scores</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.linear_model <span style="color:#c4b5fd;">import</span> LogisticRegression
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.feature_extraction.text <span style="color:#c4b5fd;">import</span> CountVectorizer, TfidfVectorizer
+
+<span style="color:#c4b5fd;">from</span> sklearn.linear_model <span style="color:#c4b5fd;">import</span> LogisticRegression
 <span style="color:#c4b5fd;">from</span> sklearn.pipeline <span style="color:#c4b5fd;">import</span> Pipeline
 <span style="color:#c4b5fd;">from</span> sklearn.metrics <span style="color:#c4b5fd;">import</span> accuracy_score
 
@@ -766,7 +787,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — GAN Architecture: Generator & Discriminator with Keras</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs tensorflow, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> tensorflow.keras <span style="color:#c4b5fd;">import</span> layers, models
@@ -896,7 +917,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — RL Environment: OpenAI Gym CartPole</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs gymnasium, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> gymnasium <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">gym</span>
@@ -1077,7 +1098,7 @@ Disparate Impact Ratio: 0.5938
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Feature Importance with SHAP Values</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs shap, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> shap

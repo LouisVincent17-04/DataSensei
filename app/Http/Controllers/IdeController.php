@@ -269,6 +269,10 @@ class IdeController extends Controller
         $validated = $request->validate([
             'content' => ['nullable', 'string', 'max:50000'],
             'stdin' => ['nullable', 'string', 'max:10000'],
+            // One value per click on Run. Requests that carry the same token
+            // are answers to input() of that run, so the warm sandbox can
+            // continue the waiting program instead of replaying it.
+            'run_token' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'],
         ]);
 
         $snapshot = DB::transaction(function () use ($node): array {
@@ -314,7 +318,14 @@ class IdeController extends Controller
                 $entryRelativePath,
                 $validated['content'] ?? (string) ($runningNode->content ?? ''),
                 $validated['stdin'] ?? '',
-                ['interactive_input' => true]
+                [
+                    'interactive_input' => true,
+                    'session' => [
+                        'key' => 'ide-user-'.(int) Auth::id(),
+                        'token' => $validated['run_token'] ?? null,
+                        'context' => $runningNode->id.':'.sha1($validated['content'] ?? (string) ($runningNode->content ?? '')),
+                    ],
+                ]
             );
         } finally {
             File::deleteDirectory($workspacePath);

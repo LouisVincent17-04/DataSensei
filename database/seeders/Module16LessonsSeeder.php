@@ -278,7 +278,7 @@ HTML;
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"\n  tr(S) = {eigenvalues.sum():.4f}   (sum of eigenvalues = total variance)"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"  |S|   = {np.linalg.det(S.values):.6f}  (generalized variance)"</span>)
 
-<span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">\n"═══ FIRST EIGENVECTOR (principal direction of most variation) ═══"</span>)
+<span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">"\n═══ FIRST EIGENVECTOR (principal direction of most variation) ═══"</span>)
 <span style="color:#93c5fd;">print</span>(pd.Series(eigenvectors[:, <span style="color:#fcd34d;">0</span>], index=X.columns).round(<span style="color:#fcd34d;">4</span>))
 
 <span style="color:#6b7280;"># ── Multivariate outlier detection ────────────────────────────</span>
@@ -286,7 +286,8 @@ HTML;
 <span style="color:#93c5fd;">mean_vec</span>   = X.mean().values
 <span style="color:#93c5fd;">X_c</span>        = X.values - mean_vec
 <span style="color:#93c5fd;">maha_sq</span>    = np.array([x @ S_inv @ x <span style="color:#c4b5fd;">for</span> x <span style="color:#c4b5fd;">in</span> X_c])
-<span style="color:#93c5fd;">threshold</span>  = <span style="color:#93c5fd;">__import__</span>(<span style="color:#a7f3d0;">'scipy'</span>).stats.chi2.ppf(<span style="color:#fcd34d;">0.975</span>, df=<span style="color:#fcd34d;">4</span>)
+<span style="color:#c4b5fd;">from</span> scipy <span style="color:#c4b5fd;">import</span> stats
+<span style="color:#93c5fd;">threshold</span>  = stats.chi2.ppf(<span style="color:#fcd34d;">0.975</span>, df=<span style="color:#fcd34d;">4</span>)
 <span style="color:#93c5fd;">outliers</span>   = np.where(maha_sq > threshold)[<span style="color:#fcd34d;">0</span>]
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"\n═══ MULTIVARIATE OUTLIERS (D² > χ²₀.₉₇₅(4)={threshold:.2f}) ═══"</span>)
 <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"  {len(outliers)} outliers detected at indices: {outliers[:10]}"</span>)
@@ -1321,18 +1322,18 @@ HTML;
 <span style="color:#93c5fd;">X_pca</span> = pca.fit_transform(X_std)
 
 <span style="color:#6b7280;"># ── 2. MDS (Global distance preservation) ─────────────────────</span>
-<span style="color:#93c5fd;">mds</span> = MDS(n_components=<span style="color:#fcd34d;">2</span>, random_state=<span style="color:#fcd34d;">42</span>, normalized_stress=<span style="color:#a7f3d0;">'auto'</span>)
+<span style="color:#93c5fd;">mds</span> = MDS(n_components=<span style="color:#fcd34d;">2</span>, n_init=<span style="color:#fcd34d;">1</span>, init=<span style="color:#a7f3d0;">'random'</span>, max_iter=<span style="color:#fcd34d;">60</span>, random_state=<span style="color:#fcd34d;">42</span>, normalized_stress=<span style="color:#a7f3d0;">'auto'</span>)
 <span style="color:#93c5fd;">X_mds</span> = mds.fit_transform(X_std)
 
 <span style="color:#6b7280;"># ── 3. t-SNE (Local neighborhood preservation) ────────────────</span>
-<span style="color:#93c5fd;">tsne</span> = TSNE(n_components=<span style="color:#fcd34d;">2</span>, perplexity=<span style="color:#fcd34d;">30</span>, random_state=<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">tsne</span> = TSNE(n_components=<span style="color:#fcd34d;">2</span>, perplexity=<span style="color:#fcd34d;">30</span>, max_iter=<span style="color:#fcd34d;">400</span>, random_state=<span style="color:#fcd34d;">42</span>)
 <span style="color:#93c5fd;">X_tsne</span> = tsne.fit_transform(X_std)
 
 <span style="color:#6b7280;"># ── Visualization ─────────────────────────────────────────────</span>
 <span style="color:#93c5fd;">fig</span>, axes = plt.subplots(<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">3</span>, figsize=(<span style="color:#fcd34d;">16</span>, <span style="color:#fcd34d;">5</span>))
 
 <span style="color:#6b7280;"># Define colormap for 10 digits</span>
-<span style="color:#93c5fd;">cmap</span> = plt.cm.get_cmap(<span style="color:#a7f3d0;">'tab10'</span>)
+<span style="color:#93c5fd;">cmap</span> = plt.get_cmap(<span style="color:#a7f3d0;">'tab10'</span>)
 
 <span style="color:#c4b5fd;">for</span> ax, data, title <span style="color:#c4b5fd;">in</span> <span style="color:#93c5fd;">zip</span>(axes, [X_pca, X_mds, X_tsne], [<span style="color:#a7f3d0;">'PCA'</span>, <span style="color:#a7f3d0;">'MDS'</span>, <span style="color:#a7f3d0;">'t-SNE'</span>]):
     scatter = ax.scatter(data[:, <span style="color:#fcd34d;">0</span>], data[:, <span style="color:#fcd34d;">1</span>], c=y, cmap=cmap, alpha=<span style="color:#fcd34d;">0.7</span>, s=<span style="color:#fcd34d;">15</span>)

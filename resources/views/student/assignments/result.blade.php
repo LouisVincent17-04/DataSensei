@@ -93,7 +93,15 @@
 
         <section class="card card-pad" style="margin-bottom:16px">
           <div class="score-big">{{ $submission->score }}/{{ $submission->total_points }}</div>
-          <div class="muted">{{ $submission->percentage }}% <span class="badge-pill {{ $submission->status === 'late' ? 'danger' : 'good' }}">{{ ucfirst($submission->status) }}</span></div>
+          @if($submission->isHeldForIntegrityReview())
+            <div class="muted">{{ $submission->percentage }}%. <strong>Held for instructor review.</strong></div>
+            <p class="muted" style="margin-top:8px">Your saved answers are stored below, but this attempt has no credit until your instructor reviews it. {{ $submission->integrity_reason }}</p>
+          @else
+            <div class="muted">{{ $submission->percentage }}% <span class="badge-pill {{ $submission->status === 'late' ? 'danger' : 'good' }}">{{ ucfirst($submission->status) }}</span></div>
+            @if($submission->integrity_status === 'blocked' && $submission->integrity_reviewed_at)
+              <p class="muted" style="margin-top:8px">Your instructor reviewed this attempt and kept it blocked, so it has no credit.</p>
+            @endif
+          @endif
         </section>
 
         <section class="card card-pad">
@@ -105,7 +113,7 @@
               @if($answer->question->question_type === 'mcq')
                 <p class="muted" style="margin-top:8px">Your answer: <strong>{{ $answer->selectedOption?->option_text ?? 'No answer' }}</strong></p>
               @else
-                <p class="muted" style="margin-top:8px">Your answer: <strong>{{ $answer->answer_text ?: 'No answer' }}</strong></p>
+                <p class="muted" style="margin-top:8px">Your answer: <strong>{{ trim((string) $answer->answer_text) !== '' ? $answer->answer_text : 'No answer' }}</strong></p>
                 <p class="dim" style="margin-top:4px">Accepted: {{ $answer->question->blankAnswers->pluck('answer_text')->join(', ') }}</p>
               @endif
               @if($answer->question->explanation)<p class="muted" style="margin-top:8px">Explanation: {{ $answer->question->explanation }}</p>@endif

@@ -161,8 +161,29 @@
                     <tr>
                       <td><strong>{{ $submission->student?->name }}</strong><br><span class="dim">{{ $submission->student?->email }}</span></td>
                       <td>{{ $submission->attempt_no }}</td>
-                      <td>{{ $submission->score }}/{{ $submission->total_points }}</td>
-                      <td><span class="badge-pill {{ $submission->status === 'late' ? 'danger' : 'good' }}">{{ str_replace('_',' ',ucfirst($submission->status)) }}</span></td>
+                      <td>
+                        {{ $submission->score }}/{{ $submission->total_points }}
+                        @if($submission->isHeldForIntegrityReview())
+                          <br><span class="dim">Uncredited: {{ (int) $submission->provisional_score }}/{{ $submission->total_points }}</span>
+                        @endif
+                      </td>
+                      <td>
+                        @if($submission->isHeldForIntegrityReview())
+                          <strong>Held for integrity review</strong>
+                          <br><span class="dim">{{ $submission->integrity_reason ?: 'The anti-cheat policy withheld credit for this attempt.' }}</span>
+                          <div class="actions" style="margin-top:8px">
+                            <form method="POST" action="{{ route('instructor.assignments.submissions.release', [$assignment, $submission]) }}">@csrf @method('PATCH')<button class="btn good" type="submit" onclick="return confirm('Credit the saved score of this attempt?')">Release score</button></form>
+                            <form method="POST" action="{{ route('instructor.assignments.submissions.keep-blocked', [$assignment, $submission]) }}">@csrf @method('PATCH')<button class="btn secondary" type="submit" onclick="return confirm('Keep this attempt blocked with no credit?')">Keep blocked</button></form>
+                          </div>
+                        @else
+                          <span class="badge-pill {{ $submission->status === 'late' ? 'danger' : 'good' }}">{{ str_replace('_',' ',ucfirst($submission->status)) }}</span>
+                          @if($submission->integrity_status === 'blocked' && $submission->integrity_reviewed_at)
+                            <br><span class="dim">Kept blocked after integrity review, no credit.</span>
+                          @elseif($submission->integrity_reviewed_at)
+                            <br><span class="dim">Released after integrity review.</span>
+                          @endif
+                        @endif
+                      </td>
                     </tr>
                   @endforeach
                 </tbody>

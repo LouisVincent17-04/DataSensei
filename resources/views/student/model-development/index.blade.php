@@ -3,20 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Model Development Roadmap — DataSensei</title>
+    <title>Model Development — DataSensei</title>
     @include('student.model-development.partials.styles')
-    @include('partials.page-head', ['pageTitle' => 'Model Development Roadmap', 'pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
+    @include('partials.page-head', ['pageTitle' => 'Model Development', 'pageDescription' => 'Train a real machine-learning model in four short steps and use it to make predictions.'])
 </head>
 <body>
 <div class="ml-layout">
     @include('partials.sidebar')
     <main class="ml-main">
+        @php
+            $term = fn (string $key, ?string $text = null) => \App\Support\ModelDevelopmentGlossary::term($key, $text);
+            $presets = \App\Support\ModelDevelopmentOutcome::presets();
+        @endphp
         <header class="ml-head">
             <div>
                 <h1 class="ml-title ds-page-title">Model Development</h1>
-                <p class="ml-subtitle">Build a real machine-learning model in ten short steps. No coding needed – DataSensei explains every choice along the way.</p>
+                <p class="ml-subtitle">Teach a computer to answer a question from examples. Pick some data, say what you want predicted, and try it out. No coding needed.</p>
             </div>
             <div class="ml-actions">
+                @if($models->isNotEmpty())
+                    <a class="ml-btn secondary" href="#model-history">My models</a>
+                @endif
                 <a class="ml-btn secondary" href="{{ route('student.data-toolkit.index') }}">Data Toolkit</a>
             </div>
         </header>
@@ -28,82 +35,51 @@
             <div class="ml-alert error">{{ $errors->first() }}</div>
         @endif
 
-        <div class="ml-roadmap-layout">
-            <aside class="ml-roadmap-column">
-                @include('student.model-development.partials.roadmap', [
-                    'roadmapCurrent' => 1,
-                    'roadmapCompletedThrough' => 0,
-                    'roadmapErrorStep' => $errors->any() ? 1 : null,
-                ])
-            </aside>
+        @include('student.model-development.partials.roadmap', [
+            'roadmapCurrent' => 1,
+            'roadmapCompletedThrough' => 0,
+            'roadmapErrorStep' => $errors->any() ? 1 : null,
+        ])
 
-            <div class="ml-roadmap-content">
-                <section class="ml-card">
-                    @include('student.model-development.partials.step-header', [
-                        'stepNumber' => 1,
-                        'stepTitle' => 'Choose a dataset',
-                        'stepLead' => 'Pick the data your model will learn from. You can preview any dataset before choosing it.',
-                    ])
-
-                    <div class="ml-phases" aria-label="How model development works">
-                        @foreach(\App\Support\ModelDevelopmentGuide::phases() as $phase)
-                            <div class="ml-phase">
-                                <h3><b>{{ $loop->iteration }}</b>{{ $phase['title'] }}<small>{{ $phase['steps'] }}</small></h3>
-                                <p>{{ $phase['text'] }}</p>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    @include('student.model-development.partials.step-guide', ['guideStep' => 1])
-                </section>
-
+        <div class="ml-flow">
                 @if($activeTrainingJob)
                     <section class="ml-card ml-starter ml-resume">
                         <div>
                             <h3>A model is still training: {{ $activeTrainingJob->model_name }}</h3>
-                            <p class="ml-muted" style="font-size:.8125rem">{{ $activeTrainingJob->stage ?: 'Waiting for the machine-learning worker' }}, {{ $activeTrainingJob->progress }}% complete</p>
+                            <p class="ml-muted" style="font-size:.8125rem">{{ $activeTrainingJob->stage ?: 'Waiting to start' }}, {{ $activeTrainingJob->progress }}% done</p>
                         </div>
-                        <a class="ml-btn" href="{{ route('student.model-development.training.show', $activeTrainingJob) }}">View Progress →</a>
-                    </section>
-                @elseif($starterDataset && $models->isEmpty())
-                    <section class="ml-card ml-starter">
-                        <div>
-                            <h3>First time here? Start with {{ $starterDataset->name }}</h3>
-                            <p class="ml-muted" style="font-size:.8125rem">It is small ({{ number_format($starterDataset->row_count) }} rows), already clean, and comes with a recommended target, features, and algorithm, so you can finish all ten steps in a few minutes.</p>
-                        </div>
-                        <a class="ml-btn" href="{{ route('student.model-development.wizard', ['dataset_type' => 'system', 'dataset_id' => $starterDataset->id, 'step' => 2]) }}">Start with this dataset →</a>
+                        <a class="ml-btn" href="{{ route('student.model-development.training.show', $activeTrainingJob) }}">See progress</a>
                     </section>
                 @endif
 
-                <section class="ml-section">
+                <section>
                     <div class="ml-section-head">
                         <div>
-                            <h2 class="ml-section-title">Built-in Dataset Library</h2>
-                            <p class="ml-muted">Ready-to-use classroom datasets. Each one suggests a target, features, and an algorithm you can accept with one click.</p>
+                            <h2 class="ml-section-title">Pick a question to answer</h2>
+                            <p class="ml-muted">Each {{ $term('dataset', 'dataset') }} below comes with a question a {{ $term('model', 'model') }} can learn to answer. Everything is set up for you, so you can train in one click and change things later.</p>
                         </div>
                     </div>
 
                     <div class="ml-grid">
                         @forelse($systemDatasets as $dataset)
-                            <article class="ml-card ml-dataset-choice">
-                                @php $datasetSetup = (array) data_get($dataset->metadata, 'recommended_setup', []); @endphp
-                                <div class="ml-section-head">
-                                    <h3 class="ml-section-title">{{ $dataset->name }}</h3>
-                                    <span class="ml-badge {{ $starterDataset && $starterDataset->id === $dataset->id ? 'good' : '' }}">{{ $starterDataset && $starterDataset->id === $dataset->id ? 'Start here' : ucfirst($dataset->problem_type) }}</span>
+                            @php
+                                $preset = (array) ($presets[$dataset->slug] ?? []);
+                                $isNumberAnswer = $dataset->problem_type === 'regression';
+                            @endphp
+                            <article class="ml-card ml-data-card ml-raised">
+                                <div>
+                                    <h3>{{ $preset['question'] ?? $dataset->name }}</h3>
+                                    <span class="ml-data-name">{{ $dataset->name }}@if($starterDataset && $starterDataset->id === $dataset->id), a good first one @endif</span>
                                 </div>
-                                <p class="ml-muted" style="font-size:.8125rem">{{ $dataset->description }}</p>
-                                <div class="ml-meta">
-                                    <div><span>Rows</span><strong>{{ number_format($dataset->row_count) }}</strong></div>
-                                    <div><span>Columns</span><strong>{{ $dataset->column_count }}</strong></div>
-                                    <div><span>Suggested target</span><strong>{{ $dataset->target_column ?: 'None' }}</strong></div>
-                                    <div><span>Problem type</span><strong>{{ ucfirst($dataset->problem_type) }}</strong></div>
-                                </div>
-                                @if(! empty($datasetSetup['algorithm_key']))
-                                    <p class="ml-recommended-line">Suggested algorithm: <strong>{{ config('hybrid_ml.algorithms.'.$datasetSetup['algorithm_key'].'.label', str($datasetSetup['algorithm_key'])->replace('_', ' ')->title()) }}</strong>, {{ $dataset->benchmarks->count() }} reference models to compare with</p>
-                                @endif
+                                <p class="ml-muted" style="font-size:.8125rem">{{ $preset['story'] ?? $dataset->description }}</p>
+                                <p class="ml-data-facts">
+                                    {{ number_format($dataset->row_count) }} examples, {{ max(0, (int) $dataset->column_count - 1) }} clues each.
+                                    The answer is {{ $isNumberAnswer ? 'a number' : 'a category' }}
+                                    ({{ $isNumberAnswer ? $term('regression', 'regression') : $term('classification', 'classification') }}).
+                                </p>
                                 <div class="ml-actions">
-                                    <a class="ml-btn secondary" href="{{ route('student.model-development.system-datasets.show', $dataset) }}">Preview</a>
-                                    <a class="ml-btn" href="{{ route('student.model-development.wizard', ['dataset_type' => 'system', 'dataset_id' => $dataset->id, 'step' => 2]) }}">Use this dataset →</a>
+                                    <a class="ml-btn" href="{{ route('student.model-development.wizard', ['dataset_type' => 'system', 'dataset_id' => $dataset->id]) }}">Use this data</a>
+                                    <a class="ml-btn secondary" href="{{ route('student.model-development.system-datasets.show', $dataset) }}">Look inside</a>
                                 </div>
                             </article>
                         @empty
@@ -117,7 +93,7 @@
                 <section class="ml-section">
                     <div class="ml-section-head">
                         <div>
-                            <h2 class="ml-section-title">Your Uploaded Datasets</h2>
+                            <h2 class="ml-section-title">Your own data</h2>
                             <p class="ml-muted">Your private files that passed the structure and quality checks. Only you can see them.</p>
                         </div>
                     </div>
@@ -144,8 +120,8 @@
                                     <td>{{ $dataset->class_id ? 'Class linked' : 'Private' }}</td>
                                     <td>
                                         <div class="ml-actions">
-                                            <a class="ml-btn small secondary" href="{{ route('student.model-development.user-datasets.show', $dataset) }}">Preview</a>
-                                            <a class="ml-btn small" href="{{ route('student.model-development.wizard', ['dataset_type' => 'user', 'dataset_id' => $dataset->id, 'step' => 2]) }}">Choose</a>
+                                            <a class="ml-btn small secondary" href="{{ route('student.model-development.user-datasets.show', $dataset) }}">Look inside</a>
+                                            <a class="ml-btn small" href="{{ route('student.model-development.wizard', ['dataset_type' => 'user', 'dataset_id' => $dataset->id]) }}">Use</a>
                                         </div>
                                     </td>
                                 </tr>
@@ -158,7 +134,7 @@
                 </section>
 
                 <details class="ml-advanced ml-section" @if($errors->has('dataset_file')) open @endif>
-                    <summary>Upload your own dataset</summary>
+                    <summary>Upload your own data</summary>
                     <p class="ml-help">Use this when your data is not listed above. DataSensei checks the file, cleans unsafe content, and stores it privately.</p>
                     <ul class="ml-readiness">
                         <li><i class="ok">1</i><span>Save it as <strong>CSV</strong> or <strong>XLSX</strong> with a single header row at the top.</span></li>
@@ -195,24 +171,32 @@
                 <section class="ml-history-section" id="model-history">
                     <div class="ml-section-head">
                         <div>
-                            <h2 class="ml-section-title">Model History</h2>
-                            <p class="ml-muted">Every model you train is kept here. Changing a setup later never deletes an earlier model or version.</p>
+                            <h2 class="ml-section-title">My models</h2>
+                            <p class="ml-muted">Every model you train is saved here automatically. Training again never deletes an earlier one.</p>
                         </div>
                     </div>
 
-                    <div class="ml-grid two">
                         <div class="ml-card">
-                            <h3 class="ml-section-title">Saved Models</h3>
+                            <h3 class="ml-section-title">Saved models</h3>
                             <div class="ml-table-wrap" style="margin-top:16px">
                                 <table class="ml-table">
-                                    <thead><tr><th>Model</th><th>Algorithm</th><th>Version</th><th>Action</th></tr></thead>
+                                    <thead><tr><th>Model</th><th>Learning method</th><th>Version</th><th></th></tr></thead>
                                     <tbody>
                                     @forelse($models as $model)
                                         <tr>
                                             <td>{{ $model->name }}</td>
-                                            <td>{{ str($model->algorithm_key)->replace('_', ' ')->title() }}</td>
+                                            <td>{{ data_get($model->currentVersion?->explanations, 'training_summary.selected_label') ?: config('hybrid_ml.algorithms.'.$model->algorithm_key.'.label', str($model->algorithm_key)->replace('_', ' ')->title()) }}</td>
                                             <td>{{ $model->currentVersion?->version_label ?: 'Pending' }}</td>
-                                            <td><a class="ml-btn small secondary" href="{{ route('student.model-development.models.show', ['model' => $model, 'step' => 'evaluate']) }}">Open Results</a></td>
+                                            <td style="white-space:nowrap"><a class="ml-btn small secondary" href="{{ route('student.model-development.models.show', ['model' => $model, 'step' => 'results']) }}">Open</a>
+                                                <a class="ml-btn small secondary" href="{{ route('student.model-development.models.show', ['model' => $model, 'step' => 'predict']) }}">Predict</a>
+                                                @if(! $model->isSystemModel() && (int) $model->user_id === (int) auth()->id())
+                                                    <form method="POST" action="{{ route('student.model-development.models.destroy', $model) }}" style="display:inline" onsubmit="return confirm('Delete “{{ addslashes($model->name) }}” and every saved version? This cannot be undone.')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="ml-btn small danger" type="submit">Delete</button>
+                                                    </form>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @empty
                                         <tr><td colspan="4" class="ml-muted">No saved models yet. Pick a dataset above to train your first one.</td></tr>
@@ -222,9 +206,10 @@
                             </div>
                         </div>
 
-                        <div class="ml-card">
-                            <h3 class="ml-section-title">Training History</h3>
-                            <div class="ml-table-wrap" style="margin-top:16px">
+                    <details class="ml-details" style="margin-top:16px">
+                        <summary><span>Training runs<small>Every time you pressed Train, including runs that failed</small></span></summary>
+                        <div class="ml-details-body">
+                            <div class="ml-table-wrap">
                                 <table class="ml-table">
                                     <thead><tr><th>Model</th><th>Status</th><th>Progress</th><th>Action</th></tr></thead>
                                     <tbody>
@@ -242,9 +227,8 @@
                                 </table>
                             </div>
                         </div>
-                    </div>
+                    </details>
                 </section>
-            </div>
         </div>
     </main>
 </div>

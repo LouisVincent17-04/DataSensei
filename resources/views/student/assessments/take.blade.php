@@ -204,8 +204,12 @@
           return;
         }
 
+        // Answers posted after the server deadline are ignored, so the last
+        // edits are pushed into the saved draft just before time runs out.
+        const flushDraft = () => form.dispatchEvent(new Event('datasensei:flush-autosave'));
         const interval = window.setInterval(() => {
           remaining -= 1;
+          if (remaining === 3 || remaining === 1) flushDraft();
           render();
           if (remaining <= 0) {
             window.clearInterval(interval);

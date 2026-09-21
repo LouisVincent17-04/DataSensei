@@ -77,6 +77,15 @@
     form.addEventListener('change', scheduleSave);
     form.addEventListener('submit', stop);
     form.addEventListener('datasensei:final-submit', stop);
+    // Optional hook: a page may ask for an immediate snapshot, e.g. shortly
+    // before the server deadline or right after the attempt was locked. The
+    // server ignores answers posted after the deadline, so the stored draft
+    // must already hold the learner's last edits. Pages that never dispatch
+    // this event behave exactly as before.
+    form.addEventListener('datasensei:flush-autosave', () => {
+      window.clearTimeout(debounceTimer);
+      save(true);
+    });
 
     intervalTimer = window.setInterval(() => save(false), 10000);
     document.addEventListener('visibilitychange', () => {

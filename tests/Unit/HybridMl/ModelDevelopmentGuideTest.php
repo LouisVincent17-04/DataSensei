@@ -22,15 +22,23 @@ class ModelDevelopmentGuideTest extends TestCase
         }
 
         $this->assertSame($guides[1], ModelDevelopmentGuide::stepGuide(99));
-        $this->assertCount(3, ModelDevelopmentGuide::phases());
+        $this->assertCount(ModelDevelopmentRoadmap::totalSteps(), ModelDevelopmentGuide::phases());
     }
 
     public function test_verdicts_use_the_main_metric_for_each_problem_type(): void
     {
-        $strong = ModelDevelopmentGuide::verdict('classification', ['accuracy' => 60.0, 'f1' => 91.5]);
+        // Accuracy leads because "right 92 times in 100" is what a beginner can picture.
+        $strong = ModelDevelopmentGuide::verdict('classification', ['accuracy' => 91.5, 'f1' => 60.0]);
         $this->assertSame('strong', $strong['level']);
-        $this->assertSame('F1 Score', $strong['metric']);
+        $this->assertSame('Accuracy', $strong['metric']);
         $this->assertSame('91.50%', $strong['value']);
+
+        // Older versions that only stored F1 are still rated.
+        $this->assertSame('F1 Score', ModelDevelopmentGuide::verdict('classification', ['f1' => 88.0])['metric']);
+
+        // A high score is downgraded when always giving the most common answer scores about the same.
+        $this->assertSame('fair', ModelDevelopmentGuide::verdict('classification', ['accuracy' => 95.0, 'baseline_accuracy' => 94.0])['level']);
+        $this->assertSame('strong', ModelDevelopmentGuide::verdict('classification', ['accuracy' => 95.0, 'baseline_accuracy' => 63.0])['level']);
 
         $this->assertSame('fair', ModelDevelopmentGuide::verdict('classification', ['accuracy' => 72.0])['level']);
         $this->assertSame('weak', ModelDevelopmentGuide::verdict('regression', ['r2' => 0.2])['level']);
@@ -118,19 +126,19 @@ class ModelDevelopmentGuideTest extends TestCase
     public function test_beginner_views_keep_the_guidance_hooks(): void
     {
         $wizard = (string) file_get_contents(resource_path('views/student/model-development/wizard.blade.php'));
-        foreach (['target-insight', 'data-feature-action="all"', 'split-train-rows', 'data-edit-step="2"', "event.key !== 'Enter'", 'suggestProblem'] as $needle) {
+        foreach (['answer-note', 'data-feature-action="all"', 'split-test-rows', 'inferProblem', "event.key === 'Enter'", 'name="method_mode"'] as $needle) {
             $this->assertStringContainsString($needle, $wizard);
         }
         $this->assertStringNotContainsString('@json(collect(', $wizard, 'Blade @json splits on commas; build arrays in @php first.');
 
-        foreach (['index', 'dataset', 'wizard', 'training-job', 'model'] as $view) {
+        foreach (['wizard', 'model'] as $view) {
             $source = (string) file_get_contents(resource_path("views/student/model-development/{$view}.blade.php"));
-            $this->assertStringContainsString('partials.step-guide', $source, "{$view} must show the beginner guide.");
-            $this->assertStringNotContainsString('ml-step-kicker', $source, "{$view} should use the numbered step header.");
+            $this->assertStringContainsString('partials.step-guide', $source, "{$view} must offer the short explanation.");
         }
 
         $model = (string) file_get_contents(resource_path('views/student/model-development/model.blade.php'));
-        $this->assertStringContainsString('ml-verdict', $model);
+        $this->assertStringContainsString('ml-score', $model);
         $this->assertStringContainsString('fill-typical', $model);
+        $this->assertStringContainsString('data-example', $model);
     }
 }

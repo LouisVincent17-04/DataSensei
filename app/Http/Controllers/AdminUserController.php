@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminUserController extends Controller
@@ -56,9 +57,12 @@ class AdminUserController extends Controller
 
         $users = $query->paginate(15)->withQueryString();
         $institutions = Institution::query()->orderBy('name')->get(['id', 'name', 'status']);
+        // Only an active institution passes validation, so the create and edit
+        // forms offer that list; the filter still covers every institution.
+        $activeInstitutions = $institutions->where('status', 'active');
         $roleOptions = $this->roleOptions();
 
-        return view('admin.users.index', compact('users', 'institutions', 'roleOptions'));
+        return view('admin.users.index', compact('users', 'institutions', 'activeInstitutions', 'roleOptions'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -174,18 +178,23 @@ class AdminUserController extends Controller
             ->id;
     }
 
+    /**
+     * These refusals are things the administrator can act on, so they are
+     * raised as validation messages. abort(422) rendered the generic
+     * "Something is broken" error page and threw the reason away.
+     */
     private function validateAccountTransition(User $user, int $newRole, mixed $institutionId): void
     {
         $newInstitutionId = $institutionId ? (int) $institutionId : null;
 
         if ((int) $user->role === User::ROLE_INSTRUCTOR && $newRole !== User::ROLE_INSTRUCTOR) {
             $ownsClasses = ClassRoom::where('instructor_id', $user->id)->exists();
-            abort_if($ownsClasses, 422, 'Transfer or archive this instructor\'s classes before changing their role.');
+            $this->refuseTransition($ownsClasses, 'role', 'Transfer or archive this instructor\'s classes before changing their role.');
         }
 
         if ((int) $user->role === User::ROLE_USER && $newRole !== User::ROLE_USER
             && $user->classesAsStudent()->exists()) {
-            abort(422, 'Remove this learner from all classes before changing their role.');
+            $this->refuseTransition(true, 'role', 'Remove this learner from all classes before changing their role.');
         }
 
         if ($newRole === User::ROLE_INSTRUCTOR) {
@@ -199,7 +208,7 @@ class AdminUserController extends Controller
                     }
                 })
                 ->exists();
-            abort_if($mismatchedClass, 422, 'The selected institution does not match this instructor\'s classes.');
+            $this->refuseTransition($mismatchedClass, 'institution_id', 'The selected institution does not match this instructor\'s classes.');
         }
 
         if ($newRole === User::ROLE_USER && $user->classesAsStudent()->exists()) {
@@ -208,12 +217,19 @@ class AdminUserController extends Controller
                 ->pluck('classes.institution_id')
                 ->unique();
 
-            abort_if(
+            $this->refuseTransition(
                 $newInstitutionId === null
                 || $classInstitutionIds->contains(fn ($id) => (int) $id !== $newInstitutionId),
-                422,
+                'institution_id',
                 'The learner institution must match every class in which they are enrolled.'
             );
+        }
+    }
+
+    private function refuseTransition(bool $condition, string $field, string $message): void
+    {
+        if ($condition) {
+            throw ValidationException::withMessages([$field => $message]);
         }
     }
 

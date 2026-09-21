@@ -368,6 +368,8 @@ class InstructorAssessmentController extends Controller
         $intent = $validated['intent'] ?? 'draft';
         $requiresCompleteQuestion = $intent === 'complete_next';
         $questionText = trim((string) ($validated['question_text'] ?? ''));
+        // Compared with === '' everywhere: "0" is a real answer, not a blank.
+        $correctAnswer = trim((string) ($validated['correct_answer'] ?? ''));
         $options = collect();
         $correctIndex = $validated['correct_option'] ?? null;
 
@@ -408,7 +410,7 @@ class InstructorAssessmentController extends Controller
 
         if ($requiresCompleteQuestion
             && in_array($type, ['fill_blank', 'short_answer'], true)
-            && trim((string) ($validated['correct_answer'] ?? '')) === '') {
+            && $correctAnswer === '') {
             throw ValidationException::withMessages([
                 'correct_answer' => 'Enter the correct or accepted answer for this question type.',
             ]);
@@ -416,7 +418,7 @@ class InstructorAssessmentController extends Controller
 
         if ($requiresCompleteQuestion
             && $type === 'true_false'
-            && ! in_array(strtolower(trim((string) ($validated['correct_answer'] ?? ''))), ['true', 'false'], true)) {
+            && ! in_array(strtolower($correctAnswer), ['true', 'false'], true)) {
             throw ValidationException::withMessages([
                 'correct_answer' => 'Select True or False as the correct answer.',
             ]);
@@ -449,6 +451,7 @@ class InstructorAssessmentController extends Controller
                 $type,
                 $intent,
                 $questionText,
+                $correctAnswer,
                 $options,
                 $correctIndex,
                 $newImagePath
@@ -478,7 +481,8 @@ class InstructorAssessmentController extends Controller
                     'is_required' => $request->boolean('is_required'),
                     'authoring_touched' => true,
                     'correct_answer' => in_array($type, ['true_false', 'fill_blank', 'short_answer'], true)
-                        ? (trim((string) ($validated['correct_answer'] ?? '')) ?: null)
+                        && $correctAnswer !== ''
+                        ? $correctAnswer
                         : null,
                     'answer_explanation' => $validated['answer_explanation'] ?? null,
                     'rubric_text' => $type === 'essay' ? ($validated['rubric_text'] ?? null) : null,
@@ -659,15 +663,33 @@ class InstructorAssessmentController extends Controller
 
         $submission->load('answers.question');
 
-        $validated = $request->validate([
+        $rules = [
             'scores' => ['nullable', 'array'],
             'scores.*' => ['nullable', 'numeric', 'min:0'],
             'feedbacks' => ['nullable', 'array'],
             'feedbacks.*' => ['nullable', 'string', 'max:10000'],
             'feedback' => ['nullable', 'string', 'max:10000'],
-        ]);
+        ];
+        $attributes = [];
+        foreach ($submission->answers as $answer) {
+            if ($answer->question?->question_type !== 'essay') {
+                continue;
+            }
 
-        DB::transaction(function () use ($assessment, $submission, $validated) {
+            $rules['scores.' . $answer->id] = ['nullable', 'numeric', 'min:0', 'max:' . (int) $answer->question->points];
+            $attributes['scores.' . $answer->id] = 'score for Item ' . $answer->question->item_number;
+        }
+
+        $validated = $request->validate($rules, [], $attributes);
+
+        // Partial-update semantics: a score or feedback key that is absent means
+        // "leave the stored value alone". A blank score also means "no change",
+        // so only an explicit number (including 0) ever sets an essay score.
+        $postedScores = is_array($validated['scores'] ?? null) ? $validated['scores'] : [];
+        $postedFeedbacks = is_array($validated['feedbacks'] ?? null) ? $validated['feedbacks'] : [];
+        $hasOverallFeedback = array_key_exists('feedback', $validated);
+
+        $outcome = DB::transaction(function () use ($assessment, $submission, $validated, $postedScores, $postedFeedbacks, $hasOverallFeedback): array {
             $lockedSubmission = AssessmentSubmission::whereKey($submission->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -683,32 +705,82 @@ class InstructorAssessmentController extends Controller
                 'An in-progress assessment cannot be graded.'
             );
 
+            $scoreChanged = false;
+            $unscoredItems = [];
+
             foreach ($lockedSubmission->answers as $answer) {
                 if ($answer->question->question_type !== 'essay') {
                     continue;
                 }
 
-                $score = (float) ($validated['scores'][$answer->id] ?? 0);
-                $score = min($score, (float) $answer->question->points);
+                $changes = [];
+                $postedScore = $postedScores[$answer->id] ?? null;
 
-                $answer->update([
-                    'points_awarded' => $score,
-                    'is_correct' => $score >= (float) $answer->question->points,
-                    'instructor_feedback' => $validated['feedbacks'][$answer->id] ?? null,
-                ]);
+                if ($postedScore !== null && $postedScore !== '') {
+                    $maxPoints = (float) $answer->question->points;
+                    $score = min((float) $postedScore, $maxPoints);
+
+                    // is_correct === null is the "never scored" marker for essays,
+                    // so an explicit 0 is recorded as scored (false), not pending.
+                    if ($answer->is_correct === null
+                        || abs((float) $answer->points_awarded - $score) > 0.00001) {
+                        $scoreChanged = true;
+                    }
+
+                    $changes['points_awarded'] = $score;
+                    $changes['is_correct'] = $score >= $maxPoints;
+                }
+
+                if (array_key_exists($answer->id, $postedFeedbacks)) {
+                    $changes['instructor_feedback'] = $postedFeedbacks[$answer->id];
+                }
+
+                if ($changes !== []) {
+                    $answer->update($changes);
+                }
+
+                if ($answer->is_correct === null) {
+                    $unscoredItems[] = (int) $answer->question->item_number;
+                }
             }
 
-            $score = (float) $lockedSubmission->answers()->sum('points_awarded');
-            $lockedSubmission->update([
-                'score' => $score,
-                'status' => $lockedSubmission->status === 'late' ? 'late' : 'graded',
-                'graded_at' => now(),
-                'feedback' => $validated['feedback'] ?? null,
-            ]);
+            // Always recomputed from what is stored, never from substituted zeros.
+            $updates = [
+                'score' => (float) $lockedSubmission->answers()->sum('points_awarded'),
+            ];
+            if ($hasOverallFeedback) {
+                $updates['feedback'] = $validated['feedback'];
+            }
+
+            $fullyScored = $unscoredItems === [];
+            if ($fullyScored) {
+                $updates['status'] = $lockedSubmission->status === 'late' ? 'late' : 'graded';
+                if ($scoreChanged || ! $lockedSubmission->graded_at) {
+                    $updates['graded_at'] = now();
+                }
+            }
+
+            $lockedSubmission->update($updates);
+            sort($unscoredItems);
+
+            return [
+                'fully_scored' => $fullyScored,
+                'unscored_items' => $unscoredItems,
+            ];
         }, 3);
 
         $gradedSubmission = $submission->fresh();
         $diagnostics->refresh($gradedSubmission);
+
+        if (! $outcome['fully_scored']) {
+            $items = collect($outcome['unscored_items'])->map(fn (int $item): string => 'Item ' . $item)->implode(', ');
+
+            return back()->with(
+                'success',
+                'Scores and feedback saved. This submission is still pending review because no score has been entered for: ' . $items . '.'
+            );
+        }
+
         $iloMastery->refreshForAssessmentSubmission($gradedSubmission);
 
         $percentage = $gradedSubmission->total_points > 0

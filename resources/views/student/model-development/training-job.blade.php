@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Train Model — DataSensei</title>
+    <title>Training — DataSensei</title>
     @include('student.model-development.partials.styles')
-    @include('partials.page-head', ['pageTitle' => 'Train Model', 'pageDescription' => 'Build, evaluate, and save a real machine-learning model in ten guided steps.'])
+    @include('partials.page-head', ['pageTitle' => 'Training', 'pageDescription' => 'Train a real machine-learning model in four short steps and use it to make predictions.'])
 </head>
 <body>
 @php
@@ -27,25 +27,31 @@
         'dataset_id' => $dataset->id,
         'training_job_id' => $job->id,
     ];
-    $roadmapLinks = [1 => $datasetPage];
-    foreach (range(2, 7) as $step) {
-        $roadmapLinks[$step] = route('student.model-development.wizard', array_merge($wizardParameters, ['step' => $step]));
-    }
-    $roadmapLinks[8] = $job->ml_model_id
-        ? route('student.model-development.models.show', ['model' => $job->ml_model_id, 'step' => 'evaluate'])
-        : '#';
+    $resultsUrl = $job->ml_model_id
+        ? route('student.model-development.models.show', ['model' => $job->ml_model_id, 'step' => 'results'])
+        : null;
+    $roadmapLinks = [
+        1 => route('student.model-development.index'),
+        2 => route('student.model-development.wizard', $wizardParameters),
+        3 => $resultsUrl ?: '#',
+    ];
+    $isAutomatic = (bool) config('hybrid_ml.algorithms.'.$job->algorithm_key.'.is_automatic', false);
+    $term = fn (string $key, ?string $text = null) => \App\Support\ModelDevelopmentGlossary::term($key, $text);
     $isComplete = $job->status === 'completed';
     $hasFailed = in_array($job->status, ['failed', 'cancelled'], true);
     $metrics = (array) data_get($job->result, 'metrics', []);
     $durationSeconds = $job->duration_ms !== null ? round($job->duration_ms / 1000, 3) : null;
     $stageDefinitions = [
-        ['start' => 0, 'end' => 15, 'label' => 'Preparing dataset'],
-        ['start' => 15, 'end' => 35, 'label' => 'Processing features'],
-        ['start' => 35, 'end' => 58, 'label' => 'Training '.$algorithmLabel],
-        ['start' => 58, 'end' => 90, 'label' => 'Evaluating model'],
-        ['start' => 90, 'end' => 100, 'label' => 'Finalizing results'],
+        ['start' => 0, 'end' => 15, 'label' => 'Reading your data'],
+        ['start' => 15, 'end' => 35, 'label' => $isAutomatic ? 'Comparing algorithms' : 'Getting the clues ready'],
+        ['start' => 35, 'end' => 58, 'label' => 'Learning from the training rows'],
+        ['start' => 58, 'end' => 90, 'label' => 'Taking the final exam on hidden rows'],
+        ['start' => 90, 'end' => 100, 'label' => 'Saving your model'],
     ];
     $stageExplanations = \App\Support\ModelDevelopmentGuide::trainingStageExplanations();
+    if ($isAutomatic) {
+        $stageExplanations[1] = 'Several algorithms sit the same practice exams on your training rows and the best one is kept.';
+    }
     $successMetrics = array_slice(\App\Support\ModelDevelopmentGuide::displayMetrics((string) $job->problem_type, $metrics), 0, 3, true);
     $metricLabels = collect(\App\Support\ModelDevelopmentGuide::metricGlossary())->map(fn ($item) => $item['label'])->all();
     $metricOrder = array_keys(\App\Support\ModelDevelopmentGuide::displayMetrics((string) $job->problem_type, [
@@ -60,47 +66,34 @@
         <header class="ml-head">
             <div>
                 <h1 class="ml-title ds-page-title" id="training-title">
-                    {{ $isComplete ? 'Model Trained Successfully' : ($hasFailed ? 'Training Needs Attention' : 'Training Your Model') }}
+                    {{ $isComplete ? 'Your model is ready' : ($hasFailed ? 'Training stopped' : 'Training your model') }}
                 </h1>
-                <div class="ml-subtitle-row">
-                    <p class="ml-subtitle"><strong>{{ $algorithmLabel }}</strong>, {{ $job->model_name }}</p>
-                    @if($isRecommendedModel)
-                        <span class="ml-badge good">Recommended model</span>
-                    @endif
-                </div>
+                <p class="ml-subtitle"><strong>{{ $job->model_name }}</strong>, using {{ $isAutomatic ? 'the best of several algorithms' : $algorithmLabel }} on {{ $dataset->name }}.</p>
             </div>
-            <a class="ml-btn secondary" href="{{ route('student.model-development.index') }}">Model History</a>
+            <a class="ml-btn secondary" href="{{ route('student.model-development.index') }}#model-history">My models</a>
         </header>
 
         @if(session('success'))
             <div class="ml-alert">{{ session('success') }}</div>
         @endif
 
-        <div class="ml-roadmap-layout">
-            <aside class="ml-roadmap-column">
-                @include('student.model-development.partials.roadmap', [
-                    'roadmapCurrent' => $isComplete ? 8 : 7,
-                    'roadmapCompletedThrough' => $isComplete ? 7 : 6,
-                    'roadmapErrorStep' => $hasFailed ? 7 : null,
-                    'roadmapLinks' => $roadmapLinks,
-                ])
-            </aside>
+        @include('student.model-development.partials.roadmap', [
+            'roadmapCurrent' => $hasFailed ? 2 : 3,
+            'roadmapCompletedThrough' => $hasFailed ? 1 : 2,
+            'roadmapErrorStep' => $hasFailed ? 2 : null,
+            'roadmapLinks' => $roadmapLinks,
+        ])
 
-            <div class="ml-roadmap-content">
-                <section class="ml-card ml-training-milestone">
-                    @include('student.model-development.partials.step-header', [
-                        'stepNumber' => 7,
-                        'stepTitle' => $isComplete ? 'Your model has finished learning' : ($hasFailed ? 'Training stopped' : 'Your model is learning'),
-                        'stepLead' => 'The model is studying the training rows. This progress comes directly from the training worker. It is not a simulated timer.',
-                    ])
-
-                    <div class="ml-section-head" style="margin-top:16px">
-                        <p class="ml-muted" style="margin:0">Current stage: <strong id="stage" style="color:var(--ml-text)">{{ $job->stage }}</strong></p>
-                        <span class="ml-badge" id="status-badge">
-                            <span class="ml-status-dot {{ $job->status }}"></span>
-                            <span id="status-text">{{ ucfirst($job->status) }}</span>
-                        </span>
+        <div class="ml-flow">
+                <section class="ml-card ml-raised ml-training-milestone">
+                    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;align-items:baseline">
+                        <strong id="progress-label" style="font-size:1.0625rem">{{ $job->progress }}% done</strong>
+                        <span class="ml-help" style="margin:0"><span class="ml-status-dot {{ $job->status }}" id="status-dot"></span><span id="status-text">{{ ucfirst($job->status) }}</span>, <span id="stage">{{ $job->stage }}</span></span>
                     </div>
+                    <div class="ml-progress" style="margin-top:10px">
+                        <div id="progress-bar" style="width:{{ $job->progress }}%"></div>
+                    </div>
+                    <p class="ml-help">This bar follows the real training job. It is not a simulated timer, so it can pause for a moment while the computer works.</p>
 
                     <p class="ml-help" id="retry-details" style="display:{{ $job->status === 'retrying' ? 'block' : 'none' }};margin-top:8px">
                         @if($job->status === 'retrying')
@@ -108,15 +101,7 @@
                         @endif
                     </p>
 
-                    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;align-items:center;margin-top:16px">
-                        <strong id="progress-label">{{ $job->progress }}% complete</strong>
-                        <span class="ml-help" id="worker-stage">Worker status: {{ $job->stage }}</span>
-                    </div>
-                    <div class="ml-progress" style="margin-top:8px">
-                        <div id="progress-bar" style="width:{{ $job->progress }}%"></div>
-                    </div>
-
-                    <div class="ml-training-stage-list" id="training-stages" aria-label="Real training stages">
+                    <div class="ml-training-stage-list" id="training-stages" aria-label="Training stages">
                         @foreach($stageDefinitions as $index => $definition)
                             @php
                                 $stageComplete = $isComplete || $job->progress >= $definition['end'];
@@ -137,51 +122,36 @@
                         @endforeach
                     </div>
 
-                    @if($isRecommendedModel && ! empty($trainingRecommendation['reason']))
-                        <div class="ml-inline-note"><strong>Why this model?</strong> {{ $trainingRecommendation['reason'] }}</div>
-                    @endif
-
                     @php
                         $workerState = (string) ($worker['state'] ?? 'ok');
                         $workerMessage = $worker['message'] ?? null;
                     @endphp
                     <div class="ml-alert ml-wait-note {{ $workerMessage && $job->status === 'queued' ? 'visible' : '' }} {{ $workerState === 'worker_missing' ? 'error' : '' }}" id="wait-note" role="status">
-                        <span id="wait-note-text">{{ $workerMessage ?: 'Training has not started yet. Jobs are processed one at a time, so yours may be waiting behind others. You can leave this page open – it updates by itself.' }}</span>
+                        <span id="wait-note-text">{{ $workerMessage ?: 'Training has not started yet. Jobs run one at a time, so yours may be waiting behind another. You can leave this page open and it will update by itself.' }}</span>
                     </div>
 
                     <div id="error-box" class="ml-alert error" style="display:{{ $hasFailed ? 'block' : 'none' }}">
                         {{ $job->error_message ?: ($job->status === 'cancelled' ? 'Training was cancelled before a model was created.' : '') }}
                     </div>
-                    <div id="failure-help" class="ml-card" style="display:{{ $hasFailed ? 'block' : 'none' }};margin-bottom:16px">
-                        <h3 class="ml-section-title">Common fixes</h3>
+                    <div id="failure-help" style="display:{{ $hasFailed ? 'block' : 'none' }};margin-bottom:16px">
+                        <h3 class="ml-section-title">Things that usually fix it</h3>
                         <ul class="ml-fix-list ml-muted">
-                            <li>Make sure the target matches the problem type (a number for Regression, a category for Classification).</li>
-                            <li>Remove features that are mostly empty or contain mixed numbers and text.</li>
-                            <li>For clustering, choose at least two number columns and fewer clusters than rows.</li>
-                            <li>Check that the dataset still has at least 20 usable rows after empty targets are removed.</li>
+                            <li>Check the answer column. Predicting a number needs a number column, and a category needs at least two different values.</li>
+                            <li>Untick clue columns that are mostly empty or mix numbers with text.</li>
+                            <li>Finding groups needs at least two number columns and fewer groups than rows.</li>
+                            <li>The data needs at least 20 usable rows once rows with an empty answer are removed.</li>
                         </ul>
                     </div>
                     <div id="failure-actions" class="ml-actions" style="display:{{ $hasFailed ? 'flex' : 'none' }};margin-bottom:16px">
-                        <a class="ml-btn" href="{{ route('student.model-development.wizard', array_merge($wizardParameters, ['step' => 7])) }}">Review Settings & Try Again</a>
-                        <a class="ml-btn secondary" href="{{ route('student.model-development.wizard', array_merge($wizardParameters, ['step' => 2])) }}">Start From Target</a>
-                    </div>
-
-                    <div class="ml-selection-summary" aria-label="Training configuration">
-                        <div class="ml-summary-row"><span>Dataset</span><strong>{{ $dataset->name }}</strong></div>
-                        <div class="ml-summary-row"><span>Problem Type</span><strong>{{ ucfirst($job->problem_type) }}</strong></div>
-                        <div class="ml-summary-row"><span>Train/Test</span><strong>{{ data_get($configuration, 'test_size') !== null ? (100 - (int) round((float) data_get($configuration, 'test_size') * 100)).'% / '.(int) round((float) data_get($configuration, 'test_size') * 100).'%' : 'All rows (clustering)' }}</strong></div>
-                        <div class="ml-summary-row"><span>Class</span><strong>{{ $job->class_id ? 'Shared with class' : 'Private' }}</strong></div>
-                        <div class="ml-summary-row"><span>Target</span><strong>{{ data_get($configuration, 'target_column') ?: 'No target (clustering)' }}</strong></div>
-                        <div class="ml-summary-row"><span>Algorithm</span><strong>{{ $algorithmLabel }}</strong></div>
-                        <div class="ml-summary-row full"><span>Features</span><div class="ml-summary-list">@foreach((array) data_get($configuration, 'features', []) as $feature)<span>{{ $feature }}</span>@endforeach</div></div>
+                        <a class="ml-btn" href="{{ route('student.model-development.wizard', $wizardParameters) }}">Change the set-up and try again</a>
                     </div>
 
                     <section id="training-success" class="ml-success-milestone {{ $isComplete ? 'visible' : '' }}" aria-live="polite">
-                        <h2 class="ml-success-title">✓ Model trained successfully</h2>
-                        <p class="ml-muted" style="margin-top:8px">Your model finished learning and was tested on the rows it never saw. Next, find out what these scores mean.</p>
+                        <h2 class="ml-success-title">Model trained successfully</h2>
+                        <p class="ml-muted" style="margin-top:8px">It was tested on rows it never saw while learning. <span id="redirect-note"></span></p>
                         <div class="ml-success-metrics" id="success-metrics">
                             @if($durationSeconds !== null)
-                                <div class="ml-success-metric"><span>Duration</span><strong>{{ number_format($durationSeconds, 3) }} seconds</strong></div>
+                                <div class="ml-success-metric"><span>Time taken</span><strong>{{ number_format($durationSeconds, 1) }} seconds</strong></div>
                             @endif
                             @foreach($successMetrics as $key => $value)
                                 <div class="ml-success-metric">
@@ -190,17 +160,24 @@
                                 </div>
                             @endforeach
                         </div>
-                        <a
-                            class="ml-btn"
-                            id="evaluation-link"
-                            href="{{ $job->ml_model_id ? route('student.model-development.models.show', ['model' => $job->ml_model_id, 'step' => 'evaluate']) : '#' }}">
-                            View Evaluation →
-                        </a>
+                        <a class="ml-btn" id="evaluation-link" href="{{ $resultsUrl ?: '#' }}">See the results</a>
                     </section>
-
-                    @include('student.model-development.partials.step-guide', ['guideStep' => 7])
                 </section>
-            </div>
+
+                <details class="ml-details">
+                    <summary><span>What you asked for<small>The set-up this training run is using</small></span></summary>
+                    <div class="ml-details-body">
+                        <div class="ml-selection-summary" aria-label="Training set-up" style="margin:0">
+                            <div class="ml-summary-row"><span>Data</span><strong>{{ $dataset->name }}</strong></div>
+                            <div class="ml-summary-row"><span>Answer column ({{ $term('target', 'target') }})</span><strong>{{ data_get($configuration, 'target_column') ?: 'None, finding groups' }}</strong></div>
+                            <div class="ml-summary-row"><span>Kind of answer</span><strong>{{ ['classification' => 'A category (classification)', 'regression' => 'A number (regression)', 'clustering' => 'Groups (clustering)'][$job->problem_type] ?? ucfirst($job->problem_type) }}</strong></div>
+                            <div class="ml-summary-row"><span>{{ $term('algorithm', 'Algorithm') }}</span><strong>{{ $algorithmLabel }}</strong></div>
+                            <div class="ml-summary-row"><span>Rows hidden for the final check</span><strong>{{ data_get($configuration, 'test_size') !== null ? (int) round((float) data_get($configuration, 'test_size') * 100).'%' : 'None (finding groups)' }}</strong></div>
+                            <div class="ml-summary-row"><span>Who can see it</span><strong>{{ $job->class_id ? 'Me and my instructor' : 'Only me' }}</strong></div>
+                            <div class="ml-summary-row full"><span>Clue columns ({{ $term('feature', 'features') }})</span><div class="ml-summary-list">@foreach((array) data_get($configuration, 'features', []) as $feature)<span>{{ $feature }}</span>@endforeach</div></div>
+                        </div>
+                    </div>
+                </details>
         </div>
     </main>
 </div>
@@ -215,12 +192,13 @@
     const waitNote = document.getElementById('wait-note');
     const waitNoteText = document.getElementById('wait-note-text');
     const pageOpenedAt = Date.now();
+    let redirectTimer = null;
     const initial = {
         status: @json($job->status),
         progress: Number(@json($job->progress)),
         stage: @json($job->stage),
         error: @json($job->error_message),
-        evaluation_url: @json($job->ml_model_id ? route('student.model-development.models.show', ['model' => $job->ml_model_id, 'step' => 'evaluate']) : null),
+        evaluation_url: @json($resultsUrl),
         metrics: @json($metrics),
         duration_seconds: @json($durationSeconds),
         attempt_number: Number(@json($job->attempt_number)),
@@ -269,9 +247,9 @@
             const card = document.createElement('div');
             card.className = 'ml-success-metric';
             const label = document.createElement('span');
-            label.textContent = 'Duration';
+            label.textContent = 'Time taken';
             const value = document.createElement('strong');
-            value.textContent = `${Number(data.duration_seconds).toLocaleString(undefined, {maximumFractionDigits: 3})} seconds`;
+            value.textContent = `${Number(data.duration_seconds).toLocaleString(undefined, {maximumFractionDigits: 1})} seconds`;
             card.append(label, value);
             cards.push(card);
         }
@@ -296,12 +274,11 @@
         const completed = status === 'completed';
         const failed = status === 'failed' || status === 'cancelled';
 
-        document.getElementById('progress-bar').style.width = `${progress}%`;
-        document.getElementById('progress-label').textContent = completed ? '100% complete' : `${progress}% complete`;
-        document.getElementById('stage').textContent = data.stage || 'Waiting for the machine-learning worker';
-        document.getElementById('worker-stage').textContent = `Worker status: ${data.stage || status}`;
+        document.getElementById('progress-bar').style.width = `${completed ? 100 : progress}%`;
+        document.getElementById('progress-label').textContent = completed ? '100% done' : `${progress}% done`;
+        document.getElementById('stage').textContent = data.stage || 'Waiting to start';
         document.getElementById('status-text').textContent = status.charAt(0).toUpperCase() + status.slice(1);
-        document.querySelector('#status-badge .ml-status-dot').className = `ml-status-dot ${status}`;
+        document.getElementById('status-dot').className = `ml-status-dot ${status}`;
         const retryDetails = document.getElementById('retry-details');
         if (status === 'retrying') {
             const attempt = Math.max(1, Number(data.attempt_number) || 1);
@@ -317,17 +294,12 @@
         }
         renderStages(progress, status);
 
-        const stepHeading = document.querySelector('.ml-training-milestone .ml-step-head h2');
-        if (stepHeading) {
-            stepHeading.textContent = completed ? 'Your model has finished learning' : (failed ? 'Training stopped' : 'Your model is learning');
-        }
-
         // The server reports whether a worker is running or being started.
         const queued = status === 'queued' && progress === 0;
         const workerMessage = queued ? (data.worker_message || '') : '';
         const stillWaiting = queued && (workerMessage !== '' || (Date.now() - pageOpenedAt) > 25000);
         if (workerMessage) waitNoteText.textContent = workerMessage;
-        else if (stillWaiting) waitNoteText.textContent = 'Training has not started yet. Jobs are processed one at a time, so yours may be waiting behind others. You can leave this page open – it updates by itself.';
+        else if (stillWaiting) waitNoteText.textContent = 'Training has not started yet. Jobs run one at a time, so yours may be waiting behind another. You can leave this page open and it will update by itself.';
         waitNote.classList.toggle('error', queued && data.worker_state === 'worker_missing');
         waitNote.classList.toggle('visible', stillWaiting);
 
@@ -339,8 +311,8 @@
             errorBox.style.display = 'block';
             failureActions.style.display = 'flex';
             failureHelp.style.display = 'block';
-            document.getElementById('training-title').textContent = 'Training Needs Attention';
-            window.DataSenseiModelRoadmap.update(roadmap, {current: 7, completed: 6, error: 7});
+            document.getElementById('training-title').textContent = 'Training stopped';
+            window.DataSenseiModelRoadmap.update(roadmap, {current: 2, completed: 1, error: 2});
         } else {
             errorBox.style.display = 'none';
             failureActions.style.display = 'none';
@@ -348,15 +320,20 @@
         }
 
         if (completed) {
-            document.getElementById('training-title').textContent = 'Model Trained Successfully';
+            document.getElementById('training-title').textContent = 'Your model is ready';
             document.getElementById('training-success').classList.add('visible');
             renderSuccessMetrics(data);
             if (data.evaluation_url) {
                 document.getElementById('evaluation-link').href = data.evaluation_url;
-                const roadmapEvaluationLink = roadmap.querySelector('[data-roadmap-step="8"] [data-roadmap-link]');
-                if (roadmapEvaluationLink) roadmapEvaluationLink.href = data.evaluation_url;
+                const stripLink = roadmap.querySelector('[data-roadmap-step="3"] [data-roadmap-link]');
+                if (stripLink) { stripLink.dataset.href = data.evaluation_url; stripLink.setAttribute('href', data.evaluation_url); }
+                // Only move on by itself when the student watched it finish, never when they reopen an old run.
+                if (watchedTraining && !redirectTimer) {
+                    document.getElementById('redirect-note').textContent = 'Opening the results…';
+                    redirectTimer = window.setTimeout(() => { window.location.assign(data.evaluation_url); }, 1600);
+                }
             }
-            window.DataSenseiModelRoadmap.update(roadmap, {current: 8, completed: 7, error: null});
+            window.DataSenseiModelRoadmap.update(roadmap, {current: 3, completed: 2, error: null});
         }
     };
 
@@ -377,6 +354,7 @@
         }
     };
 
+    const watchedTraining = !terminalStatuses.has(initial.status);
     render(initial);
     if (!terminalStatuses.has(initial.status)) window.setTimeout(poll, 1000);
 })();

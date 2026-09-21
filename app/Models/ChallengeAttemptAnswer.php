@@ -12,10 +12,12 @@ class ChallengeAttemptAnswer extends Model
         'challenge_question_id',
         'selected_option_id',
         'answered_at',
+        'client_seq',
     ];
 
     protected $casts = [
         'answered_at' => 'datetime',
+        'client_seq' => 'integer',
     ];
 
     public function attempt(): BelongsTo

@@ -6,6 +6,8 @@
   $assignmentQuestionId = $assignmentQuestionId ?? null;
   $antiCheatSessionId = $antiCheatSessionId ?? null;
   $antiCheatEventContract = \App\Support\AntiCheatEventContract::clientContract();
+  // Authoritative state from AntiCheatPolicyService::attemptIntegrityState().
+  $antiCheatState = $antiCheatState ?? null;
 @endphp
 
 @if(!empty($antiCheatSettings['enabled']))
@@ -58,7 +60,7 @@
 </style>
 
 <div class="ds-ac-toast" id="ds-ac-toast" data-ds-global-notification role="alert"><strong id="ds-ac-toast-title">Anti-cheat warning</strong><span id="ds-ac-toast-msg"></span></div>
-<div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><svg class="ds-ac-lock-icon" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="ds-ac-lock-title">Assignment Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This assignment attempt was locked because a restricted action was detected.</div><button type="button" class="ds-ac-lock-btn" onclick="window.location.reload()">Reload Page</button></div></div>
+<div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><svg class="ds-ac-lock-icon" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="ds-ac-lock-title">Assignment Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This assignment attempt was locked because a restricted action was detected.</div><div class="ds-ac-lock-msg" style="color:var(--ds-text-muted)">Your saved answers are kept. Submit this attempt so your instructor can review it. It receives no credit unless your instructor releases it.</div><button type="button" class="ds-ac-lock-btn" id="ds-ac-finalize-btn">Submit for review</button></div></div>
 <div class="ds-ac-fullscreen" id="ds-ac-fullscreen"><div class="ds-ac-fullscreen-card"><div class="ds-ac-fullscreen-title">Fullscreen Required</div><div class="ds-ac-fullscreen-msg">Your instructor requires fullscreen mode for this assignment. Leaving fullscreen may be logged as a violation.</div><button type="button" class="ds-ac-fullscreen-btn" id="ds-ac-fullscreen-btn">Enter Fullscreen</button></div></div>
 
 <script src="{{ asset('js/anti-cheat-client.js') }}"></script>
@@ -92,8 +94,16 @@
   const fullscreenOverlay = document.getElementById('ds-ac-fullscreen');
   const fullscreenBtn = document.getElementById('ds-ac-fullscreen-btn');
 
-  let tabSwitchCount = 0;
+  const protectedForm = () => document.getElementById('assignmentForm') || document.querySelector('form[data-protected-assessment="1"]');
+  const finalizeBtn = document.getElementById('ds-ac-finalize-btn');
+  const initialState = clientTools.normalizeIntegrityState(@json($antiCheatState));
+
+  // The count starts from the server's logical focus-loss count, never from
+  // zero, so a reload cannot reset the warnings that were already used.
+  let tabSwitchCount = initialState ? initialState.focusLossCount : 0;
   let lockTriggered = false;
+  let lastViolationDelivery = null;
+  let finalizing = false;
   let lastInternalCopy = null;
   let lastInternalCopyAt = 0;
 
@@ -156,12 +166,35 @@
       });
     }
 
+    applyServerState(result);
+
     return result;
   }
 
+  // Every event response carries the server's decision. The page locks exactly
+  // when the server considers the attempt blocked.
+  function applyServerState(result) {
+    const state = result?.ok ? clientTools.normalizeIntegrityState(result.data?.integrity) : null;
+    if (!state) return null;
+
+    tabSwitchCount = state.focusLossCount;
+    if (state.blocked) {
+      lockAttempt(state.reason || 'This assignment attempt was locked because a restricted action was detected.', null);
+    }
+
+    return state;
+  }
+
   function disableAttemptInputs() {
+    // Hidden inputs (_token, _method, attempt identity) stay enabled and the
+    // latest answers are copied into hidden inputs before the visible controls
+    // are disabled, so the locked form can still be submitted (no 419).
+    const form = protectedForm();
+    if (form) clientTools.snapshotAndLockForm(form, { document });
+
     document.querySelectorAll('input, textarea, select, button').forEach(el => {
-      if (!el.classList.contains('ds-ac-lock-btn')) el.disabled = true;
+      if (el.type === 'hidden' || el.classList.contains('ds-ac-lock-btn')) return;
+      el.disabled = true;
     });
     document.querySelectorAll('a').forEach(a => {
       a.addEventListener('click', e => e.preventDefault());
@@ -170,33 +203,70 @@
     });
   }
 
+  async function finalizeAttempt() {
+    const form = protectedForm();
+    if (!form || finalizing) return;
+    finalizing = true;
+    if (finalizeBtn) {
+      finalizeBtn.disabled = true;
+      finalizeBtn.textContent = 'Submitting...';
+    }
+
+    await clientTools.finalizeLockedAttempt({
+      form,
+      document,
+      sessionId: sessionKey,
+      eventDelivery: lastViolationDelivery,
+      timeoutMs: 3000,
+      beforeSubmit: target => target.dispatchEvent(new Event('datasensei:final-submit')),
+    });
+  }
+
   function lockAttempt(message, eventType = 'threshold_exceeded') {
     if (lockTriggered) return;
     lockTriggered = true;
-    logEvent(eventType, { message, tab_switch_count: tabSwitchCount });
     disableAttemptInputs();
+    // Push the locked snapshot to the server draft before anything else.
+    protectedForm()?.dispatchEvent(new Event('datasensei:flush-autosave'));
+    if (eventType) {
+      lastViolationDelivery = logEvent(eventType, { message, tab_switch_count: tabSwitchCount });
+    }
     if (lockMsg) lockMsg.textContent = message;
     lock?.classList.add('show');
 
     if (settings.auto_submit_mcq_on_violation) {
-      const form = document.getElementById('assignmentForm') || document.querySelector('form[data-protected-assessment="1"]');
-      if (form) setTimeout(() => form.submit(), 1200);
+      setTimeout(finalizeAttempt, 1200);
     }
   }
 
+  finalizeBtn?.addEventListener('click', finalizeAttempt);
+
   const focusLossCoordinator = clientTools.createFocusLossCoordinator({
     windowMs: eventContract.focus_correlation_window_ms,
-    onFocusLoss({ source, eventUuid }) {
+    async onFocusLoss({ source, eventUuid }) {
       tabSwitchCount++;
-      logEvent(eventContract.focus_loss_event, {
+      const delivery = logEvent(eventContract.focus_loss_event, {
         source_event: source,
         tab_switch_count: tabSwitchCount,
         max_allowed: settings.max_tab_switches,
       }, eventUuid);
-      const remaining = Math.max(0, (settings.max_tab_switches ?? 0) - tabSwitchCount + 1);
-      showToast('Focus warning', `Leaving the assignment window is restricted. Remaining warning(s): ${remaining}`);
+      lastViolationDelivery = delivery;
+      const result = await delivery;
+      if (lockTriggered) return;
 
-      if (settings.block_on_tab_limit && tabSwitchCount > (settings.max_tab_switches ?? 0)) {
+      // logEvent() already replaced the local count with the server's
+      // deduplicated count when the event was delivered.
+      const limit = settings.max_tab_switches ?? 0;
+      if (settings.block_on_tab_limit) {
+        const remaining = Math.max(0, limit - tabSwitchCount);
+        showToast('Focus warning', `Leaving the assignment window is restricted. Focus losses still allowed before this attempt locks: ${remaining}`);
+      } else {
+        showToast('Focus warning', 'Leaving the assignment window is restricted and was logged.');
+      }
+
+      // Offline fallback only: the server could not answer, so the local
+      // count decides. Finalizing then holds the attempt for review.
+      if (!result.ok && settings.block_on_tab_limit && tabSwitchCount > limit) {
         lockAttempt('You exceeded the allowed tab-switch/focus-loss limit for this assignment attempt.');
       }
     },
@@ -293,7 +363,10 @@
     if (pasteShortcut && !settings.allow_paste) {
       e.preventDefault();
       showToast('Paste shortcut blocked', 'Paste shortcuts are disabled for this assignment.');
-      logEvent('blocked_paste', { shortcut: true });
+      // Same policy as a paste from the menu: the server treats blocked_paste
+      // as locking when "Lock screen on critical violation" is on.
+      if (settings.lock_screen_on_violation) lockAttempt('Pasting is not allowed in this assignment attempt.', 'blocked_paste');
+      else logEvent('blocked_paste', { shortcut: true });
     }
 
     if (copyShortcut && !settings.allow_copy) {
@@ -358,14 +431,18 @@
     }
   }
 
-  const hiddenInput = document.createElement('input');
-  hiddenInput.type = 'hidden';
-  hiddenInput.name = '_anti_cheat_session_id';
-  hiddenInput.value = sessionKey;
-  (document.getElementById('assignmentForm') || document.querySelector('form[data-protected-assessment="1"]') || document.querySelector('form'))?.appendChild(hiddenInput);
+  const identityForm = protectedForm() || document.querySelector('form');
+  if (identityForm) clientTools.setHiddenField(identityForm, document, '_anti_cheat_session_id', sessionKey);
 
   window.DataSenseiAntiCheat.logEvent = logEvent;
   window.DataSenseiAntiCheat.lockAttempt = lockAttempt;
+
+  if (initialState?.blocked) {
+    // The server already considers this attempt blocked: show it locked right
+    // away instead of an editable form that can only be rejected later.
+    lockAttempt(initialState.reason || 'This assignment attempt was locked because a restricted action was detected.', null);
+    return;
+  }
 
   requestFullscreenIfNeeded();
   detectDualMonitor();

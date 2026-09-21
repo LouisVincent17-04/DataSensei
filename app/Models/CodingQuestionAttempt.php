@@ -12,11 +12,14 @@ class CodingQuestionAttempt extends Model
         'coding_question_id',
         'started_at',
         'expired',
+        'attempt_token',
+        'generation',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'expired'    => 'boolean',
+        'generation' => 'integer',
     ];
 
     public function user(): BelongsTo

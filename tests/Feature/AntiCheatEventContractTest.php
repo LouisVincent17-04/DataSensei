@@ -59,6 +59,8 @@ class AntiCheatEventContractTest extends TestCase
         Carbon::setTestNow();
         foreach ([
             'anti_cheat_events',
+            'anti_cheat_settings',
+            'classes',
             'assignment_questions',
             'class_student',
             'assignment_submissions',
@@ -178,6 +180,23 @@ class AntiCheatEventContractTest extends TestCase
             $table->unsignedBigInteger('student_id');
             $table->string('status');
             $table->string('anti_cheat_session_id', 120)->nullable();
+        });
+        // Every event response now reports the attempt's integrity state, which
+        // reads the instructor policy of the class (DS-05).
+        Schema::create('classes', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('instructor_id')->nullable();
+        });
+        Schema::create('anti_cheat_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('instructor_id');
+            $table->unsignedBigInteger('class_id')->nullable();
+            $table->string('assessment_type')->default('assignment');
+            $table->boolean('enabled')->default(true);
+            $table->boolean('allow_tab_switch')->default(false);
+            $table->unsignedInteger('max_tab_switches')->default(2);
+            $table->boolean('block_on_tab_limit')->default(true);
+            $table->timestamps();
         });
         Schema::create('class_student', function (Blueprint $table): void {
             $table->unsignedBigInteger('class_id');

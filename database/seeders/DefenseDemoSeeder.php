@@ -104,6 +104,16 @@ class DefenseDemoSeeder extends Seeder
                 'role' => User::ROLE_ADMIN,
                 'status' => 'active',
             ]);
+            // Without this account the institution-admin role was the only role
+            // that could not be signed into on the demo database.
+            User::create([
+                'name' => 'Demo Institution Admin',
+                'email' => 'instadmin@datasensei.test',
+                'password' => $password,
+                'role' => User::ROLE_INSTITUTION_ADMIN,
+                'status' => 'active',
+                'institution_id' => $institution->id,
+            ]);
             $instructor = User::create([
                 'name' => 'Prof. Demo Instructor',
                 'email' => 'instructor@datasensei.test',

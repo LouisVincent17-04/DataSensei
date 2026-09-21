@@ -64,7 +64,7 @@
           <div class="field"><label>Email</label><input class="input" type="email" name="email" value="{{ old('email') }}" required></div>
           <div class="field"><label>Role</label><select class="select" name="role" required>@foreach($roleOptions as $value => $label)<option value="{{ $value }}" @selected((string)old('role') === (string)$value)>{{ $label }}</option>@endforeach</select></div>
           <div class="field"><label>Status</label><select class="select" name="status"><option value="active">Active</option><option value="disabled">Disabled</option></select></div>
-          <div class="field"><label>Institution</label><select class="select" name="institution_id"><option value="">None</option>@foreach($institutions as $institution)<option value="{{ $institution->id }}">{{ $institution->name }}</option>@endforeach</select></div>
+          <div class="field"><label>Institution</label><select class="select" name="institution_id"><option value="">None</option>@foreach($activeInstitutions as $institution)<option value="{{ $institution->id }}">{{ $institution->name }}</option>@endforeach</select></div>
           <div class="field"><label>Password</label><input class="input" type="password" name="password" required></div>
           <div class="field"><label>Confirm Password</label><input class="input" type="password" name="password_confirmation" required></div>
         </div>
@@ -100,7 +100,7 @@
                     <div class="field"><label>Email</label><input class="input" type="email" name="email" value="{{ $user->email }}" required></div>
                     <div class="field"><label>Role</label><select class="select" name="role">@foreach($roleOptions as $value => $label)<option value="{{ $value }}" @selected((int)$user->role === (int)$value)>{{ $label }}</option>@endforeach</select></div>
                     <div class="field"><label>Status</label><select class="select" name="status"><option value="active" @selected($user->status === 'active')>Active</option><option value="disabled" @selected($user->status === 'disabled')>Disabled</option></select></div>
-                    <div class="field"><label>Institution</label><select class="select" name="institution_id"><option value="">None</option>@foreach($institutions as $institution)<option value="{{ $institution->id }}" @selected((int)$user->institution_id === (int)$institution->id)>{{ $institution->name }}</option>@endforeach</select></div>
+                    <div class="field"><label>Institution</label><select class="select" name="institution_id"><option value="">None</option>@foreach($activeInstitutions as $institution)<option value="{{ $institution->id }}" @selected((int)$user->institution_id === (int)$institution->id)>{{ $institution->name }}</option>@endforeach</select></div>
                     <div class="field"><label>New Password</label><input class="input" type="password" name="password" placeholder="Leave blank"></div>
                     <div class="field"><label>Confirm Password</label><input class="input" type="password" name="password_confirmation" placeholder="Leave blank"></div>
                   </div>

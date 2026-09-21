@@ -1000,9 +1000,47 @@
     <script>
         const ideUrl = @json($ideUrl);
 
+        const sqlSandboxUrl = @json(Route::has('sql-sandbox.index') ? route('sql-sandbox.index') : url('/sql-sandbox'));
+
+        // The module's SQL examples query these practice tables. The SQL sandbox
+        // starts empty, so the tables travel with the example.
+        const SQL_EXAMPLE_TABLES = {
+            student_scores: `DROP TABLE IF EXISTS student_scores;
+CREATE TABLE student_scores (student_id INTEGER PRIMARY KEY, name TEXT, department TEXT, score REAL);
+INSERT INTO student_scores (student_id, name, department, score) VALUES
+  (1, 'Ana', 'Data Science', 92), (2, 'Ben', 'Data Science', 85), (3, 'Carla', 'Statistics', 78),
+  (4, 'Dino', 'Statistics', 74), (5, 'Ella', 'Computer Science', 88), (6, 'Farid', 'Computer Science', 81);`,
+            fact_sales: `DROP TABLE IF EXISTS fact_sales;
+DROP TABLE IF EXISTS dim_date;
+CREATE TABLE dim_date (date_key INTEGER PRIMARY KEY, month_number INTEGER, month_name TEXT);
+CREATE TABLE fact_sales (sale_id INTEGER PRIMARY KEY, date_key INTEGER, sales_amount REAL);
+INSERT INTO dim_date (date_key, month_number, month_name) VALUES
+  (20260105, 1, 'January'), (20260118, 1, 'January'), (20260207, 2, 'February'), (20260312, 3, 'March');
+INSERT INTO fact_sales (sale_id, date_key, sales_amount) VALUES
+  (1, 20260105, 1200.50), (2, 20260118, 830.00), (3, 20260207, 1575.25), (4, 20260312, 990.75), (5, 20260312, 410.00);`,
+        };
+
+        function isSqlExample(code) {
+            const firstStatement = String(code || '').replace(/^\s*(?:--[^\n]*\n\s*)*/, '');
+            return /^(SELECT|WITH|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i.test(firstStatement);
+        }
+
         function tryInCompiler(code) {
-            sessionStorage.setItem('datasensei_pending_code', code || '');
             sessionStorage.setItem('datasensei_return_url', window.location.href);
+
+            // SQL examples used to be sent to the Python compiler, where every
+            // one of them ended in "SyntaxError: invalid syntax".
+            if (isSqlExample(code)) {
+                const setup = Object.keys(SQL_EXAMPLE_TABLES)
+                    .filter(table => new RegExp('\\b' + table + '\\b', 'i').test(code))
+                    .map(table => '-- Practice data for this example\n' + SQL_EXAMPLE_TABLES[table])
+                    .join('\n\n');
+                sessionStorage.setItem('datasensei_pending_sql_code', (setup ? setup + '\n\n' : '') + code);
+                window.location.href = sqlSandboxUrl;
+                return;
+            }
+
+            sessionStorage.setItem('datasensei_pending_code', code || '');
             window.location.href = ideUrl;
         }
 

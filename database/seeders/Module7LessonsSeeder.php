@@ -923,7 +923,65 @@ After del 3: [1, 2, 4, 5]</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">def</span> <span style="color:#fbcfe8;">has_cycle</span>(head):
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">class</span> SNode:
+    <span style="color:#c4b5fd;">def</span> __init__(self, val):
+        self.val  = val
+        self.next = <span style="color:#fca5a5;">None</span>
+<span style="color:#c4b5fd;">class</span> SinglyLinkedList:
+    <span style="color:#c4b5fd;">def</span> __init__(self):
+        self.head = <span style="color:#fca5a5;">None</span>
+        self.size = <span style="color:#fcd34d;">0</span>
+
+    <span style="color:#c4b5fd;">def</span> prepend(self, val):      <span style="color:#6b7280;"># O(1) — insert at head</span>
+        <span style="color:#93c5fd;">node</span> = SNode(val)
+        node.next  = self.head
+        self.head  = node
+        self.size += <span style="color:#fcd34d;">1</span>
+
+    <span style="color:#c4b5fd;">def</span> append(self, val):       <span style="color:#6b7280;"># O(n) — must walk to tail</span>
+        <span style="color:#93c5fd;">node</span> = SNode(val)
+        <span style="color:#c4b5fd;">if</span> <span style="color:#c4b5fd;">not</span> self.head:
+            self.head = node
+        <span style="color:#c4b5fd;">else</span>:
+            <span style="color:#93c5fd;">cur</span> = self.head
+            <span style="color:#c4b5fd;">while</span> cur.next: cur = cur.next
+            cur.next = node
+        self.size += <span style="color:#fcd34d;">1</span>
+
+    <span style="color:#c4b5fd;">def</span> delete(self, val):       <span style="color:#6b7280;"># O(n) — must find node</span>
+        <span style="color:#c4b5fd;">if</span> <span style="color:#c4b5fd;">not</span> self.head: <span style="color:#c4b5fd;">return</span>
+        <span style="color:#c4b5fd;">if</span> self.head.val == val:
+            self.head = self.head.next; self.size -= <span style="color:#fcd34d;">1</span>; <span style="color:#c4b5fd;">return</span>
+        <span style="color:#93c5fd;">cur</span> = self.head
+        <span style="color:#c4b5fd;">while</span> cur.next:
+            <span style="color:#c4b5fd;">if</span> cur.next.val == val:
+                cur.next = cur.next.next; self.size -= <span style="color:#fcd34d;">1</span>; <span style="color:#c4b5fd;">return</span>
+            <span style="color:#93c5fd;">cur</span> = cur.next
+
+    <span style="color:#c4b5fd;">def</span> reverse(self):           <span style="color:#6b7280;"># O(n) — classic in-place reversal</span>
+        prev, cur = <span style="color:#fca5a5;">None</span>, self.head
+        <span style="color:#c4b5fd;">while</span> cur:
+            <span style="color:#93c5fd;">nxt</span>      = cur.next
+            cur.next = prev
+            prev, cur = cur, nxt
+        self.head = prev
+
+    <span style="color:#c4b5fd;">def</span> to_list(self):
+        result, cur = [], self.head
+        <span style="color:#c4b5fd;">while</span> cur: result.append(cur.val); cur = cur.next
+        <span style="color:#c4b5fd;">return</span> result
+
+    <span style="color:#c4b5fd;">def</span> __repr__(self): <span style="color:#c4b5fd;">return</span> <span style="color:#a7f3d0;">" → "</span>.join(str(v) <span style="color:#c4b5fd;">for</span> v <span style="color:#c4b5fd;">in</span> self.to_list()) + <span style="color:#a7f3d0;">" → None"</span>
+<span style="color:#93c5fd;">ll</span> = SinglyLinkedList()
+<span style="color:#c4b5fd;">for</span> v <span style="color:#c4b5fd;">in</span> [<span style="color:#fcd34d;">10</span>, <span style="color:#fcd34d;">20</span>, <span style="color:#fcd34d;">30</span>, <span style="color:#fcd34d;">40</span>, <span style="color:#fcd34d;">50</span>]: ll.append(v)
+ll.prepend(<span style="color:#fcd34d;">5</span>)
+ll.delete(<span style="color:#fcd34d;">30</span>)
+ll.reverse()
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">def</span> <span style="color:#fbcfe8;">has_cycle</span>(head):
     <span style="color:#a7f3d0;">"""
     Floyd's tortoise and hare algorithm.
     slow moves 1 step, fast moves 2 steps.
@@ -1215,7 +1273,19 @@ Level     (BFS rows): [4, 2, 6, 1, 3, 5, 7]</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">class</span> <span style="color:#fbcfe8;">BST</span>:
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">class</span> BNode:
+    <span style="color:#c4b5fd;">def</span> __init__(self, val, left=<span style="color:#fca5a5;">None</span>, right=<span style="color:#fca5a5;">None</span>):
+        self.val   = val
+        self.left  = left
+        self.right = right
+<span style="color:#c4b5fd;">def</span> inorder(node):     <span style="color:#6b7280;"># LEFT → ROOT → RIGHT  →  sorted order for BST</span>
+    <span style="color:#c4b5fd;">if</span> <span style="color:#c4b5fd;">not</span> node: <span style="color:#c4b5fd;">return</span> []
+    <span style="color:#c4b5fd;">return</span> inorder(node.left) + [node.val] + inorder(node.right)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">class</span> <span style="color:#fbcfe8;">BST</span>:
     <span style="color:#c4b5fd;">def</span> <span style="color:#fbcfe8;">__init__</span>(self): self.root = <span style="color:#fca5a5;">None</span>
 
     <span style="color:#c4b5fd;">def</span> <span style="color:#fbcfe8;">insert</span>(self, val):

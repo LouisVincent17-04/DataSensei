@@ -90,6 +90,19 @@ class GamificationService
             return [];
         }
 
+        // Rewards are paid once per submission. The conditional UPDATE is an
+        // atomic claim: a repeated or concurrent call for the same submission
+        // matches no row and awards nothing (mission progress is a counter and
+        // would otherwise advance again).
+        $claimed = DB::table('assignment_submissions')
+            ->where('id', $submission->id)
+            ->whereNull('rewards_awarded_at')
+            ->update(['rewards_awarded_at' => now()]);
+
+        if ($claimed < 1) {
+            return [];
+        }
+
         $unlocked = [];
         $percent = $submission->total_points > 0 ? ($submission->score / $submission->total_points) * 100 : 0;
 

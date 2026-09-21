@@ -531,4 +531,225 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 .875rem/1
 @media (prefers-reduced-motion: reduce) {
   .ml-btn, .ml-link-btn, .ml-check, .ml-algorithm, .ml-roadmap-action, .ml-split-train, .ml-progress > div { transition: none; }
 }
+
+/* ══ Simplified four-step flow ═════════════════════════════════════ */
+
+/* Step strip across the top of every page. */
+.ml-steps { max-width: 1080px; margin: 0 0 20px; }
+.ml-steps ol {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), var(--ds-shadow-md);
+  overflow: hidden;
+}
+.ml-steps-item { min-width: 0; box-shadow: inset 1px 0 0 var(--border); }
+.ml-steps-item:first-child { box-shadow: none; }
+.ml-steps-link { display: flex; align-items: flex-start; gap: 12px; height: 100%; padding: 14px 16px; color: inherit; text-decoration: none; }
+.ml-steps-link[href]:hover { background: var(--ds-surface-hover); }
+.ml-steps-link:focus-visible { outline: none; box-shadow: inset var(--ds-focus-ring); }
+.ml-steps-num { flex: none; padding-top: 1px; color: var(--ds-text-dim); font: 600 .8125rem/1.4 var(--ds-font-mono); }
+.ml-steps-copy { min-width: 0; }
+.ml-steps-copy strong { display: block; color: var(--muted); font-size: .875rem; font-weight: 600; line-height: 1.35; }
+.ml-steps-copy small { display: block; margin-top: 2px; color: var(--ds-text-dim); font-size: .75rem; line-height: 1.4; }
+.ml-steps-item.complete .ml-steps-num { color: var(--ds-success-text); }
+.ml-steps-item.complete .ml-steps-copy strong { color: var(--ds-text-secondary); }
+.ml-steps-item.complete .ml-steps-copy small { color: var(--ds-success-text); }
+.ml-steps-item.current { background: var(--ds-accent-soft); box-shadow: inset 0 -2px 0 var(--accent), inset 1px 0 0 var(--border); }
+.ml-steps-item.current .ml-steps-num { color: var(--ds-accent-text); }
+.ml-steps-item.current .ml-steps-copy strong { color: var(--text); }
+.ml-steps-item.current .ml-steps-copy small { color: var(--ds-accent-text); }
+.ml-steps-item.error { box-shadow: inset 0 -2px 0 var(--ds-danger), inset 1px 0 0 var(--border); }
+.ml-steps-item.error .ml-steps-num, .ml-steps-item.error .ml-steps-copy small { color: var(--ds-danger-text); }
+
+/* The old two-column frame is now a single column. */
+.ml-flow { display: block; min-width: 0; max-width: 1080px; }
+.ml-flow > * + * { margin-top: 16px; }
+.ml-flow .ml-guide-body { display: block; padding: 14px 16px; }
+.ml-flow .ml-guide-body p { margin: 0; color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.6; }
+.ml-flow .ml-guide-body p + p { margin-top: 8px; }
+.ml-flow .ml-guide-body strong { color: var(--text); font-weight: 600; }
+
+/* Cards with a little lift so the page reads as layered surfaces. */
+.ml-raised { box-shadow: inset 0 1px 0 rgba(255,255,255,.04), var(--ds-shadow-md); }
+.ml-plain-tag { color: var(--muted); font-size: .75rem; font-weight: 600; letter-spacing: .01em; }
+.ml-plain-tag.good { color: var(--ds-success-text); }
+.ml-plain-tag.warn { color: var(--ds-warning-text); }
+.ml-plain-tag.bad { color: var(--ds-danger-text); }
+
+/* Glossary words: dotted underline, definition on hover, focus or tap. */
+.ml-term { position: relative; display: inline; }
+.ml-term-word {
+  display: inline; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: inherit;
+  text-decoration: underline dotted var(--ds-accent-text); text-decoration-thickness: 1.5px; text-underline-offset: 3px; cursor: help;
+}
+.ml-term-word:hover, .ml-term-word[aria-expanded="true"] { color: var(--ds-accent-text); }
+.ml-term-word:focus-visible { outline: none; border-radius: 3px; box-shadow: var(--ds-focus-ring); }
+.ml-term-tip {
+  position: absolute; z-index: 60; left: 0; top: calc(100% + 8px); width: max-content; max-width: min(300px, 78vw);
+  padding: 10px 12px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm);
+  background: #0b1526; color: var(--ds-text-secondary); box-shadow: var(--ds-shadow-lg);
+  font: 400 .8125rem/1.5 var(--ds-font-sans); letter-spacing: 0; text-align: left; text-transform: none; white-space: normal;
+  display: none; /* a hidden box would still widen the page on a phone */
+}
+.ml-term .ml-term-tip b { display: block; margin: 0 0 2px; color: var(--text); font-size: .8125rem; font-weight: 600; line-height: 1.4; letter-spacing: 0; }
+.ml-term.flip .ml-term-tip { left: auto; right: 0; }
+.ml-term.above .ml-term-tip { top: auto; bottom: calc(100% + 8px); }
+.ml-term:hover .ml-term-tip, .ml-term:focus-within .ml-term-tip, .ml-term.open .ml-term-tip { display: block; }
+
+/* Dataset cards on the start page. */
+.ml-data-card { display: flex; flex-direction: column; gap: 10px; }
+.ml-data-card h3 { margin: 0; color: var(--text); font-size: 1rem; font-weight: 600; line-height: 1.35; }
+.ml-data-card .ml-data-name { color: var(--muted); font-size: .8125rem; }
+.ml-data-card .ml-data-facts { margin: 0; color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.55; }
+.ml-data-card .ml-actions { margin-top: auto; padding-top: 6px; }
+.ml-data-card:hover { border-color: var(--ds-border-strong); }
+
+/* Set-up page. */
+.ml-setup-block + .ml-setup-block { margin-top: 16px; }
+.ml-setup-q { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; color: var(--text); font-size: 1.0625rem; font-weight: 600; line-height: 1.35; }
+.ml-setup-q .n { flex: none; color: var(--ds-accent-text); font: 600 .8125rem/1 var(--ds-font-mono); }
+.ml-answer-note { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--surface3); color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.55; }
+.ml-answer-note strong { color: var(--text); }
+.ml-answer-note.warn { border-left-color: var(--ds-warning); }
+.ml-method { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.ml-method-choice { position: relative; display: block; padding: 14px 16px 14px 44px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface3); cursor: pointer; transition: border-color .12s ease, background-color .12s ease; }
+.ml-method-choice:hover { border-color: var(--ds-border-strong); }
+.ml-method-choice input { position: absolute; left: 16px; top: 17px; width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.ml-method-choice strong { display: block; color: var(--text); font-size: .875rem; font-weight: 600; }
+.ml-method-choice span { display: block; margin-top: 2px; color: var(--muted); font-size: .8125rem; line-height: 1.5; }
+.ml-method-choice:has(input:checked) { border-color: var(--ds-accent-border); background: var(--ds-accent-soft); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+.ml-train-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; }
+.ml-train-bar .ml-btn { min-height: 44px; padding: 10px 22px; font-size: .9375rem; font-weight: 600; box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 6px 14px -6px rgba(37,99,235,.7); }
+.ml-train-bar .ml-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(255,255,255,.12) inset; }
+.ml-col-reason { display: block; margin-top: 2px; color: var(--ds-warning-text); font-size: .75rem; line-height: 1.4; }
+.ml-col-reason:empty { display: none; }
+
+/* Results page. */
+.ml-score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px 28px; align-items: center; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius); background: linear-gradient(180deg, var(--ds-surface-2), var(--surface)); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), var(--ds-shadow-md); }
+.ml-score-dial { position: relative; display: grid; place-items: center; width: 132px; height: 132px; border-radius: 50%; background: conic-gradient(var(--dial, var(--accent)) calc(var(--fill, 0) * 1%), var(--surface3) 0); box-shadow: 0 10px 22px -12px rgba(0,0,0,.8), inset 0 0 0 1px var(--border); }
+.ml-score-dial::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 2px 6px rgba(0,0,0,.45); }
+.ml-score-dial b { position: relative; color: var(--text); font-size: 1.875rem; font-weight: 700; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.ml-score-dial small { position: relative; display: block; margin-top: 4px; color: var(--muted); font-size: .6875rem; text-align: center; }
+.ml-score-dial > span { position: relative; text-align: center; }
+.ml-score.strong { --dial: var(--ds-success); }
+.ml-score.fair { --dial: var(--ds-warning); }
+.ml-score.weak { --dial: var(--ds-danger); }
+.ml-score h2 { margin: 0 0 6px; color: var(--text); font-size: 1.375rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.25; }
+.ml-score p { margin: 0; color: var(--ds-text-secondary); font-size: .875rem; line-height: 1.6; }
+.ml-score p + p { margin-top: 4px; }
+.ml-score .ml-score-verdict { margin-top: 10px; font-weight: 600; }
+.ml-score.strong .ml-score-verdict { color: var(--ds-success-text); }
+.ml-score.fair .ml-score-verdict { color: var(--ds-warning-text); }
+.ml-score.weak .ml-score-verdict { color: var(--ds-danger-text); }
+.ml-mistakes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.ml-mistake { padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface3); }
+.ml-mistake b { display: block; color: var(--text); font-size: 1.5rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ml-mistake > span { display: block; margin-top: 4px; color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.45; }
+.ml-contest { margin: 12px 0 0; padding: 0; list-style: none; }
+.ml-details-body > .ml-contest:first-child { margin-top: 0; }
+.ml-contest li { display: grid; grid-template-columns: minmax(120px, 210px) minmax(0, 1fr) 64px; align-items: center; gap: 12px; padding: 7px 0; color: var(--ds-text-secondary); font-size: .8125rem; }
+.ml-contest li + li { border-top: 1px solid var(--border); }
+.ml-contest .bar { height: 8px; border-radius: 4px; background: var(--surface3); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.4); }
+.ml-contest .bar i { display: block; height: 100%; border-radius: 4px; background: var(--ds-border-strong); }
+.ml-contest li.won { color: var(--text); font-weight: 600; }
+.ml-contest li.won .bar i { background: var(--accent); }
+.ml-contest .val { text-align: right; font-variant-numeric: tabular-nums; }
+.ml-details { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.ml-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; color: var(--text); font-size: .9375rem; font-weight: 600; cursor: pointer; list-style: none; }
+.ml-details > summary::-webkit-details-marker { display: none; }
+.ml-details > summary::after { content: "Show"; color: var(--ds-accent-text); font-size: .8125rem; font-weight: 500; }
+.ml-details[open] > summary::after { content: "Hide"; }
+.ml-details[open] > summary { border-bottom: 1px solid var(--border); }
+.ml-details > summary small { display: block; margin-top: 2px; color: var(--muted); font-size: .8125rem; font-weight: 400; }
+.ml-details-body { padding: 18px; }
+.ml-details-body > * + * { margin-top: 18px; }
+
+/* Prediction page. */
+.ml-answer { scroll-margin-top: 16px; padding: 22px 24px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius); background: linear-gradient(180deg, var(--ds-surface-2), var(--surface)); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), inset 4px 0 0 var(--tone, var(--accent)), var(--ds-shadow-lg); }
+.ml-answer.alert { --tone: var(--ds-danger); }
+.ml-answer.calm { --tone: var(--ds-success); }
+.ml-answer-q { margin: 0; color: var(--muted); font-size: .875rem; }
+.ml-answer h2 { margin: 4px 0 6px; color: var(--text); font-size: 1.75rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.ml-answer.alert h2 { color: var(--ds-danger-text); }
+.ml-answer.calm h2 { color: var(--ds-success-text); }
+.ml-answer p { margin: 0; color: var(--ds-text-secondary); font-size: .9375rem; line-height: 1.55; }
+.ml-sure { margin-top: 16px; }
+.ml-sure-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--ds-text-secondary); font-size: .8125rem; }
+.ml-sure-head strong { color: var(--text); font-size: .9375rem; }
+.ml-chances { margin: 10px 0 0; padding: 0; list-style: none; }
+.ml-chances li { display: grid; grid-template-columns: minmax(110px, 220px) minmax(0, 1fr) 52px; align-items: center; gap: 12px; padding: 5px 0; color: var(--ds-text-secondary); font-size: .8125rem; }
+.ml-chances .bar { height: 10px; border-radius: 5px; background: var(--surface3); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.45); }
+.ml-chances .bar i { display: block; height: 100%; border-radius: 5px; background: var(--ds-border-strong); transition: width .4s var(--ds-ease); }
+.ml-chances li.chosen { color: var(--text); font-weight: 600; }
+.ml-chances li.chosen .bar i { background: var(--tone, var(--accent)); }
+.ml-chances .val { text-align: right; font-variant-numeric: tabular-nums; }
+.ml-answer-caution { margin-top: 14px !important; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted) !important; font-size: .8125rem !important; }
+.ml-examples { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.ml-examples > span { color: var(--muted); font-size: .8125rem; }
+.ml-example-note { margin-top: 10px; color: var(--ds-text-secondary); font-size: .8125rem; }
+.ml-example-note strong { color: var(--text); }
+.ml-field .ml-field-help { margin-top: 4px; color: var(--muted); font-size: .75rem; line-height: 1.45; }
+.ml-field-range { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--ds-text-dim); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.ml-field-name { color: var(--ds-text-dim); font: 400 .6875rem/1.4 var(--ds-font-mono); }
+
+@media (max-width: 900px) {
+  .ml-steps ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ml-steps-item:nth-child(3) { box-shadow: inset 0 1px 0 var(--border); }
+  .ml-steps-item:nth-child(4) { box-shadow: inset 1px 0 0 var(--border), inset 0 1px 0 var(--border); }
+  .ml-steps-copy small { display: none; }
+  .ml-method, .ml-mistakes { grid-template-columns: minmax(0, 1fr); }
+  .ml-score { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+  .ml-contest li, .ml-chances li { grid-template-columns: minmax(0, 1fr) 56px; }
+  .ml-contest .bar, .ml-chances .bar { grid-column: 1 / -1; order: 3; }
+}
 </style>
+
+@once
+<script id="datasensei-ml-term-script">
+(() => {
+    // Glossary words open on hover and keyboard focus through CSS alone. This adds
+    // tap-to-toggle for touch screens, Escape to close, and keeps the box on screen.
+    const closeAll = except => document.querySelectorAll('[data-ml-term].open').forEach(term => {
+        if (term === except) return;
+        term.classList.remove('open');
+        term.querySelector('.ml-term-word')?.setAttribute('aria-expanded', 'false');
+    });
+
+    const place = term => {
+        const tip = term.querySelector('.ml-term-tip');
+        if (!tip) return;
+        term.classList.remove('flip', 'above');
+        const box = tip.getBoundingClientRect();
+        if (box.right > window.innerWidth - 8) term.classList.add('flip');
+        if (box.bottom > window.innerHeight - 8 && term.getBoundingClientRect().top > box.height + 16) term.classList.add('above');
+    };
+
+    document.addEventListener('click', event => {
+        const word = event.target.closest('.ml-term-word');
+        if (!word) { closeAll(null); return; }
+        // A glossary word inside a <label> or <summary> must not also tick the box or toggle the section.
+        event.preventDefault();
+        event.stopPropagation();
+        const term = word.closest('[data-ml-term]');
+        const open = !term.classList.contains('open');
+        closeAll(term);
+        term.classList.toggle('open', open);
+        word.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) place(term);
+    });
+    document.addEventListener('mouseover', event => {
+        const term = event.target.closest?.('[data-ml-term]');
+        if (term) place(term);
+    });
+    document.addEventListener('focusin', event => {
+        const term = event.target.closest?.('[data-ml-term]');
+        if (term) place(term);
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        closeAll(null);
+        if (document.activeElement?.classList.contains('ml-term-word')) document.activeElement.blur();
+    });
+})();
+</script>
+@endonce

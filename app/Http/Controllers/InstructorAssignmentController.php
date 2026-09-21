@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\AssignmentLibraryItem;
+use App\Models\AssignmentSubmission;
 use App\Models\ClassAssignment;
 use App\Models\ClassRoom;
+use App\Services\GamificationService;
+use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -159,12 +162,25 @@ class InstructorAssignmentController extends Controller
         $this->authorizeAssignment($assignment);
         abort_if($assignment->status === 'archived', 422, 'Archived assignments are read-only.');
 
+        // The class this assignment already belongs to stays selectable even
+        // when it was archived afterwards, otherwise the form could not be
+        // saved without silently moving the assignment to another class.
         $classes = ClassRoom::where('instructor_id', Auth::id())
-            ->where('is_archived', false)
+            ->where(function ($query) use ($assignment): void {
+                $query->where('is_archived', false)
+                    ->orWhere('id', $assignment->class_id);
+            })
             ->orderBy('name')
             ->get();
 
-        $libraryItems = AssignmentLibraryItem::active()
+        // The version this assignment already uses stays selectable even when
+        // an administrator deactivated it, otherwise the form could not be
+        // saved at all. Other inactive versions are still not offered.
+        $libraryItems = AssignmentLibraryItem::query()
+            ->where(function ($query) use ($assignment): void {
+                $query->where('is_active', true)
+                    ->orWhere('id', $assignment->assignment_library_item_id);
+            })
             ->withCount('questions')
             ->orderBy('sort_order')
             ->orderBy('module_no')
@@ -209,18 +225,38 @@ class InstructorAssignmentController extends Controller
                 'You are not allowed to manage this assignment.'
             );
 
+            // Staying in the current class is a metadata-only edit and must
+            // work even if that class was archived afterwards. Moving the
+            // assignment somewhere else still requires an active class.
+            $keepsCurrentClass = (int) $validated['class_id'] === (int) $lockedAssignment->class_id;
+
             $targetClass = $classes->get((int) $validated['class_id']);
             abort_unless(
                 $targetClass
                     && (int) $targetClass->instructor_id === (int) Auth::id()
-                    && ! $targetClass->is_archived,
+                    && ($keepsCurrentClass || ! $targetClass->is_archived),
                 404
             );
 
-            $libraryItem = AssignmentLibraryItem::active()
+            // Keeping the current question source is a metadata-only edit and
+            // must work even if that version was deactivated afterwards.
+            // Switching to another version still requires an active one.
+            $keepsCurrentSource = (int) $validated['assignment_library_item_id']
+                === (int) $lockedAssignment->assignment_library_item_id;
+
+            $libraryItemQuery = $keepsCurrentSource
+                ? AssignmentLibraryItem::query()
+                : AssignmentLibraryItem::active();
+            $libraryItem = $libraryItemQuery
                 ->whereKey($validated['assignment_library_item_id'])
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
+
+            if (! $libraryItem) {
+                throw ValidationException::withMessages([
+                    'assignment_library_item_id' => 'The selected assignment library version is not active. Choose an active version.',
+                ]);
+            }
 
             if ($lockedAssignment->submissions()->exists()) {
                 if ((int) $validated['class_id'] !== (int) $lockedAssignment->class_id
@@ -348,6 +384,137 @@ class InstructorAssignmentController extends Controller
         return redirect()
             ->route('instructor.assignments.index')
             ->with('success', 'Assignment deleted successfully.');
+    }
+
+    /**
+     * Credit the provisional score of an attempt that was held by the
+     * anti-cheat decision. Rewards and mastery are applied here, once.
+     */
+    public function releaseHeldSubmission(
+        ClassAssignment $assignment,
+        AssignmentSubmission $submission,
+        GamificationService $gamification,
+        StudentNotificationService $notifications
+    ) {
+        $this->authorizeAssignment($assignment);
+
+        $released = $this->resolveHeldSubmission($assignment, $submission, true);
+
+        if ($released) {
+            $released = $released->fresh();
+            app(IloMasteryService::class)->refreshForAssignmentSubmission($released);
+
+            $student = $released->student;
+            if ($student) {
+                $gamification->awardForAssignmentSubmission($student, $released);
+
+                $percentage = $released->total_points > 0
+                    ? round(((float) $released->score / (float) $released->total_points) * 100, 1)
+                    : 0;
+                $notifications->send(
+                    $student,
+                    'assignment_graded',
+                    'Assignment result available',
+                    'Your held attempt for “' . $assignment->title . '” was reviewed and credited: ' . $percentage . '%.',
+                    route('student.assignments.result', [$assignment, $released]),
+                    ['assignment_id' => $assignment->id, 'submission_id' => $released->id, 'percentage' => $percentage],
+                    'assignment-graded:' . $released->id . ':' . optional($released->graded_at)->format('YmdHis')
+                );
+            }
+        }
+
+        return back()->with('success', $released
+            ? 'The held attempt was released and its score credited.'
+            : 'This attempt is not awaiting an integrity review.');
+    }
+
+    /**
+     * Confirm the anti-cheat decision: the attempt stays without credit.
+     */
+    public function keepSubmissionBlocked(
+        ClassAssignment $assignment,
+        AssignmentSubmission $submission,
+        StudentNotificationService $notifications
+    ) {
+        $this->authorizeAssignment($assignment);
+
+        $kept = $this->resolveHeldSubmission($assignment, $submission, false);
+
+        if ($kept && $kept->student) {
+            $notifications->send(
+                $kept->student,
+                'assignment_integrity_reviewed',
+                'Assignment attempt reviewed',
+                'Your held attempt for “' . $assignment->title . '” was reviewed. It remains without credit.',
+                route('student.assignments.result', [$assignment, $kept]),
+                ['assignment_id' => $assignment->id, 'submission_id' => $kept->id],
+                'assignment-integrity-reviewed:' . $kept->id
+            );
+        }
+
+        return back()->with('success', $kept
+            ? 'The attempt was kept blocked with no credit.'
+            : 'This attempt is not awaiting an integrity review.');
+    }
+
+    private function resolveHeldSubmission(ClassAssignment $assignment, AssignmentSubmission $submission, bool $release): ?AssignmentSubmission
+    {
+        abort_unless((int) $submission->class_assignment_id === (int) $assignment->id, 404);
+
+        return DB::transaction(function () use ($assignment, $submission, $release): ?AssignmentSubmission {
+            $lockedAssignment = $this->lockOwnedAssignment($assignment);
+
+            $lockedSubmission = AssignmentSubmission::query()
+                ->whereKey($submission->id)
+                ->where('class_assignment_id', $lockedAssignment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Idempotent: a repeated click finds the attempt already resolved.
+            if (! $lockedSubmission->isHeldForIntegrityReview()) {
+                return null;
+            }
+
+            $reviewedAt = now();
+
+            if (! $release) {
+                $lockedSubmission->update([
+                    'status' => 'graded',
+                    'score' => 0,
+                    'graded_at' => $reviewedAt,
+                    'integrity_status' => AssignmentSubmission::INTEGRITY_BLOCKED,
+                    'integrity_reviewed_by' => Auth::id(),
+                    'integrity_reviewed_at' => $reviewedAt,
+                ]);
+
+                return $lockedSubmission;
+            }
+
+            // Restore the per-question credit that was withheld.
+            $lockedSubmission->load('answers.question');
+            $score = 0;
+            foreach ($lockedSubmission->answers as $answer) {
+                $points = $answer->is_correct ? (int) ($answer->question?->points ?? 0) : 0;
+                $answer->update(['points_awarded' => $points]);
+                $score += $points;
+            }
+
+            $provisional = $lockedSubmission->provisional_score;
+            $wasLate = $lockedAssignment->due_at
+                && $lockedSubmission->submitted_at
+                && $lockedSubmission->submitted_at->greaterThan($lockedAssignment->due_at);
+
+            $lockedSubmission->update([
+                'status' => $wasLate ? 'late' : 'graded',
+                'score' => $provisional === null ? $score : (int) $provisional,
+                'graded_at' => $reviewedAt,
+                'integrity_status' => AssignmentSubmission::INTEGRITY_CLEAR,
+                'integrity_reviewed_by' => Auth::id(),
+                'integrity_reviewed_at' => $reviewedAt,
+            ]);
+
+            return $lockedSubmission;
+        }, 3);
     }
 
     private function validatedAssignmentData(Request $request, ?ClassAssignment $assignment = null): array

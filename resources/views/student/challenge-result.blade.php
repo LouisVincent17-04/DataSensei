@@ -132,7 +132,9 @@
 
         <div class="result-actions">
           <a class="result-btn" href="{{ route('challenges.map', $slug) }}">Back to Challenge Map</a>
+          @if($challenge->is_active)
           <a class="result-btn primary" href="{{ route('challenges.quiz', ['slug' => $slug, 'challenge' => $challenge->id]) }}">Retake Challenge</a>
+          @endif
         </div>
       </header>
 

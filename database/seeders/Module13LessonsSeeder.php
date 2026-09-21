@@ -1297,7 +1297,53 @@ Simulated Annealing (escapes traps):
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> random, math
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> math, random
+random.seed(<span style="color:#fcd34d;">42</span>)
+<span style="color:#c4b5fd;">def</span> rastrigin(x):
+    <span style="color:#c4b5fd;">return</span> <span style="color:#fcd34d;">10</span> + x**<span style="color:#fcd34d;">2</span> - <span style="color:#fcd34d;">10</span> * math.cos(<span style="color:#fcd34d;">2</span> * math.pi * x)
+<span style="color:#c4b5fd;">def</span> simulated_annealing(f, x0, T_init=<span style="color:#fcd34d;">10.0</span>, T_final=<span style="color:#fcd34d;">0.001</span>,
+                         <span style="color:#93c5fd;">cooling</span>=<span style="color:#fcd34d;">0.995</span>, max_iters=<span style="color:#fcd34d;">5000</span>, step=<span style="color:#fcd34d;">0.5</span>):
+    <span style="color:#a7f3d0;">"""
+    Simulated Annealing for scalar function minimization.
+    T_init  : starting temperature (high = explores freely)
+    T_final : stopping temperature (low = converges to exploit)
+    cooling : multiplicative cooling factor (T ← cooling × T each step)
+    step    : maximum perturbation size per move
+    """</span>
+    <span style="color:#93c5fd;">x</span>    = x0
+    <span style="color:#93c5fd;">T</span>    = T_init
+    <span style="color:#93c5fd;">best</span> = (x, f(x))
+
+    <span style="color:#c4b5fd;">for</span> i <span style="color:#c4b5fd;">in</span> range(max_iters):
+        <span style="color:#93c5fd;">x_new</span>  = x + random.uniform(-step, step)    <span style="color:#6b7280;"># random neighbor</span>
+        <span style="color:#93c5fd;">delta</span>  = f(x_new) - f(x)                    <span style="color:#6b7280;"># change in objective</span>
+
+        <span style="color:#c4b5fd;">if</span> delta &lt; <span style="color:#fcd34d;">0</span>:
+            <span style="color:#93c5fd;">x</span> = x_new                               <span style="color:#6b7280;"># always accept improvements</span>
+        <span style="color:#c4b5fd;">else</span>:
+            <span style="color:#93c5fd;">prob</span> = math.exp(-delta / T)              <span style="color:#6b7280;"># Boltzmann acceptance probability</span>
+            <span style="color:#c4b5fd;">if</span> random.random() &lt; prob:
+                <span style="color:#93c5fd;">x</span> = x_new                           <span style="color:#6b7280;"># accept WORSE solution with prob</span>
+
+        <span style="color:#c4b5fd;">if</span> f(x) &lt; best[<span style="color:#fcd34d;">1</span>]: best = (x, f(x))         <span style="color:#6b7280;"># track global best</span>
+        <span style="color:#93c5fd;">T</span> = T * cooling                              <span style="color:#6b7280;"># cool down</span>
+
+        <span style="color:#c4b5fd;">if</span> T &lt; T_final: <span style="color:#c4b5fd;">break</span>
+
+    <span style="color:#c4b5fd;">return</span> best
+<span style="color:#93c5fd;">df_rastrigin</span> = <span style="color:#c4b5fd;">lambda</span> x: <span style="color:#fcd34d;">2</span>*x + <span style="color:#fcd34d;">20</span>*math.pi*math.sin(<span style="color:#fcd34d;">2</span>*math.pi*x)
+<span style="color:#c4b5fd;">for</span> x_start <span style="color:#c4b5fd;">in</span> [-<span style="color:#fcd34d;">3.5</span>, -<span style="color:#fcd34d;">1.5</span>, <span style="color:#fcd34d;">2.0</span>]:
+    <span style="color:#93c5fd;">x</span> = x_start
+    <span style="color:#c4b5fd;">for</span> _ <span style="color:#c4b5fd;">in</span> range(<span style="color:#fcd34d;">1000</span>): x -= <span style="color:#fcd34d;">0.005</span> * df_rastrigin(x)
+    <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"  start={x_start:+.1f} → x*={x:.4f}, f={rastrigin(x):.4f}"</span>)
+<span style="color:#c4b5fd;">for</span> x_start <span style="color:#c4b5fd;">in</span> [-<span style="color:#fcd34d;">3.5</span>, -<span style="color:#fcd34d;">1.5</span>, <span style="color:#fcd34d;">2.0</span>]:
+    x_opt, f_opt = simulated_annealing(rastrigin, x_start)
+    <span style="color:#93c5fd;">print</span>(<span style="color:#a7f3d0;">f"  start={x_start:+.1f} → x*={x_opt:.4f}, f={f_opt:.4f}"</span>)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">import</span> random, math
 random.seed(<span style="color:#fcd34d;">0</span>)
 
 <span style="color:#c4b5fd;">def</span> <span style="color:#fbcfe8;">genetic_algorithm</span>(f, bounds, pop_size=<span style="color:#fcd34d;">50</span>, n_gen=<span style="color:#fcd34d;">200</span>,

@@ -454,31 +454,37 @@
         <div class="add-student-copy">
           <h3>Add Student by Gmail</h3>
           <p>
-            This searches the registered users table by email, then adds the matching student account to this class.
-            The student must already have a DataSensei student account.
+            @if($class->is_archived)
+              This class is archived, so no new students can be added. Restore the class from the class list if you need to enrol someone.
+            @else
+              This searches the registered users table by email, then adds the matching student account to this class.
+              The student must already have a DataSensei student account.
+            @endif
           </p>
         </div>
 
-        <form method="POST" action="{{ route('instructor.classes.students.add-by-email', $class) }}" class="add-student-form">
-          @csrf
-          <div class="add-student-field">
-            <label>Student Gmail / Email</label>
-            <input
-              type="email"
-              name="email"
-              value="{{ old('email') }}"
-              placeholder="student@gmail.com"
-              required
-            >
-          </div>
+        @unless($class->is_archived)
+          <form method="POST" action="{{ route('instructor.classes.students.add-by-email', $class) }}" class="add-student-form">
+            @csrf
+            <div class="add-student-field">
+              <label>Student Gmail / Email</label>
+              <input
+                type="email"
+                name="email"
+                value="{{ old('email') }}"
+                placeholder="student@gmail.com"
+                required
+              >
+            </div>
 
-          <button type="submit" class="btn btn-accent">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-            Add Student
-          </button>
-        </form>
+            <button type="submit" class="btn btn-accent">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Add Student
+            </button>
+          </form>
+        @endunless
       </section>
 
       <!-- Bulk Action Bar (shown when rows are checked) -->
@@ -642,7 +648,11 @@
                  class="btn btn-ghost">Clear Search</a>
             @else
               <h3>No students enrolled yet</h3>
-              <p>Share the class code <strong>{{ $class->class_code }}</strong> with your students to get started.</p>
+              @if($class->is_archived)
+                <p>This class is archived. Restore it from the class list before enrolling students.</p>
+              @else
+                <p>Use the Add Student by Gmail box above to enrol a student. Enrolment is instructor-managed, so students cannot add themselves.</p>
+              @endif
             @endif
           </div>
         @endif

@@ -20,6 +20,18 @@ class CodingSubmission extends Model
         'test_results',
         'error_message',
         'voided',
+        'attempt_token',
+        'attempt_generation',
+        'void_reason',
+        'grader_diagnostics',
+    ];
+
+    /**
+     * DS-13: grader_diagnostics keeps the detailed stderr of hidden test cases
+     * for operators. It must never reach a student through toArray()/toJson().
+     */
+    protected $hidden = [
+        'grader_diagnostics',
     ];
 
     protected $casts = [
@@ -29,6 +41,8 @@ class CodingSubmission extends Model
         'time_taken_seconds' => 'integer',
         'test_results' => 'array',
         'voided' => 'boolean',
+        'attempt_generation' => 'integer',
+        'grader_diagnostics' => 'array',
     ];
 
     public function user(): BelongsTo

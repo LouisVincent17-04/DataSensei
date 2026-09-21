@@ -27,7 +27,16 @@ class AssignmentSubmission extends Model
         'draft_version',
         'draft_saved_at',
         'timed_out_at',
+        'integrity_status',
+        'integrity_reason',
+        'provisional_score',
+        'integrity_reviewed_by',
+        'integrity_reviewed_at',
     ];
+
+    public const INTEGRITY_CLEAR = 'clear';
+    public const INTEGRITY_BLOCKED = 'blocked';
+    public const INTEGRITY_REVIEW_REQUIRED = 'review_required';
 
     protected $casts = [
         'attempt_no' => 'integer',
@@ -40,6 +49,10 @@ class AssignmentSubmission extends Model
         'draft_version' => 'integer',
         'draft_saved_at' => 'datetime',
         'timed_out_at' => 'datetime',
+        'provisional_score' => 'integer',
+        'integrity_reviewed_by' => 'integer',
+        'integrity_reviewed_at' => 'datetime',
+        'rewards_awarded_at' => 'datetime',
     ];
 
     public function classAssignment(): BelongsTo
@@ -55,6 +68,19 @@ class AssignmentSubmission extends Model
     public function answers(): HasMany
     {
         return $this->hasMany(AssignmentSubmissionAnswer::class, 'assignment_submission_id');
+    }
+
+    /**
+     * True while an anti-cheat decision withholds credit for this attempt and
+     * the instructor has not reviewed it yet. The saved work stays stored.
+     */
+    public function isHeldForIntegrityReview(): bool
+    {
+        return $this->status === 'submitted'
+            && in_array($this->integrity_status, [
+                self::INTEGRITY_BLOCKED,
+                self::INTEGRITY_REVIEW_REQUIRED,
+            ], true);
     }
 
     public function getPercentageAttribute(): int

@@ -298,7 +298,19 @@ Cluster sizes: [100 100 100 100]
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.metrics <span style="color:#c4b5fd;">import</span> silhouette_score
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+<span style="color:#c4b5fd;">from</span> sklearn.cluster <span style="color:#c4b5fd;">import</span> KMeans
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> make_blobs
+X, y_true = make_blobs(n_samples=<span style="color:#fcd34d;">400</span>, centers=<span style="color:#fcd34d;">4</span>,
+                        <span style="color:#93c5fd;">cluster_std</span>=<span style="color:#fcd34d;">0.9</span>, random_state=<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">scaler</span>  = StandardScaler()
+<span style="color:#93c5fd;">X_scaled</span> = scaler.fit_transform(X)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> sklearn.metrics <span style="color:#c4b5fd;">import</span> silhouette_score
 
 inertias    = []
 silhouettes = []
@@ -348,7 +360,10 @@ plt.<span style="color:#93c5fd;">show</span>()
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.cluster <span style="color:#c4b5fd;">import</span> KMeans
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+
+<span style="color:#c4b5fd;">import</span> pandas <span style="color:#c4b5fd;">as</span> pd
 <span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
 
 <span style="color:#6b7280;"># Simulated RFM (Recency, Frequency, Monetary) customer data</span>
@@ -496,7 +511,17 @@ plt.<span style="color:#93c5fd;">show</span>()
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.neighbors <span style="color:#c4b5fd;">import</span> NearestNeighbors
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> make_moons, make_circles
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+X_moons, _ = make_moons(n_samples=<span style="color:#fcd34d;">300</span>, noise=<span style="color:#fcd34d;">0.07</span>, random_state=<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">X_moons</span>     = StandardScaler().fit_transform(X_moons)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">from</span> sklearn.neighbors <span style="color:#c4b5fd;">import</span> NearestNeighbors
 
 <span style="color:#6b7280;"># Compute 4th nearest neighbor distance for each point (min_samples=5 → k=4)</span>
 nbrs = <span style="color:#93c5fd;">NearestNeighbors</span>(n_neighbors=<span style="color:#fcd34d;">4</span>).<span style="color:#93c5fd;">fit</span>(X_moons)
@@ -748,7 +773,10 @@ plt.<span style="color:#93c5fd;">show</span>()</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_digits
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.decomposition <span style="color:#c4b5fd;">import</span> PCA
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> load_digits
 
 <span style="color:#6b7280;"># 1797 handwritten digit images, each with 64 pixel features</span>
 digits = <span style="color:#93c5fd;">load_digits</span>()
@@ -856,8 +884,9 @@ HTML;
 <span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
 
 digits   = <span style="color:#93c5fd;">load_digits</span>()
-X_scaled = <span style="color:#93c5fd;">StandardScaler</span>().<span style="color:#93c5fd;">fit_transform</span>(digits.data)
-y        = digits.target
+<span style="color:#6b7280;"># 600 of the 1,797 images keep t-SNE within the sandbox's time limit</span>
+<span style="color:#93c5fd;">X_scaled</span> = StandardScaler().fit_transform(digits.data[:<span style="color:#fcd34d;">600</span>])
+<span style="color:#93c5fd;">y</span>        = digits.target[:<span style="color:#fcd34d;">600</span>]
 
 <span style="color:#6b7280;"># PCA to 2D</span>
 X_pca = <span style="color:#93c5fd;">PCA</span>(n_components=<span style="color:#fcd34d;">2</span>).<span style="color:#93c5fd;">fit_transform</span>(X_scaled)
@@ -866,7 +895,7 @@ X_pca = <span style="color:#93c5fd;">PCA</span>(n_components=<span style="color:
 <span style="color:#6b7280;"># PCA first to 50D speeds up t-SNE on high-dimensional data</span>
 X_50d  = <span style="color:#93c5fd;">PCA</span>(n_components=<span style="color:#fcd34d;">50</span>).<span style="color:#93c5fd;">fit_transform</span>(X_scaled)
 X_tsne = <span style="color:#93c5fd;">TSNE</span>(n_components=<span style="color:#fcd34d;">2</span>, perplexity=<span style="color:#fcd34d;">30</span>,
-               n_iter=<span style="color:#fcd34d;">1000</span>, random_state=<span style="color:#fcd34d;">42</span>).<span style="color:#93c5fd;">fit_transform</span>(X_50d)
+               max_iter=500, random_state=42).fit_transform(X_50d)
 
 fig, (ax1, ax2) = plt.<span style="color:#93c5fd;">subplots</span>(<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">2</span>, figsize=(<span style="color:#fcd34d;">14</span>, <span style="color:#fcd34d;">6</span>))
 
@@ -992,7 +1021,33 @@ Precision on anomalies:     94.0%
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> seaborn <span style="color:#c4b5fd;">as</span> sns
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+<span style="color:#c4b5fd;">from</span> sklearn.ensemble <span style="color:#c4b5fd;">import</span> IsolationForest
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+np.random.seed(<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">n_normal</span> = <span style="color:#fcd34d;">950</span>
+<span style="color:#93c5fd;">normal</span> = np.column_stack([
+    np.random.normal(<span style="color:#fcd34d;">50</span>, <span style="color:#fcd34d;">20</span>, n_normal),    <span style="color:#6b7280;"># transaction amount</span>
+    np.random.normal(<span style="color:#fcd34d;">12</span>, <span style="color:#fcd34d;">3</span>, n_normal),     <span style="color:#6b7280;"># hour of day</span>
+])
+<span style="color:#93c5fd;">n_fraud</span> = <span style="color:#fcd34d;">50</span>
+<span style="color:#93c5fd;">fraud</span> = np.column_stack([
+    np.random.uniform(<span style="color:#fcd34d;">800</span>, <span style="color:#fcd34d;">2000</span>, n_fraud),  <span style="color:#6b7280;"># large amounts</span>
+    np.random.uniform(<span style="color:#fcd34d;">0</span>, <span style="color:#fcd34d;">4</span>, n_fraud),       <span style="color:#6b7280;"># very late at night</span>
+])
+<span style="color:#93c5fd;">X</span> = np.vstack([normal, fraud])
+<span style="color:#93c5fd;">X_scaled</span> = StandardScaler().fit_transform(X)
+<span style="color:#93c5fd;">iso</span> = IsolationForest(n_estimators=<span style="color:#fcd34d;">200</span>,
+                       <span style="color:#93c5fd;">contamination</span>=<span style="color:#fcd34d;">0.05</span>,   <span style="color:#6b7280;"># ~5% of data is fraud</span>
+                       <span style="color:#93c5fd;">random_state</span>=<span style="color:#fcd34d;">42</span>)
+<span style="color:#93c5fd;">predictions</span> = iso.fit_predict(X_scaled)  <span style="color:#6b7280;"># 1=normal, -1=anomaly</span>
+<span style="color:#93c5fd;">scores</span>      = iso.score_samples(X_scaled)  <span style="color:#6b7280;"># more negative = more anomalous</span>
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">import</span> seaborn <span style="color:#c4b5fd;">as</span> sns
 
 fig, ax = plt.<span style="color:#93c5fd;">subplots</span>(figsize=(<span style="color:#fcd34d;">9</span>, <span style="color:#fcd34d;">4</span>))
 
@@ -1046,7 +1101,7 @@ HTML;
 <div class="code-window" style="background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:32px;overflow:hidden;">
   <div style="background:rgba(0,0,0,0.2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
     <span style="font-size:0.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;">PYTHON — Autoencoder for Anomaly Detection (Keras)</span>
-    <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
+    <span style="font-size:0.75rem;color:var(--muted);text-align:right;">Reference example. Needs tensorflow, which the practice sandbox does not include.</span>
   </div>
   <div style="padding:16px;">
     <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
@@ -1216,7 +1271,11 @@ plt.<span style="color:#93c5fd;">show</span>()</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> make_blobs
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> matplotlib.pyplot <span style="color:#c4b5fd;">as</span> plt
+<span style="color:#c4b5fd;">from</span> sklearn.mixture <span style="color:#c4b5fd;">import</span> GaussianMixture
+<span style="color:#c4b5fd;">from</span> sklearn.preprocessing <span style="color:#c4b5fd;">import</span> StandardScaler
+
+<span style="color:#c4b5fd;">from</span> sklearn.datasets <span style="color:#c4b5fd;">import</span> make_blobs
 
 X3, _ = <span style="color:#93c5fd;">make_blobs</span>(n_samples=<span style="color:#fcd34d;">400</span>, centers=<span style="color:#fcd34d;">3</span>,
                     cluster_std=<span style="color:#fcd34d;">0.8</span>, random_state=<span style="color:#fcd34d;">42</span>)
@@ -1225,7 +1284,7 @@ X3    = <span style="color:#93c5fd;">StandardScaler</span>().<span style="color:
 bics, aics, k_range = [], [], <span style="color:#93c5fd;">range</span>(<span style="color:#fcd34d;">1</span>, <span style="color:#fcd34d;">10</span>)
 
 <span style="color:#c4b5fd;">for</span> k <span style="color:#c4b5fd;">in</span> k_range:
-    g = <span style="color:#93c5fd;">GaussianMixture</span>(n_components=k, n_init=<span style="color:#fcd34d;">5</span>, random_state=<span style="color:#fcd34d;">42</span>)
+    <span style="color:#93c5fd;">g</span> = GaussianMixture(n_components=k, n_init=<span style="color:#fcd34d;">2</span>, random_state=<span style="color:#fcd34d;">42</span>)
     g.<span style="color:#93c5fd;">fit</span>(X3)
     bics.<span style="color:#93c5fd;">append</span>(g.<span style="color:#93c5fd;">bic</span>(X3))
     aics.<span style="color:#93c5fd;">append</span>(g.<span style="color:#93c5fd;">aic</span>(X3))

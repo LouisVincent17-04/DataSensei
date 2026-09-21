@@ -1090,10 +1090,24 @@ Baseline                0.2877          —         0.9972          —
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">np</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">from</span> scipy.integrate <span style="color:#c4b5fd;">import</span> solve_ivp
+<span style="color:#c4b5fd;">def</span> run_sir(beta, gamma, N=<span style="color:#fcd34d;">1_000_000</span>, I0=<span style="color:#fcd34d;">10</span>, T=<span style="color:#fcd34d;">365</span>):
+    <span style="color:#a7f3d0;">"""Return (peak_prevalence, total_infected_fraction) for given β, γ."""</span>
+    <span style="color:#93c5fd;">y0</span> = [(N - I0)/N, I0/N, <span style="color:#fcd34d;">0</span>]
+    <span style="color:#c4b5fd;">def</span> sir(t, y):
+        S, I, R = y
+        <span style="color:#c4b5fd;">return</span> [-beta*S*I, beta*S*I - gamma*I, gamma*I]
+    <span style="color:#93c5fd;">sol</span> = solve_ivp(sir, [<span style="color:#fcd34d;">0</span>, T], y0, t_eval=np.linspace(<span style="color:#fcd34d;">0</span>, T, <span style="color:#fcd34d;">1000</span>))
+    <span style="color:#c4b5fd;">return</span> sol.y[<span style="color:#fcd34d;">1</span>].max(), sol.y[<span style="color:#fcd34d;">2</span>, -<span style="color:#fcd34d;">1</span>]
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">np</span>
 
 <span style="color:#93c5fd;">rng</span>      = np.random.default_rng(<span style="color:#fcd34d;">42</span>)
-<span style="color:#93c5fd;">N_mc</span>     = <span style="color:#fcd34d;">2_000</span>   <span style="color:#6b7280;"># number of Monte Carlo runs</span>
+<span style="color:#93c5fd;">N_mc</span>     = <span style="color:#fcd34d;">400</span>   <span style="color:#6b7280;"># number of Monte Carlo runs</span>
 
 <span style="color:#6b7280;"># β ~ Uniform(0.20, 0.40); γ ~ Uniform(0.03, 0.07)</span>
 <span style="color:#93c5fd;">betas</span>  = rng.uniform(<span style="color:#fcd34d;">0.20</span>, <span style="color:#fcd34d;">0.40</span>, N_mc)
@@ -1208,7 +1222,30 @@ Theory in CI? : True</div>
     <button onclick="launchIDE(this)" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:0.75rem;cursor:pointer;font-weight:600;">Try in Compiler →</button>
   </div>
   <div style="padding:16px;">
-    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">np</span>
+    <div class="code-content" style="color:#e5e7eb;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:0.9rem;"><span style="color:#6b7280;"># Setup from the earlier examples, so this one runs on its own</span>
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> np
+<span style="color:#c4b5fd;">def</span> simulate_queue_wait(lam, mu, n_customers, seed):
+    <span style="color:#a7f3d0;">"""M/M/1 queue — return mean waiting time for n_customers."""</span>
+    <span style="color:#c4b5fd;">import</span> heapq
+    <span style="color:#93c5fd;">rng</span>         = np.random.default_rng(seed)
+    <span style="color:#93c5fd;">server_free</span> = <span style="color:#fcd34d;">0.0</span>
+    <span style="color:#93c5fd;">wait_times</span>  = []
+    <span style="color:#93c5fd;">eq</span>          = []
+    <span style="color:#93c5fd;">t</span>           = <span style="color:#fcd34d;">0.0</span>
+    <span style="color:#c4b5fd;">for</span> cid <span style="color:#c4b5fd;">in</span> range(n_customers):
+        t += rng.exponential(<span style="color:#fcd34d;">1</span>/lam)
+        heapq.heappush(eq, (t, cid))
+    <span style="color:#c4b5fd;">while</span> eq:
+        arr, _ = heapq.heappop(eq)
+        <span style="color:#93c5fd;">wait</span>   = max(<span style="color:#fcd34d;">0.0</span>, server_free - arr)
+        <span style="color:#93c5fd;">svc</span>    = rng.exponential(<span style="color:#fcd34d;">1</span>/mu)
+        <span style="color:#93c5fd;">server_free</span> = max(server_free, arr) + svc
+        wait_times.append(wait)
+    <span style="color:#c4b5fd;">return</span> np.mean(wait_times)
+
+<span style="color:#6b7280;"># This example</span>
+
+<span style="color:#c4b5fd;">import</span> numpy <span style="color:#c4b5fd;">as</span> <span style="color:#93c5fd;">np</span>
 <span style="color:#c4b5fd;">from</span> scipy <span style="color:#c4b5fd;">import</span> stats
 
 <span style="color:#6b7280;"># Configuration A: current system (λ=3, μ=5)

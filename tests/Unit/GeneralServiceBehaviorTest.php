@@ -88,11 +88,11 @@ class GeneralServiceBehaviorTest extends TestCase
 
     public function test_model_roadmap_normalizes_invalid_authoring_steps(): void
     {
-        $this->assertSame(2, ModelDevelopmentRoadmap::normalizeAuthoringStep('not-a-step'));
-        $this->assertSame(2, ModelDevelopmentRoadmap::normalizeAuthoringStep(-5));
-        $this->assertSame(5, ModelDevelopmentRoadmap::normalizeAuthoringStep('5'));
-        $this->assertSame(7, ModelDevelopmentRoadmap::normalizeAuthoringStep(99));
-        $this->assertSame(6, ModelDevelopmentRoadmap::normalizeAuthoringStep(null, 6));
+        // Every set-up decision is on one page now, so any old ?step= value lands on it.
+        foreach (['not-a-step', -5, '5', 99, null] as $step) {
+            $this->assertSame(2, ModelDevelopmentRoadmap::normalizeAuthoringStep($step));
+        }
+        $this->assertSame(2, ModelDevelopmentRoadmap::normalizeAuthoringStep(null, 6));
     }
 
     public function test_analytics_csv_export_uses_stable_columns_and_blocks_formula_injection(): void

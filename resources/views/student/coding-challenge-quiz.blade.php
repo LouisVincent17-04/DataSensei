@@ -392,6 +392,9 @@
           $isFinished = $isDone || $isExpired;
           $isLocked   = $qState === 'locked';
           $isActive   = $i === ($activeIdx ?? 0) && !$isFinished;
+          // DS-14: null until the server attempt exists (or the question is solved).
+          // The start POST returns the content after started_at is stamped.
+          $content    = $questionContent[$question->id] ?? null;
           $runUrl     = route('challenges.coding.run',    ['slug' => $slug, 'challenge' => $challenge->id, 'question' => $question->id]);
           $subUrl     = route('challenges.coding.submit', ['slug' => $slug, 'challenge' => $challenge->id, 'question' => $question->id]);
         @endphp
@@ -404,38 +407,41 @@
              data-run-url="{{ $runUrl }}"
              data-sub-url="{{ $subUrl }}"
              data-state="{{ $qState }}"
+             data-content="{{ $content !== null ? '1' : '0' }}"
              data-done="{{ $isDone ? '1' : '0' }}">
 
           {{-- ── LEFT: PROBLEM ── --}}
           <div class="problem-pane" id="problemPane-{{ $i }}">
             <div class="problem-body">
               <div class="problem-qnum">Question {{ $i + 1 }} of {{ $challenge->codingQuestions->count() }}</div>
-              <div class="problem-title">{{ $question->problem_description }}</div>
+              <div class="problem-title" id="problem-title-{{ $i }}">{{ $content['problem_description'] ?? '' }}</div>
 
-              @if($question->visibleTestCases->isNotEmpty())
+              <div id="tc-holder-{{ $i }}">
+              @if($content !== null && count($content['test_cases']) > 0)
                 <div class="tc-list">
                   <div class="tc-list-label">Sample Test Cases</div>
-                  @foreach($question->visibleTestCases as $tc)
-                    <div class="tc-card" id="tc-{{ $tc->id }}">
-                      @if($tc->input !== null)
+                  @foreach($content['test_cases'] as $tc)
+                    <div class="tc-card" id="tc-{{ $tc['id'] }}">
+                      @if($tc['input'] !== null)
                         <div class="tc-row">
                           <span class="tc-key">Input:</span>
-                          <span class="tc-val">{{ $tc->input }}</span>
+                          <span class="tc-val">{{ $tc['input'] }}</span>
                         </div>
                       @endif
                       <div class="tc-row">
                         <span class="tc-key">Expected:</span>
-                        <span class="tc-val">{{ $tc->expected_output }}</span>
+                        <span class="tc-val">{{ $tc['expected_output'] }}</span>
                       </div>
-                      <div class="tc-row" id="tc-got-row-{{ $tc->id }}" style="display:none">
+                      <div class="tc-row" id="tc-got-row-{{ $tc['id'] }}" style="display:none">
                         <span class="tc-key">Got:</span>
-                        <span class="tc-val" id="tc-got-{{ $tc->id }}"></span>
-                        <span class="tc-badge" id="tc-badge-{{ $tc->id }}"></span>
+                        <span class="tc-val" id="tc-got-{{ $tc['id'] }}"></span>
+                        <span class="tc-badge" id="tc-badge-{{ $tc['id'] }}"></span>
                       </div>
                     </div>
                   @endforeach
                 </div>
               @endif
+              </div>
             </div>
 
             <div class="problem-meta">
@@ -512,7 +518,7 @@
                         spellcheck="false"
                         placeholder="# Write your Python solution here..."
                         onkeydown="handleTab(event)"
-                        {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>{{ $prior ? $prior->code : ($question->starter_code ?? '') }}</textarea>
+                        {{ ($isFinished || $isLocked) ? 'disabled' : '' }}>{{ $prior ? $prior->code : ($content['starter_code'] ?? '') }}</textarea>
             </div>
 
             {{-- stdin panel --}}
@@ -956,6 +962,7 @@ async function gotoQ(idx) {
       }
 
       const data = await resp.json();
+      fillQuestionContent(idx, data.question);
       seedTimer(idx, data.remaining_seconds);
       if (data.expired) handleExpired(idx);
     } catch (_) {
@@ -973,6 +980,67 @@ async function gotoQ(idx) {
   // Timer display is managed globally by syncTimerDisplay — no per-panel
   // hiding/showing needed here. Removing that block fixed Issue 3.
   syncTimerDisplay();
+}
+
+/**
+ * DS-14: the page carries no problem text for a question whose server attempt
+ * does not exist yet. The start POST returns it after the server clock is
+ * stamped; this builds the same markup the server renders for started
+ * questions. textContent only — question text is never parsed as HTML.
+ */
+function fillQuestionContent(idx, question) {
+  const panel = document.getElementById(`qpanel-${idx}`);
+  if (!panel || !question || panel.dataset.content === '1') return;
+
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+
+  document.getElementById(`problem-title-${idx}`).textContent = question.problem_description || '';
+
+  const holder = document.getElementById(`tc-holder-${idx}`);
+  const cases  = Array.isArray(question.test_cases) ? question.test_cases : [];
+  holder.textContent = '';
+  if (cases.length > 0) {
+    const list = el('div', 'tc-list');
+    list.appendChild(el('div', 'tc-list-label', 'Sample Test Cases'));
+    cases.forEach(tc => {
+      const card = el('div', 'tc-card');
+      card.id = `tc-${tc.id}`;
+      if (tc.input !== null && tc.input !== undefined) {
+        const inRow = el('div', 'tc-row');
+        inRow.appendChild(el('span', 'tc-key', 'Input:'));
+        inRow.appendChild(el('span', 'tc-val', tc.input));
+        card.appendChild(inRow);
+      }
+      const expRow = el('div', 'tc-row');
+      expRow.appendChild(el('span', 'tc-key', 'Expected:'));
+      expRow.appendChild(el('span', 'tc-val', tc.expected_output));
+      card.appendChild(expRow);
+
+      const gotRow = el('div', 'tc-row');
+      gotRow.id = `tc-got-row-${tc.id}`;
+      gotRow.style.display = 'none';
+      gotRow.appendChild(el('span', 'tc-key', 'Got:'));
+      const gotVal = el('span', 'tc-val');
+      gotVal.id = `tc-got-${tc.id}`;
+      const badge = el('span', 'tc-badge');
+      badge.id = `tc-badge-${tc.id}`;
+      gotRow.appendChild(gotVal);
+      gotRow.appendChild(badge);
+      card.appendChild(gotRow);
+      list.appendChild(card);
+    });
+    holder.appendChild(list);
+  }
+
+  const editor = document.getElementById(`editor-${idx}`);
+  if (editor && editor.value === '') editor.value = question.starter_code || '';
+
+  panel.dataset.content = '1';
 }
 
 function dotUpdate(idx) {
@@ -1135,7 +1203,7 @@ async function submitCode(idx, auto = false) {
       return;
     }
 
-    if (resp.status === 403 || resp.status === 422) {
+    if (resp.status === 403 || resp.status === 409 || resp.status === 422) {
       showOutputError(idx, data.error || data.message || 'Submission rejected by server.');
       return;
     }
@@ -1306,7 +1374,9 @@ function renderSubmitResults(idx, data) {
   const instructionErrors = data.instruction_errors || [];
   const stderr = instructionErrors.length
     ? instructionErrors.join('\\n')
-    : (data.results || []).find(r => r.stderr)?.stderr;
+    : ((data.results || []).find(r => r.stderr)?.stderr
+        // DS-13: hidden cases carry only a generic, server-written message.
+        || (data.results || []).find(r => r.is_hidden && !r.passed && r.message)?.message);
 
   if (stderr) { stderrEl.style.display = 'block'; stderrEl.textContent = stderr; }
   else        { stderrEl.style.display = 'none'; }

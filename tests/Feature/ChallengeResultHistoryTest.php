@@ -65,7 +65,9 @@ class ChallengeResultHistoryTest extends TestCase
         ]));
 
         $response->assertOk()
-            ->assertSee('Challenge Result')
+            // The page heading is the challenge title; the former "Challenge Result"
+            // eyebrow label was removed from the view, the document title remains.
+            ->assertSee('Python Basics Result')
             ->assertSee('Retake Challenge')
             ->assertSee('Attempt History')
             ->assertSee('Attempt #2')
