@@ -24,6 +24,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'code',
             'stdin',
             'query',
+            // Coding challenge authoring: a test case's stdin and expected
+            // output are compared exactly against what the program prints,
+            // so leading whitespace is part of the answer, not noise. The
+            // same for starter code and reference solutions.
+            'questions.*.starter_code',
+            'questions.*.reference_solution',
+            'questions.*.test_cases.*.input',
+            'questions.*.test_cases.*.expected_output',
+            'reference_solution',
+            'test_cases.*.input',
+            'test_cases.*.expected_output',
         ]);
 
         $middleware->alias([
@@ -57,5 +68,49 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // A page left open outlives its session, and the token it was rendered
+        // with stops matching. That is ordinary, not an attack: the request is
+        // still refused, but the person is sent back to a freshly tokened form
+        // that says what happened, instead of Laravel's bare "Page Expired".
+        // Laravel turns TokenMismatchException into a 419 HttpException before
+        // render callbacks are consulted, so the status is what to match on.
+        $exceptions->render(function (
+            \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $exception,
+            Request $request
+        ) {
+            if ($exception->getStatusCode() !== 419) {
+                return null;
+            }
+
+            // Only the sign-in and registration forms. Elsewhere a 419 is left
+            // exactly as it was: the assignment and assessment screens detect
+            // an expired session by that status and handle it themselves, and
+            // quietly turning those into redirects would break them.
+            // Matched by path as well as by name: the POST that actually
+            // submits the sign-in form carries no route name, so keying on the
+            // name alone missed the very request this exists for.
+            if (! $request->routeIs('login', 'register') && ! $request->is('login', 'register')) {
+                return null;
+            }
+
+            $message = 'Your session expired before the form was sent. Please try again.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                    'session_expired' => true,
+                    // Lets a script retry straight away rather than dead-end.
+                    'csrf_token' => $request->hasSession()
+                        ? $request->session()->token()
+                        : null,
+                ], 419);
+            }
+
+            return redirect()->route('login')
+                ->withInput($request->except(['password', 'password_confirmation', '_token']))
+                ->withErrors(['email' => $message])
+                // Tells the sign-in page this is a bounce, so it can put the
+                // details back and try once more with the fresh token itself.
+                ->with('session_expired_retry', true);
+        });
     })->create();

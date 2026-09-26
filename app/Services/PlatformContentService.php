@@ -54,6 +54,41 @@ class PlatformContentService
         return substr($prefix . '-' . $slug . '-V' . $versionNo, 0, 100);
     }
 
+    /**
+     * A content code for a challenge that no other challenge uses.
+     *
+     * Challenge::booted() derives a code from category, type and title, so two
+     * challenges with the same title on the same level would collide on the
+     * (content_code, version_code) unique index. Admins should not have to
+     * invent codes to avoid that, so a blank code is filled in here instead,
+     * with a short random tail and a uniqueness check.
+     */
+    public function uniqueChallengeContentCode(int $categoryId, bool $coding, string $title, ?string $preferred = null): string
+    {
+        $type = $coding ? 'CODE' : 'MCQ';
+        $slug = strtoupper(Str::slug($title, '-'));
+        $slug = $slug !== '' ? substr($slug, 0, 32) : 'CHALLENGE';
+        $base = $preferred !== null && trim($preferred) !== ''
+            ? strtoupper(trim($preferred))
+            : 'C' . $categoryId . '-' . $type . '-' . $slug;
+
+        $candidate = substr($base, 0, 64);
+        $attempt = 0;
+
+        while (Challenge::query()->where('content_code', $candidate)->exists()) {
+            $attempt++;
+            $tail = '-' . strtoupper(Str::random(4));
+            $candidate = substr($base, 0, 64 - strlen($tail)) . $tail;
+
+            if ($attempt > 20) {
+                $candidate = substr($base, 0, 50) . '-' . strtoupper(Str::random(12));
+                break;
+            }
+        }
+
+        return $candidate;
+    }
+
     public function nextModuleVersion(int $moduleNo): int
     {
         return ((int) ModuleLibraryItem::where('module_no', $moduleNo)->max('version_no')) + 1;

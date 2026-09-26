@@ -91,6 +91,84 @@ class AuditAdminPlatformAnalyticsMysqlTest extends TestCase
         $this->assertNotEmpty($analytics['roleDistribution']);
     }
 
+    /**
+     * The at-risk list filtered on "assignment_avg", a SELECT alias, inside
+     * HAVING. MySQL rejects that under ONLY_FULL_GROUP_BY with
+     *
+     *   1463 Non-grouping field 'assignment_avg' is used in HAVING clause
+     *
+     * and the whole Platform Analytics page died with a 500. The two sibling
+     * conditions in the same HAVING were already written as aggregates, which
+     * is why only this one failed. ONLY_FULL_GROUP_BY is set explicitly here
+     * because it is the condition that triggers the defect, and a server
+     * configured without it hides the bug entirely.
+     */
+    public function test_at_risk_students_survive_only_full_group_by(): void
+    {
+        $originalMode = DB::selectOne('SELECT @@SESSION.sql_mode AS mode')->mode;
+
+        DB::statement("SET SESSION sql_mode = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES'");
+
+        try {
+            $this->seedLearners(3);
+
+            $service = new SuperAdminAnalyticsService();
+            $reflection = new \ReflectionClass($service);
+            $atRisk = $reflection->getMethod('atRiskStudents');
+
+            $range = [
+                'from' => now()->subDays(30)->startOfDay()->toDateTimeString(),
+                'to' => now()->endOfDay()->toDateTimeString(),
+            ];
+
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $rows = $atRisk->invoke($service, $range);
+            $executed = DB::getQueryLog();
+            DB::disableQueryLog();
+
+            $this->assertIsArray($rows);
+
+            // MariaDB accepts the alias even under ONLY_FULL_GROUP_BY, so
+            // executing the query is not on its own proof. The SQL itself is
+            // inspected: MySQL is the strict one and this is what it rejected.
+            $having = '';
+            foreach ($executed as $entry) {
+                if (str_contains($entry['query'], 'assignment_avg')) {
+                    $having = substr($entry['query'], (int) strpos($entry['query'], 'having'));
+                    break;
+                }
+            }
+
+            $this->assertNotSame('', $having, 'The at-risk query was not captured.');
+            $this->assertStringNotContainsString(
+                'assignment_avg',
+                $having,
+                'HAVING must repeat the aggregate, not reference the SELECT alias: MySQL rejects that with error 1463.'
+            );
+            $this->assertStringContainsString('AVG(CASE WHEN s.graded_at', $having);
+
+            // Freshly seeded learners have no XP and no activity, so the list
+            // must actually contain them: a query that silently returned
+            // nothing would pass a "no exception" check on its own.
+            $this->assertNotEmpty($rows, 'The at-risk list found no one despite three inactive learners.');
+
+            $emails = array_column($rows, 'email');
+            $seeded = array_filter($emails, fn ($email) => str_contains((string) $email, '@audit.test'));
+            $this->assertNotEmpty($seeded, 'The seeded inactive learners are missing from the at-risk list.');
+
+            // And the whole page, which is what actually 500'd. build() reaches
+            // atRiskStudents() twice: once for the student panel and once for
+            // the insights count.
+            $analytics = $service->build();
+            $this->assertArrayHasKey('atRisk', $analytics['students']);
+            $this->assertNotEmpty($analytics['students']['atRisk']);
+            $this->assertNotEmpty($analytics['insights']);
+        } finally {
+            DB::statement('SET SESSION sql_mode = ?', [$originalMode]);
+        }
+    }
+
     public function test_summary_export_rows_carry_the_real_counts(): void
     {
         $this->seedLearners(2);

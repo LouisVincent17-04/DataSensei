@@ -5,82 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Analytics — DataSensei</title>
 <style>
-    /* Student analytics. Colours, type and radius come from partials.design-system. */
-    :root{--good:var(--ds-success);--warn:var(--ds-warning);--bad:var(--ds-danger)}
+    :root{
+      --bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;
+      --text:#fafafa;--muted:#8aa0bd;--dim:#4b6080;
+      --accent:#3b82f6;--good:#10b981;--warn:#f59e0b;--bad:#ef4444;
+      /* same corner scale as the challenges page */
+      --radius:12px;--radius-sm:6px;
+      --num:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
+    body{margin:0;background:var(--bg);color:var(--text);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
     .layout{display:flex;min-height:100vh}
     .main{flex:1;min-width:0;background:var(--bg)}
 
-    /* ── title bar ─────────────────────────────────────────────── */
-    .topbar{min-height:60px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px 16px;
-      background:var(--bg);border-bottom:1px solid var(--border)}
-    .topbar-link{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 12px;
-      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);
-      font-size:.8125rem;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;
-      transition:background .12s ease}
-    .topbar-link:hover{background:var(--ds-surface-hover)}
+    /* a plain page bar, not a hero block */
+    .topbar{height:54px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+      background:var(--surface);border-bottom:1px solid var(--border)}
+    .topbar h1{font-size:.78rem;margin:0;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .topbar-link{color:var(--muted);text-decoration:none;font-size:.79rem;font-weight:600;padding:7px 13px;
+      border:1px solid var(--border);border-radius:var(--radius-sm);
+      transition:color .12s,border-color .12s,background .12s}
+    .topbar-link:hover{color:var(--text);border-color:#2c4168;background:var(--surface2)}
 
-    .content{padding:28px 32px 48px;width:100%}
+    .content{padding:26px 32px 56px;width:100%}
 
-    /* ── summary tiles and panels ──────────────────────────────── */
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-    .card{min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
-    .label{color:var(--muted);font-size:.8125rem;font-weight:500;line-height:1.4}
-    .metric{margin-top:4px;font-size:1.5rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-    .small{margin:4px 0 0;color:var(--muted);font-size:.75rem;line-height:1.45}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+    .label{font-size:.72rem;color:var(--muted);font-weight:600}
+    .metric{font-family:var(--num);font-size:1.3rem;font-weight:650;margin-top:7px;line-height:1;letter-spacing:-.02em}
+    .small{font-size:.74rem;color:var(--muted);line-height:1.5;margin:7px 0 0}
 
-    .bar{height:6px;margin-top:12px;overflow:hidden;border-radius:999px;background:var(--surface2)}
-    .fill{height:100%;max-width:100%;border-radius:inherit;background:var(--accent)}
+    /* flat fill, no gradient */
+    .bar{height:4px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:12px}
+    .fill{height:100%;background:var(--accent);border-radius:inherit}
 
     .rank-card{grid-column:span 2;display:flex;flex-direction:column}
-    .rank-name{margin-top:4px;font-size:1.25rem;font-weight:700;line-height:1.25;letter-spacing:-.02em}
-    .rank-xp{margin-top:4px;color:var(--ds-text-secondary);font-size:.8125rem;font-variant-numeric:tabular-nums}
-    /* the text block takes the slack so the bar sits at the bottom */
-    .rank-next{flex:1;margin-top:2px;color:var(--muted);font-size:.75rem;line-height:1.45}
+    .rank-name{font-size:1.15rem;font-weight:680;letter-spacing:-.02em;margin-top:7px;line-height:1.2}
+    .rank-xp{font-family:var(--num);font-size:.78rem;color:var(--muted);margin-top:7px}
+    /* the text block takes the slack so the bar sits at the bottom, but it
+       keeps a real gap when the card has no room to spare */
+    .rank-next{font-size:.74rem;color:var(--muted);margin-top:4px;flex:1}
+    .rank-card .bar{margin-top:14px}
 
     .wide{grid-column:span 2}
     .full{grid-column:1/-1}
 
-    /* Panels that hold a chart or a list carry a real title. */
-    .full > .label,.wide > .label{color:var(--text);font-size:.9375rem;font-weight:600}
-    .wide{padding:16px 0 4px}
-    .wide > .label{padding:0 18px 12px;border-bottom:1px solid var(--border)}
+    .activity{display:grid;grid-template-columns:repeat(14,1fr);gap:6px;align-items:end;height:92px;margin-top:14px}
+    .day{background:var(--accent);border-radius:2px;min-height:4px}
 
-    .activity{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:6px;align-items:end;height:100px;margin-top:16px}
-    .day{min-height:4px;border-radius:2px 2px 0 0;background:var(--accent)}
+    .list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+    .item{display:flex;justify-content:space-between;gap:12px;align-items:center;
+      background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px}
+    .item strong{font-size:.855rem;font-weight:650;line-height:1.35}
+    .item .small{margin-top:3px}
+    .item-value{font-family:var(--num);font-size:.83rem;font-weight:650;white-space:nowrap}
+    .item span{font-size:.83rem;line-height:1.45}
 
-    /* list rows separated by rules, not nested cards */
-    .list{display:flex;flex-direction:column}
-    .list > .small{padding:14px 18px;font-size:.875rem;margin:0}
-    .item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--border)}
-    .list > .item:first-child{border-top:0}
-    .item > div{min-width:0;flex:1 1 auto}
-    .item strong{display:block;font-size:.875rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
-    .item .small{margin-top:2px}
-    .item-value{flex-shrink:0;font-size:.875rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .item > span:not(.item-value){min-width:0;color:var(--ds-text-secondary);font-size:.875rem;line-height:1.5}
-
-    @media(max-width:1100px){
+    @media(max-width:1050px){
       .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .rank-card,.wide{grid-column:span 2}
     }
-    @media(max-width:900px){
-      .topbar{min-height:56px;padding:0 20px}
-      .content{padding:24px 20px 40px}
-    }
-    @media(max-width:640px){
+    @media(max-width:760px){
+      .layout{display:block}
       .topbar{padding:0 16px}
-      .content{padding:20px 16px 32px}
-      .card{padding:16px}
-      .wide{padding:16px 0 4px}
-      .wide > .label{padding:0 16px 12px}
-      .item,.list > .small{padding-left:16px;padding-right:16px}
-      .activity{gap:4px}
-    }
-    @media(max-width:520px){
-      .grid{grid-template-columns:minmax(0,1fr)}
+      .content{padding:20px 16px 36px}
+      .grid{grid-template-columns:1fr}
       .rank-card,.wide,.full{grid-column:span 1}
+      .activity{gap:4px}
     }
     @media(prefers-reduced-motion:reduce){.topbar-link{transition:none}}
   </style>
@@ -91,7 +83,7 @@
   @include('partials.sidebar')
   <main class="main">
     <header class="topbar">
-      <h1 class="ds-page-title">Analytics</h1>
+      <h1 class="ds-page-title">My Progress</h1>
       <a class="topbar-link" href="{{ route('student.leaderboard.index') }}">View leaderboard</a>
     </header>
 

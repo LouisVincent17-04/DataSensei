@@ -9,6 +9,7 @@ use App\Models\ChallengeAttemptEvent;
 use App\Models\ChallengeCategory;
 use App\Models\ChallengeOption;
 use App\Models\ChallengeQuestion;
+use App\Models\ClassChallengeAssignment;
 use App\Services\ChallengePathUnlockService;
 use App\Services\GamificationService;
 use Illuminate\Http\JsonResponse;
@@ -121,6 +122,10 @@ class ChallengesController extends Controller
         $challenges = Challenge::where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', 0)
             ->where('is_active', true)
+            ->where(function ($query): void {
+                $this->visibleToStudent($query);
+            })
+            ->orderByRaw("CASE WHEN visibility = 'instructor' THEN 1 ELSE 0 END")
             ->orderBy('order_index')
             ->orderBy('id')
             ->get();
@@ -220,6 +225,10 @@ class ChallengesController extends Controller
         $challenges = Challenge::where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', 1)
             ->where('is_active', true)
+            ->where(function ($query): void {
+                $this->visibleToStudent($query);
+            })
+            ->orderByRaw("CASE WHEN visibility = 'instructor' THEN 1 ELSE 0 END")
             ->orderBy('order_index')
             ->orderBy('id')
             ->get();
@@ -1039,6 +1048,60 @@ class ChallengesController extends Controller
         if ($requireActive) {
             abort_unless((bool) $challenge->is_active, 404);
         }
+
+        // An instructor-built challenge is class work: it exists for this
+        // learner only while one of their classes has it open, so a direct
+        // URL cannot reach it otherwise.
+        if ($challenge->isInstructorOwned()) {
+            abort_unless(in_array((int) $challenge->id, $this->assignedInstructorChallengeIds(), true), 404);
+        }
+    }
+
+    /**
+     * Platform challenges, plus the instructor-built ones that an open class
+     * assignment currently gives to this learner.
+     */
+    private function visibleToStudent($query): void
+    {
+        $query->platform();
+
+        $assigned = $this->assignedInstructorChallengeIds();
+        if ($assigned !== []) {
+            $query->orWhere(function ($builder) use ($assigned): void {
+                $builder->where('visibility', Challenge::VISIBILITY_INSTRUCTOR)
+                    ->whereIn('id', $assigned);
+            });
+        }
+    }
+
+    /**
+     * Ids of the challenges that a published, currently open class
+     * assignment gives to the signed-in learner through an active class.
+     *
+     * @return array<int, int>
+     */
+    private function assignedInstructorChallengeIds(): array
+    {
+        $user = Auth::user();
+
+        if ($user === null) {
+            return [];
+        }
+
+        $classIds = $user->classesAsStudent()->active()->pluck('classes.id');
+
+        if ($classIds->isEmpty()) {
+            return [];
+        }
+
+        return ClassChallengeAssignment::query()
+            ->openNow()
+            ->whereIn('class_id', $classIds)
+            ->pluck('challenge_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function ensureUniversityStudentEnrollment(string $slug): void

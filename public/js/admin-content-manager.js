@@ -18,6 +18,7 @@
 
       setName(question.querySelector('[data-field="question_type"]'), 'questions[' + questionIndex + '][question_type]');
       setName(question.querySelector('[data-field="question_text"]'), 'questions[' + questionIndex + '][question_text]');
+      setName(question.querySelector('[data-field="image_path"]'), 'questions[' + questionIndex + '][image_path]');
       setName(question.querySelector('[data-field="points"]'), 'questions[' + questionIndex + '][points]');
       setName(question.querySelector('[data-field="explanation"]'), 'questions[' + questionIndex + '][explanation]');
       setName(question.querySelector('[data-field="ilo_ids"]'), 'questions[' + questionIndex + '][ilo_ids][]');

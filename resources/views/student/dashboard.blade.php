@@ -5,126 +5,126 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Student Dashboard — DataSensei</title>
   <style>
-    /* Layout and components for the student dashboard. Colours, type and
-       radius come from partials.design-system. */
+    :root{
+      --bg:#0d1320;--surface:#111c2d;--surface2:#1a2638;--border:#1e2f47;
+      --text:#fafafa;--muted:#8ca0bb;--accent:#3b82f6;--green:#10b981;--amber:#f59e0b;--red:#ef4444;
+      --radius:8px;--radius-sm:6px;--radius-xs:4px;
+      --num:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    }
     *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;display:flex;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
-    .main{flex:1;min-width:0}
+    /* Borderless: separation comes from tone and space, not lines. Corners use
+       the same scale as the module library — 8px panels, 6px controls. */
+    .main *,.main *::before,.main *::after{border:0}
+    body{margin:0;min-height:100vh;display:flex;background:var(--bg);color:var(--text);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+    .main{flex:1;min-width:0;background:var(--bg)}
 
-    /* ── title bar ─────────────────────────────────────────────── */
-    .topbar{min-height:60px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;
-      background:var(--bg);border-bottom:1px solid var(--border)}
-    .whoami{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:4px 10px 4px 4px;border-radius:var(--radius-sm);
-      color:var(--muted);font-size:.875rem;font-weight:500;text-decoration:none}
+    /* ── top bar ───────────────────────────────────────────────── */
+    .topbar{height:54px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;
+      background:var(--surface)}
+    .topbar h1{font-size:.78rem;margin:0;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .whoami{display:inline-flex;align-items:center;gap:9px;color:var(--muted);text-decoration:none;
+      font-size:.84rem;font-weight:600;padding:5px 10px 5px 5px;border-radius:var(--radius-sm)}
     .whoami:hover{color:var(--text);background:var(--surface2)}
-    .whoami i{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;font-style:normal;border-radius:var(--radius-sm);
-      border:1px solid var(--ds-border-strong);background:var(--surface2);color:var(--text);font-size:.75rem;font-weight:600}
+    .whoami i{width:24px;height:24px;display:grid;place-items:center;font-style:normal;border-radius:var(--radius-xs);
+      font-size:.72rem;font-weight:800;color:var(--text);background:var(--surface2)}
 
-    .content{padding:28px 32px 48px;width:100%}
-    .link{color:var(--ds-accent-text);text-decoration:none;font-size:.8125rem;font-weight:500;white-space:nowrap}
-    .link:hover{text-decoration:underline}
+    /* fills the window: no max-width holding the layout back */
+    .content{padding:28px 32px 56px;width:100%}
+    .link{color:var(--muted);text-decoration:none;font-size:.79rem;font-weight:600}
+    .link:hover{color:var(--text)}
 
-    .flash{margin-bottom:20px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem}
+    .flash{padding:12px 16px;background:rgba(16,185,129,.12);color:#a7f3d0;font-size:.86rem;margin-bottom:24px;
+      border-radius:var(--radius-sm);box-shadow:inset 2px 0 0 var(--green)}
 
-    /* ── lead-in ───────────────────────────────────────────────── */
-    .greet{display:flex;align-items:flex-end;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;margin-bottom:24px}
-    .greet h2{margin:0;font-size:1.125rem;font-weight:600;line-height:1.35;letter-spacing:-.01em}
-    .greet h2 b{font-weight:600;color:inherit}
-    .greet p{margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.5}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 16px;
-      border:1px solid var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);
-      font-size:.875rem;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;
-      transition:background .12s ease,border-color .12s ease}
-    .btn:hover{background:var(--ds-surface-hover)}
-    .btn.primary{border-color:var(--accent);background:var(--accent);color:#fff}
-    .btn.primary:hover{border-color:var(--accent-hover);background:var(--accent-hover)}
-    .btn.small{min-height:32px;padding:0 12px;font-size:.8125rem}
+    /* ── greeting ──────────────────────────────────────────────── */
+    .greet{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;flex-wrap:wrap;margin-bottom:24px}
+    .greet h2{margin:0;font-size:1.7rem;font-weight:680;letter-spacing:-.028em;line-height:1.15}
+    .greet h2 b{font-weight:680;color:var(--accent)}
+    .greet p{margin:8px 0 0;color:var(--muted);font-size:.87rem;line-height:1.5}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;padding-bottom:3px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 16px;
+      background:var(--surface2);color:var(--text);text-decoration:none;font-weight:650;font-size:.82rem;
+      border-radius:var(--radius-sm);transition:background .12s,color .12s}
+    .btn:hover{background:#243350}
+    .btn.primary{background:var(--text);color:var(--bg)}
+    .btn.primary:hover{background:#e6ebf2}
+    .btn.small{padding:7px 13px;font-size:.78rem}
 
-    /* ── summary figures ───────────────────────────────────────── */
-    .readout{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:24px}
-    /* margin:0 matters: a <dl> carries a default block margin. */
-    .cell{margin:0;padding:16px 18px;display:flex;flex-direction:column;gap:4px;
-      border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
-    .cell dt{margin:0;color:var(--muted);font-size:.8125rem;font-weight:500}
-    .cell dd{margin:2px 0 0;font-size:1.5rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-    .cell small{color:var(--muted);font-size:.75rem;line-height:1.4}
+    /* ── summary rail ──────────────────────────────────────────── */
+    .readout{display:grid;grid-template-columns:minmax(190px,.8fr) repeat(4,minmax(0,1fr));gap:8px;
+      margin-bottom:24px;background:var(--bg)}
+    /* margin:0 matters — a <dl> carries a default 1em block margin, which would
+       otherwise make these cells shorter than the row they sit in. */
+    .cell{margin:0;padding:18px 20px;display:flex;flex-direction:column;justify-content:center;
+      gap:6px;background:var(--surface);border-radius:var(--radius)}
+    .cell dt{font-size:.72rem;color:var(--muted);font-weight:600;margin:0}
+    .cell dd{margin:0;font-family:var(--num);font-size:1.3rem;font-weight:650;line-height:1;letter-spacing:-.02em}
+    .cell small{color:var(--muted);font-size:.71rem;line-height:1.35}
 
-    /* ── two columns; the side column follows the scroll ─────── */
-    .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,30%);gap:20px;align-items:start}
+    /* ── two columns; the rail on the right follows the scroll ─── */
+    .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,26%);gap:20px;align-items:start}
     .stack{display:grid;gap:20px;min-width:0}
     .rail{position:sticky;top:20px}
-    .card{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden}
-    .card-head{padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid var(--border)}
-    .card-head h3{margin:0;font-size:.9375rem;font-weight:600}
-    .card-body{padding:0;display:grid}
+    .card{background:var(--surface);border-radius:var(--radius)}
+    .card-head{padding:16px 20px 12px;display:flex;justify-content:space-between;gap:16px;align-items:baseline}
+    .card-head h3{font-size:.88rem;margin:0;font-weight:680}
+    .card-body{padding:0 20px 20px;display:grid;gap:6px}
 
-    /* list rows separated by rules */
-    .row{display:block;padding:12px 20px;border-top:1px solid var(--border);color:inherit;text-decoration:none}
-    .card-body > .row:first-child{border-top:0}
-    a.row{transition:background .12s ease}
-    a.row:hover{background:var(--surface2)}
-    .item-title{font-size:.875rem;font-weight:600;line-height:1.4}
-    .meta{margin-top:2px;color:var(--muted);font-size:.8125rem;line-height:1.45}
-    .split{display:flex;justify-content:space-between;align-items:center;gap:16px}
-    .split > :first-child{min-width:0;flex:1 1 auto}
+    /* rows read as bands, told apart by tone */
+    .row{background:var(--bg);padding:13px 16px;color:inherit;text-decoration:none;display:block;
+      border-radius:var(--radius-sm)}
+    a.row{transition:background .12s}
+    a.row:hover{background:#0a0f19}
+    .item-title{font-weight:650;font-size:.865rem;line-height:1.35}
+    .meta{font-size:.755rem;color:var(--muted);margin-top:3px;line-height:1.45}
+    .split{display:flex;justify-content:space-between;align-items:center;gap:14px}
 
-    .tag{flex-shrink:0;color:var(--muted);font-size:.8125rem;font-weight:500;white-space:nowrap}
-    .tag.green{color:var(--ds-success-text)}
-    .tag.amber{color:var(--ds-warning-text)}
-    .tag .num{font-variant-numeric:tabular-nums}
+    .tag{font-size:.755rem;font-weight:650;color:var(--muted);white-space:nowrap}
+    .tag.green{color:#79e6bb}
+    .tag.amber{color:#f8ca75}
+    .tag .num{font-family:var(--num);font-weight:600}
 
     .module{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
-    .progress{height:6px;width:180px;max-width:100%;margin-top:8px;overflow:hidden;border-radius:999px;background:var(--surface2)}
-    .progress span{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+    .progress{height:3px;width:170px;background:var(--surface2);overflow:hidden;margin-top:9px;border-radius:999px}
+    .progress span{display:block;height:100%;background:var(--accent);border-radius:inherit}
 
-    .board{display:grid}
-    .rank{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;
-      padding:10px 20px;border-top:1px solid var(--border);font-size:.875rem}
-    .board .rank:first-child{border-top:0}
-    .rank-no{color:var(--muted);font-size:.8125rem;font-weight:600;font-variant-numeric:tabular-nums}
-    .rank-xp{color:var(--muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
-    .rank.you{background:var(--ds-accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+    .board{display:grid;gap:4px}
+    .rank{display:grid;grid-template-columns:20px 1fr auto;gap:10px;align-items:center;
+      padding:10px 16px;font-size:.85rem;background:var(--bg);border-radius:var(--radius-sm)}
+    .rank-no{font-family:var(--num);font-weight:650;color:var(--muted);font-size:.8rem}
+    .rank-xp{font-family:var(--num);font-size:.78rem;color:var(--muted)}
+    .rank.you{background:rgba(59,130,246,.13);box-shadow:inset 2px 0 0 var(--accent)}
     .rank.you .rank-xp{color:var(--text)}
-    .you-mark{margin-left:6px;color:var(--ds-accent-text);font-size:.75rem;font-weight:500}
-    .current-rank{padding:12px 20px;border-top:1px solid var(--border);color:var(--muted);font-size:.8125rem}
+    .you-mark{color:var(--accent);font-size:.72rem;font-weight:650;margin-left:6px}
+    .current-rank{margin-top:10px;color:var(--muted);font-size:.78rem;padding:0 16px}
 
-    .feed{position:relative;display:grid;padding:8px 20px 12px 38px}
-    .feed::before{content:'';position:absolute;left:24px;top:20px;bottom:20px;width:1px;background:var(--border)}
-    .event{position:relative;padding:8px 0}
-    .event-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
-    .when{color:var(--muted);font-size:.75rem;white-space:nowrap}
-    .event::before{content:'';position:absolute;left:-17px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+    .feed{display:grid;position:relative;padding:4px 0 4px 18px}
+    .feed::before{content:'';position:absolute;left:4px;top:12px;bottom:12px;width:1px;background:var(--surface2)}
+    .event{padding:9px 0;position:relative}
+    .event-top{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+    .when{font-size:.72rem;color:var(--muted);white-space:nowrap;font-family:var(--num)}
+    .event::before{content:'';position:absolute;left:-17px;top:15px;width:5px;height:5px;
+      background:var(--accent);border-radius:50%}
 
-    .empty{padding:28px 20px;color:var(--muted);font-size:.875rem;line-height:1.5;text-align:center}
+    .empty{padding:26px 16px;background:var(--bg);color:var(--muted);font-size:.83rem;text-align:center;
+      line-height:1.5;border-radius:var(--radius-sm)}
 
-    @media(max-width:1280px){
-      .readout{grid-template-columns:repeat(3,minmax(0,1fr))}
-    }
-    @media(max-width:1100px){
-      .grid{grid-template-columns:minmax(0,1fr)}
+    @media(max-width:1180px){
+      .grid{grid-template-columns:1fr}
       .rail{position:static}
+      .readout{grid-template-columns:repeat(2,1fr)}
+      .xp{grid-column:1 / -1}
     }
-    @media(max-width:900px){
-      .topbar{min-height:56px;padding:0 20px}
-      .content{padding:24px 20px 40px}
-      .readout{grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media(max-width:760px){
+      .content{padding:22px 16px 40px}.topbar{padding:0 16px}
+      .greet{align-items:flex-start;flex-direction:column;gap:16px}
+      .greet h2{font-size:1.42rem}
+      .module{grid-template-columns:1fr}.progress{width:100%}
+      .module .tag{justify-self:start}
+      .split{align-items:flex-start;flex-direction:column;gap:9px}
     }
-    @media(max-width:640px){
-      .content{padding:20px 16px 32px}
-      .topbar{padding:0 16px}
-      .greet{align-items:flex-start;flex-direction:column}
-      .actions{width:100%}
-      .actions .btn{flex:1 1 auto}
-      .module{grid-template-columns:minmax(0,1fr)}
-      .progress{width:100%}
-      .module .btn,.module .tag{justify-self:start}
-      .split{align-items:flex-start;flex-direction:column;gap:6px}
-      .row,.rank,.current-rank{padding-left:16px;padding-right:16px}
-      .card-head{padding:12px 16px}
-    }
-    @media(max-width:420px){.readout{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:480px){.readout{grid-template-columns:1fr}}
     @media(prefers-reduced-motion:reduce){.btn,a.row{transition:none}}
   </style>
     @include('partials.page-head', ['pageTitle' => 'Student Dashboard', 'pageDescription' => 'Your learning dashboard: current modules, assignments, and progress.'])
@@ -133,7 +133,7 @@
   @include('partials.sidebar')
   <div class="main">
     <header class="topbar">
-      <h1 class="ds-page-title">Dashboard</h1>
+      <h1 class="ds-page-title">Student Dashboard</h1>
       <a class="whoami" href="{{ route('profile') }}"><i>{{ strtoupper(mb_substr($user->name, 0, 1)) }}</i>{{ $user->name }}</a>
     </header>
 
@@ -144,7 +144,7 @@
 
       <section class="greet">
         <div>
-          <h2>Welcome back, <b>{{ $user->name }}</b></h2>
+          <h2>Welcome back, <b>{{ $user->name }}</b>.</h2>
           <p>Pick up where you left off, or start something new.</p>
         </div>
         <div class="actions">

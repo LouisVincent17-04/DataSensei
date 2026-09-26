@@ -94,6 +94,8 @@
     }
     .problem-body { flex: 1; padding: 20px; }
     .problem-qnum { margin-bottom: 8px; color: var(--muted); font-size: .8125rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+    .problem-name { margin: 0 0 8px; color: var(--text); font-size: 1rem; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+    .problem-name[hidden] { display: none; }
     .problem-title { margin-bottom: 16px; color: var(--ds-text-secondary); font-size: .875rem; font-weight: 400; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 
     /* sample test cases */
@@ -414,6 +416,7 @@
           <div class="problem-pane" id="problemPane-{{ $i }}">
             <div class="problem-body">
               <div class="problem-qnum">Question {{ $i + 1 }} of {{ $challenge->codingQuestions->count() }}</div>
+              <h2 class="problem-name" id="problem-name-{{ $i }}" @if(blank($content['title'] ?? null)) hidden @endif>{{ $content['title'] ?? '' }}</h2>
               <div class="problem-title" id="problem-title-{{ $i }}">{{ $content['problem_description'] ?? '' }}</div>
 
               <div id="tc-holder-{{ $i }}">
@@ -999,6 +1002,11 @@ function fillQuestionContent(idx, question) {
     return node;
   };
 
+  const nameEl = document.getElementById(`problem-name-${idx}`);
+  if (nameEl) {
+    nameEl.textContent = question.title || '';
+    nameEl.hidden = !question.title;
+  }
   document.getElementById(`problem-title-${idx}`).textContent = question.problem_description || '';
 
   const holder = document.getElementById(`tc-holder-${idx}`);

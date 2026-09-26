@@ -13,6 +13,7 @@ class ChallengeQuestion extends Model
         'challenge_category_id',
         'question_text',
         'order_index',
+        'image_path',
     ];
 
     protected $casts = [

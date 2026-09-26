@@ -80,7 +80,9 @@ class LessonController extends Controller
             return redirect()->route('lesson.show', ['module' => $lesson->module_id, 'lesson' => $nextLesson->id]);
         }
 
-        return redirect()->route('challenges')->with('success', 'Module Completed!');
+        // The last lesson is done: back to the module page, where the module
+        // now shows as completed and the next one as unlocked.
+        return redirect()->route('modules.index')->with('success', 'Module Completed!');
     }
 
     private function ensureModuleUnlocked(Module $module): void

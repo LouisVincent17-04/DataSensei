@@ -57,6 +57,13 @@ RUN apt-get update \
 
 COPY datasensei_runner.py /opt/datasensei/datasensei_runner.py
 
+# Example datasets, so sns.load_dataset() reads a local file instead of
+# downloading one. Containers run with --network none, so without these the
+# visualisation lessons fail outright; seaborn only fetches when the cached
+# file is missing, and SEABORN_DATA is where it looks.
+COPY seaborn-data /opt/datasensei/seaborn-data
+ENV SEABORN_DATA=/opt/datasensei/seaborn-data
+
 # Tells Laravel this image understands the warm-sandbox protocol
 # (--standby, JSON jobs, input() without replay). Keep in sync with
 # RUNNER_PROTOCOL in datasensei_runner.py and PythonWarmSandbox.php.

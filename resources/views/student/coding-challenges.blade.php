@@ -47,13 +47,8 @@
     }
     a.page-challenges-card:hover { border-color: var(--border-hover); background: var(--surface2); }
 
-    .page-challenges-card-icon {
-      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;
-      border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm);
-      background: var(--surface2); color: var(--ds-accent-text);
-    }
-    .page-challenges-card-icon svg { width: 18px; height: 18px; }
     .page-challenges-card-title { color: var(--text); font-size: .9375rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+    .page-challenges-card.is-bonus .page-challenges-card-title { padding-right: 150px; }
     .page-challenges-card-audience { display: block; margin-top: 2px; color: var(--muted); font-size: .8125rem; font-weight: 500; line-height: 1.45; }
     .page-challenges-card-desc { flex: 1; margin: 12px 0 16px; color: var(--ds-text-secondary); font-size: .875rem; line-height: 1.55; }
     .page-challenges-card-action {
@@ -66,7 +61,6 @@
 
     /* ── Locked and early-unlocked paths ── */
     .page-challenges-card.is-locked { cursor: default; }
-    .page-challenges-card.is-locked .page-challenges-card-icon { border-color: var(--border); background: var(--surface3); color: var(--dim); }
     .page-challenges-card.is-locked .page-challenges-card-title { color: var(--muted); }
     .page-challenges-card.is-locked .page-challenges-card-audience { color: var(--dim); }
     .page-challenges-card.is-locked .page-challenges-card-desc { color: var(--muted); }
@@ -82,7 +76,7 @@
     a.page-challenges-card.is-bonus:hover { border-color: var(--ds-warning); }
     .page-challenges-card.is-bonus .page-challenges-lock-reason { background: var(--ds-warning-soft); color: var(--ds-warning-text); }
     .page-challenges-card-badge {
-      position: absolute; top: 27px; right: 20px;
+      position: absolute; top: 19px; right: 20px;
       display: inline-flex; align-items: center; padding: 2px 8px;
       border: 1px solid var(--ds-warning-border); border-radius: var(--radius-xs);
       background: var(--ds-warning-soft); color: var(--ds-warning-text);
@@ -140,7 +134,7 @@
       .page-challenges-header { margin-bottom: 20px; }
       .page-challenges-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
       .page-challenges-card { padding: 16px; }
-      .page-challenges-card-badge { top: 23px; right: 16px; }
+      .page-challenges-card-badge { top: 15px; right: 16px; }
     }
   </style>
     @include('partials.page-head', ['pageTitle' => 'Select Your Path', 'pageDescription' => 'Practise Python coding challenges and see where your skills stand.'])
@@ -188,9 +182,6 @@
 
         @if($isLocked)
           <div class="page-challenges-card is-locked">
-            <div class="page-challenges-card-icon">
-              @include('student.partials.challenge-category-icon', ['slug' => $cat->slug])
-            </div>
             <h2 class="page-challenges-card-title">{{ $cat->name }}</h2>
             <span class="page-challenges-card-audience">{{ $cat->target_audience }}</span>
             <p class="page-challenges-card-desc">
@@ -207,9 +198,6 @@
             @if($isBonusUnlocked)
               <div class="page-challenges-card-badge">Exceptional Unlock</div>
             @endif
-            <div class="page-challenges-card-icon">
-              @include('student.partials.challenge-category-icon', ['slug' => $cat->slug])
-            </div>
             <h2 class="page-challenges-card-title">{{ $cat->name }}</h2>
             <span class="page-challenges-card-audience">{{ $cat->target_audience }}</span>
             <p class="page-challenges-card-desc">

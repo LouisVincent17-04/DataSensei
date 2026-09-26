@@ -23,6 +23,9 @@ class Challenge extends Model
         'version_name',
         'version_code',
         'is_active',
+        'module_id',
+        'created_by',
+        'visibility',
     ];
 
     protected $casts = [
@@ -32,7 +35,12 @@ class Challenge extends Model
         'is_coding_challenge' => 'boolean',
         'version_no' => 'integer',
         'is_active' => 'boolean',
+        'module_id' => 'integer',
+        'created_by' => 'integer',
     ];
+
+    public const VISIBILITY_PLATFORM = 'platform';
+    public const VISIBILITY_INSTRUCTOR = 'instructor';
 
     protected static function booted(): void
     {
@@ -100,5 +108,34 @@ class Challenge extends Model
     public function scopeCoding(Builder $query): Builder
     {
         return $query->where('is_coding_challenge', true);
+    }
+    /** The public module this challenge was fanned out from, if any. */
+    public function module(): BelongsTo
+    {
+        return $this->belongsTo(Module::class, 'module_id');
+    }
+
+    /** The instructor who built it; NULL for platform content. */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function classAssignments(): HasMany
+    {
+        return $this->hasMany(ClassChallengeAssignment::class, 'challenge_id');
+    }
+
+    public function isInstructorOwned(): bool
+    {
+        return $this->visibility === self::VISIBILITY_INSTRUCTOR;
+    }
+
+    /** Platform content only: what every learner on a level can see. */
+    public function scopePlatform(Builder $query): Builder
+    {
+        return $query->where(function (Builder $builder): void {
+            $builder->whereNull('visibility')->orWhere('visibility', self::VISIBILITY_PLATFORM);
+        });
     }
 }

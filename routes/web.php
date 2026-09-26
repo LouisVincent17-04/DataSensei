@@ -4,6 +4,12 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AdminAssessmentContentController;
 use App\Http\Controllers\AdminMcqChallengeController;
+use App\Http\Controllers\AdminCodingChallengeController;
+use App\Http\Controllers\AdminChallengeMapController;
+use App\Http\Controllers\AdminLessonController;
+use App\Http\Controllers\AdminPublicModuleController;
+use App\Http\Controllers\InstructorChallengeBuilderController;
+use App\Http\Controllers\InstructorClassChallengeController;
 use App\Http\Controllers\AdminModuleContentController;
 use App\Http\Controllers\AdminGamificationController;
 use App\Http\Controllers\AdminReportController;
@@ -295,6 +301,51 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
         Route::delete('/{challenge}', [AdminMcqChallengeController::class, 'destroy'])->name('destroy');
     });
 
+    // Public curriculum: the 24 modules at /module and their lessons.
+    Route::prefix('modules')->name('modules.')->group(function () {
+        Route::get('/', [AdminPublicModuleController::class, 'index'])->name('index');
+        Route::get('/create', [AdminPublicModuleController::class, 'create'])->name('create');
+        Route::post('/', [AdminPublicModuleController::class, 'store'])->name('store');
+        Route::post('/reorder', [AdminPublicModuleController::class, 'reorder'])->name('reorder');
+        Route::get('/{module}/edit', [AdminPublicModuleController::class, 'edit'])->name('edit');
+        Route::put('/{module}', [AdminPublicModuleController::class, 'update'])->name('update');
+        Route::delete('/{module}', [AdminPublicModuleController::class, 'destroy'])->name('destroy');
+
+        // Module content: the lessons inside one module, with the block editor.
+        Route::get('/{module}/lessons', [AdminLessonController::class, 'index'])->name('lessons.index');
+        Route::get('/{module}/lessons/create', [AdminLessonController::class, 'create'])->name('lessons.create');
+        Route::post('/{module}/lessons', [AdminLessonController::class, 'store'])->name('lessons.store');
+        Route::post('/{module}/lessons/reorder', [AdminLessonController::class, 'reorder'])->name('lessons.reorder');
+        Route::get('/{module}/lessons/{lesson}/edit', [AdminLessonController::class, 'edit'])->name('lessons.edit');
+        Route::put('/{module}/lessons/{lesson}', [AdminLessonController::class, 'update'])->name('lessons.update');
+        Route::delete('/{module}/lessons/{lesson}', [AdminLessonController::class, 'destroy'])->name('lessons.destroy');
+    });
+
+    // Live preview and image uploads for the block editor.
+    Route::post('/lesson-preview', [AdminLessonController::class, 'preview'])->name('lessons.preview');
+    Route::post('/lesson-images', [AdminLessonController::class, 'uploadImage'])->name('lessons.images.store');
+
+    // The challenge maps: each level's title, description, order, and the
+    // order and availability of the challenges on it.
+    Route::prefix('challenge-maps')->name('challenge-maps.')->group(function () {
+        Route::get('/', [AdminChallengeMapController::class, 'index'])->name('index');
+        Route::put('/{category}', [AdminChallengeMapController::class, 'update'])->name('update');
+        Route::post('/{category}/reorder', [AdminChallengeMapController::class, 'reorder'])->name('reorder');
+    });
+
+    Route::post('/challenge-question-images', [AdminMcqChallengeController::class, 'uploadImage'])->name('challenges.images.store');
+
+    Route::prefix('coding-challenges')->name('coding-challenges.')->group(function () {
+        Route::get('/', [AdminCodingChallengeController::class, 'index'])->name('index');
+        Route::get('/create', [AdminCodingChallengeController::class, 'create'])->name('create');
+        Route::post('/', [AdminCodingChallengeController::class, 'store'])->name('store');
+        Route::post('/check-tests', [AdminCodingChallengeController::class, 'checkTests'])->name('check-tests');
+        Route::get('/{challenge}', [AdminCodingChallengeController::class, 'show'])->name('show');
+        Route::get('/{challenge}/edit', [AdminCodingChallengeController::class, 'edit'])->name('edit');
+        Route::put('/{challenge}', [AdminCodingChallengeController::class, 'update'])->name('update');
+        Route::patch('/{challenge}/status', [AdminCodingChallengeController::class, 'toggleStatus'])->name('status');
+        Route::delete('/{challenge}', [AdminCodingChallengeController::class, 'destroy'])->name('destroy');
+    });
     Route::prefix('assessments')->name('assessments.')->group(function () {
         Route::get('/', [AdminAssessmentContentController::class, 'index'])->name('index');
         Route::get('/create', [AdminAssessmentContentController::class, 'create'])->name('create');
@@ -364,6 +415,25 @@ Route::middleware(['auth', 'active', 'instructor'])->prefix('instructor')->name(
     Route::get('/submissions', [InstructorSubmissionController::class, 'index'])->name('submissions.index');
     Route::get('/challenges', [InstructorChallengePoolController::class, 'index'])->name('challenges.index');
     Route::get('/challenges/{challenge}', [InstructorChallengePoolController::class, 'show'])->name('challenges.show');
+    // Instructors build their own MCQ and coding challenges (with test cases)
+    // and give them, or the admin's, to a class.
+    Route::prefix('challenge-builder')->name('challenge-builder.')->group(function () {
+        Route::get('/', [InstructorChallengeBuilderController::class, 'index'])->name('index');
+        Route::get('/create', [InstructorChallengeBuilderController::class, 'create'])->name('create');
+        Route::post('/', [InstructorChallengeBuilderController::class, 'store'])->name('store');
+        Route::post('/check-tests', [InstructorChallengeBuilderController::class, 'checkTests'])->name('check-tests');
+        Route::post('/images', [InstructorChallengeBuilderController::class, 'uploadImage'])->name('images.store');
+        Route::get('/{challenge}/edit', [InstructorChallengeBuilderController::class, 'edit'])->name('edit');
+        Route::put('/{challenge}', [InstructorChallengeBuilderController::class, 'update'])->name('update');
+        Route::delete('/{challenge}', [InstructorChallengeBuilderController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('class-challenges')->name('class-challenges.')->group(function () {
+        Route::get('/', [InstructorClassChallengeController::class, 'index'])->name('index');
+        Route::post('/', [InstructorClassChallengeController::class, 'store'])->name('store');
+        Route::put('/{assignment}', [InstructorClassChallengeController::class, 'update'])->name('update');
+        Route::delete('/{assignment}', [InstructorClassChallengeController::class, 'destroy'])->name('destroy');
+    });
     Route::get('/anti-cheat/events', [InstructorAntiCheatEventController::class, 'index'])->name('anti-cheat.events');
 
     Route::get('/anti-cheat', [InstructorAntiCheatController::class, 'index'])->name('anti-cheat.index');

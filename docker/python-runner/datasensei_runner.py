@@ -109,13 +109,22 @@ import inspect
 import io
 import json
 import runpy
-import resource
 import shutil
 import site
 import time
 import threading
 import traceback
 from pathlib import Path
+
+try:
+    import resource
+except ModuleNotFoundError:
+    # POSIX only. The container is the real boundary and always has it; the
+    # unsafe local driver on Windows does not, and refusing to start there
+    # would leave the IDE dead with an import traceback. The limits below are
+    # simply skipped, which is one more reason local mode is for a developer
+    # machine and never for a shared server.
+    resource = None
 
 
 RUNNER_FILE = Path(__file__).resolve(strict=False)
@@ -369,6 +378,9 @@ def wall_seconds_budget() -> float:
 
 
 def apply_cpu_limit(cpu_seconds: int) -> None:
+    if resource is None:
+        return
+
     # RLIMIT_CPU counts the whole process lifetime. A warm container has
     # already spent CPU on start-up and preloading, which must not be taken
     # from the learner's budget, so the limit is set relative to CPU used so far.
@@ -381,6 +393,11 @@ def apply_cpu_limit(cpu_seconds: int) -> None:
 
 
 def apply_resource_limits() -> None:
+    if resource is None:
+        # No POSIX limits here. The wall-clock watchdog still stops runaway
+        # programs, which is what a learner actually hits.
+        return
+
     if not STANDBY_MODE:
         apply_cpu_limit(int(os.environ.get("DS_CPU_SECONDS", "10") or 10))
 
@@ -481,6 +498,20 @@ TRUSTED_DLOPEN_LIBRARY_KEYWORDS = [
     "flexiblas",
     "scipy",
     "sklearn",
+    # Windows only, and only reachable from installed library code. CPython's
+    # own ctypes module binds kernel32 while it is being imported, and numpy
+    # imports ctypes, so on the unsafe local driver "import numpy" was blocked
+    # outright and with it pandas, matplotlib, seaborn and scikit-learn. These
+    # are the C runtime and core Win32 libraries those packages bind; no
+    # networking library is listed, and a learner still cannot import ctypes.
+    "kernel32",
+    "msvcrt",
+    "ucrtbase",
+    "vcruntime",
+    "api-ms-win-crt",
+    "oleaut32",
+    "ole32",
+    "advapi32",
 ]
 
 
@@ -508,6 +539,28 @@ def called_from_trusted_code() -> bool:
         return False
 
     return False
+
+
+def platform_temp_dir() -> Path | None:
+    """Where this machine puts temporary files.
+
+    In the container that is /tmp, which is already a root. On Windows it is
+    the user's own Temp folder and matched nothing, so SciPy's MessageStream -
+    reached by "import scipy.stats", which scikit-learn does - was refused
+    while it opened its temp file and every scikit-learn lesson died.
+
+    Resolved once here, before the audit hook is installed, because working it
+    out involves opening files itself.
+    """
+    try:
+        import tempfile
+
+        return Path(tempfile.gettempdir()).resolve(strict=False)
+    except Exception:
+        return None
+
+
+PLATFORM_TEMP_DIR = platform_temp_dir()
 
 
 def path_is_inside(path: Path, root: Path) -> bool:
@@ -561,7 +614,20 @@ def file_access_is_allowed(path_value: object, mode_value: object) -> bool:
     roots = ALLOWED_WRITE_ROOTS if is_write else ALLOWED_READ_ROOTS
     parents = path.parents
 
-    return any(path == root or root in parents for root in roots)
+    if any(path == root or root in parents for root in roots):
+        return True
+
+    # This machine's temp folder, for installed library code only. SciPy opens
+    # a temp file while scipy.stats is imported and scikit-learn imports
+    # scipy.stats, so on Windows - where the temp folder is not /tmp - every
+    # scikit-learn lesson was refused. A learner's own temp write still falls
+    # through to the roots above and is refused, so this does not hand student
+    # code a writable corner outside its workspace.
+    if PLATFORM_TEMP_DIR is not None:
+        if path == PLATFORM_TEMP_DIR or PLATFORM_TEMP_DIR in parents:
+            return called_from_trusted_code()
+
+    return False
 
 
 def _build_allowed_roots() -> tuple[list[Path], list[Path]]:
@@ -573,11 +639,32 @@ def _build_allowed_roots() -> tuple[list[Path], list[Path]]:
         Path("/tmp").resolve(strict=False),
     ]
 
+    # matplotlib's cache. It is given to us by the service, never by the
+    # learner, whose code cannot reach os.environ at all. Without a writable
+    # cache matplotlib rescans every font on the machine on every single run,
+    # which on Windows is slow enough to spend the learner's whole time limit
+    # before their first line executes.
+    for variable in ("MPLCONFIGDIR", "XDG_CACHE_HOME"):
+        location = os.environ.get(variable)
+
+        if location:
+            resolved = safe_resolve(location)
+
+            if resolved is not None:
+                write_roots.append(resolved)
+
     read_roots = [
         WORKSPACE,
         INPUT_DIR,
         Path("/tmp").resolve(strict=False),
         Path("/opt/datasensei").resolve(strict=False),
+        # The runner's own folder. In the container that is /opt/datasensei
+        # above, but the unsafe local driver runs it from the project tree,
+        # where it matched no read root. Python's traceback machinery reads
+        # the source of every frame it prints, so a blocked read here meant a
+        # second sandbox error swallowed the first and the learner was shown a
+        # wall of runner internals instead of their own mistake.
+        RUNNER_FILE.parent,
         Path("/usr/local/lib").resolve(strict=False),
         Path("/usr/lib").resolve(strict=False),
         Path("/lib").resolve(strict=False),
@@ -661,6 +748,42 @@ def block(event: str) -> None:
     )
 
 
+ON_WINDOWS = os.name == "nt"
+
+
+def windows_system_library(raw_name: object, normalized_name: str) -> bool:
+    """A Windows system DLL, loaded by bare name or from the system folder.
+
+    Installed packages bind whatever Win32 library they happen to need:
+    dateutil opens user32 to read time zone names, and pandas imports
+    dateutil, so "import pandas" depended on it. Naming them one at a time
+    turned every lesson into a bug report.
+
+    This only ever applies to installed library code, which the caller has
+    already established. It is also a narrower gate than it looks: the
+    ctypes.dlopen audit event fires for ctypes only, so a compiled extension
+    was always free to load its own DLLs without passing through here. What
+    this permits, a .pyd could already do.
+    """
+    if not normalized_name:
+        return False
+
+    # A bare name ("user32", "kernel32.dll") is resolved by Windows' own DLL
+    # search order; anything with a path is checked against the system folder.
+    if "/" not in normalized_name and ":" not in normalized_name:
+        return True
+
+    resolved = safe_resolve(raw_name)
+    system_root = os.environ.get("SystemRoot") or os.environ.get("windir")
+
+    if resolved is None or not system_root:
+        return False
+
+    root = safe_resolve(system_root)
+
+    return root is not None and (resolved == root or root in resolved.parents)
+
+
 def ctypes_dlopen_is_allowed(args: tuple) -> bool:
     if not called_from_trusted_code():
         return False
@@ -677,6 +800,9 @@ def ctypes_dlopen_is_allowed(args: tuple) -> bool:
         return True
 
     if any(keyword.lower() in library_name for keyword in TRUSTED_DLOPEN_LIBRARY_KEYWORDS):
+        return True
+
+    if ON_WINDOWS and windows_system_library(args[0] if args else None, library_name):
         return True
 
     return False
@@ -849,7 +975,25 @@ class LimitedTextStream:
         return self.stream.fileno()
 
 
+def force_utf8_output() -> None:
+    """Everything the program prints leaves here as UTF-8.
+
+    Laravel turns the output into JSON, and json_encode refuses anything that
+    is not valid UTF-8. The container is UTF-8 throughout, but on Windows a
+    pipe is opened in the console code page (cp1252), so a plain "±" in a
+    lesson's f-string left as the single byte 0xB1 and the whole Run failed
+    with "Malformed UTF-8 characters" before the learner saw a line of it.
+    Characters the target cannot hold are replaced rather than raised.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 def install_output_limits() -> None:
+    force_utf8_output()
     total_bytes = max(65_536, int(os.environ.get("DS_MAX_OUTPUT_BYTES", "8388608")))
     stdout_bytes = max(32_768, total_bytes * 3 // 4)
     stderr_bytes = max(32_768, total_bytes - stdout_bytes)
@@ -876,6 +1020,27 @@ def inputs_consumed() -> int:
     return _inputs_consumed
 
 
+# Graded runs (coding challenges) compare stdout exactly against the expected
+# output. The lessons teach input("Enter your name: "), and Python prints that
+# prompt to stdout, so a correct program failed every stdin test with output
+# like "Enter a: Enter b: 5". When grading, the prompt is simply not printed.
+# The IDE never sets this, so prompts still appear there as normal.
+QUIET_INPUT_PROMPTS = os.environ.get("DS_QUIET_INPUT_PROMPTS") == "1"
+
+
+def quiet_input_prompts() -> None:
+    """Wrap whatever input() is installed so its prompt is never printed."""
+    if not QUIET_INPUT_PROMPTS:
+        return
+
+    installed = builtins.input
+
+    def input_without_prompt(prompt="") -> str:
+        return installed("")
+
+    builtins.input = input_without_prompt
+
+
 def install_interactive_input_bridge() -> None:
     """
     Preserve normal input() behavior outside the IDE. For IDE runs, report an
@@ -883,6 +1048,13 @@ def install_interactive_input_bridge() -> None:
     The browser can then collect one value and replay the isolated program with
     every answer supplied so far.
     """
+    try:
+        _install_input_bridge()
+    finally:
+        quiet_input_prompts()
+
+
+def _install_input_bridge() -> None:
     if SESSION_FEED is not None:
         install_session_input_bridge()
         return
@@ -1355,6 +1527,11 @@ def prepare_job(job: dict) -> Path | None:
     global JOB_WALL_SECONDS
     JOB_WALL_SECONDS = float(job.get("wall_seconds") or job.get("cpu_seconds") or 10)
 
+    # Likewise for graded runs: the standby container was started before the
+    # grader asked for quiet prompts, so the setting arrives with the job.
+    global QUIET_INPUT_PROMPTS
+    QUIET_INPUT_PROMPTS = bool(job.get("quiet_prompts"))
+
     return _safe_job_target(job.get("entry") or "main.py")
 
 
@@ -1373,6 +1550,146 @@ def main() -> int:
         return exit_code
 
     return run_script(resolve_script_argument())
+
+
+# Libraries lesson examples reference that the sandbox does not install, with
+# the reason in words a learner can act on. Anything not listed falls back to
+# the generic sentence below.
+UNAVAILABLE_LIBRARIES = {
+    "tensorflow": "TensorFlow, a deep-learning framework",
+    "torch": "PyTorch, a deep-learning framework",
+    "keras": "Keras, a deep-learning framework",
+    "transformers": "Hugging Face Transformers",
+    "gymnasium": "Gymnasium, a reinforcement-learning toolkit",
+    "shap": "SHAP, a model-explanation library",
+    "prophet": "Prophet, a forecasting library",
+    "plotly": "Plotly, an interactive charting library",
+    "pyspark": "PySpark, which needs a Spark cluster",
+    "kafka": "the Kafka client, which needs a Kafka broker",
+    "airflow": "Apache Airflow, which needs a scheduler",
+    "mlflow": "MLflow, which needs a tracking server",
+    "delta": "Delta Lake, which needs Spark",
+    "boto3": "the AWS SDK, which needs network access",
+    "google": "the Google Cloud SDK, which needs network access",
+    "pymongo": "the MongoDB client, which needs a database server",
+    "redis": "the Redis client, which needs a Redis server",
+    "sqlalchemy": "SQLAlchemy, a database toolkit",
+    "psycopg2": "the PostgreSQL driver, which needs a database server",
+    "fastapi": "FastAPI, a web framework",
+    "pydantic": "Pydantic, a data-validation library",
+    "requests": "Requests; the sandbox has no network access",
+}
+
+
+def explain_missing_module(exc: ModuleNotFoundError) -> str:
+    root = (getattr(exc, "name", "") or "").split(".")[0]
+    described = UNAVAILABLE_LIBRARIES.get(root)
+
+    if described:
+        return (
+            f"This example uses {described}, which is not installed in the "
+            "learning sandbox. The code is here to read and study rather than "
+            "to run. Nothing is wrong with what you wrote."
+        )
+
+    return (
+        f"This example needs the '{root}' library, which is not installed in "
+        "the learning sandbox. If a lesson expects it, tell your instructor. "
+        "Nothing is wrong with what you wrote."
+    )
+
+
+# Loading these is sandbox start-up, not the learner's work. On Windows,
+# where every file the interpreter opens is scanned before it is handed over,
+# "import pandas" alone can take longer than the whole time limit.
+PRELOADABLE_LIBRARIES = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "matplotlib.pyplot",
+    "seaborn",
+    "scipy",
+    "scipy.stats",
+    "sklearn",
+    "statsmodels",
+    "statsmodels.api",
+    "joblib",
+]
+
+
+def preload_declared_libraries(script_path: Path) -> None:
+    """Import the heavy libraries the program asks for, before its clock runs.
+
+    A warm standby container already has these resident, which is why the
+    warm path never showed this. The classic and local paths start a fresh
+    interpreter for every Run, so the learner was being charged for loading
+    pandas, seaborn, matplotlib and scipy before their first statement -
+    frequently the entire budget, reported to them as an endless loop.
+
+    Only what the program actually names is loaded, so a plain "print" program
+    still starts instantly.
+    """
+    if STANDBY_MODE:
+        return
+
+    try:
+        source = script_path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return
+
+    for name in PRELOADABLE_LIBRARIES:
+        root = name.split(".")[0]
+
+        declared = any(
+            line.lstrip().startswith(("import " + root, "from " + root))
+            for line in source.splitlines()
+        )
+
+        if not declared:
+            continue
+
+        try:
+            __import__(name)
+        except BaseException:
+            # Not installed, or broken here. The program's own import will
+            # raise and be reported properly; this is only a head start.
+            pass
+
+
+def build_font_index_once() -> None:
+    """Build matplotlib's font index before the learner's clock starts.
+
+    The first import of matplotlib on a machine walks every installed font and
+    writes an index. On Windows that can take longer than the learner's whole
+    time limit, and being stopped part-way meant the index was never finished:
+    every later run began it again and was killed at the same point. Doing it
+    here, before start_wall_clock(), charges it to sandbox start-up - which is
+    what the start-up allowance is for - and it happens once per machine.
+    """
+    cache = os.environ.get("MPLCONFIGDIR")
+
+    if not cache:
+        return
+
+    try:
+        if any(Path(cache).glob("fontlist-v*.json")):
+            return
+    except Exception:
+        return
+
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+
+        from matplotlib import font_manager
+
+        # Touching the manager is what triggers the scan and the write.
+        font_manager.fontManager
+    except Exception:
+        # A machine without matplotlib, or an index that cannot be written,
+        # is not a reason to refuse the run: the program may not plot at all.
+        pass
 
 
 def run_script(script_path: Path) -> int:
@@ -1410,6 +1727,8 @@ def run_script(script_path: Path) -> int:
             sys.path[0] = script_dir
         elif script_dir not in sys.path:
             sys.path.insert(0, script_dir)
+        preload_declared_libraries(script_path)
+        build_font_index_once()
         start_wall_clock(wall_seconds_budget())
         runpy.run_path(str(script_path), run_name="__main__")
 
@@ -1422,6 +1741,17 @@ def run_script(script_path: Path) -> int:
     except DataSenseiInputRequired as exc:
         emit_input_required(exc.prompt)
         exit_code = 75
+
+    except ModuleNotFoundError as exc:
+        # Some lesson examples are written against tools the learning sandbox
+        # deliberately does not carry: deep-learning frameworks, cloud SDKs,
+        # database and streaming clients that would need a server and a
+        # network the sandbox does not give them. A raw traceback reads as
+        # "your code is broken", which it is not, so say what actually
+        # happened and leave the traceback underneath for the curious.
+        print(explain_missing_module(exc), file=sys.stderr)
+        traceback.print_exc()
+        exit_code = 1
 
     except BaseException:
         traceback.print_exc()

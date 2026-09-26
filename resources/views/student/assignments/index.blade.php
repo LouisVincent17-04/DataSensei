@@ -333,6 +333,10 @@
       /* Action, row 4 */
       .table td:nth-child(6) { grid-column: 1 / -1; grid-row: 4; }
       .table td:nth-child(6) .btn { width: 100%; margin-top: 4px; }
+
+      /* Instructor challenge list has five columns: its action fills row 4 */
+      .instructor-challenges .table td:nth-child(5) { grid-column: 1 / -1; grid-row: 4; justify-self: stretch; }
+      .instructor-challenges .table td:nth-child(5) .btn { width: 100%; margin-top: 4px; }
     }
 
     @media (max-width: 640px) {
@@ -528,6 +532,72 @@
             </div>
           @endif
 
+        </section>
+
+        {{-- ── CHALLENGES GIVEN BY THE INSTRUCTOR ── --}}
+        <section class="card instructor-challenges" style="margin-top:24px" aria-labelledby="instructor-challenges-title">
+          <div class="toolbar" style="align-items:flex-start;flex-direction:column;gap:4px">
+            <h2 id="instructor-challenges-title" style="font-size:.9375rem;font-weight:600;color:var(--text);line-height:1.35">Challenges from your instructor</h2>
+            <p class="page-subtitle" style="margin-top:0">Quiz and coding challenges your instructor gave to your class. They open on the University Student challenge map.</p>
+          </div>
+
+          @if(isset($challengeAssignments) && $challengeAssignments->count())
+            <div class="table-scroll" role="region" aria-label="Instructor challenges list">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Challenge</th>
+                    <th scope="col">Class</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Due</th>
+                    <th scope="col">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach($challengeAssignments as $challengeAssignment)
+                    @php
+                      $givenChallenge = $challengeAssignment->challenge;
+                      $isCodingChallenge = (bool) ($givenChallenge?->is_coding_challenge);
+                      $takeUrl = $givenChallenge
+                        ? ($isCodingChallenge
+                            ? route('challenges.coding.quiz', ['slug' => 'university-student', 'challenge' => $givenChallenge->id])
+                            : route('challenges.quiz', ['slug' => 'university-student', 'challenge' => $givenChallenge->id]))
+                        : null;
+                    @endphp
+                    <tr>
+                      <td>
+                        <strong>{{ $challengeAssignment->title ?: ($givenChallenge?->title ?? 'Challenge') }}</strong>
+                        @if($challengeAssignment->instructions)
+                          <span class="sub">{{ $challengeAssignment->instructions }}</span>
+                        @elseif($givenChallenge && $challengeAssignment->title && $challengeAssignment->title !== $givenChallenge->title)
+                          <span class="sub">{{ $givenChallenge->title }}</span>
+                        @endif
+                      </td>
+                      <td>{{ $challengeAssignment->class?->name ?? '—' }}</td>
+                      <td>{{ $isCodingChallenge ? 'Coding' : 'Quiz' }}</td>
+                      <td>
+                        {{ $challengeAssignment->due_at
+                          ? $challengeAssignment->due_at->format('M d, Y, h:i A')
+                          : 'No due date' }}
+                      </td>
+                      <td>
+                        @if($takeUrl)
+                          <a class="btn primary" href="{{ $takeUrl }}">{{ $isCodingChallenge ? 'Open coding challenge' : 'Start quiz' }}</a>
+                        @else
+                          <span class="sub">Not available</span>
+                        @endif
+                      </td>
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            </div>
+          @else
+            <div class="empty" style="padding:28px 20px">
+              <h3>No challenges from your instructor right now</h3>
+              <p>When your instructor gives a quiz or coding challenge to your class, it will be listed here with its due date.</p>
+            </div>
+          @endif
         </section>
       </div>
     </main>

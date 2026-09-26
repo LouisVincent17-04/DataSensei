@@ -227,7 +227,10 @@ class ChallengePathUnlockService
             return $this->emptySummary();
         }
 
+        // Instructor-built challenges are class work, never part of the
+        // public path, so they do not decide level completion.
         $challenges = Challenge::withCount('questions')
+            ->platform()
             ->where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', false)
             ->where('is_active', true)
@@ -347,6 +350,7 @@ class ChallengePathUnlockService
         }
 
         $challenges = Challenge::with('codingQuestions')
+            ->platform()
             ->where('challenge_category_id', $category->id)
             ->where('is_coding_challenge', true)
             ->where('is_active', true)

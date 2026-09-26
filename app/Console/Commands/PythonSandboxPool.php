@@ -84,8 +84,32 @@ class PythonSandboxPool extends Command
             return [(int) round((microtime(true) - $start) * 1000), $value];
         };
 
-        [$ms, $ok] = $time(static fn () => Process::timeout(30)->run([$docker, 'version', '--format', '{{.Server.Version}}'])->successful());
-        $rows[] = ['One Docker CLI call (docker version)', $ms.' ms', $ok ? 'ok' : 'FAILED: is Docker running?'];
+        // A wedged Docker Desktop makes this call hang rather than fail, and an
+        // uncaught timeout used to kill the very command meant to diagnose it.
+        [$ms, $ok] = $time(static function () use ($docker) {
+            try {
+                return Process::timeout(15)
+                    ->run([$docker, 'version', '--format', '{{.Server.Version}}'])
+                    ->successful();
+            } catch (\Throwable) {
+                return false;
+            }
+        });
+        $rows[] = ['One Docker CLI call (docker version)', $ms.' ms', $ok ? 'ok' : 'FAILED: engine not responding'];
+
+        if (! $ok) {
+            $this->table(['Step', 'Time', 'Result'], $rows);
+            $this->newLine();
+            $this->error('VERDICT: the Docker engine is not answering, so no code can run at all.');
+            $this->line('  The Docker CLI may still print a Client block while the engine is wedged.');
+            $this->line('  Recover it with:');
+            $this->line('    1. wsl --shutdown');
+            $this->line('    2. Quit Docker Desktop from the tray, then start it again');
+            $this->line('    3. docker version   (you need a Server block, not just Client)');
+            $this->line('  Then: php artisan python-sandbox:pool clear && php artisan python-sandbox:pool maintain');
+
+            return self::FAILURE;
+        }
 
         $program = "name = input('Name: ')\nprint('hi', name)\n";
         $run = function (bool $useWarm, string $stdin, array $session) use ($sandbox, $program): array {

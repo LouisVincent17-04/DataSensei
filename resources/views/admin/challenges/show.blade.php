@@ -53,6 +53,9 @@
           </summary>
           <div class="management-editor">
             <p style="color:var(--text);line-height:1.65">{{ $question->question_text }}</p>
+            @if(!empty($question->image_path))
+              <img src="{{ $question->image_path }}" alt="" style="display:block;max-width:100%;height:auto;max-height:320px;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface3)">
+            @endif
             <ol style="margin:16px 0 0 24px;color:var(--muted);line-height:1.8">
               @foreach($question->options as $option)
                 <li style="color:{{ $option->is_correct ? '#a7f3d0' : 'var(--muted)' }}">{{ $option->option_text }} @if($option->is_correct)<strong> — Correct</strong>@endif</li>

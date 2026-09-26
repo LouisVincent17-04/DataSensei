@@ -28,6 +28,17 @@ class PythonSandboxService
         'LOCALAPPDATA', 'PROGRAMDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)',
         'COMMONPROGRAMFILES', 'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE', 'OS',
         'PYTHONHOME', 'PYTHONPATH', 'PYTHONIOENCODING', 'PYTHONUTF8',
+        // The rest of the standard Windows system block. Winsock initialises
+        // when asyncio is imported, joblib imports asyncio and scikit-learn
+        // imports joblib, so a thinned environment made "import sklearn" fail
+        // with WinError 10106 (WSAEPROVIDERFAILEDINIT) on the local driver.
+        // None of these name a secret, and student code cannot read them in
+        // any case: "os" is a blocked import inside the sandbox.
+        'SYSTEMDRIVE', 'ALLUSERSPROFILE', 'PUBLIC', 'HOMEDRIVE', 'HOMEPATH',
+        'COMPUTERNAME', 'USERNAME', 'USERDOMAIN', 'USERDOMAIN_ROAMINGPROFILE',
+        'LOGONSERVER', 'SESSIONNAME', 'DRIVERDATA',
+        'PROGRAMW6432', 'COMMONPROGRAMW6432', 'COMMONPROGRAMFILES(X86)',
+        'PROCESSOR_IDENTIFIER', 'PROCESSOR_LEVEL', 'PROCESSOR_REVISION',
     ];
 
     private const INPUT_REQUIRED_MARKER = '__DATASENSEI_INPUT_REQUIRED__:';
@@ -99,6 +110,8 @@ class PythonSandboxService
         $driver = strtolower((string) config('code_execution.python.driver', 'docker'));
         $timeout = max(1, min(60, (int) ($options['timeout'] ?? config('code_execution.python.timeout_seconds', 10))));
         $interactiveInput = (bool) ($options['interactive_input'] ?? false);
+        // Graded runs compare output exactly, so input() prompts are not printed.
+        $quietPrompts = (bool) ($options['quiet_input_prompts'] ?? false);
         $entryPath = $this->safeJoin($workspacePath, $entryRelativePath);
 
         if (strlen(File::get($entryPath)) > (int) config('code_execution.python.max_code_bytes', 50000) + 20000) {
@@ -116,6 +129,17 @@ class PythonSandboxService
         if ($driver === 'local' && ! (bool) config('code_execution.python.local.allow_unsafe', false)) {
             return $this->failure(
                 'Local Python execution is disabled because it cannot isolate student code from the host. Build the Docker runner or explicitly enable unsafe local mode only on an isolated development machine.',
+                $start
+            );
+        }
+
+        // A hung Docker Desktop used to hold the request for the entire
+        // timeout + start-up budget. On a single-threaded dev server that
+        // freezes the whole site, so the engine is probed briefly first and
+        // the answer is cached for a few seconds.
+        if ($driver === 'docker' && ! $this->dockerResponding()) {
+            return $this->failure(
+                'Docker is not responding, so code cannot run right now. Your program was not the problem. Ask your instructor to check that Docker Desktop is running; "php artisan python-sandbox:pool doctor" reports the details.',
                 $start
             );
         }
@@ -145,13 +169,14 @@ class PythonSandboxService
                     $stdin,
                     $timeout,
                     $interactiveInput,
-                    is_array($options['session'] ?? null) ? $options['session'] : null
+                    is_array($options['session'] ?? null) ? $options['session'] : null,
+                    $quietPrompts
                 )
                 : null;
 
             $result ??= $driver === 'docker'
-                ? $this->runWithDocker($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput)
-                : $this->runLocally($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput);
+                ? $this->runWithDocker($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput, $quietPrompts)
+                : $this->runLocally($workspacePath, $entryRelativePath, $stdin, $timeout, $interactiveInput, $quietPrompts);
         } finally {
             try {
                 $executionSlot->release();
@@ -203,6 +228,13 @@ class PythonSandboxService
 
         $stdout = str_replace(self::TIME_LIMIT_MARKER, '', $stdout);
 
+        // Belt and braces for the encoding: the runner writes UTF-8, but a
+        // program that writes raw bytes through sys.stdout.buffer still can
+        // hand us something json_encode refuses, and that must not turn into
+        // a failed request with no output at all.
+        $stdout = $this->utf8($stdout);
+        $stderr = $this->utf8($stderr);
+
         return [
             // Only trailing newlines are dropped. Leading indentation and a
             // prompt's trailing space are part of what the program printed.
@@ -219,7 +251,7 @@ class PythonSandboxService
         ];
     }
 
-    private function runLocally(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactiveInput): array
+    private function runLocally(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactiveInput, bool $quietPrompts = false): array
     {
         $python = $this->resolveLocalPython();
         $runner = (string) config('code_execution.python.local.runner');
@@ -234,12 +266,27 @@ class PythonSandboxService
             ];
         }
 
-        $environment = $this->runnerEnvironment($workspacePath, $workspacePath, $timeout, $interactiveInput);
+        $environment = $this->runnerEnvironment($workspacePath, $workspacePath, $timeout, $interactiveInput, $quietPrompts);
         $environment['DS_USE_RLIMIT_AS'] = '1';
+        // The container gets this from the image; the local driver has no
+        // image, so it is pointed at the same files in the project. The folder
+        // sits beside the runner, which is already a read root, so the sandbox
+        // policy needs no change for it.
+        $environment['SEABORN_DATA'] = base_path('docker/python-runner/seaborn-data');
+        // matplotlib keeps its font index here. The image sets this; without
+        // it the local driver falls back to a location the sandbox will not
+        // let it write, so every run rebuilt the index from scratch by
+        // scanning every font installed on the machine.
+        $environment['MPLCONFIGDIR'] = $this->matplotlibCacheDirectory();
         $entry = $this->safeJoin($workspacePath, $entryRelativePath);
 
         try {
-            $process = Process::timeout($timeout + 2)
+            // The learner's own limit plus the sandbox's start-up allowance,
+            // the same budget the Docker path gets. Without the allowance a
+            // first run that has to build matplotlib's font index was killed
+            // part-way through, so the index was never finished and every
+            // later run started it again and died the same way.
+            $process = Process::timeout($timeout + $this->startupGraceSeconds() + 2)
                 ->path($workspacePath)
                 ->env($this->isolatedEnvironment($environment))
                 ->input($stdin)
@@ -276,6 +323,46 @@ class PythonSandboxService
     }
 
     /**
+     * Is the Docker engine answering at all?
+     *
+     * "docker version" against a healthy engine is a few hundred milliseconds;
+     * against a broken Docker Desktop it can hang indefinitely. The result is
+     * cached briefly so a class pressing Run together pays the probe once.
+     */
+    public function dockerResponding(): bool
+    {
+        $cacheKey = 'datasensei:python-sandbox:docker-healthy';
+        $cached = Cache::get($cacheKey);
+
+        if (is_bool($cached)) {
+            return $cached;
+        }
+
+        $seconds = max(2, min(15, (int) config('code_execution.python.docker.health_timeout_seconds', 6)));
+
+        try {
+            $healthy = Process::timeout($seconds)
+                ->run([$this->dockerBinary(), 'version', '--format', '{{.Server.Version}}'])
+                ->successful();
+        } catch (\Throwable) {
+            // A timeout means the engine is wedged, which is exactly the case
+            // this probe exists to catch.
+            $healthy = false;
+        }
+
+        // Remember "up" a little longer than "down", so recovery is noticed
+        // quickly but a class does not re-probe a dead engine on every click.
+        Cache::put($cacheKey, $healthy, $healthy ? 15 : 5);
+
+        return $healthy;
+    }
+
+    private function dockerBinary(): string
+    {
+        return (string) config('code_execution.python.docker.binary', 'docker');
+    }
+
+    /**
      * The runner prints a marker when it stopped the learner's own code. Its
      * absence on a timeout means the sandbox never got that far, which is an
      * environment problem and must not be reported as an infinite loop.
@@ -285,7 +372,7 @@ class PythonSandboxService
         return str_contains($stderr, self::TIME_LIMIT_MARKER);
     }
 
-    private function runWithDocker(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactiveInput): array
+    private function runWithDocker(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactiveInput, bool $quietPrompts = false): array
     {
         $docker = (string) config('code_execution.python.docker.binary', 'docker');
         $image = (string) config('code_execution.python.docker.image', 'datasensei-python-runner:latest');
@@ -310,7 +397,7 @@ class PythonSandboxService
 
         $command = $this->dockerRunCommand(
             $containerName,
-            $this->runnerEnvironment('/workspace', '/input', $timeout, $interactiveInput),
+            $this->runnerEnvironment('/workspace', '/input', $timeout, $interactiveInput, $quietPrompts),
             $inputMount,
             false
         );
@@ -501,6 +588,47 @@ class PythonSandboxService
      * @param  array<string, string>  $environment
      * @return array<string, string|false>
      */
+    /**
+     * Valid UTF-8, whatever came in. A byte that is not part of a valid
+     * sequence becomes U+FFFD, so the learner sees a placeholder where the
+     * character was rather than losing the whole run.
+     */
+    private function utf8(string $text): string
+    {
+        if ($text === '' || mb_check_encoding($text, 'UTF-8')) {
+            return $text;
+        }
+
+        if (function_exists('mb_scrub')) {
+            $previous = mb_substitute_character();
+            mb_substitute_character(0xFFFD);
+
+            try {
+                return mb_scrub($text, 'UTF-8');
+            } finally {
+                mb_substitute_character($previous);
+            }
+        }
+
+        return (string) iconv('UTF-8', 'UTF-8//IGNORE', $text);
+    }
+
+    /**
+     * A cache folder matplotlib can actually write to, kept between runs so
+     * the font index is built once rather than on every Run.
+     */
+    private function matplotlibCacheDirectory(): string
+    {
+        $directory = rtrim(sys_get_temp_dir(), "/\\")
+            .DIRECTORY_SEPARATOR.'datasensei-matplotlib';
+
+        if (! is_dir($directory)) {
+            @mkdir($directory, 0775, true);
+        }
+
+        return $directory;
+    }
+
     private function isolatedEnvironment(array $environment): array
     {
         $inherited = getenv();
@@ -509,10 +637,26 @@ class PythonSandboxService
             return $environment;
         }
 
-        foreach (array_keys($inherited) as $name) {
+        foreach ($inherited as $name => $value) {
             $upper = strtoupper((string) $name);
 
-            if (array_key_exists($upper, $environment) || in_array($upper, self::RUNNER_ENV_ALLOWLIST, true)) {
+            if (array_key_exists($upper, $environment)) {
+                continue;
+            }
+
+            if (in_array($upper, self::RUNNER_ENV_ALLOWLIST, true)) {
+                // Passed by value, not left to inheritance. Symfony builds the
+                // child's default environment from getenv() intersected with
+                // $_SERVER (Process::getDefaultEnv), and under "php artisan
+                // serve" $_SERVER holds request variables rather than the
+                // system block. SystemRoot was therefore dropped on the way to
+                // the child, Winsock could not expand the %SystemRoot% paths in
+                // its provider catalogue, and every import of asyncio - so
+                // joblib, so scikit-learn - died with WinError 10106.
+                // Keeping a name on the allowlist only stops us deleting it; it
+                // cannot put back something the default environment never had.
+                $environment[(string) $name] = (string) $value;
+
                 continue;
             }
 
@@ -522,7 +666,7 @@ class PythonSandboxService
         return $environment;
     }
 
-    private function runnerEnvironment(string $workspacePath, string $inputPath, int $timeout, bool $interactiveInput = false): array
+    private function runnerEnvironment(string $workspacePath, string $inputPath, int $timeout, bool $interactiveInput = false, bool $quietPrompts = false): array
     {
         $maxOutput = (int) config('code_execution.python.max_stdout_bytes', 60000)
             + (int) config('code_execution.python.max_stderr_bytes', 60000)
@@ -542,7 +686,18 @@ class PythonSandboxService
             'DS_MAX_PLOT_BYTES' => (string) config('code_execution.python.max_plot_bytes', 1500000),
             'DS_MAX_PLOTS' => (string) config('code_execution.python.max_plots', 4),
             'DS_MEMORY_BYTES' => (string) $this->memoryStringToBytes((string) config('code_execution.python.docker.memory', '512m')),
+            // Output must reach us as UTF-8 because it becomes JSON. On Windows
+            // a pipe is opened in the console code page, so "±" in a lesson's
+            // f-string arrived as one cp1252 byte and json_encode refused the
+            // whole response ("Malformed UTF-8 characters"). Harmless in the
+            // container, which is UTF-8 already.
+            'PYTHONIOENCODING' => 'utf-8',
+            'PYTHONUTF8' => '1',
         ];
+
+        if ($quietPrompts) {
+            $environment['DS_QUIET_INPUT_PROMPTS'] = '1';
+        }
 
         if ($interactiveInput) {
             $environment['DS_INTERACTIVE_INPUT'] = '1';

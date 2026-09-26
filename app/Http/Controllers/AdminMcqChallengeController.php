@@ -7,13 +7,24 @@ use App\Models\ChallengeCategory;
 use App\Services\PlatformContentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminMcqChallengeController extends Controller
 {
+    /**
+     * Only pictures uploaded through uploadImage() may be attached to a question:
+     * a path under /uploads/challenges with an image extension and no ".." segment.
+     */
+    public const IMAGE_PATH_PATTERN = '/^\/uploads\/challenges\/(?!.*\.\.)[A-Za-z0-9_\-.\/]+\.(png|jpe?g|gif|webp)$/i';
+
+    private const IMAGE_DIRECTORY = 'uploads/challenges';
+
     public function __construct(private readonly PlatformContentService $contentService)
     {
     }
@@ -156,10 +167,15 @@ class AdminMcqChallengeController extends Controller
                 }
             }
 
-            $lockedChallenge->update($this->challengePayload($data));
+            $lockedChallenge->update($this->challengePayload($data, $lockedChallenge));
 
             if (! $hasHistory) {
                 $this->syncQuestions($lockedChallenge, $questions);
+            } else {
+                // Questions and choices are frozen once attempts exist, but the
+                // picture attached to a question is presentation only and may
+                // still be corrected in place.
+                $this->syncQuestionImages($lockedChallenge, $questions);
             }
 
             if ($lockedChallenge->is_active) {
@@ -227,6 +243,7 @@ class AdminMcqChallengeController extends Controller
                     'challenge_category_id' => $copy->challenge_category_id,
                     'question_text' => $question->question_text,
                     'order_index' => $question->order_index,
+                    'image_path' => $question->image_path,
                 ]);
 
                 foreach ($question->options as $option) {
@@ -334,7 +351,7 @@ class AdminMcqChallengeController extends Controller
 
         $data = $request->validate([
             'challenge_category_id' => ['required', 'integer', 'exists:challenge_categories,id'],
-            'content_code' => ['required', 'string', 'max:64'],
+            'content_code' => ['nullable', 'string', 'max:64'],
             'title' => ['required', 'string', 'max:189'],
             'description' => ['nullable', 'string', 'max:10000'],
             'time_limit_seconds' => ['required', 'integer', 'min:60', 'max:21600'],
@@ -363,6 +380,7 @@ class AdminMcqChallengeController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'questions' => ['required', 'array', 'min:1', 'max:200'],
             'questions.*.question_text' => ['required', 'string', 'max:10000'],
+            'questions.*.image_path' => ['nullable', 'string', 'max:255', 'regex:' . self::IMAGE_PATH_PATTERN],
             'questions.*.correct_option' => ['required', 'integer', 'min:0'],
             'questions.*.options' => ['required', 'array', 'min:2', 'max:10'],
             'questions.*.options.*.option_text' => ['required', 'string', 'max:5000'],
@@ -393,7 +411,10 @@ class AdminMcqChallengeController extends Controller
         if ((int) $challenge->challenge_category_id !== (int) $data['challenge_category_id']) {
             $changes['challenge_category_id'] = 'Difficulty category cannot be changed after this challenge has attempt history.';
         }
-        if (strtoupper((string) $challenge->content_code) !== strtoupper(trim($data['content_code']))) {
+        $typedCode = strtoupper(trim((string) ($data['content_code'] ?? '')));
+
+        // A blank field means "keep the current code", not "change it to nothing".
+        if ($typedCode !== '' && strtoupper((string) $challenge->content_code) !== $typedCode) {
             $changes['content_code'] = 'Content code cannot be changed after this challenge has attempt history.';
         }
         if ((int) $challenge->time_limit_seconds !== (int) $data['time_limit_seconds']) {
@@ -414,11 +435,34 @@ class AdminMcqChallengeController extends Controller
         }
     }
 
-    private function challengePayload(array $data): array
+    /**
+     * The typed content code, or a generated unique one when the field was
+     * left blank. Admins should not have to invent codes to create a challenge.
+     */
+    private function resolvedContentCode(array $data, ?Challenge $existing = null): string
+    {
+        $typed = strtoupper(trim((string) ($data['content_code'] ?? '')));
+
+        if ($typed !== '') {
+            return $typed;
+        }
+
+        if ($existing !== null && filled($existing->content_code)) {
+            return (string) $existing->content_code;
+        }
+
+        return $this->contentService->uniqueChallengeContentCode(
+            (int) $data['challenge_category_id'],
+            false,
+            (string) $data['title']
+        );
+    }
+
+    private function challengePayload(array $data, ?Challenge $existing = null): array
     {
         return [
             'challenge_category_id' => (int) $data['challenge_category_id'],
-            'content_code' => strtoupper(trim($data['content_code'])),
+            'content_code' => $this->resolvedContentCode($data, $existing),
             'title' => trim($data['title']),
             'description' => $data['description'] ?? '',
             'time_limit_seconds' => (int) $data['time_limit_seconds'],
@@ -441,6 +485,7 @@ class AdminMcqChallengeController extends Controller
                 'challenge_category_id' => $challenge->challenge_category_id,
                 'question_text' => trim($questionData['question_text']),
                 'order_index' => $questionIndex + 1,
+                'image_path' => $this->normalizeImagePath($questionData['image_path'] ?? null),
             ]);
 
             $correctIndex = (int) $questionData['correct_option'];
@@ -463,6 +508,7 @@ class AdminMcqChallengeController extends Controller
 
             return [
                 'question_text' => $question->question_text,
+                'image_path' => $question->image_path,
                 'correct_option' => $correctIndex === false ? 0 : $correctIndex,
                 'options' => $options->map(fn ($option): array => [
                     'option_text' => $option->option_text,
@@ -475,6 +521,7 @@ class AdminMcqChallengeController extends Controller
     {
         return [
             'question_text' => '',
+            'image_path' => null,
             'correct_option' => 0,
             'options' => [
                 ['option_text' => ''],
@@ -488,5 +535,64 @@ class AdminMcqChallengeController extends Controller
     private function ensureMcq(Challenge $challenge): void
     {
         abort_if((bool) $challenge->is_coding_challenge, 404);
+    }
+
+    /**
+     * Stores a picture for an MCQ question under public/uploads/challenges and
+     * returns its public URL path for the form's hidden image_path field.
+     */
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+        ]);
+
+        $file = $request->file('image');
+        $extension = strtolower((string) $file->guessExtension() ?: $file->getClientOriginalExtension());
+        if (! in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+            throw ValidationException::withMessages(['image' => 'The picture must be a jpg, jpeg, png, webp or gif file.']);
+        }
+
+        $directory = public_path(self::IMAGE_DIRECTORY);
+        File::ensureDirectoryExists($directory);
+
+        $filename = Str::lower(Str::random(40)) . '.' . $extension;
+        $file->move($directory, $filename);
+
+        return response()->json([
+            'url' => '/' . self::IMAGE_DIRECTORY . '/' . $filename,
+        ]);
+    }
+
+    private function normalizeImagePath(mixed $path): ?string
+    {
+        $path = trim((string) $path);
+
+        if ($path === '' || preg_match(self::IMAGE_PATH_PATTERN, $path) !== 1) {
+            return null;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Re-attaches pictures to the existing questions (matched by position)
+     * without touching the question text or answer choices.
+     */
+    private function syncQuestionImages(Challenge $challenge, array $questions): void
+    {
+        $existing = $challenge->questions()->get()->values();
+
+        foreach ($existing as $index => $question) {
+            if (! array_key_exists($index, $questions)) {
+                continue;
+            }
+
+            $imagePath = $this->normalizeImagePath($questions[$index]['image_path'] ?? null);
+
+            if ($question->image_path !== $imagePath) {
+                $question->update(['image_path' => $imagePath]);
+            }
+        }
     }
 }

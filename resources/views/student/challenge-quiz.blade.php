@@ -87,6 +87,7 @@
       color: var(--muted); font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums;
     }
     .page-quiz-question-text { min-width: 0; padding-top: 3px; color: var(--text); font-size: .9375rem; font-weight: 600; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .page-quiz-question-image { display: block; max-width: 100%; height: auto; max-height: 420px; margin: 0 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface3); }
     .page-quiz-option-label {
       min-height: 44px; margin-bottom: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 12px;
       border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface3); cursor: pointer;
@@ -210,6 +211,9 @@
               <div class="page-quiz-q-number">{{ $index + 1 }}</div>
               <div class="page-quiz-question-text">{{ $question->question_text }}</div>
             </div>
+            @if(!empty($question->image_path))
+              <img class="page-quiz-question-image" src="{{ $question->image_path }}" alt="">
+            @endif
             @foreach($question->options as $option)
               <label class="page-quiz-option-label {{ (int) $selectedOption === (int) $option->id ? 'selected' : '' }}" onclick="selectOption(this, {{ $question->id }}, {{ $option->id }})">
                 <input type="radio" name="answers[{{ $question->id }}]" value="{{ $option->id }}" {{ (int) $selectedOption === (int) $option->id ? 'checked' : '' }}>

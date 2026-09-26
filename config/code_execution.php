@@ -45,6 +45,11 @@ return [
 
         'docker' => [
             'binary' => env('PYTHON_SANDBOX_DOCKER_BINARY', 'docker'),
+            /* Seconds to wait for "docker version" before deciding the engine
+               is wedged. A hung Docker Desktop answers neither success nor
+               failure, and without this probe every Run would block for the
+               whole timeout + start-up budget. */
+            'health_timeout_seconds' => (int) env('PYTHON_SANDBOX_DOCKER_HEALTH_TIMEOUT', 6),
             'image' => env('PYTHON_SANDBOX_DOCKER_IMAGE', 'datasensei-python-runner:latest'),
             'network' => env('PYTHON_SANDBOX_DOCKER_NETWORK', 'none'),
             /* Half a core doubled every import: "import pandas" alone measured

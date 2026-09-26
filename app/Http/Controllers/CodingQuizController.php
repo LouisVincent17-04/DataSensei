@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Challenge;
+use App\Models\ClassChallengeAssignment;
 use App\Models\CodingChallengeRetake;
 use App\Models\CodingQuestion;
 use App\Models\CodingQuestionAttempt;
@@ -73,6 +74,34 @@ class CodingQuizController extends Controller
         abort_unless($challenge->category && $challenge->category->slug === $slug, 404);
         abort_unless((bool) $challenge->is_coding_challenge === true, 404);
         abort_unless((bool) $challenge->is_active, 404);
+
+        // An instructor-built challenge is class work: it is reachable only
+        // while a published, open class assignment gives it to one of the
+        // learner's active classes. Same rule as ChallengesController.
+        if ($challenge->isInstructorOwned()) {
+            abort_unless($this->hasOpenClassAssignment($challenge), 404);
+        }
+    }
+
+    private function hasOpenClassAssignment(Challenge $challenge): bool
+    {
+        $user = Auth::user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        $classIds = $user->classesAsStudent()->active()->pluck('classes.id');
+
+        if ($classIds->isEmpty()) {
+            return false;
+        }
+
+        return ClassChallengeAssignment::query()
+            ->openNow()
+            ->where('challenge_id', $challenge->id)
+            ->whereIn('class_id', $classIds)
+            ->exists();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -297,6 +326,7 @@ class CodingQuizController extends Controller
 
         return [
             'id'                  => (int) $question->id,
+            'title'               => (string) ($question->title ?? ''),
             'problem_description' => (string) $question->problem_description,
             'starter_code'        => (string) ($question->starter_code ?? ''),
             'test_cases'          => $question->visibleTestCases
@@ -1084,7 +1114,11 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     private function execute(string $code, ?string $stdin = ''): array
     {
-        $result = $this->pythonSandbox->runInline($code, $stdin ?? '');
+        // Grading compares output exactly. Prompts from input("Enter a: ") are not
+        // printed, so a program written the way the lessons teach is not
+        // failed for them. The learner's own Run here uses the same setting,
+        // so what they see matches what is graded.
+        $result = $this->pythonSandbox->runInline($code, $stdin ?? '', ['quiet_input_prompts' => true]);
 
         return [
             'stdout' => $result['stdout'] ?? '',

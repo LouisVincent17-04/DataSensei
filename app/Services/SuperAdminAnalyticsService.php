@@ -458,6 +458,13 @@ class SuperAdminAnalyticsService
 
         $cutoff = Carbon::now()->subDays(14)->toDateTimeString();
 
+        // MySQL refuses a SELECT alias inside HAVING under ONLY_FULL_GROUP_BY
+        // ("1463 Non-grouping field 'assignment_avg' is used in HAVING"), so
+        // the aggregate is spelled out in both places from one definition and
+        // the two cannot drift apart.
+        $assignmentAverage = 'ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 '
+            .'THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2)';
+
         $rows = DB::table('users as u')
             ->where('u.role', 1)
             ->where('u.status', 'active')
@@ -487,10 +494,15 @@ class SuperAdminAnalyticsService
                 DB::raw('COUNT(DISTINCT s.id) as assignment_submissions_count'),
                 DB::raw('COUNT(DISTINCT cu.id) as mcq_attempts_count'),
                 DB::raw('COUNT(DISTINCT cs.id) as coding_submissions_count'),
-                DB::raw('ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2) as assignment_avg')
+                DB::raw($assignmentAverage.' as assignment_avg')
             )
             ->groupBy('u.id', 'u.name', 'u.email', 'u.xp', 'u.streak', 'u.last_activity')
-            ->havingRaw('(MAX(COALESCE(u.xp, 0)) < 50) OR (MAX(u.last_activity) IS NULL OR MAX(u.last_activity) < ?) OR assignment_avg < 70', [$cutoff])
+            ->havingRaw(
+                '(MAX(COALESCE(u.xp, 0)) < 50)'
+                .' OR (MAX(u.last_activity) IS NULL OR MAX(u.last_activity) < ?)'
+                .' OR '.$assignmentAverage.' < 70',
+                [$cutoff]
+            )
             ->orderBy('u.last_activity')
             ->limit(20)
             ->get();

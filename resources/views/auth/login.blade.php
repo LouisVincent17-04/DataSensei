@@ -1405,6 +1405,81 @@ function checkStrength(value){
     });
   };
 
+  // ── Signing in again after the session expired ─────────────────────────
+  // A sign-in page can be open for hours. When its session dies, other open
+  // tabs replace the cookie, and the token this page holds stops matching.
+  // The server then bounces the post back here with a fresh token. Rather
+  // than making the person retype everything and press Sign in again, what
+  // they entered is kept in this tab only - sessionStorage never leaves the
+  // browser and is gone when the tab closes - restored, and sent once more
+  // with the fresh token. One automatic retry, never a loop; if that also
+  // bounces, the fields are simply filled in and the message is shown.
+  const STASH_KEY = 'datasensei.signin.retry';
+  const STASH_TTL_MS = 2 * 60 * 1000;
+  const bouncedAfterExpiry = @json((bool) session('session_expired_retry', false));
+  const loginForm = forms.find(form =>
+    form.querySelector('input[name="email"]') && !form.querySelector('input[name="name"]')
+  ) || null;
+  let autoRetrying = false;
+
+  const readStash = () => {
+    try {
+      const raw = window.sessionStorage.getItem(STASH_KEY);
+      if (!raw) return null;
+      const stash = JSON.parse(raw);
+      if (!stash || typeof stash.at !== 'number' || Date.now() - stash.at > STASH_TTL_MS) return null;
+      return stash;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const writeStash = (form, retried) => {
+    try {
+      window.sessionStorage.setItem(STASH_KEY, JSON.stringify({
+        email: form.querySelector('input[name="email"]')?.value ?? '',
+        password: form.querySelector('input[name="password"]')?.value ?? '',
+        remember: !!form.querySelector('input[name="remember"]')?.checked,
+        retried,
+        at: Date.now(),
+      }));
+    } catch (_) {
+      // Storage unavailable: the page still works, it just cannot retry for them.
+    }
+  };
+
+  const clearStash = () => {
+    try { window.sessionStorage.removeItem(STASH_KEY); } catch (_) {}
+  };
+
+  const restoreInto = (form, stash) => {
+    const email = form.querySelector('input[name="email"]');
+    const password = form.querySelector('input[name="password"]');
+    const remember = form.querySelector('input[name="remember"]');
+    if (email && !email.value) email.value = stash.email || '';
+    if (password) password.value = stash.password || '';
+    if (remember) remember.checked = !!stash.remember;
+  };
+
+  if (loginForm) {
+    const stash = readStash();
+
+    if (bouncedAfterExpiry && stash) {
+      restoreInto(loginForm, stash);
+      clearStash();
+
+      if (!stash.retried && stash.password) {
+        // Hide the bounce message: the retry is about to happen for them.
+        document.querySelectorAll('.alert-danger').forEach(alert => { alert.hidden = true; });
+        autoRetrying = true;
+        window.setTimeout(() => loginForm.requestSubmit(), 0);
+      }
+    } else {
+      // An ordinary visit must not carry a password around.
+      clearStash();
+    }
+  }
+
   const refreshSession = async signal => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const response = await fetch(@json(route('login')), {
@@ -1422,10 +1497,12 @@ function checkStrength(value){
       // A suspended tab may reach the server before idle logout completes.
       // That response clears the old session; retry once for the new token.
       if (attempt === 0 && (response.status === 401 || response.status === 419)) continue;
-      if (!response.ok) throw new Error('Session refresh failed.');
+      if (!response.ok) return null;
 
       return response;
     }
+
+    return null;
   };
 
   forms.forEach(form => {
@@ -1443,35 +1520,69 @@ function checkStrength(value){
 
       const controller = new AbortController();
       activeRequest = controller;
-      const timer = window.setTimeout(() => controller.abort(), 10000);
+      // Refreshing the token is an optimisation, so it gets a short budget.
+      // The development server handles one request at a time and this can sit
+      // behind another tab's, and waiting out a long timeout before falling
+      // back would feel as broken as the failure it replaces.
+      const timer = window.setTimeout(() => controller.abort(), 5000);
 
       try {
-        const response = await refreshSession(controller.signal);
-        if (activeRequest !== controller) return;
+        // Refreshing the token is a head start, not a gate. If it cannot be
+        // had - the server is busy, the request timed out, the reply was not
+        // what we expected - the form is still sent with the token already on
+        // the page. That token is usually still valid, and when it is not the
+        // server answers with a fresh sign-in page explaining why, which is a
+        // far better outcome than refusing to submit at all.
+        let response = null;
 
-        // An existing sign-in in another tab follows the usual dashboard redirect.
-        if (response.redirected && !(response.headers.get('Content-Type') || '').includes('application/json')) {
-          const destination = new URL(response.url, window.location.href);
-          if (destination.origin !== window.location.origin) throw new Error('Invalid redirect.');
-          window.location.assign(destination.href);
-          return;
+        try {
+          response = await refreshSession(controller.signal);
+        } catch (_) {
+          response = null;
         }
 
-        const data = await response.json();
         if (activeRequest !== controller) return;
-        if (typeof data.csrf_token !== 'string' || data.csrf_token.length === 0) {
-          throw new Error('Missing session token.');
+
+        if (response) {
+          // An existing sign-in in another tab follows the usual dashboard redirect.
+          if (response.redirected && !(response.headers.get('Content-Type') || '').includes('application/json')) {
+            const destination = new URL(response.url, window.location.href);
+
+            if (destination.origin === window.location.origin) {
+              window.location.assign(destination.href);
+              return;
+            }
+          } else {
+            try {
+              const data = await response.json();
+
+              if (activeRequest !== controller) return;
+
+              if (typeof data.csrf_token === 'string' && data.csrf_token.length > 0) {
+                forms.forEach(authForm => {
+                  authForm.querySelector('input[name="_token"]').value = data.csrf_token;
+                });
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) meta.content = data.csrf_token;
+              }
+            } catch (_) {
+              // Keep the token the page was rendered with.
+            }
+          }
         }
 
-        forms.forEach(authForm => {
-          authForm.querySelector('input[name="_token"]').value = data.csrf_token;
-        });
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        if (meta) meta.content = data.csrf_token;
+        if (activeRequest !== controller) return;
 
         if (!form.reportValidity()) {
           resetSubmitState();
           return;
+        }
+
+        // Sign-in only. If this post bounces because the token went stale,
+        // the page that comes back restores these and retries once.
+        if (form === loginForm) {
+          writeStash(form, autoRetrying);
+          autoRetrying = false;
         }
 
         // Keep the normal POST, validation errors, remember-me and role redirects.

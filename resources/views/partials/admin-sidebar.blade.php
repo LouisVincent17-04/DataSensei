@@ -73,6 +73,21 @@
       Learning Modules
     </a>
 
+    <a class="nav-item {{ request()->routeIs('admin.modules.*') ? 'active' : '' }}" href="{{ route('admin.modules.index') }}"
+       @if(request()->routeIs('admin.modules.*')) aria-current="page" @endif>
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>
+      </svg>
+      Module Manager
+    </a>
+
+    <a class="nav-item {{ request()->routeIs('admin.challenge-maps.*') ? 'active' : '' }}" href="{{ route('admin.challenge-maps.index') }}"
+       @if(request()->routeIs('admin.challenge-maps.*')) aria-current="page" @endif>
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M9 20l-5.5-2.5V5L9 7.5m0 12.5l6-2.5m-6 2.5V7.5m6 10l5.5 2.5V7.5L15 5m0 12.5V5M9 7.5L15 5"/>
+      </svg>
+      Challenge Maps
+    </a>
     <a class="nav-item {{ request()->routeIs('admin.challenges.*') ? 'active' : '' }}" href="{{ route('admin.challenges.index') }}"
        @if(request()->routeIs('admin.challenges.*')) aria-current="page" @endif>
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -81,6 +96,13 @@
       MCQ Challenges
     </a>
 
+    <a class="nav-item {{ request()->routeIs('admin.coding-challenges.*') ? 'active' : '' }}" href="{{ route('admin.coding-challenges.index') }}"
+       @if(request()->routeIs('admin.coding-challenges.*')) aria-current="page" @endif>
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12"/>
+      </svg>
+      Coding Challenges
+    </a>
     <a class="nav-item {{ request()->routeIs('admin.assessments.*') ? 'active' : '' }}" href="{{ route('admin.assessments.index') }}"
        @if(request()->routeIs('admin.assessments.*')) aria-current="page" @endif>
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

@@ -8,6 +8,7 @@ use App\Models\AssignmentQuestion;
 use App\Models\AssignmentSubmission;
 use App\Models\AssignmentSubmissionAnswer;
 use App\Models\ClassAssignment;
+use App\Models\ClassChallengeAssignment;
 use App\Services\AntiCheatPolicyService;
 use App\Services\GamificationService;
 use App\Services\IloMasteryService;
@@ -85,7 +86,20 @@ class StudentAssignmentController extends Controller
 
         $assignments = $query->paginate(10)->withQueryString();
 
-        return view('student.assignments.index', compact('assignments', 'studentAssignmentStats'));
+        // Challenges an instructor gave to one of the student's active
+        // classes: published, inside their window, and still available.
+        // They are taken on the University Student challenge map.
+        $challengeAssignments = ClassChallengeAssignment::with(['challenge', 'class'])
+            ->whereIn('class_id', $classIds)
+            ->whereHas('class', fn ($q) => $q->active())
+            ->whereHas('challenge', fn ($q) => $q->where('is_active', true))
+            ->openNow()
+            ->orderByRaw('due_at IS NULL')
+            ->orderBy('due_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('student.assignments.index', compact('assignments', 'studentAssignmentStats', 'challengeAssignments'));
     }
 
     /**

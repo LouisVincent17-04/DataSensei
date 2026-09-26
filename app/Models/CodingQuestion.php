@@ -17,6 +17,8 @@ class CodingQuestion extends Model
         'time_limit_seconds',
         'base_xp',
         'source_requirements',
+        'title',
+        'reference_solution',
     ];
 
     protected $casts = [

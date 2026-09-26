@@ -29,3 +29,9 @@
 @include('partials.brand-head')
 @include('partials.design-system')
 @include('partials.page-heading-style')
+@unless (request()->routeIs('login'))
+{{-- The sign-in page keeps what was typed, in this tab only, so it can retry
+     once after a session-expiry bounce. Any other page loading means that is
+     over, so it is dropped here rather than left until the tab closes. --}}
+<script>try { sessionStorage.removeItem('datasensei.signin.retry'); } catch (e) {}</script>
+@endunless

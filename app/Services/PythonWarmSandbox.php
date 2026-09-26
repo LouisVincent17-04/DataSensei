@@ -92,7 +92,8 @@ class PythonWarmSandbox
         string $stdin,
         int $timeout,
         bool $interactive,
-        ?array $session
+        ?array $session,
+        bool $quietPrompts = false
     ): ?array {
         if (! $this->enabled()) {
             return null;
@@ -114,7 +115,7 @@ class PythonWarmSandbox
                 return null;
             }
 
-            $job = $this->buildJob($workspacePath, $entryRelativePath, $stdin, $timeout, $interactive);
+            $job = $this->buildJob($workspacePath, $entryRelativePath, $stdin, $timeout, $interactive, $quietPrompts);
             if ($job === null) {
                 return null;
             }
@@ -636,7 +637,7 @@ class PythonWarmSandbox
         return $name;
     }
 
-    private function buildJob(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactive): ?array
+    private function buildJob(string $workspacePath, string $entryRelativePath, string $stdin, int $timeout, bool $interactive, bool $quietPrompts = false): ?array
     {
         $base = rtrim(str_replace('\\', '/', realpath($workspacePath) ?: $workspacePath), '/');
         $maxBytes = (int) config('code_execution.python.warm.max_job_bytes', 6 * 1024 * 1024);
@@ -668,6 +669,8 @@ class PythonWarmSandbox
             'files' => $files,
             'stdin' => $stdin,
             'interactive' => $interactive,
+            // Graded runs: input() prompts are not printed (see the runner).
+            'quiet_prompts' => $quietPrompts,
             'cpu_seconds' => max(1, $timeout),
             // Same meaning as DS_WALL_SECONDS on the classic path: the clock
             // starts at the learner's first statement, not at container start.
