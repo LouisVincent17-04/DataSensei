@@ -571,7 +571,7 @@
 
       var limits = [];
       if (!isNaN(problem.timeLimit)) limits.push(Math.floor(problem.timeLimit / 60) + ' min');
-      if (!isNaN(problem.xp)) limits.push(problem.xp + ' XP');
+      // Class challenges award no XP, so the preview does not list any.
       if (limits.length) card.appendChild(el('p', 'cc-preview-limits', limits.join(', ')));
 
       if (problem.starter.trim() !== '') {

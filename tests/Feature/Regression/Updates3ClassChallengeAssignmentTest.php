@@ -10,14 +10,17 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Support\AuthSessionFingerprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Updates 3, D2: giving a challenge to a class. An instructor may give one of
- * their own challenges, or an available University Student platform
- * challenge, to one of their own classes, once per class; only the owner of
- * the class can change or remove the entry.
+ * Challenges shared with a class for practice (DataSensei Updates 9; this
+ * replaced the Updates 3 "Class Challenges" page, which duplicated
+ * assignments with its own titles, due dates and draft/published/closed
+ * status). An instructor shares one of their own challenges, or an
+ * available University Student platform challenge, with their own active
+ * classes. Nothing is due and nothing is graded.
  */
 class Updates3ClassChallengeAssignmentTest extends TestCase
 {
@@ -25,54 +28,47 @@ class Updates3ClassChallengeAssignmentTest extends TestCase
 
     private ?Institution $institution = null;
 
-    public function test_index_lists_my_classes_with_their_challenge_entries_and_the_add_form(): void
+    public function test_the_class_challenges_page_is_gone(): void
+    {
+        foreach (['index', 'store', 'update', 'destroy'] as $name) {
+            $this->assertFalse(Route::has('instructor.class-challenges.'.$name));
+        }
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/InstructorClassChallengeController.php'));
+        $this->assertFileDoesNotExist(resource_path('views/instructor/class-challenges/index.blade.php'));
+
+        $this->makeUniversityCategory();
+        $this->actingAsUser($this->makeUser(User::ROLE_INSTRUCTOR))
+            ->get(route('instructor.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Class Challenges');
+    }
+
+    public function test_the_builder_edit_page_lists_my_active_classes_to_share_with(): void
     {
         $university = $this->makeUniversityCategory();
         $instructor = $this->makeUser(User::ROLE_INSTRUCTOR);
         $other = $this->makeUser(User::ROLE_INSTRUCTOR);
-
         $mine = $this->makeClass($instructor, 'Data Science 101');
-        $archived = $this->makeClass($instructor, 'Old Cohort', true);
-        $theirs = $this->makeClass($other, 'Someone Else Class');
-
+        $this->makeClass($instructor, 'Old Cohort', true);
+        $this->makeClass($other, 'Someone Else Class');
         $own = $this->makeChallenge($university, 'My Quiz', false, true, $instructor);
-        $pool = $this->makeChallenge($university, 'Pool Coding Problem', true, true);
-        $inactivePool = $this->makeChallenge($university, 'Unavailable Pool Quiz', false, false);
-        $otherOwn = $this->makeChallenge($university, 'Other Instructor Quiz', false, true, $other);
 
-        ClassChallengeAssignment::create([
-            'class_id' => $mine->id, 'challenge_id' => $own->id, 'assigned_by' => $instructor->id,
-            'title' => 'Week 3 quiz', 'status' => 'published', 'due_at' => now()->addDays(3),
-        ]);
-        ClassChallengeAssignment::create([
-            'class_id' => $mine->id, 'challenge_id' => $pool->id, 'assigned_by' => $instructor->id,
-            'title' => 'Pool Coding Problem', 'status' => 'draft',
-        ]);
-        ClassChallengeAssignment::create([
-            'class_id' => $theirs->id, 'challenge_id' => $otherOwn->id, 'assigned_by' => $other->id,
-            'title' => 'Not mine entry', 'status' => 'published',
-        ]);
-
-        $this->actingAsUser($instructor)
-            ->get(route('instructor.class-challenges.index'))
+        $html = $this->actingAsUser($instructor)
+            ->get(route('instructor.challenge-builder.edit', $own))
             ->assertOk()
-            ->assertSee('Class Challenges')
+            ->assertSee('Classes that can practice this')
             ->assertSee('Data Science 101')
             ->assertDontSee('Old Cohort')
             ->assertDontSee('Someone Else Class')
-            ->assertSee('Week 3 quiz')
-            ->assertSee('Open now')
-            ->assertSee('Hidden (draft)')
-            ->assertDontSee('Not mine entry')
-            ->assertSee('My Quiz (Quiz)')
-            ->assertSee('Pool Coding Problem (Coding)')
-            ->assertDontSee('Unavailable Pool Quiz')
-            ->assertDontSee('Other Instructor Quiz')
-            ->assertSee(route('instructor.class-challenges.store'), false)
-            ->assertSee(route('instructor.challenge-builder.index'), false);
+            ->assertSee(route('instructor.challenges.classes.update', $own), false)
+            ->getContent();
+
+        $this->assertStringNotContainsString('name="due_at"', $html);
+        $this->assertStringNotContainsString('name="available_at"', $html);
+        $this->assertSame(1, substr_count($html, 'name="class_ids[]" value="'.$mine->id.'"'));
     }
 
-    public function test_store_gives_my_challenge_to_my_class(): void
+    public function test_sharing_my_challenge_opens_it_for_the_class_without_a_due_date(): void
     {
         $university = $this->makeUniversityCategory();
         $instructor = $this->makeUser(User::ROLE_INSTRUCTOR);
@@ -80,30 +76,19 @@ class Updates3ClassChallengeAssignmentTest extends TestCase
         $own = $this->makeChallenge($university, 'My Quiz', false, true, $instructor);
 
         $this->actingAsUser($instructor)
-            ->post(route('instructor.class-challenges.store'), [
-                'class_id' => $class->id,
-                'challenge_id' => $own->id,
-                'title' => '',
-                'instructions' => 'Finish before Friday.',
-                'available_at' => '2026-10-01T08:00',
-                'due_at' => '2026-10-08T23:59',
-                'status' => 'published',
-            ])
-            ->assertRedirect(route('instructor.class-challenges.index'))
-            ->assertSessionHas('success');
+            ->from(route('instructor.challenge-builder.edit', $own))
+            ->put(route('instructor.challenges.classes.update', $own), ['class_ids' => [$class->id]])
+            ->assertRedirect(route('instructor.challenge-builder.edit', $own).'#classes')
+            ->assertSessionHas('success', 'Shared with Data Science 101.');
 
-        $row = ClassChallengeAssignment::query()->firstOrFail();
-        $this->assertSame((int) $class->id, (int) $row->class_id);
-        $this->assertSame((int) $own->id, (int) $row->challenge_id);
-        $this->assertSame((int) $instructor->id, (int) $row->assigned_by);
-        $this->assertSame('My Quiz', $row->title, 'An empty title falls back to the challenge title.');
-        $this->assertSame('Finish before Friday.', $row->instructions);
-        $this->assertSame('2026-10-01 08:00', $row->available_at->format('Y-m-d H:i'));
-        $this->assertSame('2026-10-08 23:59', $row->due_at->format('Y-m-d H:i'));
-        $this->assertSame('published', $row->status);
+        $entry = ClassChallengeAssignment::query()->firstOrFail();
+        $this->assertSame([$class->id, $own->id, 'published', null, null, null], [
+            (int) $entry->class_id, (int) $entry->challenge_id, $entry->status, $entry->due_at, $entry->available_at, $entry->title,
+        ]);
+        $this->assertTrue($entry->isOpenNow());
     }
 
-    public function test_store_allows_the_platform_pool_but_rejects_other_levels_inactive_and_foreign_challenges(): void
+    public function test_the_platform_pool_can_be_shared_but_not_other_levels_inactive_or_foreign_challenges(): void
     {
         $university = $this->makeUniversityCategory();
         $newbie = $this->makeCategory('Newbie', 'newbie', 1);
@@ -112,190 +97,81 @@ class Updates3ClassChallengeAssignmentTest extends TestCase
         $class = $this->makeClass($instructor);
 
         $pool = $this->makeChallenge($university, 'Pool Coding Problem', true, true);
-        $newbiePool = $this->makeChallenge($newbie, 'Newbie Quiz', false, true);
-        $inactivePool = $this->makeChallenge($university, 'Unavailable Pool Quiz', false, false);
-        $otherOwn = $this->makeChallenge($university, 'Other Instructor Quiz', false, true, $other);
-
         $this->actingAsUser($instructor)
-            ->post(route('instructor.class-challenges.store'), $this->payload($class, $pool))
-            ->assertRedirect(route('instructor.class-challenges.index'))
-            ->assertSessionHas('success');
+            ->put(route('instructor.challenges.classes.update', $pool), ['class_ids' => [$class->id]])
+            ->assertRedirect();
+        $this->assertDatabaseHas('class_challenge_assignments', ['class_id' => $class->id, 'challenge_id' => $pool->id, 'status' => 'published']);
 
-        $this->assertDatabaseHas('class_challenge_assignments', ['class_id' => $class->id, 'challenge_id' => $pool->id]);
-
-        foreach ([$newbiePool, $inactivePool, $otherOwn] as $rejected) {
+        foreach ([
+            $this->makeChallenge($newbie, 'Newbie Quiz', false, true),
+            $this->makeChallenge($university, 'Unavailable Pool Quiz', false, false),
+            $this->makeChallenge($university, 'Other Instructor Quiz', false, true, $other),
+        ] as $rejected) {
             $this->actingAsUser($instructor)
-                ->from(route('instructor.class-challenges.index'))
-                ->post(route('instructor.class-challenges.store'), $this->payload($class, $rejected))
-                ->assertRedirect(route('instructor.class-challenges.index'))
-                ->assertSessionHasErrors(['challenge_id']);
+                ->put(route('instructor.challenges.classes.update', $rejected), ['class_ids' => [$class->id]])
+                ->assertNotFound();
+            $this->assertDatabaseMissing('class_challenge_assignments', ['challenge_id' => $rejected->id]);
         }
-
-        $this->actingAsUser($instructor)
-            ->from(route('instructor.class-challenges.index'))
-            ->post(route('instructor.class-challenges.store'), $this->payload($class, $pool, ['challenge_id' => 999999]))
-            ->assertSessionHasErrors(['challenge_id']);
-
-        $this->assertSame(1, ClassChallengeAssignment::count());
     }
 
-    public function test_store_rejects_someone_elses_or_archived_class(): void
+    public function test_someone_elses_or_archived_class_is_ignored(): void
     {
         $university = $this->makeUniversityCategory();
         $instructor = $this->makeUser(User::ROLE_INSTRUCTOR);
         $other = $this->makeUser(User::ROLE_INSTRUCTOR);
-        $theirs = $this->makeClass($other);
+        $theirs = $this->makeClass($other, 'Someone Else Class');
         $archived = $this->makeClass($instructor, 'Old Cohort', true);
         $own = $this->makeChallenge($university, 'My Quiz', false, true, $instructor);
 
         $this->actingAsUser($instructor)
-            ->post(route('instructor.class-challenges.store'), $this->payload($theirs, $own))
-            ->assertNotFound();
-
-        $this->actingAsUser($instructor)
-            ->post(route('instructor.class-challenges.store'), $this->payload($archived, $own))
-            ->assertNotFound();
+            ->put(route('instructor.challenges.classes.update', $own), ['class_ids' => [$theirs->id, $archived->id]])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'No change to the classes.');
 
         $this->assertSame(0, ClassChallengeAssignment::count());
     }
 
-    public function test_store_rejects_duplicates_and_validates_dates_and_status(): void
+    public function test_unsharing_keeps_the_history_and_sharing_again_reopens_it(): void
     {
         $university = $this->makeUniversityCategory();
         $instructor = $this->makeUser(User::ROLE_INSTRUCTOR);
         $class = $this->makeClass($instructor);
         $own = $this->makeChallenge($university, 'My Quiz', false, true, $instructor);
-
-        $this->actingAsUser($instructor)
-            ->post(route('instructor.class-challenges.store'), $this->payload($class, $own))
-            ->assertRedirect(route('instructor.class-challenges.index'))
-            ->assertSessionHas('success');
-
-        $this->actingAsUser($instructor)
-            ->from(route('instructor.class-challenges.index'))
-            ->post(route('instructor.class-challenges.store'), $this->payload($class, $own))
-            ->assertRedirect(route('instructor.class-challenges.index'))
-            ->assertSessionHasErrors(['challenge_id']);
-
-        $this->actingAsUser($instructor)
-            ->from(route('instructor.class-challenges.index'))
-            ->post(route('instructor.class-challenges.store'), $this->payload($class, $own, [
-                'available_at' => '2026-10-08T10:00',
-                'due_at' => '2026-10-01T10:00',
-                'status' => 'archived',
-            ]))
-            ->assertSessionHasErrors(['due_at', 'status']);
-
-        $this->assertSame(1, ClassChallengeAssignment::count());
-    }
-
-    public function test_update_changes_status_dates_title_and_instructions_for_the_owner_only(): void
-    {
-        $university = $this->makeUniversityCategory();
-        $instructor = $this->makeUser(User::ROLE_INSTRUCTOR);
-        $other = $this->makeUser(User::ROLE_INSTRUCTOR);
-        $class = $this->makeClass($instructor);
-        $own = $this->makeChallenge($university, 'My Quiz', false, true, $instructor);
-
-        $entry = ClassChallengeAssignment::create([
+        // An entry from the old page, with a window and a custom title.
+        ClassChallengeAssignment::create([
             'class_id' => $class->id, 'challenge_id' => $own->id, 'assigned_by' => $instructor->id,
-            'title' => 'My Quiz', 'status' => 'draft',
+            'title' => 'Week 3 quiz', 'status' => 'published', 'due_at' => now()->addDays(3),
         ]);
 
-        $this->actingAsUser($other)
-            ->put(route('instructor.class-challenges.update', $entry), ['status' => 'published'])
-            ->assertNotFound();
-        $this->actingAsUser($this->makeUser(User::ROLE_USER))
-            ->put(route('instructor.class-challenges.update', $entry), ['status' => 'published'])
-            ->assertForbidden();
-        $this->assertSame('draft', $entry->fresh()->status);
+        $this->actingAsUser($instructor)
+            ->put(route('instructor.challenges.classes.update', $own), ['class_ids' => []])
+            ->assertSessionHas('success', 'No longer shared with Data Science 101.');
+        $entry = ClassChallengeAssignment::query()->sole();
+        $this->assertSame('closed', $entry->status, 'Kept, so the class reports still count the attempts.');
+        $this->assertFalse($entry->isOpenNow());
 
         $this->actingAsUser($instructor)
-            ->put(route('instructor.class-challenges.update', $entry), [
-                'status' => 'published',
-                'title' => 'Week 3 quiz',
-                'instructions' => 'One attempt counts.',
-                'available_at' => '',
-                'due_at' => '2026-11-01T18:00',
-                // Never accepted on update.
-                'class_id' => $this->makeClass($other)->id,
-                'challenge_id' => 999,
-            ])
-            ->assertRedirect(route('instructor.class-challenges.index'))
-            ->assertSessionHas('success');
-
-        $entry->refresh();
-        $this->assertSame('published', $entry->status);
-        $this->assertSame('Week 3 quiz', $entry->title);
-        $this->assertSame('One attempt counts.', $entry->instructions);
-        $this->assertNull($entry->available_at);
-        $this->assertSame('2026-11-01 18:00', $entry->due_at->format('Y-m-d H:i'));
-        $this->assertSame((int) $class->id, (int) $entry->class_id);
-        $this->assertSame((int) $own->id, (int) $entry->challenge_id);
-
-        $this->actingAsUser($instructor)
-            ->from(route('instructor.class-challenges.index'))
-            ->put(route('instructor.class-challenges.update', $entry), ['status' => 'closed', 'available_at' => '2026-12-01T00:00', 'due_at' => '2026-11-01T00:00'])
-            ->assertSessionHasErrors(['due_at']);
-
-        $this->actingAsUser($instructor)
-            ->put(route('instructor.class-challenges.update', $entry), ['status' => 'closed'])
-            ->assertRedirect(route('instructor.class-challenges.index'));
-
-        $this->assertSame('closed', $entry->fresh()->status);
-    }
-
-    public function test_destroy_removes_the_entry_for_the_owner_only(): void
-    {
-        $university = $this->makeUniversityCategory();
-        $instructor = $this->makeUser(User::ROLE_INSTRUCTOR);
-        $other = $this->makeUser(User::ROLE_INSTRUCTOR);
-        $class = $this->makeClass($instructor);
-        $own = $this->makeChallenge($university, 'My Quiz', false, true, $instructor);
-
-        $entry = ClassChallengeAssignment::create([
-            'class_id' => $class->id, 'challenge_id' => $own->id, 'assigned_by' => $instructor->id,
-            'title' => 'My Quiz', 'status' => 'published',
-        ]);
-
-        $this->actingAsUser($other)->delete(route('instructor.class-challenges.destroy', $entry))->assertNotFound();
-        $this->actingAsUser($this->makeUser(User::ROLE_ADMIN))->delete(route('instructor.class-challenges.destroy', $entry))->assertForbidden();
-        $this->assertDatabaseHas('class_challenge_assignments', ['id' => $entry->id]);
-
-        $this->actingAsUser($instructor)
-            ->delete(route('instructor.class-challenges.destroy', $entry))
-            ->assertRedirect(route('instructor.class-challenges.index'))
-            ->assertSessionHas('success');
-
-        $this->assertDatabaseMissing('class_challenge_assignments', ['id' => $entry->id]);
-        // Removing the class entry never deletes the challenge itself.
+            ->put(route('instructor.challenges.classes.update', $own), ['class_ids' => [$class->id]])
+            ->assertSessionHas('success', 'Shared with Data Science 101.');
+        $entry = ClassChallengeAssignment::query()->sole();
+        $this->assertSame(['published', null, null], [$entry->status, $entry->due_at, $entry->title]);
         $this->assertDatabaseHas('challenges', ['id' => $own->id]);
     }
 
-    public function test_students_cannot_reach_the_class_challenge_pages(): void
+    public function test_students_and_guests_cannot_share(): void
     {
-        $this->makeUniversityCategory();
+        $university = $this->makeUniversityCategory();
+        $instructor = $this->makeUser(User::ROLE_INSTRUCTOR);
+        $class = $this->makeClass($instructor);
+        $own = $this->makeChallenge($university, 'My Quiz', false, true, $instructor);
         $student = $this->makeUser(User::ROLE_USER);
 
-        $this->get(route('instructor.class-challenges.index'))->assertRedirect(route('login'));
-        $this->actingAsUser($student)->get(route('instructor.class-challenges.index'))->assertForbidden();
-        $this->actingAsUser($student)->post(route('instructor.class-challenges.store'), ['class_id' => 1, 'challenge_id' => 1, 'status' => 'published'])->assertForbidden();
+        $this->put(route('instructor.challenges.classes.update', $own), ['class_ids' => [$class->id]])->assertRedirect(route('login'));
+        $this->actingAsUser($student)->put(route('instructor.challenges.classes.update', $own), ['class_ids' => [$class->id]])->assertForbidden();
+        $this->assertSame(0, ClassChallengeAssignment::count());
     }
 
     // ── Fixtures ──────────────────────────────────────────────────────
-
-    private function payload(ClassRoom $class, Challenge $challenge, array $overrides = []): array
-    {
-        return array_merge([
-            'class_id' => $class->id,
-            'challenge_id' => $challenge->id,
-            'title' => '',
-            'instructions' => '',
-            'available_at' => '',
-            'due_at' => '',
-            'status' => 'published',
-        ], $overrides);
-    }
 
     private function makeUniversityCategory(): ChallengeCategory
     {

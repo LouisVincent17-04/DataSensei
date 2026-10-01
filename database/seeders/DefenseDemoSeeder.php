@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\AssessmentQuestionIlo;
 use App\Models\AssignmentLibraryItem;
 use App\Models\AssignmentSubmission;
 use App\Models\AssignmentSubmissionAnswer;
@@ -11,11 +10,9 @@ use App\Models\ChallengeCategory;
 use App\Models\ClassAssignment;
 use App\Models\ClassRoom;
 use App\Models\Institution;
-use App\Models\IntendedLearningOutcome;
 use App\Models\Module;
 use App\Models\User;
 use App\Services\CompetencyMonitoringService;
-use App\Services\IloMasteryService;
 use App\Services\StudentPerformanceClusteringService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -164,15 +161,6 @@ class DefenseDemoSeeder extends Seeder
                 }
             }
 
-            $ilos = IntendedLearningOutcome::active()
-                ->where('module_no', 1)
-                ->orderBy('sort_order')
-                ->take(3)
-                ->get();
-            if ($ilos->count() < 3) {
-                throw new RuntimeException('Module 1 ILOs are missing from the demo database.');
-            }
-
             $libraryItem = AssignmentLibraryItem::create([
                 'module_no' => 1,
                 'assignment_code' => 'DEMO-M01-TIMED',
@@ -183,7 +171,7 @@ class DefenseDemoSeeder extends Seeder
                 'version_no' => 1,
                 'version_name' => 'Defense Version',
                 'version_code' => 'V1',
-                'description' => 'Three specific questions for demonstrating timed assessment, grading, and ILO evidence.',
+                'description' => 'Three specific questions for demonstrating timed assessment and grading.',
                 'instructions' => 'Answer all three items before the five-minute server timer expires.',
                 'time_limit_minutes' => 5,
                 'total_points' => 3,
@@ -218,7 +206,7 @@ class DefenseDemoSeeder extends Seeder
                     'question_text' => $definition['text'],
                     'points' => 1,
                     'order_index' => $index + 1,
-                    'explanation' => 'Defense demo item with explicit evidence mapping.',
+                    'explanation' => 'Defense demo item.',
                 ]);
                 foreach ($definition['options'] as $text => $correct) {
                     $question->options()->create([
@@ -227,12 +215,6 @@ class DefenseDemoSeeder extends Seeder
                         'order_index' => $question->options()->count() + 1,
                     ]);
                 }
-                AssessmentQuestionIlo::create([
-                    'ilo_id' => $ilos[$index]->id,
-                    'assessment_source' => 'assignment',
-                    'question_id' => $question->id,
-                    'weight' => 1,
-                ]);
                 $questions->push($question->fresh('options'));
             }
 
@@ -241,7 +223,7 @@ class DefenseDemoSeeder extends Seeder
                 'assignment_library_item_id' => $libraryItem->id,
                 'assigned_by' => $instructor->id,
                 'title' => 'Python Foundations — Timed Demo',
-                'instructions' => 'Use this to demonstrate server-side timing and evidence mapping.',
+                'instructions' => 'Use this to demonstrate server-side timing.',
                 'available_at' => now()->subMinute(),
                 'due_at' => now()->addDays(7),
                 'max_attempts' => 2,
@@ -282,7 +264,6 @@ class DefenseDemoSeeder extends Seeder
             return compact('class', 'sampleSubmission');
         }, 3);
 
-        app(IloMasteryService::class)->refreshForAssignmentSubmission($demo['sampleSubmission']->fresh());
         app(StudentPerformanceClusteringService::class)->refreshForClass($demo['class']->fresh());
         app(CompetencyMonitoringService::class)->refreshClass($demo['class']->fresh());
 

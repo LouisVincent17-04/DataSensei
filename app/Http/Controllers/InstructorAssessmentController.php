@@ -12,7 +12,6 @@ use App\Models\StudentAssessmentDiagnostic;
 use App\Models\TableOfSpecification;
 use App\Models\TableOfSpecificationRow;
 use App\Services\AssessmentDiagnosticService;
-use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -138,14 +137,16 @@ class InstructorAssessmentController extends Controller
                     AssessmentQuestion::create([
                         'assessment_id' => $assessment->id,
                         'table_of_specification_row_id' => $row->id,
-                        'ilo_id' => $row->ilo_id,
+                        // Assessments stay separate from module ILOs
+                        // (DataSensei Updates 5): no ILO link.
+                        'ilo_id' => null,
                         'item_number' => $itemNumber++,
                         'question_type' => 'unconfigured',
                         'points' => max(1, (int) $row->default_points),
                         'is_required' => true,
                         'topic_title' => $row->topic_title,
                         'subtopic_title' => $row->subtopic_title,
-                        'learning_objective' => $row->learning_objective ?: ($row->ilo->description ?? $row->ilo->title ?? null),
+                        'learning_objective' => $row->learning_objective ?: null,
                         'bloom_level' => $row->cognitive_level,
                         'difficulty_slug' => $row->difficulty_slug,
                     ]);
@@ -157,7 +158,74 @@ class InstructorAssessmentController extends Controller
 
         return redirect()
             ->route('instructor.assessments.builder', $assessment)
-            ->with('success', 'Assessment draft created. Items 1–' . $assessment->total_items . ' are ready for TOS-guided authoring.');
+            ->with('success', 'Assessment saved as a draft with ' . $assessment->total_items . ' planned questions from your Table of Specifications. Write each one below.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Simple assessment builder (DataSensei Updates 9)
+    //
+    // An assessment is created with one short form (no Table of
+    // Specifications needed), and every question is written on one page:
+    // type, question, choices, the correct answer and points. Everything is
+    // saved as a draft as you go; Publish checks that every question is
+    // complete. A TOS can still be used to plan the questions: it creates
+    // the planned items, which are then written on the same page.
+    // ─────────────────────────────────────────────────────────────────────
+
+    public const QUESTION_TYPES = [
+        'multiple_choice' => 'Multiple choice',
+        'true_false' => 'True or false',
+        'short_answer' => 'Short answer',
+        'essay' => 'Essay (checked by you)',
+    ];
+
+    public function newAssessment()
+    {
+        $classes = ClassRoom::where('instructor_id', Auth::id())
+            ->where('is_archived', false)
+            ->orderBy('name')
+            ->get();
+
+        return view('instructor.assessments.create', [
+            'tos' => null,
+            'classes' => $classes,
+            'totalItems' => null,
+        ]);
+    }
+
+    public function saveNew(Request $request)
+    {
+        $validated = $this->validatedSettings($request);
+
+        $assessment = DB::transaction(function () use ($validated): Assessment {
+            $class = ClassRoom::query()
+                ->whereKey($validated['class_id'])
+                ->where('instructor_id', Auth::id())
+                ->where('is_archived', false)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            return Assessment::create([
+                'table_of_specification_id' => null,
+                'class_id' => $class->id,
+                'created_by' => Auth::id(),
+                'title' => $validated['title'],
+                'description' => null,
+                'instructions' => $validated['instructions'] ?? null,
+                'status' => 'draft',
+                'draft_saved_at' => now(),
+                'total_items' => 0,
+                'total_points' => 0,
+                'time_limit_minutes' => $validated['time_limit_minutes'] ?? null,
+                'max_attempts' => $validated['max_attempts'],
+                'available_at' => $validated['available_at'] ?? null,
+                'due_at' => $validated['due_at'] ?? null,
+            ]);
+        }, 3);
+
+        return redirect()
+            ->to(route('instructor.assessments.builder', $assessment).'#add-question')
+            ->with('success', 'Assessment saved as a draft. Add your questions below.');
     }
 
     public function builder(Request $request, Assessment $assessment)
@@ -169,174 +237,118 @@ class InstructorAssessmentController extends Controller
             ->with('options')
             ->orderBy('item_number')
             ->get();
-
-        abort_if($questions->isEmpty(), 422, 'This assessment has no TOS items to configure.');
-
         $assessment->setRelation('questions', $questions);
 
-        $requestedItem = max(0, (int) $request->integer('item'));
-        $resumeItem = $requestedItem ?: max(0, (int) $assessment->draft_last_item);
-        $currentQuestion = $questions->firstWhere('item_number', $resumeItem)
-            ?? $questions->first(fn (AssessmentQuestion $question) => ! $question->isAuthoringComplete())
-            ?? $questions->first();
+        $incomplete = $questions->reject(fn (AssessmentQuestion $question) => $question->isAuthoringComplete());
+        $classes = ClassRoom::where('instructor_id', Auth::id())
+            ->where(fn ($query) => $query->where('is_archived', false)->orWhere('id', $assessment->class_id))
+            ->orderBy('name')
+            ->get();
 
-        $complete = $questions->filter(
-            fn (AssessmentQuestion $question) => $question->isAuthoringComplete()
-        )->count();
-        $inProgress = $questions->filter(
-            fn (AssessmentQuestion $question) => $question->authoring_status === 'in_progress'
-        )->count();
-        $total = $questions->count();
-
-        $progress = [
-            'complete' => $complete,
-            'in_progress' => $inProgress,
-            'not_started' => max(0, $total - $complete - $inProgress),
-            'total' => $total,
-            'percent' => $total > 0 ? (int) round(($complete / $total) * 100) : 0,
-        ];
-
-        $tosGroups = $questions
-            ->groupBy(function (AssessmentQuestion $question): string {
-                if ($question->table_of_specification_row_id !== null) {
-                    return 'row:' . $question->table_of_specification_row_id;
-                }
-
-                return 'coverage:' . implode('|', [
-                    $question->topic_title,
-                    $question->subtopic_title,
-                    $question->bloom_level,
-                    $question->difficulty_slug,
-                ]);
-            })
-            ->map(function ($group): array {
-                $first = $group->first();
-
-                return [
-                    'topic' => $first->topic_title,
-                    'subtopic' => $first->subtopic_title,
-                    'objective' => $first->learning_objective,
-                    'bloom' => $first->bloom_level,
-                    'difficulty' => $first->difficulty_slug,
-                    'target' => $group->count(),
-                    'complete' => $group->filter(
-                        fn (AssessmentQuestion $question) => $question->isAuthoringComplete()
-                    )->count(),
-                    'items' => $group->values(),
-                ];
-            })
-            ->values();
-
-        $previousQuestion = $questions
-            ->filter(fn (AssessmentQuestion $question) => $question->item_number < $currentQuestion->item_number)
-            ->last();
-        $nextQuestion = $questions
-            ->first(fn (AssessmentQuestion $question) => $question->item_number > $currentQuestion->item_number);
-        $readyToPublish = $complete === $total;
-
-        return view('instructor.assessments.builder', compact(
-            'assessment',
-            'currentQuestion',
-            'previousQuestion',
-            'nextQuestion',
-            'progress',
-            'tosGroups',
-            'readyToPublish'
-        ));
+        return view('instructor.assessments.builder', [
+            'assessment' => $assessment,
+            'questions' => $questions,
+            'incomplete' => $incomplete,
+            'readyToPublish' => $questions->isNotEmpty() && $incomplete->isEmpty(),
+            'editable' => $assessment->status === 'draft',
+            'classes' => $classes,
+            'types' => self::QUESTION_TYPES,
+            'openItem' => max(0, (int) $request->integer('item')),
+        ]);
     }
 
-    public function applyQuickSetup(Request $request, Assessment $assessment)
+    /** Title, class, instructions, time limit, attempts and dates. Drafts only. */
+    public function updateSettings(Request $request, Assessment $assessment)
+    {
+        $this->authorizeAssessment($assessment);
+        abort_unless($assessment->status === 'draft', 422, 'Published or closed assessments cannot be edited.');
+        $validated = $this->validatedSettings($request);
+
+        DB::transaction(function () use ($assessment, $validated): void {
+            $locked = Assessment::query()->whereKey($assessment->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeAssessment($locked);
+            abort_unless($locked->status === 'draft', 422, 'Published or closed assessments cannot be edited.');
+
+            $class = ClassRoom::query()
+                ->whereKey($validated['class_id'])
+                ->where('instructor_id', Auth::id())
+                ->where(fn ($query) => $query->where('is_archived', false)->orWhere('id', $locked->class_id))
+                ->firstOrFail();
+
+            if ($locked->table_of_specification_id) {
+                $tos = TableOfSpecification::find($locked->table_of_specification_id);
+                if ($tos && ! $tos->canBeUsedForClass((int) $class->id)) {
+                    throw ValidationException::withMessages([
+                        'class_id' => 'This assessment was planned with a class-specific Table of Specifications, so it stays with that class.',
+                    ]);
+                }
+            }
+
+            $locked->update([
+                'class_id' => $class->id,
+                'title' => $validated['title'],
+                'instructions' => $validated['instructions'] ?? null,
+                'time_limit_minutes' => $validated['time_limit_minutes'] ?? null,
+                'max_attempts' => $validated['max_attempts'],
+                'available_at' => $validated['available_at'] ?? null,
+                'due_at' => $validated['due_at'] ?? null,
+                'draft_saved_at' => now(),
+            ]);
+        }, 3);
+
+        return redirect()
+            ->to(route('instructor.assessments.builder', $assessment).'#settings')
+            ->with('success', 'Settings saved.');
+    }
+
+    /** Adds a question at the end. Saved as written; Publish checks it is complete. */
+    public function storeQuestion(Request $request, Assessment $assessment)
     {
         $this->authorizeAssessment($assessment);
         abort_unless($assessment->status === 'draft', 422, 'Published or closed assessments cannot be edited.');
 
-        $validated = $request->validate([
-            'current_question_id' => ['required', 'integer', 'exists:assessment_questions,id'],
-            'scope' => ['required', Rule::in(['tos_group', 'all_unstarted'])],
-            'question_type' => ['required', Rule::in(array_keys(AssessmentQuestion::TYPES))],
-            'points' => ['required', 'integer', 'min:1', 'max:1000'],
-        ]);
+        [$validated, $type, $questionText, $correctAnswer, $options, $correctIndex] = $this->validatedQuestion($request, false);
+        $newImagePath = $this->storeQuestionImage($request);
 
-        $result = DB::transaction(function () use ($assessment, $validated): array {
-            $lockedAssessment = Assessment::query()
-                ->whereKey($assessment->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-            $this->authorizeAssessment($lockedAssessment);
-            abort_unless($lockedAssessment->status === 'draft', 422, 'Published or closed assessments cannot be edited.');
+        try {
+            $question = DB::transaction(function () use ($request, $assessment, $validated, $type, $questionText, $correctAnswer, $options, $correctIndex, $newImagePath): AssessmentQuestion {
+                $locked = Assessment::query()->whereKey($assessment->id)->lockForUpdate()->firstOrFail();
+                $this->authorizeAssessment($locked);
+                abort_unless($locked->status === 'draft', 422, 'Published or closed assessments cannot be edited.');
 
-            $currentQuestion = AssessmentQuestion::query()
-                ->whereKey($validated['current_question_id'])
-                ->where('assessment_id', $lockedAssessment->id)
-                ->lockForUpdate()
-                ->firstOrFail();
+                $question = AssessmentQuestion::create([
+                    'assessment_id' => $locked->id,
+                    'table_of_specification_row_id' => null,
+                    'ilo_id' => null,
+                    'item_number' => (int) $locked->questions()->max('item_number') + 1,
+                    'question_type' => $type,
+                    'question_text' => $questionText !== '' ? $questionText : null,
+                    'image_path' => $newImagePath,
+                    'points' => (int) $validated['points'],
+                    'is_required' => true,
+                    'authoring_touched' => true,
+                    'correct_answer' => $this->storedCorrectAnswer($type, $correctAnswer),
+                    'answer_explanation' => null,
+                    'rubric_text' => $type === 'essay' ? ($this->nullableText($validated['rubric_text'] ?? null)) : null,
+                    'topic_title' => mb_substr((string) $locked->title, 0, 189),
+                ]);
 
-            $questions = AssessmentQuestion::query()
-                ->where('assessment_id', $lockedAssessment->id)
-                ->where('authoring_touched', false)
-                ->where('question_type', 'unconfigured')
-                ->where(function ($query) {
-                    $query->whereNull('question_text')->orWhere('question_text', '');
-                })
-                ->where(function ($query) {
-                    $query->whereNull('correct_answer')->orWhere('correct_answer', '');
-                })
-                ->where(function ($query) {
-                    $query->whereNull('answer_explanation')->orWhere('answer_explanation', '');
-                })
-                ->where(function ($query) {
-                    $query->whereNull('rubric_text')->orWhere('rubric_text', '');
-                })
-                ->where(function ($query) {
-                    $query->whereNull('image_path')->orWhere('image_path', '');
-                })
-                ->whereDoesntHave('options');
+                $this->saveOptions($question, $type, $options, $correctIndex);
+                $this->refreshTotals($locked);
 
-            if ($validated['scope'] === 'tos_group') {
-                if ($currentQuestion->table_of_specification_row_id === null) {
-                    $questions
-                        ->whereNull('table_of_specification_row_id')
-                        ->where('topic_title', $currentQuestion->topic_title)
-                        ->where('bloom_level', $currentQuestion->bloom_level)
-                        ->where('difficulty_slug', $currentQuestion->difficulty_slug);
-                } else {
-                    $questions->where(
-                        'table_of_specification_row_id',
-                        $currentQuestion->table_of_specification_row_id
-                    );
-                }
+                return $question;
+            }, 3);
+        } catch (\Throwable $exception) {
+            if ($newImagePath) {
+                Storage::disk('public')->delete($newImagePath);
             }
 
-            $updated = $questions->update([
-                'question_type' => $validated['question_type'],
-                'points' => (int) $validated['points'],
-                'updated_at' => now(),
-            ]);
-
-            $lockedAssessment->update([
-                'total_points' => (int) $lockedAssessment->questions()->sum('points'),
-                'draft_last_item' => $currentQuestion->item_number,
-                'draft_saved_at' => now(),
-            ]);
-
-            return [
-                'updated' => $updated,
-                'item_number' => $currentQuestion->item_number,
-            ];
-        }, 3);
-
-        $scopeLabel = $validated['scope'] === 'tos_group'
-            ? 'this TOS section'
-            : 'all not-started items';
+            throw $exception;
+        }
 
         return redirect()
-            ->route('instructor.assessments.builder', [
-                'assessment' => $assessment,
-                'item' => $result['item_number'],
-            ])
-            ->with('success', $result['updated'] > 0
-                ? "Quick setup applied to {$result['updated']} item(s) in {$scopeLabel}."
-                : 'No not-started items needed the quick setup.');
+            ->to(route('instructor.assessments.builder', $assessment).'#question-'.$question->id)
+            ->with('success', 'Question '.$question->item_number.' added.');
     }
 
     public function updateQuestion(Request $request, Assessment $assessment, AssessmentQuestion $question)
@@ -345,116 +357,15 @@ class InstructorAssessmentController extends Controller
         abort_unless((int) $question->assessment_id === (int) $assessment->id, 404);
         abort_if($assessment->status !== 'draft', 422, 'Published or closed assessments cannot be edited.');
 
-        $validated = $request->validate([
-            'intent' => ['nullable', Rule::in(['draft', 'draft_exit', 'complete_next'])],
-            'question_type' => [
-                'required',
-                Rule::in(array_merge(['unconfigured'], array_keys(AssessmentQuestion::TYPES))),
-            ],
-            'question_text' => ['nullable', 'string', 'max:30000'],
-            'points' => ['required', 'integer', 'min:1', 'max:1000'],
-            'is_required' => ['nullable', 'boolean'],
-            'correct_answer' => ['nullable', 'string', 'max:10000'],
-            'answer_explanation' => ['nullable', 'string', 'max:10000'],
-            'rubric_text' => ['nullable', 'string', 'max:30000'],
-            'question_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
-            'remove_image' => ['nullable', 'boolean'],
-            'option_texts' => ['nullable', 'array', 'max:10'],
-            'option_texts.*' => ['nullable', 'string', 'max:5000'],
-            'correct_option' => ['nullable', 'integer', 'min:0', 'max:9'],
-        ]);
-
-        $type = $validated['question_type'];
-        $intent = $validated['intent'] ?? 'draft';
-        $requiresCompleteQuestion = $intent === 'complete_next';
-        $questionText = trim((string) ($validated['question_text'] ?? ''));
-        // Compared with === '' everywhere: "0" is a real answer, not a blank.
-        $correctAnswer = trim((string) ($validated['correct_answer'] ?? ''));
-        $options = collect();
-        $correctIndex = $validated['correct_option'] ?? null;
-
-        if ($type === 'multiple_choice') {
-            $options = collect($validated['option_texts'] ?? [])
-                ->map(fn ($text, $index) => [
-                    'source_index' => (int) $index,
-                    'text' => trim((string) $text),
-                ])
-                ->filter(fn (array $option) => $option['text'] !== '')
-                ->values();
-
-            if ($requiresCompleteQuestion && $options->count() < 2) {
-                throw ValidationException::withMessages([
-                    'option_texts' => 'A multiple-choice question needs at least two choices.',
-                ]);
-            }
-
-            if ($requiresCompleteQuestion
-                && ($correctIndex === null || ! $options->contains('source_index', (int) $correctIndex))) {
-                throw ValidationException::withMessages([
-                    'correct_option' => 'Select exactly one correct choice.',
-                ]);
-            }
-        }
-
-        if ($requiresCompleteQuestion && $type === 'unconfigured') {
-            throw ValidationException::withMessages([
-                'question_type' => 'Choose a question type before marking this item complete.',
-            ]);
-        }
-
-        if ($requiresCompleteQuestion && $questionText === '') {
-            throw ValidationException::withMessages([
-                'question_text' => 'Enter the question before moving to the next item.',
-            ]);
-        }
-
-        if ($requiresCompleteQuestion
-            && in_array($type, ['fill_blank', 'short_answer'], true)
-            && $correctAnswer === '') {
-            throw ValidationException::withMessages([
-                'correct_answer' => 'Enter the correct or accepted answer for this question type.',
-            ]);
-        }
-
-        if ($requiresCompleteQuestion
-            && $type === 'true_false'
-            && ! in_array(strtolower($correctAnswer), ['true', 'false'], true)) {
-            throw ValidationException::withMessages([
-                'correct_answer' => 'Select True or False as the correct answer.',
-            ]);
-        }
-
-        if ($requiresCompleteQuestion
-            && $type === 'essay'
-            && trim((string) ($validated['rubric_text'] ?? '')) === '') {
-            throw ValidationException::withMessages([
-                'rubric_text' => 'Essay questions require a scoring rubric.',
-            ]);
-        }
-
-        $newImagePath = $request->hasFile('question_image')
-            ? $request->file('question_image')->store('assessment-images', 'public')
-            : null;
-
-        if ($newImagePath === false) {
-            throw ValidationException::withMessages([
-                'question_image' => 'The image could not be stored. Try again.',
-            ]);
-        }
+        $intent = (string) $request->input('intent', 'save');
+        $request->validate(['intent' => ['nullable', Rule::in(['save', 'draft', 'draft_exit', 'complete_next'])]]);
+        [$validated, $type, $questionText, $correctAnswer, $options, $correctIndex] = $this->validatedQuestion($request, $intent === 'complete_next');
+        $newImagePath = $this->storeQuestionImage($request);
 
         try {
             $result = DB::transaction(function () use (
-                $request,
-                $validated,
-                $question,
-                $assessment,
-                $type,
-                $intent,
-                $questionText,
-                $correctAnswer,
-                $options,
-                $correctIndex,
-                $newImagePath
+                $request, $validated, $question, $assessment, $type, $intent,
+                $questionText, $correctAnswer, $options, $correctIndex, $newImagePath
             ): array {
                 $lockedAssessment = Assessment::query()
                     ->whereKey($assessment->id)
@@ -477,61 +388,39 @@ class InstructorAssessmentController extends Controller
                     'question_type' => $type,
                     'question_text' => $questionText !== '' ? $questionText : null,
                     'image_path' => $imagePath,
-                    'points' => $validated['points'],
-                    'is_required' => $request->boolean('is_required'),
+                    'points' => (int) $validated['points'],
+                    // Every question is answered; the field stays for older forms.
+                    'is_required' => $request->has('is_required') ? $request->boolean('is_required') : true,
                     'authoring_touched' => true,
-                    'correct_answer' => in_array($type, ['true_false', 'fill_blank', 'short_answer'], true)
-                        && $correctAnswer !== ''
-                        ? $correctAnswer
-                        : null,
-                    'answer_explanation' => $validated['answer_explanation'] ?? null,
-                    'rubric_text' => $type === 'essay' ? ($validated['rubric_text'] ?? null) : null,
+                    'correct_answer' => $this->storedCorrectAnswer($type, $correctAnswer),
+                    // The explanation is no longer asked for; one written
+                    // earlier is kept unless a form sends a new one.
+                    'answer_explanation' => $request->has('answer_explanation')
+                        ? $this->nullableText($validated['answer_explanation'] ?? null)
+                        : $lockedQuestion->answer_explanation,
+                    'rubric_text' => $type === 'essay' ? $this->nullableText($validated['rubric_text'] ?? null) : null,
                 ]);
 
-                $lockedQuestion->options()->delete();
+                $this->saveOptions($lockedQuestion, $type, $options, $correctIndex);
+                $allQuestions = $this->refreshTotals($lockedAssessment);
 
-                if ($type === 'multiple_choice') {
-                    foreach ($options as $index => $option) {
-                        AssessmentQuestionOption::create([
-                            'assessment_question_id' => $lockedQuestion->id,
-                            'option_label' => chr(65 + $index),
-                            'option_text' => $option['text'],
-                            'is_correct' => $correctIndex !== null
-                                && $option['source_index'] === (int) $correctIndex,
-                            'order_index' => $index + 1,
-                        ]);
-                    }
-                }
-
-                $allQuestions = $lockedAssessment->questions()
-                    ->with('options')
-                    ->orderBy('item_number')
-                    ->get();
                 $nextIncomplete = $allQuestions->first(
                     fn (AssessmentQuestion $candidate) => $candidate->item_number > $lockedQuestion->item_number
                         && ! $candidate->isAuthoringComplete()
-                ) ?? $allQuestions->first(
-                    fn (AssessmentQuestion $candidate) => ! $candidate->isAuthoringComplete()
-                );
+                ) ?? $allQuestions->first(fn (AssessmentQuestion $candidate) => ! $candidate->isAuthoringComplete());
                 $nextSequential = $allQuestions->first(
                     fn (AssessmentQuestion $candidate) => $candidate->item_number > $lockedQuestion->item_number
                 );
                 $destinationItem = $intent === 'complete_next'
                     ? (int) ($nextIncomplete?->item_number ?? $nextSequential?->item_number ?? $lockedQuestion->item_number)
                     : (int) $lockedQuestion->item_number;
-
-                $lockedAssessment->update([
-                    'total_points' => (int) $allQuestions->sum('points'),
-                    'draft_last_item' => $destinationItem,
-                    'draft_saved_at' => now(),
-                ]);
+                $lockedAssessment->update(['draft_last_item' => $destinationItem]);
 
                 return [
+                    'id' => $lockedQuestion->id,
                     'item_number' => $lockedQuestion->item_number,
                     'destination_item' => $destinationItem,
-                    'old_image_path' => $oldImagePath && $oldImagePath !== $imagePath
-                        ? $oldImagePath
-                        : null,
+                    'old_image_path' => $oldImagePath && $oldImagePath !== $imagePath ? $oldImagePath : null,
                 ];
             }, 3);
         } catch (\Throwable $exception) {
@@ -552,6 +441,12 @@ class InstructorAssessmentController extends Controller
                 ->with('success', 'Assessment saved as a draft. You can continue from item ' . $result['item_number'] . ' later.');
         }
 
+        if ($intent === 'save') {
+            return redirect()
+                ->to(route('instructor.assessments.builder', $assessment).'#question-'.$result['id'])
+                ->with('success', 'Question '.$result['item_number'].' saved.');
+        }
+
         return redirect()
             ->route('instructor.assessments.builder', [
                 'assessment' => $assessment,
@@ -560,6 +455,218 @@ class InstructorAssessmentController extends Controller
             ->with('success', $intent === 'complete_next'
                 ? 'Item ' . $result['item_number'] . ' completed and saved.'
                 : 'Draft for item ' . $result['item_number'] . ' saved.');
+    }
+
+    /** Removes a question from a draft and numbers the rest again. */
+    public function destroyQuestion(Assessment $assessment, AssessmentQuestion $question)
+    {
+        $this->authorizeAssessment($assessment);
+        abort_unless((int) $question->assessment_id === (int) $assessment->id, 404);
+        abort_if($assessment->status !== 'draft', 422, 'Published or closed assessments cannot be edited.');
+
+        $imagePath = DB::transaction(function () use ($assessment, $question): ?string {
+            $locked = Assessment::query()->whereKey($assessment->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'draft', 422, 'Published or closed assessments cannot be edited.');
+            $lockedQuestion = AssessmentQuestion::query()
+                ->whereKey($question->id)
+                ->where('assessment_id', $locked->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_if($lockedQuestion->answers()->exists(), 422, 'Students have answered this question, so it cannot be removed.');
+
+            $image = $lockedQuestion->image_path;
+            $lockedQuestion->options()->delete();
+            $lockedQuestion->delete();
+
+            $number = 1;
+            foreach ($locked->questions()->orderBy('item_number')->get() as $remaining) {
+                if ((int) $remaining->item_number !== $number) {
+                    $remaining->update(['item_number' => $number]);
+                }
+                $number++;
+            }
+
+            $this->refreshTotals($locked);
+
+            return $image;
+        }, 3);
+
+        if ($imagePath) {
+            Storage::disk('public')->delete($imagePath);
+        }
+
+        return redirect()
+            ->to(route('instructor.assessments.builder', $assessment).'#questions')
+            ->with('success', 'Question removed.');
+    }
+
+    /** The assessment as students see it, with an optional answer key. */
+    public function preview(Assessment $assessment)
+    {
+        $this->authorizeAssessment($assessment);
+        $assessment->load(['classRoom', 'questions' => fn ($query) => $query->orderBy('item_number'), 'questions.options']);
+
+        return view('instructor.assessments.preview', ['assessment' => $assessment]);
+    }
+
+    /** @return array<string, mixed> */
+    private function validatedSettings(Request $request): array
+    {
+        return $request->validate([
+            'class_id' => ['required', 'integer', 'exists:classes,id'],
+            'title' => ['required', 'string', 'max:191'],
+            'instructions' => ['nullable', 'string', 'max:10000'],
+            'time_limit_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
+            'max_attempts' => ['required', 'integer', 'min:1', 'max:10'],
+            'available_at' => ['nullable', 'date'],
+            'due_at' => ['nullable', 'date', 'after_or_equal:available_at'],
+        ], [
+            'due_at.after_or_equal' => 'The due date must be on or after the date the assessment opens.',
+        ], [
+            'time_limit_minutes' => 'time limit',
+            'max_attempts' => 'attempts allowed',
+            'available_at' => 'available from',
+            'due_at' => 'due date',
+        ]);
+    }
+
+    /**
+     * @return array{0: array<string, mixed>, 1: string, 2: string, 3: string, 4: \Illuminate\Support\Collection, 5: ?int}
+     */
+    private function validatedQuestion(Request $request, bool $requireComplete): array
+    {
+        $validated = $request->validate([
+            'question_type' => [
+                'required',
+                Rule::in(array_merge(['unconfigured'], array_keys(AssessmentQuestion::TYPES))),
+            ],
+            'question_text' => ['nullable', 'string', 'max:30000'],
+            'points' => ['required', 'integer', 'min:1', 'max:1000'],
+            'is_required' => ['nullable', 'boolean'],
+            'correct_answer' => ['nullable', 'string', 'max:10000'],
+            'answer_explanation' => ['nullable', 'string', 'max:10000'],
+            'rubric_text' => ['nullable', 'string', 'max:30000'],
+            'question_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+            'remove_image' => ['nullable', 'boolean'],
+            'option_texts' => ['nullable', 'array', 'max:10'],
+            'option_texts.*' => ['nullable', 'string', 'max:5000'],
+            'correct_option' => ['nullable', 'integer', 'min:0', 'max:9'],
+        ], [], [
+            'question_type' => 'question type',
+            'question_text' => 'question',
+            'option_texts' => 'choices',
+            'correct_option' => 'correct choice',
+            'correct_answer' => 'correct answer',
+        ]);
+
+        $type = $validated['question_type'];
+        $questionText = trim((string) ($validated['question_text'] ?? ''));
+        // Compared with === '' everywhere: "0" is a real answer, not a blank.
+        $correctAnswer = trim((string) ($validated['correct_answer'] ?? ''));
+        $correctIndex = isset($validated['correct_option']) ? (int) $validated['correct_option'] : null;
+        $options = collect();
+
+        if ($type === 'multiple_choice') {
+            $options = collect($validated['option_texts'] ?? [])
+                ->map(fn ($text, $index) => ['source_index' => (int) $index, 'text' => trim((string) $text)])
+                ->filter(fn (array $option) => $option['text'] !== '')
+                ->values();
+        }
+
+        if ($requireComplete) {
+            $errors = [];
+            if ($type === 'unconfigured') {
+                $errors['question_type'] = 'Choose a question type before marking this item complete.';
+            }
+            if ($questionText === '') {
+                $errors['question_text'] = 'Enter the question before moving to the next item.';
+            }
+            if ($type === 'multiple_choice' && $options->count() < 2) {
+                $errors['option_texts'] = 'A multiple-choice question needs at least two choices.';
+            }
+            if ($type === 'multiple_choice' && ($correctIndex === null || ! $options->contains('source_index', $correctIndex))) {
+                $errors['correct_option'] = 'Select exactly one correct choice.';
+            }
+            if (in_array($type, ['fill_blank', 'short_answer'], true) && $correctAnswer === '') {
+                $errors['correct_answer'] = 'Enter the correct or accepted answer for this question type.';
+            }
+            if ($type === 'true_false' && ! in_array(strtolower($correctAnswer), ['true', 'false'], true)) {
+                $errors['correct_answer'] = 'Select True or False as the correct answer.';
+            }
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+        }
+
+        return [$validated, $type, $questionText, $correctAnswer, $options, $correctIndex];
+    }
+
+    private function storeQuestionImage(Request $request): ?string
+    {
+        if (! $request->hasFile('question_image')) {
+            return null;
+        }
+
+        $path = $request->file('question_image')->store('assessment-images', 'public');
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                'question_image' => 'The image could not be stored. Try again.',
+            ]);
+        }
+
+        return $path;
+    }
+
+    private function storedCorrectAnswer(string $type, string $correctAnswer): ?string
+    {
+        if ($type === 'true_false') {
+            $normalized = strtolower($correctAnswer);
+
+            return in_array($normalized, ['true', 'false'], true) ? $normalized : null;
+        }
+
+        return in_array($type, ['fill_blank', 'short_answer'], true) && $correctAnswer !== ''
+            ? $correctAnswer
+            : null;
+    }
+
+    private function saveOptions(AssessmentQuestion $question, string $type, $options, ?int $correctIndex): void
+    {
+        $question->options()->delete();
+
+        if ($type !== 'multiple_choice') {
+            return;
+        }
+
+        foreach ($options->values() as $index => $option) {
+            AssessmentQuestionOption::create([
+                'assessment_question_id' => $question->id,
+                'option_label' => chr(65 + $index),
+                'option_text' => $option['text'],
+                'is_correct' => $correctIndex !== null && $option['source_index'] === $correctIndex,
+                'order_index' => $index + 1,
+            ]);
+        }
+    }
+
+    /** Recounts items and points after a change; returns the questions in order. */
+    private function refreshTotals(Assessment $assessment)
+    {
+        $questions = $assessment->questions()->with('options')->orderBy('item_number')->get();
+        $assessment->update([
+            'total_items' => $questions->count(),
+            'total_points' => (int) $questions->sum('points'),
+            'draft_saved_at' => now(),
+        ]);
+
+        return $questions;
+    }
+
+    private function nullableText(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     public function publish(Assessment $assessment, StudentNotificationService $notifications)
@@ -656,7 +763,7 @@ class InstructorAssessmentController extends Controller
         return view('instructor.assessments.submission-show', compact('assessment', 'submission'));
     }
 
-    public function gradeSubmission(Request $request, Assessment $assessment, AssessmentSubmission $submission, AssessmentDiagnosticService $diagnostics, IloMasteryService $iloMastery, StudentNotificationService $notifications)
+    public function gradeSubmission(Request $request, Assessment $assessment, AssessmentSubmission $submission, AssessmentDiagnosticService $diagnostics, StudentNotificationService $notifications)
     {
         $this->authorizeAssessment($assessment);
         abort_unless((int) $submission->assessment_id === (int) $assessment->id, 404);
@@ -780,8 +887,6 @@ class InstructorAssessmentController extends Controller
                 'Scores and feedback saved. This submission is still pending review because no score has been entered for: ' . $items . '.'
             );
         }
-
-        $iloMastery->refreshForAssessmentSubmission($gradedSubmission);
 
         $percentage = $gradedSubmission->total_points > 0
             ? round(((float) $gradedSubmission->score / (float) $gradedSubmission->total_points) * 100, 1)

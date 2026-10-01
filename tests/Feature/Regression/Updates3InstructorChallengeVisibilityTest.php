@@ -158,39 +158,31 @@ class Updates3InstructorChallengeVisibilityTest extends TestCase
             ->assertDontSee('Instructor Week 3 Quiz');
     }
 
-    public function test_assignments_page_lists_open_instructor_challenges_with_take_links(): void
+    public function test_assignments_page_no_longer_mixes_in_class_challenges(): void
     {
+        // DataSensei Updates 9: assignments are graded class work, challenges
+        // are practice. Shared challenges are on the challenge pages only.
         [$university, $instructor, $class, $student] = $this->scenario();
-        $outsider = $this->makeEnrolledStudent($this->makeClass($this->makeUser(User::ROLE_INSTRUCTOR), 'Other Class'));
-
         $quiz = $this->makeChallenge($university, 'Instructor Week 3 Quiz', false, true, $instructor);
-        $coding = $this->makeChallenge($university, 'Instructor Coding Problem', true, true, $instructor);
-        $pool = $this->makeChallenge($university, 'Pool Quiz Given To Class', false, true);
-
-        $this->give($class, $quiz, $instructor, ['title' => 'Week 3 quiz', 'due_at' => now()->addDays(2), 'instructions' => 'One sitting, please.']);
-        $this->give($class, $coding, $instructor);
-        $this->give($class, $pool, $instructor, ['status' => 'draft']);
+        $this->give($class, $quiz, $instructor, ['title' => 'Week 3 quiz', 'due_at' => now()->addDays(2)]);
 
         $this->actingAsUser($student)
             ->get(route('student.assignments.index'))
             ->assertOk()
-            ->assertSee('Challenges from your instructor')
-            ->assertSee('Week 3 quiz')
-            ->assertSee('One sitting, please.')
-            ->assertSee('Instructor Coding Problem')
-            ->assertDontSee('Pool Quiz Given To Class')
-            ->assertSee('Quiz')
-            ->assertSee('Coding')
-            ->assertSee(route('challenges.quiz', ['slug' => self::SLUG, 'challenge' => $quiz->id]), false)
-            ->assertSee(route('challenges.coding.quiz', ['slug' => self::SLUG, 'challenge' => $coding->id]), false);
-
-        $this->actingAsUser($outsider)
-            ->get(route('student.assignments.index'))
-            ->assertOk()
-            ->assertSee('Challenges from your instructor')
-            ->assertSee('No challenges from your instructor right now')
+            ->assertDontSee('Challenges from your instructor')
             ->assertDontSee('Week 3 quiz')
-            ->assertDontSee('Instructor Coding Problem');
+            ->assertDontSee('Instructor Week 3 Quiz');
+
+        $this->actingAsUser($student)
+            ->get(route('student.assignments.class', $class))
+            ->assertOk()
+            ->assertDontSee('Instructor Week 3 Quiz');
+
+        $this->actingAsUser($student)
+            ->get(route('challenges'))
+            ->assertOk()
+            ->assertSee('Instructor Week 3 Quiz')
+            ->assertSee(route('challenges.quiz', ['slug' => self::SLUG, 'challenge' => $quiz->id]), false);
     }
 
     public function test_instructor_challenges_never_count_toward_level_completion(): void
@@ -246,8 +238,14 @@ class Updates3InstructorChallengeVisibilityTest extends TestCase
         $this->assertSame(1, $coding['completed_items']);
         $this->assertTrue($coding['completed']);
 
-        $this->assertTrue($service->lockInfo($student, 'intermediate', 'mcq')['unlocked']);
-        $this->assertTrue($service->lockInfo($student, 'intermediate', 'coding')['unlocked']);
+        // Only platform challenges are modules of the level.
+        $this->assertSame(['Platform Stats Quiz'], collect($mcq['modules'])->pluck('title')->all());
+        $this->assertSame(['Platform Coding Problem'], collect($coding['modules'])->pluck('title')->all());
+
+        // DataSensei Updates 4: Intermediate opens with 2 qualifying Newbie
+        // modules, no longer by completing the level before it.
+        $this->assertFalse($service->lockInfo($student, 'intermediate', 'mcq')['unlocked']);
+        $this->assertFalse($service->lockInfo($student, 'intermediate', 'coding')['unlocked']);
     }
 
     // ── Fixtures ──────────────────────────────────────────────────────

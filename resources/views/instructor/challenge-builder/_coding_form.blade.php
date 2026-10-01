@@ -5,7 +5,7 @@
   $emptyTestCase = ['input' => '', 'expected_output' => '', 'is_hidden' => false];
   $emptyQuestion = [
     'title' => '', 'problem_description' => '', 'language' => 'python', 'starter_code' => '',
-    'reference_solution' => '', 'time_limit_seconds' => 600, 'base_xp' => 100, 'test_cases' => [$emptyTestCase],
+    'reference_solution' => '', 'time_limit_seconds' => 600, 'base_xp' => 0, 'test_cases' => [$emptyTestCase],
   ];
   // The last entry renders inside <template> and is cloned by the editor script.
   $questionRows = [];
@@ -30,7 +30,7 @@
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Challenge Settings</h2>
-        <p class="panel-subtitle">The title and description students see on the map, plus the challenge-level timer and XP. The challenge sits on the University Student level and is visible only to the classes you give it to.</p>
+        <p class="panel-subtitle">The title and description students see on the map, plus the challenge-level timer. Instructor challenges do not award XP. Students see the challenge only in the classes you share it with.</p>
       </div>
     </div>
     <div class="panel-body">
@@ -51,8 +51,9 @@
           <input id="time-limit" class="input" type="number" name="time_limit_seconds" min="60" max="7200" value="{{ old('time_limit_seconds', $challenge->time_limit_seconds ?? 1800) }}" required>
         </div>
         <div class="field">
-          <label for="base-xp">Base XP</label>
-          <input id="base-xp" class="input" type="number" name="base_xp" min="0" max="10000" value="{{ old('base_xp', $challenge->base_xp ?? 100) }}" required>
+          <label>XP</label>
+          <p class="dim">None. Instructor challenges do not award XP, so every student earns XP the same way.</p>
+          <input type="hidden" name="base_xp" value="0">
         </div>
       </div>
       <div class="field" style="margin-top:16px">
@@ -119,8 +120,9 @@
               <textarea class="textarea cc-code" data-field="starter_code" name="questions[{{ $qi }}][starter_code]" maxlength="50000" spellcheck="false" @readonly($locked) placeholder="# Code the student starts from (optional)">{{ $question['starter_code'] ?? '' }}</textarea>
             </div>
             <div class="field">
-              <label>Reference Solution</label>
-              <textarea class="textarea cc-code" data-field="reference_solution" name="questions[{{ $qi }}][reference_solution]" maxlength="50000" spellcheck="false" placeholder="# A solution that passes every test case (optional, never shown to students)">{{ $question['reference_solution'] ?? '' }}</textarea>
+              <label>Reference Solution (required, never shown to students)</label>
+              <textarea class="textarea cc-code" data-field="reference_solution" name="questions[{{ $qi }}][reference_solution]" maxlength="50000" spellcheck="false" placeholder="# A solution that passes every test case" required>{{ $question['reference_solution'] ?? '' }}</textarea>
+              <span class="dim">When you save, it runs against every test case with the checker that grades students. The challenge is saved only if every case prints the expected output.</span>
             </div>
           </div>
 
@@ -129,10 +131,7 @@
               <label>Problem Time Limit in Seconds</label>
               <input class="input" type="number" data-field="time_limit_seconds" name="questions[{{ $qi }}][time_limit_seconds]" min="60" max="7200" value="{{ $question['time_limit_seconds'] ?? 600 }}" required @readonly($locked)>
             </div>
-            <div class="field">
-              <label>Problem Base XP</label>
-              <input class="input" type="number" data-field="base_xp" name="questions[{{ $qi }}][base_xp]" min="0" max="10000" value="{{ $question['base_xp'] ?? 100 }}" required @readonly($locked)>
-            </div>
+            <input type="hidden" data-field="base_xp" name="questions[{{ $qi }}][base_xp]" value="0">
           </div>
 
           <div class="cc-cases-head">
@@ -230,7 +229,7 @@
     <div class="panel-body">
       <h3 class="cc-preview-title" data-preview-title>Untitled challenge</h3>
       <p class="cc-preview-desc" data-preview-description hidden></p>
-      <p class="cc-preview-meta"><span data-preview-xp>0</span> Base XP, <span data-preview-time>0</span> min time limit, <span data-preview-count>0</span> problems</p>
+      <p class="cc-preview-meta">No XP, <span data-preview-time>0</span> min time limit, <span data-preview-count>0</span> problems</p>
       <div data-preview-problems>
         <p class="cc-preview-empty">Add a problem to see it here.</p>
       </div>

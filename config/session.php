@@ -33,7 +33,13 @@ return [
     |
     */
 
-    'lifetime' => max(1, (int) env('SESSION_LIFETIME', 240), (int) env('SESSION_IDLE_TIMEOUT', 240)),
+    // How long the session is kept after the last request. It is a little
+    // longer than the inactivity timeout below on purpose: when someone comes
+    // back after exactly an hour, the server still has their session and ends
+    // it cleanly (signed out, told why, fresh sign-in form) instead of meeting
+    // a session that silently vanished, which is what produced "Page Expired"
+    // (419) errors. After the timeout the session cannot be used anyway.
+    'lifetime' => 65,
 
     /*
     |--------------------------------------------------------------------------
@@ -43,9 +49,14 @@ return [
     | This timeout is based on genuine user activity. Automatic background
     | requests, such as notification-count polling, do not reset it.
     |
+    | Every role (public user, student, instructor, institution admin, admin
+    | and super admin) is signed out after exactly one hour without activity.
+    | It is fixed here rather than read from .env so that an old .env value
+    | cannot give one installation a different timeout.
+    |
     */
 
-    'idle_timeout' => (int) env('SESSION_IDLE_TIMEOUT', 240),
+    'idle_timeout' => 60,
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 

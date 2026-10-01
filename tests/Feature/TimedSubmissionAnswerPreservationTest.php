@@ -7,7 +7,6 @@ use App\Models\AssignmentSubmission;
 use App\Models\User;
 use App\Services\AssessmentDiagnosticService;
 use App\Services\GamificationService;
-use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
 use App\Support\AuthSessionFingerprint;
 use Carbon\Carbon;
@@ -94,12 +93,9 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
 
         $diagnostics = Mockery::mock(AssessmentDiagnosticService::class);
         $diagnostics->shouldReceive('refresh')->once();
-        $mastery = Mockery::mock(IloMasteryService::class);
-        $mastery->shouldReceive('refreshForAssessmentSubmission')->once();
         $notifications = Mockery::mock(StudentNotificationService::class);
         $notifications->shouldReceive('send')->once()->andReturnNull();
         $this->app->instance(AssessmentDiagnosticService::class, $diagnostics);
-        $this->app->instance(IloMasteryService::class, $mastery);
         $this->app->instance(StudentNotificationService::class, $notifications);
 
         // A wrong answer reaches the server one minute before the deadline.
@@ -129,7 +125,7 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         $this->assertSame((string) $wrongOptionId, $submission->draft_answers[(string) $questionId]);
 
         // Repeating the request is a no-op: the mocks above allow exactly one
-        // diagnostics refresh, mastery refresh and notification.
+        // diagnostics refresh and notification.
         $this->studentClient()->post(
             route('student.assessments.submit', [$assessmentId, $submissionId]),
             ['answers' => [$questionId => (string) $correctOptionId]]
@@ -243,14 +239,10 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
             ->where('assignment_question_id', $questionId)
             ->where('is_correct', false)
             ->value('id');
-
-        $mastery = Mockery::mock(IloMasteryService::class);
-        $mastery->shouldReceive('refreshForAssignmentSubmission')->once();
         $gamification = Mockery::mock(GamificationService::class);
         $gamification->shouldReceive('awardForAssignmentSubmission')->once()->andReturn([]);
         $notifications = Mockery::mock(StudentNotificationService::class);
         $notifications->shouldReceive('send')->once()->andReturnNull();
-        $this->app->instance(IloMasteryService::class, $mastery);
         $this->app->instance(GamificationService::class, $gamification);
         $this->app->instance(StudentNotificationService::class, $notifications);
 
@@ -281,7 +273,7 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         $this->assertSame((string) $correctOptionId, $submission->draft_answers[(string) $questionId]);
 
         // Repeating the request is inert: the mocks above allow exactly one
-        // mastery refresh, reward call and notification.
+        // reward call and notification.
         $this->studentClient()->post(
             route('student.assignments.submit', [$assignmentId, $submissionId]),
             ['answers' => [$questionId => (string) $wrongOptionId]]
@@ -296,14 +288,10 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         Carbon::setTestNow($now);
         [$assignmentId, $questionId, $correctOptionId, $submissionId] =
             $this->createAssignmentAttempt($now->copy()->subMinutes(5));
-
-        $mastery = Mockery::mock(IloMasteryService::class);
-        $mastery->shouldReceive('refreshForAssignmentSubmission')->once();
         $gamification = Mockery::mock(GamificationService::class);
         $gamification->shouldReceive('awardForAssignmentSubmission')->once()->andReturn([]);
         $notifications = Mockery::mock(StudentNotificationService::class);
         $notifications->shouldReceive('send')->once()->andReturnNull();
-        $this->app->instance(IloMasteryService::class, $mastery);
         $this->app->instance(GamificationService::class, $gamification);
         $this->app->instance(StudentNotificationService::class, $notifications);
 
@@ -361,12 +349,9 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
     {
         $diagnostics = Mockery::mock(AssessmentDiagnosticService::class);
         $diagnostics->shouldReceive('refresh');
-        $mastery = Mockery::mock(IloMasteryService::class);
-        $mastery->shouldReceive('refreshForAssessmentSubmission');
         $notifications = Mockery::mock(StudentNotificationService::class);
         $notifications->shouldReceive('send')->andReturnNull();
         $this->app->instance(AssessmentDiagnosticService::class, $diagnostics);
-        $this->app->instance(IloMasteryService::class, $mastery);
         $this->app->instance(StudentNotificationService::class, $notifications);
     }
 

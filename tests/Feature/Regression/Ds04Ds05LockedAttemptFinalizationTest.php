@@ -68,9 +68,13 @@ class Ds04Ds05LockedAttemptFinalizationTest extends TestCase
         // What the old lock did: every input disabled, so no _token was sent.
         $withoutToken = $this->autoSubmitPayload($token);
         unset($withoutToken['_token']);
+        // Still refused by CSRF verification; since DataSensei Updates 9 the
+        // student is sent back to the page instead of a "Page Expired" error.
         $this->actAs($this->student)->withSession(['_token' => $token])
+            ->from(route('student.assignments.take', [$this->assignmentId, $this->attempt->id]))
             ->post($submitUrl, $withoutToken)
-            ->assertStatus(419);
+            ->assertRedirect(route('student.assignments.take', [$this->assignmentId, $this->attempt->id]))
+            ->assertSessionHas('error');
         $this->assertSame('in_progress', $this->attempt->fresh()->status);
 
         // The repaired lock keeps _token, identity and the latest answers.

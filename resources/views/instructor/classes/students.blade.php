@@ -98,6 +98,8 @@
     .page-header h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; }
     .page-header p  { max-width: 72ch; font-size: .875rem; line-height: 1.5; color: var(--muted); margin-top: 4px; }
     .header-note { color: var(--muted); font-size: .8125rem; }
+    .roster-summary { margin: 0; color: var(--ds-text-secondary); font-size: .875rem; }
+    .status-text { color: var(--ds-success-text); font-size: .875rem; }
 
     /* ── Summary figures ──────────────────────────────── */
     .stats-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -251,7 +253,7 @@
     .pill-danger  { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
 
     /* XP */
-    .xp-badge { color: var(--ds-text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .xp-total { color: var(--ds-text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
     /* Dates and secondary cells */
     .date-text { font-size: .8125rem; color: var(--muted); }
@@ -356,18 +358,8 @@
 
       <div class="topbar-title">
         <h1 class="ds-page-title">{{ $class->name }}</h1>
-        <span class="class-code-pill">{{ $class->class_code }}</span>
-        @if($class->section)
-          <span class="topbar-meta">{{ $class->section }}</span>
-        @endif
+        <span class="topbar-meta">@if($class->section){{ $class->section }}. @endif Class code: {{ $class->class_code }}</span>
       </div>
-
-      <form method="GET" action="{{ route('instructor.classes.students', $class) }}" class="topbar-search">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input type="text" name="search" placeholder="Search students…" value="{{ request('search') }}" />
-      </form>
 
       <a href="{{ route('profile') }}" class="topbar-btn" title="Profile">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -416,38 +408,14 @@
         </div>
         {{-- Enrolment info --}}
         <div style="display:flex; flex-direction:column; align-items:flex-start; gap:2px;">
-          @if($class->max_students)
-            <span class="header-note">
-              {{ $enrolledCount }} / {{ $class->max_students }} seats filled
-            </span>
-          @endif
           <span class="header-note">Instructor-managed enrolment</span>
         </div>
       </div>
 
-      <!-- Stats Strip -->
-      <div class="stats-strip">
-        <div class="strip-card">
-          <div class="strip-info">
-            <div class="strip-label">Enrolled Students</div>
-            <div class="strip-value">{{ $enrolledCount }}</div>
-          </div>
-        </div>
-
-        <div class="strip-card">
-          <div class="strip-info">
-            <div class="strip-label">Max Capacity</div>
-            <div class="strip-value">{{ $class->max_students ?? '∞' }}</div>
-          </div>
-        </div>
-
-        <div class="strip-card">
-          <div class="strip-info">
-            <div class="strip-label">Avg. XP</div>
-            <div class="strip-value">{{ $avgXp ?? 0 }}</div>
-          </div>
-        </div>
-      </div>
+      <!-- Summary -->
+      <p class="roster-summary">
+        {{ $enrolledCount }} {{ $enrolledCount === 1 ? 'student' : 'students' }} enrolled{{ $class->max_students ? ' of '.$class->max_students.' seats' : '' }}. Average XP: {{ number_format((float) ($avgXp ?? 0)) }}.
+      </p>
 
       <!-- Add Student by Gmail -->
       <section class="add-student-card">
@@ -524,13 +492,6 @@
           @endif
         </form>
 
-        <div class="filter-tabs">
-          <a href="{{ route('instructor.classes.students', array_merge(request()->except('page'), ['class' => $class->id])) }}"
-             class="filter-tab active">
-            Enrolled
-            <span class="tab-count">{{ $enrolledCount }}</span>
-          </a>
-        </div>
       </div>
 
       <!-- Students Table -->
@@ -562,15 +523,8 @@
 
                   <!-- Student Identity -->
                   <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">
-                        {{ strtoupper(substr($student->name, 0, 1)) }}
-                      </div>
-                      <div>
-                        <div class="student-name">{{ $student->name }}</div>
-                        <div class="student-email">{{ $student->email }}</div>
-                      </div>
-                    </div>
+                    <div class="student-name">{{ $student->name }}</div>
+                    <div class="student-email">{{ $student->email }}</div>
                   </td>
 
                   <!-- Institution -->
@@ -582,7 +536,7 @@
 
                   <!-- XP -->
                   <td class="col-xp">
-                    <span class="xp-badge">{{ number_format($student->xp) }} XP</span>
+                    <span class="xp-total">{{ number_format($student->xp) }} XP</span>
                   </td>
 
                   <!-- Date -->
@@ -596,12 +550,7 @@
 
                   <!-- Status -->
                   <td>
-                    <span class="pill pill-ok">
-                      <svg width="8" height="8" fill="currentColor" viewBox="0 0 8 8">
-                        <circle cx="4" cy="4" r="4"/>
-                      </svg>
-                      Enrolled
-                    </span>
+                    <span class="status-text">Enrolled</span>
                   </td>
 
                   <!-- Actions -->

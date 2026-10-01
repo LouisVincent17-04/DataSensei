@@ -9,13 +9,15 @@ class AchievementDefinitionsSeeder extends Seeder
 {
     public function run(): void
     {
+        // Class work (assignments, assessments) gives no XP (DataSensei
+        // Updates 5), so no achievement counts it. The former "Assignment
+        // Ready" achievement was switched off by the 2026_09_28 migration.
         $achievements = [
             ['first_code_run', 'First Code Run', 'Run your first Python program in the IDE.', 'FCR', 'blue', 25, 'code_runs', 1, 10],
             ['first_challenge_pass', 'First Challenge Pass', 'Complete your first MCQ challenge.', 'FCP', 'green', 50, 'challenge_passes', 1, 20],
             ['coding_starter', 'Coding Starter', 'Pass your first coding challenge test set.', 'CS', 'green', 75, 'coding_passes', 1, 30],
             ['practice_rhythm', 'Practice Rhythm', 'Maintain a 3-day learning streak.', 'PR', 'amber', 100, 'streak_days', 3, 40],
             ['module_finisher', 'Module Finisher', 'Complete five lessons or learning activities.', 'MF', 'blue', 120, 'lesson_completions', 5, 50],
-            ['assignment_ready', 'Assignment Ready', 'Submit your first instructor assignment.', 'AR', 'purple', 100, 'assignment_submissions', 1, 60],
             ['test_case_climber', 'Test Case Climber', 'Accumulate 50 passed coding test cases.', 'TCC', 'green', 180, 'test_cases_passed', 50, 70],
             ['focused_learner', 'Focused Learner', 'Complete learning activities on seven different days.', 'FL', 'teal', 220, 'active_days', 7, 80],
             ['rank_advancer', 'Rank Advancer', 'Reach at least Practitioner rank.', 'RA', 'indigo', 250, 'xp_total', 500, 90],

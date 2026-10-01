@@ -53,6 +53,7 @@
       background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
     .badge.good{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
     .badge.warn{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-text)}
+    .filter-label{color:var(--muted);font-size:.8125rem;font-weight:500;margin-right:4px}
     .form-row .badge,.form-row .badge.good{padding:0;border:0;background:none;color:var(--muted);font-size:.8125rem;font-weight:500;margin-right:4px}
     .empty{padding:32px 20px;color:var(--muted);font-size:.875rem;line-height:1.5;text-align:center}
     .table tbody tr:hover td[colspan]{background:none}
@@ -94,19 +95,17 @@
     <div class="top">
       <div>
         <h1 class="title ds-page-title">Challenge Pool</h1>
-        <p class="subtitle">Review only the University Student MCQ and coding challenges used for university-level instruction. Other learner paths are not accessible from the instructor portal.</p>
+        <p class="subtitle">DataSensei's University Student quiz and coding challenges. Open one to review its questions and answers, and share it with your classes for practice.</p>
       </div>
     </div>
 
     <div class="card">
       <form method="GET" class="form-row" action="{{ route('instructor.challenges.index') }}">
-        <span class="badge good" aria-label="Accessible challenge category">
-          {{ $universityCategory?->name ?? 'University Student' }} only
-        </span>
+        <span class="filter-label">{{ $universityCategory?->name ?? 'University Student' }} challenges</span>
 
         <select name="type" aria-label="Filter by challenge type">
           <option value="">All types</option>
-          <option value="mcq" @selected(request('type') === 'mcq')>MCQ</option>
+          <option value="mcq" @selected(request('type') === 'mcq')>Quiz</option>
           <option value="coding" @selected(request('type') === 'coding')>Coding</option>
         </select>
 
@@ -126,7 +125,7 @@
             <th>Category</th>
             <th>Type</th>
             <th>Items</th>
-            <th>XP</th>
+            <th>Your classes</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -135,24 +134,14 @@
           <tr>
             <td>
               <span class="challenge-title">{{ $challenge->title }}</span>
-              @if($challenge->version_name || $challenge->version_code)
-                <span class="challenge-meta">{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}, {{ $challenge->version_code ?: 'V'.$challenge->version_no }}</span>
-              @endif
             </td>
             <td>{{ $challenge->category->name ?? '—' }}</td>
-            <td>
-              <span class="badge {{ $challenge->is_coding_challenge ? 'warn' : 'good' }}">
-                {{ $challenge->is_coding_challenge ? 'Coding' : 'MCQ' }}
-              </span>
-            </td>
+            <td>{{ $challenge->is_coding_challenge ? 'Coding' : 'Quiz' }}</td>
             <td>{{ $challenge->is_coding_challenge ? $challenge->coding_questions_count : $challenge->questions_count }}</td>
-            <td>{{ number_format($challenge->base_xp) }}</td>
+            @php $shared = (int) ($sharedCounts[$challenge->id] ?? 0); @endphp
+            <td>{{ $shared > 0 ? 'Shared with '.$shared.' '.($shared === 1 ? 'class' : 'classes') : 'Not shared' }}</td>
             <td>
-              @if(!$challenge->is_coding_challenge)
-                <a class="btn secondary small" href="{{ route('instructor.challenges.show', array_merge(['challenge' => $challenge], request()->only(['type', 'page']))) }}">View Content</a>
-              @else
-                <span class="muted">Developer-managed</span>
-              @endif
+              <a class="btn secondary small" href="{{ route('instructor.challenges.show', array_merge(['challenge' => $challenge], request()->only(['type', 'page']))) }}">View and share</a>
             </td>
           </tr>
         @empty

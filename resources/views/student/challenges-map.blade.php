@@ -268,7 +268,7 @@
           </svg>
 
           {{-- ── CHALLENGE NODES ── --}}
-          @php $firstIncomplete = true; @endphp
+          @php $firstIncomplete = true; $activeNodeSet = false; @endphp
 
           @foreach($challenges as $i => $ch)
             @php
@@ -276,15 +276,22 @@
               $passed  = in_array($ch->id, $completedChallengeIds);
               $tried   = isset($bestScores[$ch->id]);
               $hasActiveAttempt = in_array($ch->id, $activeAttemptIds ?? []); 
+              // Given to one of the learner's classes and open now: never locked.
+              $isClassChallenge = in_array($ch->id, $classChallengeIds ?? []);
 
               if ($passed) {
                   $state = 'completed';
-              } elseif ($firstIncomplete) {
+              } elseif ($firstIncomplete && ! $ch->isInstructorOwned()) {
                   $state = $tried ? 'failed' : 'active'; 
                   $firstIncomplete = false;
+              } elseif ($isClassChallenge) {
+                  $state = $tried ? 'failed' : 'active';
               } else {
                   $state = 'locked';
               }
+
+              $isActiveNode = ($state === 'active' || $state === 'failed') && ! $activeNodeSet;
+              if ($isActiveNode) { $activeNodeSet = true; }
 
               $totalQ   = $ch->questions->count();
               $best     = $bestScores[$ch->id] ?? null;
@@ -292,7 +299,7 @@
 
             <div class="challenge-map-node state-{{ $state }}"
                  style="top: {{ $pos['y'] }}px; left: {{ $pos['x'] }}px;"
-                 @if($state === 'active' || $state === 'failed') id="challenge-map-active-node" @endif>
+                 @if($isActiveNode) id="challenge-map-active-node" @endif>
 
               <div class="challenge-map-node-icon-wrap">
                 <div class="challenge-map-node-icon">
@@ -322,11 +329,11 @@
               </div>
 
               <div class="challenge-map-node-info">
-                <div class="challenge-map-node-number">Module {{ $i + 1 }}</div>
+                <div class="challenge-map-node-number">{{ $isClassChallenge ? 'Class challenge' : 'Module ' . ($i + 1) }}</div>
                 <div class="challenge-map-node-title">{{ $ch->title }}</div>
                 
                 <div class="challenge-map-node-xp">
-                    {{ $ch->base_xp }} XP
+                    {{ $ch->awardsXp() ? $ch->base_xp . ' XP' : 'No XP (class work)' }}
                 </div>
 
                 @if($best)

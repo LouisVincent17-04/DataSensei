@@ -181,13 +181,7 @@
       margin-bottom: 2px;
     }
     .class-meta { font-size: .8125rem; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
-    .class-code-badge {
-      display: inline-flex; align-items: center;
-      padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs);
-      background: var(--surface2); color: var(--ds-text-secondary);
-      font: 500 .75rem/1.4 var(--ds-font-mono);
-      flex-shrink: 0; white-space: nowrap;
-    }
+    .class-code-text { flex-shrink: 0; color: var(--ds-text-secondary); font-size: .8125rem; white-space: nowrap; }
 
     .class-card-body { padding: 0 20px; flex: 1; }
     .class-desc {
@@ -468,7 +462,7 @@
                     {{ $class->term ?? 'No term set' }}
                   </div>
                 </div>
-                <span class="class-code-badge">{{ $class->class_code }}</span>
+                <span class="class-code-text">Code: {{ $class->class_code }}</span>
               </div>
 
               @if($class->description)
@@ -486,9 +480,9 @@
                 <div class="class-stat">
                   <span class="class-stat-value">
                     @if($class->is_archived)
-                      <span class="pill pill-dim">Archived</span>
+                      Archived
                     @else
-                      <span class="pill pill-ok">Active</span>
+                      Active
                     @endif
                   </span>
                   <span class="class-stat-label">Status</span>

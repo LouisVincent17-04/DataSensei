@@ -7,11 +7,11 @@ use App\Models\AssignmentBlankAnswer;
 use App\Models\AssignmentQuestion;
 use App\Models\AssignmentSubmission;
 use App\Models\AssignmentSubmissionAnswer;
+use App\Models\Challenge;
 use App\Models\ClassAssignment;
-use App\Models\ClassChallengeAssignment;
+use App\Models\ClassRoom;
 use App\Services\AntiCheatPolicyService;
 use App\Services\GamificationService;
-use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
 use App\Support\AntiCheatEventContract;
 use Illuminate\Http\Request;
@@ -29,77 +29,118 @@ class StudentAssignmentController extends Controller
      */
     private const SUBMISSION_GRACE_SECONDS = 0;
 
+    /**
+     * My Classes (DataSensei Updates 9): the classes the student is enrolled
+     * in, each with a short summary of its assignments. Assignments are
+     * opened class by class instead of one mixed list of every class.
+     */
     public function index(Request $request)
     {
-        $student = Auth::user();
+        $studentId = (int) Auth::id();
+        $classIds = $this->studentClassIds($studentId);
 
-        // IMPORTANT: Use the actual pivot table directly.
-        // This avoids the page becoming empty just because User::classesAsStudent()
-        // was not copied/added yet.
-        $classIds = $this->studentClassIds((int) $student->id);
+        $classes = ClassRoom::query()
+            ->whereIn('id', $classIds)
+            ->with('instructor:id,name')
+            ->orderBy('is_archived')
+            ->orderBy('name')
+            ->orderBy('section')
+            ->get();
 
-        $baseForStudentClasses = ClassAssignment::whereIn('class_id', $classIds);
+        $assignments = ClassAssignment::query()
+            ->with(['submissions' => fn ($q) => $q->where('student_id', $studentId)])
+            ->whereIn('class_id', $classes->pluck('id'))
+            ->whereIn('status', ['published', 'closed'])
+            ->get()
+            ->groupBy('class_id');
 
-        $studentAssignmentStats = [
-            'enrolled_classes' => $classIds->count(),
-            'all_class_assignments' => (clone $baseForStudentClasses)->count(),
-            'published_visible' => (clone $baseForStudentClasses)->visibleToStudents()->count(),
-            'draft' => (clone $baseForStudentClasses)->where('status', 'draft')->count(),
-            'future' => (clone $baseForStudentClasses)
-                ->where('status', 'published')
-                ->whereNotNull('available_at')
-                ->where('available_at', '>', now())
-                ->count(),
-        ];
+        $summaries = $classes->mapWithKeys(fn (ClassRoom $class) => [
+            $class->id => collect($assignments->get($class->id, collect()))
+                ->map(fn (ClassAssignment $assignment) => $this->assignmentState($assignment, $assignment->submissions))
+                ->countBy()
+                ->all(),
+        ])->all();
 
-        $query = ClassAssignment::with([
-                'classRoom',
+        return view('student.assignments.index', compact('classes', 'summaries'));
+    }
+
+    /**
+     * One class's assignment area: available, upcoming, missing, late and
+     * submitted work. Only a class the student is enrolled in can be opened.
+     */
+    public function classAssignments(ClassRoom $class)
+    {
+        $studentId = (int) Auth::id();
+        abort_unless($this->studentClassIds($studentId)->contains((int) $class->id), 404);
+        $class->loadMissing('instructor:id,name');
+
+        $groups = ['available' => [], 'upcoming' => [], 'missing' => [], 'late' => [], 'submitted' => []];
+
+        ClassAssignment::query()
+            ->with([
                 'libraryItem',
                 'submissions' => fn ($q) => $q
-                    ->where('student_id', $student->id)
+                    ->where('student_id', $studentId)
                     ->orderByDesc('attempt_no')
                     ->orderByDesc('created_at'),
             ])
-            ->whereIn('class_id', $classIds)
-            ->visibleToStudents()
-            ->orderByRaw('due_at IS NULL')
-            ->orderBy('due_at')
-            ->latest('created_at');
+            ->where('class_id', $class->id)
+            ->whereIn('status', ['published', 'closed'])
+            ->get()
+            ->each(function (ClassAssignment $assignment) use (&$groups): void {
+                $submissions = $assignment->submissions;
+                $state = $this->assignmentState($assignment, $submissions);
+                $groups[$state][] = [
+                    'assignment' => $assignment,
+                    'done' => $submissions->first(fn (AssignmentSubmission $s) => in_array($s->status, self::DONE_STATUSES, true)),
+                    'in_progress' => $submissions->firstWhere('status', 'in_progress'),
+                ];
+            });
 
-        if ($request->filled('status')) {
-            $status = $request->input('status');
-
-            if ($status === 'pending') {
-                $query->whereDoesntHave('submissions', function ($q) use ($student) {
-                    $q->where('student_id', $student->id)
-                      ->whereIn('status', ['submitted', 'late', 'graded']);
-                });
-            }
-
-            if ($status === 'submitted') {
-                $query->whereHas('submissions', function ($q) use ($student) {
-                    $q->where('student_id', $student->id)
-                      ->whereIn('status', ['submitted', 'late', 'graded']);
-                });
-            }
+        $byDue = fn (array $row) => $row['assignment']->due_at?->timestamp ?? PHP_INT_MAX;
+        $groups['available'] = collect($groups['available'])->sortBy($byDue)->values()->all();
+        $groups['upcoming'] = collect($groups['upcoming'])->sortBy(fn (array $row) => $row['assignment']->available_at?->timestamp ?? 0)->values()->all();
+        $groups['missing'] = collect($groups['missing'])->sortBy($byDue)->values()->all();
+        foreach (['late', 'submitted'] as $key) {
+            $groups[$key] = collect($groups[$key])->sortByDesc(fn (array $row) => $row['done']?->submitted_at?->timestamp ?? 0)->values()->all();
         }
 
-        $assignments = $query->paginate(10)->withQueryString();
+        return view('student.assignments.class', ['class' => $class, 'groups' => $groups]);
+    }
 
-        // Challenges an instructor gave to one of the student's active
-        // classes: published, inside their window, and still available.
-        // They are taken on the University Student challenge map.
-        $challengeAssignments = ClassChallengeAssignment::with(['challenge', 'class'])
-            ->whereIn('class_id', $classIds)
-            ->whereHas('class', fn ($q) => $q->active())
-            ->whereHas('challenge', fn ($q) => $q->where('is_active', true))
-            ->openNow()
-            ->orderByRaw('due_at IS NULL')
-            ->orderBy('due_at')
-            ->orderByDesc('id')
-            ->get();
+    private const DONE_STATUSES = ['submitted', 'late', 'graded'];
 
-        return view('student.assignments.index', compact('assignments', 'studentAssignmentStats', 'challengeAssignments'));
+    /**
+     * Where an assignment sits for this student:
+     *   upcoming   published, but it has not opened yet
+     *   submitted  turned in on time
+     *   late       turned in after the due date
+     *   missing    not turned in and the due date has passed, or it closed
+     *   available  open to start or continue
+     */
+    private function assignmentState(ClassAssignment $assignment, $submissions): string
+    {
+        $done = collect($submissions)
+            ->filter(fn (AssignmentSubmission $s) => in_array($s->status, self::DONE_STATUSES, true))
+            ->sortByDesc(fn (AssignmentSubmission $s) => $s->submitted_at?->timestamp ?? 0)
+            ->first();
+
+        if ($done !== null) {
+            $late = $done->status === 'late'
+                || ($assignment->due_at !== null && $done->submitted_at !== null && $done->submitted_at->greaterThan($assignment->due_at));
+
+            return $late ? 'late' : 'submitted';
+        }
+
+        if ($assignment->status === 'published' && $assignment->available_at !== null && $assignment->available_at->isFuture()) {
+            return 'upcoming';
+        }
+
+        if ($assignment->status === 'closed' || ($assignment->due_at !== null && $assignment->due_at->isPast())) {
+            return 'missing';
+        }
+
+        return 'available';
     }
 
     /**
@@ -172,7 +213,93 @@ class StudentAssignmentController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('student.submissions.index', compact('submissions', 'submissionStats'));
+        [$challengeActivity, $challengeLookup] = $this->challengeActivity(
+            $studentId,
+            trim((string) $request->input('search', ''))
+        );
+
+        return view('student.submissions.index', compact(
+            'submissions',
+            'submissionStats',
+            'challengeActivity',
+            'challengeLookup'
+        ));
+    }
+
+    /**
+     * Finished multiple-choice challenge attempts and graded coding challenge
+     * submissions, newest first. They are saved in their own tables, so this
+     * page used to show only assignment work and a finished MCQ challenge
+     * looked as if it had not been recorded.
+     *
+     * @return array{0: \Illuminate\Contracts\Pagination\LengthAwarePaginator, 1: \Illuminate\Support\Collection}
+     */
+    private function challengeActivity(int $studentId, string $search): array
+    {
+        $matchingChallengeIds = null;
+        if ($search !== '') {
+            $matchingChallengeIds = DB::table('challenges')
+                ->where('title', 'like', '%' . $search . '%')
+                ->pluck('id')
+                ->all();
+        }
+
+        $mcq = DB::table('challenge_attempts')
+            ->where('user_id', $studentId)
+            ->whereIn('status', ['submitted', 'expired', 'disqualified'])
+            ->select([
+                DB::raw("'mcq' as kind"),
+                'id as record_id',
+                'challenge_id',
+                'attempt_no',
+                'status',
+                'score as earned',
+                'total_questions as possible',
+                'xp_awarded as xp',
+                'is_ranked as ranked',
+                'submitted_at as activity_at',
+                DB::raw('NULL as question_title'),
+                DB::raw('NULL as question_order'),
+            ]);
+
+        $coding = DB::table('coding_submissions')
+            ->join('coding_questions', 'coding_questions.id', '=', 'coding_submissions.coding_question_id')
+            ->where('coding_submissions.user_id', $studentId)
+            ->where('coding_submissions.voided', false)
+            ->whereIn('coding_submissions.status', ['passed', 'failed', 'error'])
+            ->select([
+                DB::raw("'coding' as kind"),
+                'coding_submissions.id as record_id',
+                'coding_questions.challenge_id',
+                DB::raw('NULL as attempt_no'),
+                'coding_submissions.status',
+                'coding_submissions.tests_passed as earned',
+                'coding_submissions.tests_total as possible',
+                'coding_submissions.xp_earned as xp',
+                DB::raw('1 as ranked'),
+                'coding_submissions.created_at as activity_at',
+                'coding_questions.title as question_title',
+                'coding_questions.order_index as question_order',
+            ]);
+
+        if ($matchingChallengeIds !== null) {
+            $ids = $matchingChallengeIds === [] ? [0] : $matchingChallengeIds;
+            $mcq->whereIn('challenge_id', $ids);
+            $coding->whereIn('coding_questions.challenge_id', $ids);
+        }
+
+        $activity = $mcq->unionAll($coding)
+            ->orderByDesc('activity_at')
+            ->orderByDesc('record_id')
+            ->paginate(12, ['*'], 'challenge_page')
+            ->withQueryString();
+
+        $challengeLookup = Challenge::with('category')
+            ->whereIn('id', collect($activity->items())->pluck('challenge_id')->filter()->unique()->all())
+            ->get()
+            ->keyBy('id');
+
+        return [$activity, $challengeLookup];
     }
 
     public function show(ClassAssignment $assignment)
@@ -574,8 +701,6 @@ class StudentAssignmentController extends Controller
                 ->with('error', 'Your saved answers were submitted, but this attempt is held for instructor review and has no credit yet.');
         }
 
-        app(IloMasteryService::class)->refreshForAssignmentSubmission($submission);
-
         $achievements = $gamification->awardForAssignmentSubmission(Auth::user(), $submission);
 
         $percentage = $submission->total_points > 0
@@ -724,8 +849,8 @@ class StudentAssignmentController extends Controller
 
         $assignment->load(['classRoom', 'libraryItem.questions.options']);
 
-        $resultBackRoute = route('student.assignments.index');
-        $resultBackLabel = 'Back to Assignments';
+        $resultBackRoute = route('student.assignments.class', $assignment->class_id);
+        $resultBackLabel = 'Back to '.($assignment->classRoom?->name ?? 'the class');
 
         return view('student.assignments.result', compact(
             'assignment',

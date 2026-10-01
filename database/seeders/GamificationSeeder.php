@@ -22,15 +22,23 @@ class GamificationSeeder extends Seeder
             ['clean_attempt', 'Clean Attempt', 'Submit an assignment without anti-cheat violation records.', '🛡️', 'green', 40, 'clean_assignment', 1, 90],
             ['seven_day_streak', 'Consistency Master', 'Keep learning for 7 days in a row.', '🔥', 'orange', 150, 'streak', 7, 100],
             ['path_newbie_complete', 'Newbie Path Clear', 'Complete all MCQ challenges in the Newbie path.', '🌱', 'green', 120, 'path_complete', 1, 110],
-            ['path_university_student_complete', 'University Path Clear', 'Complete all MCQ challenges in the University Student path.', '🎓', 'blue', 140, 'path_complete', 1, 120],
             ['path_intermediate_complete', 'Intermediate Path Clear', 'Complete all MCQ challenges in the Intermediate path.', '📈', 'purple', 160, 'path_complete', 1, 130],
             ['path_advanced_complete', 'Advanced Path Clear', 'Complete all MCQ challenges in the Advanced path.', '🧠', 'gold', 200, 'path_complete', 1, 140],
             ['path_professional_complete', 'Professional Path Clear', 'Complete all MCQ challenges in the Professional path.', '👑', 'red', 250, 'path_complete', 1, 150],
             ['coding_path_newbie_complete', 'Newbie Coding Path Clear', 'Complete all coding challenges in the Newbie path.', '🐍', 'green', 150, 'coding_path_complete', 1, 160],
-            ['coding_path_university_student_complete', 'University Coding Path Clear', 'Complete all coding challenges in the University Student path.', '💻', 'blue', 170, 'coding_path_complete', 1, 170],
             ['coding_path_intermediate_complete', 'Intermediate Coding Path Clear', 'Complete all coding challenges in the Intermediate path.', '🧩', 'purple', 190, 'coding_path_complete', 1, 180],
             ['coding_path_advanced_complete', 'Advanced Coding Path Clear', 'Complete all coding challenges in the Advanced path.', '⚙️', 'gold', 230, 'coding_path_complete', 1, 190],
             ['coding_path_professional_complete', 'Professional Coding Path Clear', 'Complete all coding challenges in the Professional path.', '🏆', 'red', 280, 'coding_path_complete', 1, 200],
+        ];
+
+        // Class work (assignments) gives no XP (DataSensei Updates 5): these
+        // stay off. The University Student level needs a class, so it has no
+        // achievements at all (DataSensei Updates 7).
+        $classWork = [
+            'assignment_finisher',
+            'perfect_assignment',
+            'clean_attempt',
+            'weekly_assignment',
         ];
 
         foreach ($achievements as [$key, $name, $description, $icon, $color, $xp, $type, $value, $sort]) {
@@ -44,7 +52,7 @@ class GamificationSeeder extends Seeder
                     'xp_reward' => $xp,
                     'criteria_type' => $type,
                     'criteria_value' => $value,
-                    'is_active' => true,
+                    'is_active' => ! in_array($key, $classWork, true),
                     'sort_order' => $sort,
                 ]
             );
@@ -68,7 +76,7 @@ class GamificationSeeder extends Seeder
                     'target_type' => $target,
                     'target_count' => $count,
                     'xp_reward' => $xp,
-                    'is_active' => true,
+                    'is_active' => ! in_array($key, $classWork, true),
                     'sort_order' => $sort,
                 ]
             );

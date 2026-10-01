@@ -7,12 +7,12 @@ use App\Models\AssessmentAnswer;
 use App\Models\AssessmentQuestion;
 use App\Models\AssessmentSubmission;
 use App\Services\AssessmentDiagnosticService;
-use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Services\GamificationService;
 
 class StudentAssessmentController extends Controller
 {
@@ -233,7 +233,7 @@ class StudentAssessmentController extends Controller
         return response()->json($result, $status);
     }
 
-    public function submit(Request $request, Assessment $assessment, AssessmentSubmission $submission, AssessmentDiagnosticService $diagnostics, IloMasteryService $iloMastery, StudentNotificationService $notifications)
+    public function submit(Request $request, Assessment $assessment, AssessmentSubmission $submission, AssessmentDiagnosticService $diagnostics, StudentNotificationService $notifications)
     {
         $this->authorizeSubmission($assessment, $submission);
 
@@ -358,8 +358,15 @@ class StudentAssessmentController extends Controller
         $timedOut = $result['timed_out'];
         $diagnostics->refresh($submission);
 
+        // This request finalized the attempt, so it counts once toward
+        // missions, streaks and achievements.
+        try {
+            app(GamificationService::class)->recordAssessmentSubmission(Auth::user(), (int) $submission->id);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+
         if ($submission->graded_at) {
-            $iloMastery->refreshForAssessmentSubmission($submission);
             $percentage = $submission->total_points > 0
                 ? round(((float) $submission->score / (float) $submission->total_points) * 100, 1)
                 : 0;

@@ -8,22 +8,34 @@ use App\Models\AssignmentSubmission;
 use App\Models\Challenge;
 use App\Models\ChallengeAttempt;
 use App\Models\ClassAssignment;
+use App\Models\ClassChallengeAssignment;
 use App\Models\IdeExecutionLog;
 use App\Models\Module;
 use App\Models\User;
+use App\Services\ChallengeModuleAccessService;
 use App\Services\ChallengePathUnlockService;
+use App\Services\GamificationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class StudentController extends Controller
 {
-    public function dashboard(ChallengePathUnlockService $pathUnlocks)
+    public function dashboard(ChallengePathUnlockService $pathUnlocks, GamificationService $gamification, ChallengeModuleAccessService $moduleAccess)
     {
         /** @var User $user */
         $user = Auth::user();
 
         $this->ensureFirstModuleUnlocked($user);
+
+        // Unlock any achievement the learner already qualifies for, so the XP
+        // and rank below include it. A rewards problem never blocks the page.
+        try {
+            $gamification->evaluateAchievements($user);
+            $user->refresh();
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
 
         $completedLessonsByModule = DB::table('lesson_user')
             ->join('lessons', 'lessons.id', '=', 'lesson_user.lesson_id')
@@ -39,6 +51,7 @@ class StudentController extends Controller
             ->keyBy('module_id');
 
         $learningModules = Module::withCount('lessons')
+            ->published()
             ->orderBy('order_index')
             ->orderBy('id')
             ->get()
@@ -93,21 +106,46 @@ class StudentController extends Controller
             'coding' => $pathUnlocks->buildPathLocks($user, 'coding'),
         ];
 
+        // Class work first: challenges an instructor opened for one of the
+        // learner's classes are available whatever the path progress. Other
+        // instructor-built challenges (other classes, drafts, closed windows)
+        // are never listed; they used to show here although the challenge
+        // pages would not open them.
+        $openClassChallengeIds = $this->openClassChallengeIds($user);
+
         $openChallenges = Challenge::query()
             ->active()
             ->with('category:id,slug,name')
             ->withCount(['questions', 'codingQuestions'])
+            ->where(function ($query) use ($openClassChallengeIds): void {
+                $query->platform();
+
+                if ($openClassChallengeIds !== []) {
+                    $query->orWhereIn('id', $openClassChallengeIds);
+                }
+            })
             ->whereNotIn('id', $passedChallengeIds)
             ->orderBy('is_coding_challenge')
             ->orderBy('order_index')
             ->get()
-            ->filter(function (Challenge $challenge) use ($challengePathLocks): bool {
+            ->filter(function (Challenge $challenge) use ($challengePathLocks, $openClassChallengeIds, $moduleAccess, $user): bool {
                 $slug = $challenge->category?->slug;
                 $track = $challenge->is_coding_challenge ? 'coding' : 'mcq';
 
-                return $slug !== null
-                    && (bool) ($challengePathLocks[$track][$slug]['unlocked'] ?? false);
+                if ($slug === null) {
+                    return false;
+                }
+
+                if (in_array((int) $challenge->id, $openClassChallengeIds, true)) {
+                    return true;
+                }
+
+                // An open level shows only the modules that are open in it:
+                // a new level starts with its first module.
+                return (bool) ($challengePathLocks[$track][$slug]['unlocked'] ?? false)
+                    && $moduleAccess->isOpen($user, $challenge);
             })
+            ->sortBy(fn (Challenge $challenge): int => in_array((int) $challenge->id, $openClassChallengeIds, true) ? 0 : 1)
             ->take(4)
             ->values();
 
@@ -148,7 +186,7 @@ class StudentController extends Controller
             return;
         }
 
-        $firstModule = Module::orderBy('order_index')->orderBy('id')->first();
+        $firstModule = Module::published()->orderBy('order_index')->orderBy('id')->first();
         if ($firstModule) {
             $user->modules()->syncWithoutDetaching([
                 $firstModule->id => ['is_unlocked' => true],
@@ -286,10 +324,36 @@ class StudentController extends Controller
                 'url' => route('student.assessments.show', $assessment),
             ]);
 
+        // Challenges shared with a class are practice and have no due date
+        // (DataSensei Updates 9), so only assignments and assessments are here.
         return $assignments
             ->concat($assessments)
             ->sortBy('due_at')
             ->take(6)
             ->values();
+    }
+
+    /**
+     * Challenges (platform-pool or instructor-built) that a published class
+     * assignment currently opens for one of the learner's active classes.
+     *
+     * @return array<int, int>
+     */
+    private function openClassChallengeIds(User $user): array
+    {
+        $classIds = $user->classesAsStudent()->active()->pluck('classes.id');
+
+        if ($classIds->isEmpty()) {
+            return [];
+        }
+
+        return ClassChallengeAssignment::query()
+            ->openNow()
+            ->whereIn('class_id', $classIds)
+            ->pluck('challenge_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

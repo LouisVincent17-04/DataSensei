@@ -20,7 +20,7 @@
     <form class="toolbar" method="GET" action="{{ route('admin.coding-challenges.index') }}">
       <div class="field">
         <label for="challenge-search">Search</label>
-        <input id="challenge-search" class="input" name="search" value="{{ $search }}" placeholder="Title, content code, or version">
+        <input id="challenge-search" class="input" name="search" value="{{ $search }}" placeholder="Title or version">
       </div>
       <div class="field">
         <label for="challenge-category">Category</label>
@@ -65,13 +65,12 @@
             <tr>
               <td>
                 <strong>{{ $challenge->title }}</strong>
-                <div class="dim">{{ $challenge->content_code }}, {{ number_format($challenge->time_limit_seconds) }} sec, {{ number_format($challenge->base_xp) }} XP</div>
+                <div class="dim">{{ max(1, (int) ceil($challenge->time_limit_seconds / 60)) }} min, {{ number_format($challenge->base_xp) }} XP</div>
               </td>
               <td>{{ $challenge->category?->name ?? 'Uncategorized' }}</td>
               <td>{{ $challenge->module_id ? ($challenge->module?->title ?? 'Module ' . $challenge->module_id) : 'None' }}</td>
               <td>
-                <strong>{{ $challenge->version_name }}</strong>
-                <div class="dim">{{ $challenge->version_code }}, V{{ $challenge->version_no }}</div>
+                <strong>{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}</strong>
               </td>
               <td>{{ number_format($challenge->coding_questions_count) }}</td>
               <td>{{ $challenge->is_active ? 'Available' : 'Unavailable' }}</td>

@@ -1180,28 +1180,11 @@ HTML;
         ];
 
         $finalContent = <<<HTML
-<div id="org-lock-screen" style="display:none;text-align:center;padding:40px;">
-    <h2 style="font-size:1.5rem;margin-bottom:12px;">Final Exam Locked</h2>
-    <p style="color:var(--muted);">You must be enrolled in an organization to access this exam.</p>
-    <p style="font-size:0.85rem;color:#f59e0b;margin-top:1rem;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;display:inline-block;">Please contact administration to link your account to an organization.</p>
-</div>
-<div id="final-exam-content" style="display:none;">
-    <h2>Module 17: Final Examination</h2>
-    <p>This comprehensive exam covers all topics from Lessons 17.1 through 17.10 — deep learning foundations, neurons, backpropagation, optimizers, regularization, CNNs, transfer learning, RNNs/LSTMs, Transformers, and generative models. Good luck!</p>
+<h2>Module 17: Final Examination</h2>
+<p>This comprehensive exam covers all topics from Lessons 17.1 through 17.10 — deep learning foundations, neurons, backpropagation, optimizers, regularization, CNNs, transfer learning, RNNs/LSTMs, Transformers, and generative models. Good luck!</p>
 HTML;
 
         $finalContent .= $this->appendQuiz('', 'FINAL_EXAM', $allFinalQuestions);
-        $finalContent .= '</div>';
-        $finalContent .= <<<HTML
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.USER_ORG_ID !== 'undefined' && window.USER_ORG_ID !== null && window.USER_ORG_ID !== '') {
-        document.getElementById('org-lock-screen').style.display = 'none';
-        document.getElementById('final-exam-content').style.display = 'block';
-    }
-});
-</script>
-HTML;
 
         Lesson::create([
             'module_id'   => $dlModule->id,

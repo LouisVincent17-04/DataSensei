@@ -1,166 +1,176 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Class Analytics — DataSensei</title>
-<style>
-/* Class analytics. Colours, type and radius come from partials.design-system. */
-:root{--good:var(--ds-success);--warn:var(--ds-warning);--bad:var(--ds-danger)}
-*{box-sizing:border-box}
-body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--text)}
-.layout{display:flex;min-height:100vh}
-.main{flex:1;min-width:0;padding:28px 32px 48px;background:var(--bg)}
+@extends('instructor.layout')
 
-/* page header */
-.top{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}
-.top > div{min-width:0;flex:1 1 320px}
-.subtitle{margin:4px 0 0;max-width:72ch;color:var(--muted);font-size:.875rem;line-height:1.55}
+@use('App\Services\Reports\ClassProgress')
+@use('App\Support\Reports\ReportFormat', 'F')
 
-/* panels */
-.card{margin-bottom:16px;padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
-.card > p{margin:0}
-.muted{color:var(--muted)}
+@section('title', 'Class Analytics')
+@section('page_title', 'Class Analytics')
+@section('page_subtitle', 'Choose a class to see how it is progressing, which activities students complete, how they perform and who may need support. Everything is read from the class\'s saved work when you open the page.')
 
-/* summary tiles */
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
-.grid-2 > .card{margin-bottom:0}
-.metric{display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:4px;padding:16px 18px;
-  border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
-.metric .num{font-size:1.5rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.metric .lbl{color:var(--muted);font-size:.8125rem;font-weight:500}
+@section('content')
+  @include('reports.partials.styles')
 
-/* table panel */
-.card.table-wrap{padding:0;overflow-x:auto}
-.card.table-wrap > h2{position:sticky;left:0;margin:0;padding:14px 20px;border-bottom:1px solid var(--border);
-  font-size:.9375rem;font-weight:600;line-height:1.35}
-.table{width:100%;min-width:760px;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.table th,.table td{padding:12px 14px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
-.table th{padding:10px 14px;background:var(--surface3);color:var(--muted);font-size:.75rem;font-weight:600;white-space:nowrap}
-.table td{color:var(--ds-text-secondary);font-size:.875rem}
-.table td:first-child{color:var(--text);font-weight:500}
-.table td.muted{color:var(--muted);font-size:.8125rem}
-.table :is(th,td):first-child{padding-left:20px}
-.table :is(th,td):last-child{padding-right:20px}
-.table tbody tr:last-child td{border-bottom:0}
-.table tbody tr:hover td{background:rgba(255,255,255,.02)}
-
-/* status badges */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-  background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
-.badge.good{color:var(--ds-success-text);border-color:var(--ds-success-border);background:var(--ds-success-soft)}
-.badge.warn{color:var(--ds-warning-text);border-color:var(--ds-warning-border);background:var(--ds-warning-soft)}
-.badge.bad{color:var(--ds-danger-text);border-color:var(--ds-danger-border);background:var(--ds-danger-soft)}
-
-/* buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
-  border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
-  font-size:.875rem;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer;
-  transition:background .12s ease,border-color .12s ease}
-.btn:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
-.btn.secondary{background:var(--surface2);border-color:var(--ds-border-strong);color:var(--text)}
-.btn.secondary:hover{background:var(--ds-surface-hover)}
-.btn.good{background:transparent;border-color:var(--ds-success-border);color:var(--ds-success-text)}
-.btn.good:hover{background:var(--ds-success-soft)}
-
-/* filter form */
-.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.form-row .muted{font-size:.8125rem}
-.input,.form-row select{min-height:38px;max-width:100%;padding:8px 12px;border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);
-  background:var(--surface3);color:var(--text);font-size:.875rem;font-family:var(--ds-font-sans)}
-.form-row select:first-of-type{min-width:220px}
-.input:focus,.form-row select:focus{outline:none;border-color:var(--accent);box-shadow:var(--ds-focus-ring)}
-
-/* flash */
-.alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-  background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem}
-.alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
-
-/* pagination sits under the table */
-.pagination{position:sticky;left:0}
-.pagination nav{padding:12px 20px;border-top:1px solid var(--border)}
-
-@media(max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:1000px){.grid-2{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:900px){.main{padding:24px 20px 40px}}
-@media(max-width:700px){.layout{display:block}}
-@media(max-width:640px){
-  .main{padding:20px 16px 32px}
-  .card{padding:16px}
-  .card.table-wrap{padding:0}
-  .card.table-wrap > h2{padding:12px 16px}
-  .table :is(th,td):first-child{padding-left:16px}
-  .pagination nav{padding:12px 16px}
-  .top > .btn{width:100%}
-  .form-row select,.form-row .btn{flex:1 1 100%;width:100%;min-width:0}
-}
-@media(max-width:420px){.grid{grid-template-columns:minmax(0,1fr)}}
-</style>
-
-    @include('partials.page-head', ['pageTitle' => 'Class Analytics', 'pageDescription' => 'See how your classes are performing across modules and assessments.'])
-</head>
-<body>
-<div class="layout">
-  @include('partials.instructor-sidebar')
-  <main class="main">
-
-    <div class="top">
-      <div>
-        <h1 class="title ds-page-title">Class Analytics</h1>
-        <p class="subtitle">Review saved score, engagement, risk, late-work, and rule-based performance-segment indicators. Recalculation happens only when you request it.</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <form method="GET" class="form-row">
-        <select name="class_id">
-          @foreach($classes as $class)
-            <option value="{{ $class->id }}" @selected($selectedClass && $selectedClass->id === $class->id)>{{ $class->name }}</option>
+  <div class="rp">
+    <form method="GET" action="{{ route('instructor.analytics.index') }}" class="rp-filters">
+      <div class="rp-field rp-field-wide">
+        <label for="an-class">Class</label>
+        <select id="an-class" class="rp-input" name="class_id" onchange="this.form.submit()">
+          <option value="">Choose a class</option>
+          @foreach($classes as $option)
+            <option value="{{ $option->id }}" @selected($class && $class->id === $option->id)>{{ $option->name }}{{ $option->section ? ', '.$option->section : '' }}{{ $option->is_archived ? ' (archived)' : '' }}</option>
           @endforeach
         </select>
-        <button class="btn secondary" type="submit">View Saved Analytics</button>
-      </form>
-      @if($selectedClass && ! $selectedClass->is_archived)
-        <form method="POST" action="{{ route('instructor.analytics.refresh') }}" class="form-row" style="margin-top:8px">@csrf<input type="hidden" name="class_id" value="{{ $selectedClass->id }}"><button class="btn" type="submit">Recalculate Now</button><span class="muted">Last calculated: {{ $lastCalculatedAt?->format('M d, Y h:i A') ?? 'not yet calculated' }}</span></form>
-      @elseif($selectedClass)
-        <p class="muted">This class is archived. Saved analytics remain viewable, but recalculation is disabled.</p>
+      </div>
+      <div class="rp-filter-actions"><button type="submit" class="rp-btn">Open class</button></div>
+    </form>
+
+    @if($class === null)
+      @if($classes->isEmpty())
+        <div class="rp-panel"><div class="rp-panel-body">You have no classes yet. Create a class and enrol students, then come back here.</div></div>
+      @else
+        <div class="rp-classes">
+          @foreach($classes as $option)
+            @php $o = $overviews[$option->id]; @endphp
+            <a class="rp-class" href="{{ route('instructor.analytics.index', ['class_id' => $option->id]) }}">
+              <strong>{{ $option->name }}{{ $option->section ? ', '.$option->section : '' }}</strong>
+              @if($option->is_archived)<span class="rp-meta">Archived</span>@endif
+              <dl>
+                <dt>Students</dt><dd>{{ $o['students'] }}</dd>
+                <dt>Active in the last {{ ClassProgress::ACTIVE_DAYS }} days</dt><dd>{{ $o['active'] }}</dd>
+                <dt>Module completion</dt><dd>{{ F::pct($o['module_completion']) }}</dd>
+                <dt>Assessment average</dt><dd>{{ F::pct($o['assessment_average']) }}</dd>
+                <dt>May need attention</dt><dd>{{ $o['attention'] }}</dd>
+              </dl>
+            </a>
+          @endforeach
+        </div>
       @endif
-    </div>
+    @else
+      @php
+        $o = $overview;
+        $base = ['class_id' => $class->id];
+      @endphp
 
-    @if(session('success'))<div class="alert">{{ session('success') }}</div>@endif
+      <nav class="rp-nav" aria-label="Class Analytics">
+        @foreach($tabs as $key => $label)
+          <a href="{{ route('instructor.analytics.index', $base + ['tab' => $key]) }}" class="rp-nav-link {{ $tab === $key ? 'is-current' : '' }}" @if($tab === $key) aria-current="page" @endif>{{ $label }}</a>
+        @endforeach
+      </nav>
 
-    <div class="grid">
-      <div class="metric"><div class="num">{{ $stats['students'] }}</div><div class="lbl">Students</div></div>
-      <div class="metric"><div class="num">{{ $stats['avg_score'] }}%</div><div class="lbl">Average Score</div></div>
-      <div class="metric"><div class="num">{{ $stats['avg_engagement'] }}%</div><div class="lbl">Engagement Score</div></div>
-      <div class="metric"><div class="num">{{ $stats['at_risk'] }}</div><div class="lbl">At Risk</div></div>
-    </div>
+      @if($class->is_archived)
+        <p class="rp-meta">This class is archived. Its saved work can still be reviewed.</p>
+      @endif
 
-    <div class="card table-wrap">
-      <table class="table">
-        <thead><tr><th>Student</th><th>Performance Segment</th><th>Risk</th><th>Score</th><th>Engagement</th><th>Missing</th><th>Late</th><th>Violations</th></tr></thead>
-        <tbody>
-        @forelse($snapshots as $snapshot)
-          @php $riskClass = $snapshot->risk_level === 'high' ? 'bad' : ($snapshot->risk_level === 'medium' ? 'warn' : 'good'); @endphp
-          <tr>
-            <td>{{ $snapshot->student->name ?? 'Student' }}</td>
-            <td>{{ $snapshot->cluster_label }}@if($snapshot->segment_reason)<div class="muted" style="font-size:.75rem;margin-top:4px">{{ $snapshot->segment_reason }}</div>@endif</td>
-            <td><span class="badge {{ $riskClass }}">{{ ucfirst($snapshot->risk_level) }}</span></td>
-            <td>{{ $snapshot->average_score_percent }}%</td>
-            <td>{{ $snapshot->engagement_score }}%</td>
-            <td>{{ $snapshot->missing_assignments }}</td>
-            <td>{{ $snapshot->late_submissions }}</td>
-            <td>{{ $snapshot->anti_cheat_warnings }}</td>
-          </tr>
-        @empty
-          <tr><td colspan="8" class="muted">No saved analytics yet. Choose a class and click Recalculate Now.</td></tr>
-        @endforelse
-        </tbody>
-      </table>
-    </div>
+      {{-- Only the filters that apply to this tab. --}}
+      @if(in_array($tab, ['students', 'modules', 'assignments', 'assessments', 'challenges', 'coding'], true))
+        <form method="GET" action="{{ route('instructor.analytics.index') }}" class="rp-filters">
+          <input type="hidden" name="class_id" value="{{ $class->id }}">
+          <input type="hidden" name="tab" value="{{ $tab }}">
+          @if($tab === 'students')
+            <div class="rp-field rp-field-wide">
+              <label for="an-q">Student</label>
+              <input id="an-q" class="rp-input" type="search" name="q" value="{{ $filters->search }}" maxlength="100" placeholder="Name or email">
+            </div>
+            <div class="rp-field">
+              <label for="an-status">Show</label>
+              <select id="an-status" class="rp-input" name="status">
+                <option value="">All students</option>
+                <option value="attention" @selected($filters->status === 'attention')>Only students who may need attention</option>
+              </select>
+            </div>
+          @elseif($tab === 'modules')
+            <div class="rp-field rp-field-wide">
+              <label for="an-module">Module</label>
+              <select id="an-module" class="rp-input" name="module_id">
+                <option value="">All assigned modules</option>
+                @foreach($content['moduleChoices'] as $id => $title)
+                  <option value="{{ $id }}" @selected($filters->moduleId === (int) $id)>{{ $title }}</option>
+                @endforeach
+              </select>
+            </div>
+          @else
+            @if(in_array($tab, ['assignments', 'assessments'], true))
+              <div class="rp-field">
+                <label for="an-status">Status</label>
+                <select id="an-status" class="rp-input" name="status">
+                  <option value="">Open and closed</option>
+                  <option value="open" @selected($filters->status === 'open')>Open</option>
+                  <option value="closed" @selected($filters->status === 'closed')>Closed</option>
+                </select>
+              </div>
+            @endif
+            <div class="rp-field">
+              <label for="an-from">Due from</label>
+              <input id="an-from" class="rp-input" type="date" name="from" value="{{ $filters->from?->format('Y-m-d') }}">
+            </div>
+            <div class="rp-field">
+              <label for="an-to">Due to</label>
+              <input id="an-to" class="rp-input" type="date" name="to" value="{{ $filters->to?->format('Y-m-d') }}">
+            </div>
+          @endif
+          <div class="rp-filter-actions">
+            <button type="submit" class="rp-btn">Apply</button>
+            @if(array_diff_key($filters->query(), ['class_id' => true]) !== [])
+              <a class="rp-btn rp-btn-secondary" href="{{ route('instructor.analytics.index', $base + ['tab' => $tab]) }}">Clear</a>
+            @endif
+          </div>
+        </form>
+      @endif
 
-  </main>
-</div>
-</body>
-</html>
+      @if($errors->any())
+        <p class="rp-error" role="alert">{{ $errors->first() }}</p>
+      @endif
+
+      @if($tab === 'overview')
+        <section class="rp-summary rp-summary-4" aria-label="Class summary">
+          <div class="rp-tile"><span class="rp-tile-label">Enrolled students</span><strong class="rp-tile-value">{{ F::number($o['students']) }}</strong></div>
+          <div class="rp-tile"><span class="rp-tile-label">Active students</span><strong class="rp-tile-value">{{ F::number($o['active']) }}</strong><span class="rp-tile-note">Class activity in the last {{ ClassProgress::ACTIVE_DAYS }} days</span></div>
+          <div class="rp-tile"><span class="rp-tile-label">Assigned modules</span><strong class="rp-tile-value">{{ F::number($o['modules']) }}</strong></div>
+          <div class="rp-tile"><span class="rp-tile-label">Module completion</span><strong class="rp-tile-value">{{ F::pct($o['module_completion']) }}</strong></div>
+          <div class="rp-tile"><span class="rp-tile-label">Assignment completion</span><strong class="rp-tile-value">{{ F::pct($o['assignment_rate']) }}</strong><span class="rp-tile-note">{{ $o['assignments_missing'] }} missing, {{ $o['assignments_late'] }} late</span></div>
+          <div class="rp-tile"><span class="rp-tile-label">Assessment performance</span><strong class="rp-tile-value">{{ F::pct($o['assessment_average']) }}</strong><span class="rp-tile-note">Average best score, {{ F::pct($o['assessment_completion']) }} completed</span></div>
+          <div class="rp-tile"><span class="rp-tile-label">Challenge performance</span><strong class="rp-tile-value">{{ F::pct($o['challenge_completion']) }}</strong><span class="rp-tile-note">Completed, average best score {{ F::pct($o['challenge_average']) }}</span></div>
+          <div class="rp-tile"><span class="rp-tile-label">Coding challenge performance</span><strong class="rp-tile-value">{{ F::pct($o['coding_completion']) }}</strong><span class="rp-tile-note">Completed, {{ F::pct($o['coding_score']) }} of tests passed</span></div>
+        </section>
+
+        @if($content['bars'] !== [])
+          <div class="rp-split">
+            @foreach($content['bars'] as $group)
+              @include('reports.partials.bars', ['group' => $group])
+            @endforeach
+          </div>
+        @endif
+
+        <section class="rp-panel" id="attention">
+          <div class="rp-panel-head">
+            <h3 class="rp-panel-title">Students who may need attention</h3>
+            <span class="rp-count">{{ count($content['attention']) }} of {{ $o['students'] }}</span>
+          </div>
+          <p class="rp-note">A student is listed only when one of these rules is true for their saved work:</p>
+          <ul class="rp-rules">
+            @foreach(ClassProgress::ATTENTION_RULES as $rule)
+              <li>{{ $rule }}</li>
+            @endforeach
+          </ul>
+          @if($content['attention'] === [])
+            <div class="rp-panel-body">No student matches these rules right now.</div>
+          @else
+            <ul class="rp-attention">
+              @foreach($content['attention'] as $row)
+                <li><a class="rp-link" href="{{ $row['url'] }}">{{ $row['name'] }}</a><span>{{ implode('; ', $row['reasons']) }}</span></li>
+              @endforeach
+            </ul>
+          @endif
+        </section>
+      @else
+        @foreach($content['bars'] ?? [] as $group)
+          @include('reports.partials.bars', ['group' => $group])
+        @endforeach
+        @include('reports.partials.table', ['table' => $content['table']])
+        @if(! empty($content['detail']))
+          @include('reports.partials.table', ['table' => $content['detail']])
+        @endif
+      @endif
+    @endif
+  </div>
+@endsection

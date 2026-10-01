@@ -190,6 +190,30 @@
       color: #fff;
     }
 
+    /* What you will learn (the module's descriptive learning outcomes) */
+    .page-learning-outcomes { margin-top: 14px; }
+    .page-learning-outcomes summary {
+      color: var(--ds-text-secondary);
+      font-size: .8125rem;
+      font-weight: 600;
+    }
+    .page-learning-outcomes ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: .8125rem; line-height: 1.5; }
+    .page-learning-outcomes li + li { margin-top: 4px; }
+
+    /* Review questions: instant feedback, nothing is scored */
+    .page-learning-review-intro { margin: 4px 0 24px; color: var(--muted); font-size: .9375rem; line-height: 1.55; }
+    .page-learning-question { margin-bottom: 20px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    .page-learning-question-meta { color: var(--dim); font-size: .75rem; font-weight: 600; }
+    .page-learning-question h3 { margin: 6px 0 10px; font-size: 1rem; line-height: 1.45; }
+    .page-learning-question-scenario { margin: 0 0 12px; color: var(--muted); font-size: .875rem; line-height: 1.55; }
+    .page-learning-choice { display: flex; align-items: flex-start; gap: 10px; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: .9rem; line-height: 1.45; }
+    .page-learning-choice input { margin-top: 3px; }
+    .page-learning-choice.is-correct { border-color: var(--ds-success-border); background: var(--ds-success-soft); }
+    .page-learning-choice.is-wrong { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); }
+    .page-learning-check { margin-top: 12px; min-height: 36px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #fff; font: inherit; font-size: .875rem; font-weight: 500; cursor: pointer; }
+    .page-learning-feedback { margin-top: 12px; color: var(--ds-text-secondary); font-size: .875rem; line-height: 1.55; }
+    .page-learning-feedback strong { color: var(--text); }
+
     /* Reading column */
     .page-learning-content-area {
       position: relative;
@@ -247,6 +271,18 @@
       inset: 0;
       z-index: 1000;
       background: var(--ds-overlay);
+    }
+
+    /* A knowledge check or final exam, once every question is answered. */
+    .page-learning-quiz-result {
+      margin: 16px 0 0;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: .9375rem;
+      line-height: 1.5;
     }
 
     /* ── lesson content (HTML stored with each lesson) ─────────── */
@@ -599,13 +635,18 @@
           </div>
           <div class="page-learning-progress-text">{{ $progressPct }}%</div>
         </div>
+
+        @if(! empty($learningOutcomes))
+          {{-- Closed by default; learners open it when they want (Updates 6). --}}
+          @include('partials.learning-outcomes-toggle', ['outcomes' => $learningOutcomes, 'class' => 'page-learning-outcomes'])
+        @endif
       </div>
       
       <div class="page-learning-lesson-list">
         @foreach($module->lessons as $lesson)
           @php
             $isCompleted = in_array($lesson->id, $completedLessonIds);
-            $isActive = $activeLesson->id === $lesson->id;
+            $isActive = $activeLesson && $activeLesson->id === $lesson->id;
           @endphp
           
           <a href="{{ route('lesson.show', ['module' => $module->id, 'lesson' => $lesson->id]) }}" 
@@ -620,16 +661,64 @@
             {{ $lesson->title }}
           </a>
         @endforeach
+
+        @if(! empty($reviewQuestions))
+          <a href="{{ route('lesson.review', $module) }}"
+             class="page-learning-lesson-item {{ ($reviewMode ?? false) ? 'is-active' : '' }}">
+            <div class="page-learning-check-icon"></div>
+            Review questions
+          </a>
+        @endif
       </div>
     </div>
 
     <div class="page-learning-content-area">
       <div class="page-learning-content-inner">
+        @if($reviewMode ?? false)
+          @if(session('success'))
+            <p class="page-learning-review-intro"><strong>{{ session('success') }}</strong></p>
+          @endif
+          <div class="page-learning-lesson-body">
+            <h2>Review questions</h2>
+            <p class="page-learning-review-intro">Check what you learned in this module. Pick an answer, then check it. These questions are for practice only: nothing is scored or saved.</p>
+          </div>
+          @foreach($reviewQuestions as $qIndex => $question)
+            @php
+              $choices = array_values((array) ($question['choices'] ?? []));
+              $answer = (string) ($question['answer'] ?? '');
+            @endphp
+            <article class="page-learning-question" data-review-question data-answer="{{ $answer }}">
+              <div class="page-learning-question-meta">Question {{ $qIndex + 1 }}@if(! empty($question['topic'])), {{ $question['topic'] }}@endif</div>
+              <h3>{{ $question['question'] ?? '' }}</h3>
+              @if(! empty($question['scenario']))
+                <p class="page-learning-question-scenario">{{ $question['scenario'] }}</p>
+              @endif
+              @foreach($choices as $cIndex => $choice)
+                <label class="page-learning-choice" data-choice="{{ $choice }}">
+                  <input type="radio" name="review-{{ $qIndex }}" value="{{ $choice }}">
+                  <span>{{ chr(65 + $cIndex) }}. {{ $choice }}</span>
+                </label>
+              @endforeach
+              <button type="button" class="page-learning-check" onclick="checkReviewAnswer(this)">Check answer</button>
+              <div class="page-learning-feedback" data-feedback hidden>
+                <p data-verdict></p>
+                @if(! empty($question['explanation']))
+                  <p><strong>Explanation:</strong> {{ $question['explanation'] }}</p>
+                @endif
+                @if(! empty($question['learning_tip']))
+                  <p><strong>Learning tip:</strong> {{ $question['learning_tip'] }}</p>
+                @endif
+              </div>
+            </article>
+          @endforeach
+        @else
         <div class="page-learning-lesson-body">
           {!! $activeLesson->content !!}
         </div>
+        @endif
       </div>
 
+      @unless($reviewMode ?? false)
       <div class="page-learning-lesson-footer">
         <form action="{{ route('lesson.complete', $activeLesson->id) }}" method="POST" style="width: 100%; display: flex; justify-content: flex-end;">
           @csrf
@@ -641,6 +730,7 @@
           </button>
         </form>
       </div>
+      @endunless
     </div>
 
   </div>
@@ -661,6 +751,58 @@
         overlay.classList.remove('is-open');
       });
     });
+
+    function checkReviewAnswer(button) {
+      const card = button.closest('[data-review-question]');
+      const picked = card.querySelector('input[type="radio"]:checked');
+      const feedback = card.querySelector('[data-feedback]');
+      const verdict = card.querySelector('[data-verdict]');
+
+      if (!picked) {
+        feedback.hidden = false;
+        verdict.textContent = 'Pick an answer first.';
+        return;
+      }
+
+      const answer = card.dataset.answer;
+      card.querySelectorAll('[data-choice]').forEach(choice => {
+        choice.classList.toggle('is-correct', choice.dataset.choice === answer);
+        choice.classList.toggle('is-wrong', choice.dataset.choice === picked.value && picked.value !== answer);
+      });
+
+      feedback.hidden = false;
+      verdict.innerHTML = picked.value === answer
+        ? '<strong>Correct.</strong>'
+        : '<strong>Not quite.</strong> The correct answer is highlighted.';
+    }
+
+    // Knowledge checks and the module's Final Exam give their result once
+    // every question has been answered (DataSensei Updates 7). The Final Exam
+    // is open to every learner; completing the lesson records it.
+    document.addEventListener('click', function (event) {
+      const option = event.target.closest('.page-learning-lesson-body .quiz-option');
+      const wrapper = option ? option.closest('.quiz-wrapper') : null;
+      if (wrapper) window.setTimeout(function () { showQuizResult(wrapper); }, 0);
+    });
+
+    function showQuizResult(wrapper) {
+      const cards = Array.prototype.slice.call(wrapper.querySelectorAll('.quiz-card'));
+      if (!cards.length || cards.some(card => !card.querySelector('.quiz-option.locked'))) return;
+
+      const correct = cards.filter(card => !card.querySelector('.quiz-option.wrong')).length;
+      const percent = Math.round((correct / cards.length) * 100);
+      const isExam = /FINAL/i.test(wrapper.id || '');
+      let result = wrapper.nextElementSibling;
+      if (!result || !result.classList.contains('page-learning-quiz-result')) {
+        result = document.createElement('p');
+        result.className = 'page-learning-quiz-result';
+        result.setAttribute('role', 'status');
+        wrapper.insertAdjacentElement('afterend', result);
+      }
+      result.textContent = (isExam ? 'Final exam result: ' : 'Result: ')
+        + correct + ' of ' + cards.length + ' correct (' + percent + '%).'
+        + (isExam ? ' Select "Mark as Complete & Continue" to record that you finished the exam.' : '');
+    }
 
     function launchIDE(button) {
       const windowContainer = button.closest('.code-window');

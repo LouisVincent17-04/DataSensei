@@ -225,12 +225,27 @@
                 <h3>{{ $index + 1 }}. {{ $row['question']->question_text }}</h3>
                 <span class="result-badge {{ $row['is_correct'] ? 'good' : 'bad' }}">{{ $row['is_correct'] ? 'Correct' : 'Incorrect' }}</span>
               </div>
+              @php
+                // Show both answers as code when their spaces matter ("hi" vs "  hi  ").
+                $literalChoices = \App\Support\ChoiceText::hasSignificantWhitespace($row['selected_option']?->option_text)
+                  || \App\Support\ChoiceText::hasSignificantWhitespace($row['correct_option']?->option_text);
+              @endphp
               <div class="result-answer {{ $row['is_correct'] ? 'correct' : '' }}">
-                <strong>Your answer:</strong> {{ $row['selected_option']?->option_text ?? 'No answer submitted' }}
+                <strong>Your answer:</strong>
+                @if($row['selected_option'])
+                  {{ \App\Support\ChoiceText::html($row['selected_option']->option_text, $literalChoices) }}
+                @else
+                  No answer submitted
+                @endif
               </div>
               @if(! $row['is_correct'])
                 <div class="result-answer expected">
-                  <strong>Correct answer:</strong> {{ $row['correct_option']?->option_text ?? 'The correct option is no longer available.' }}
+                  <strong>Correct answer:</strong>
+                  @if($row['correct_option'])
+                    {{ \App\Support\ChoiceText::html($row['correct_option']->option_text, $literalChoices) }}
+                  @else
+                    The correct option is no longer available.
+                  @endif
                 </div>
               @endif
             </article>

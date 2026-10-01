@@ -42,11 +42,10 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-s
 .table tbody tr:hover td{background:rgba(255,255,255,.02)}
 .table td.muted[colspan]{padding:32px 20px;color:var(--muted);text-align:center}
 .table tbody tr:hover td[colspan]{background:none}
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-  background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
-.badge.good{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
-.badge.warn{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-text)}
-.badge.bad{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-text)}
+.state{color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;white-space:nowrap}
+.state.good{color:var(--ds-success-text)}
+.state.warn{color:var(--ds-warning-text)}
+.state.bad{color:var(--ds-danger-text)}
 .pagination{padding:14px 20px;border-top:1px solid var(--border)}
 .pagination:not(:has(*)){display:none}
 .card .table{min-width:720px}
@@ -106,7 +105,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-s
             <td>{{ $submission->student->name ?? 'Student' }}</td>
             <td>{{ $submission->classAssignment->title ?? 'Assignment' }}</td>
             <td>{{ $submission->classAssignment->classRoom->name ?? '—' }}</td>
-            <td><span class="badge {{ $submission->status === 'late' ? 'bad' : 'good' }}">{{ ucwords(str_replace('_', ' ', $submission->status)) }}</span></td>
+            <td><span class="state {{ $submission->status === 'late' ? 'bad' : 'good' }}">{{ ucwords(str_replace('_', ' ', $submission->status)) }}</span></td>
             <td>{{ $submission->score }}/{{ $submission->total_points }}</td>
             <td>{{ optional($submission->submitted_at)->format('M d, Y h:i A') ?? '—' }}</td>
           </tr>

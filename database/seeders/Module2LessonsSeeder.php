@@ -1270,7 +1270,7 @@ HTML;
         ]);
 
         // ══════════════════════════════════════════════════════════════
-        // LESSON 2.11 — Final Exam (Org-Locked, 30 Questions)
+        // LESSON 2.11 — Final Exam (30 Questions)
         // ══════════════════════════════════════════════════════════════
         $finalQuestions = [
             // 2.1 Types of Data
@@ -1318,29 +1318,11 @@ HTML;
         ];
 
         $finalContent  = <<<HTML
-<div id="org-lock-screen" style="text-align:center;padding:4rem 2rem;background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-top:2rem;">
-    <div style="font-size:3rem;margin-bottom:1rem;">🔒</div>
-    <h3 style="color:var(--text);margin-bottom:0.5rem;">University / Organization Access Only</h3>
-    <p style="color:var(--muted);">The Final Module Exam is restricted to enrolled students and verified organization members.</p>
-    <p style="font-size:0.85rem;color:#f59e0b;margin-top:1rem;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;display:inline-block;">Please contact administration to link your account to an organization.</p>
-</div>
-<div id="final-exam-content" style="display:none;">
-    <h2>Module 2: Final Examination</h2>
-    <p>This comprehensive exam covers all 10 lessons — types of data, central tendency, variability, probability, distributions, correlation, regression, hypothesis testing, sampling, and the CLT. Good luck!</p>
+<h2>Module 2: Final Examination</h2>
+<p>This comprehensive exam covers all 10 lessons — types of data, central tendency, variability, probability, distributions, correlation, regression, hypothesis testing, sampling, and the CLT. Good luck!</p>
 HTML;
 
         $finalContent .= $this->appendQuiz('', 'FINAL_M2', $finalQuestions);
-        $finalContent .= '</div>';
-        $finalContent .= <<<HTML
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.USER_ORG_ID !== 'undefined' && window.USER_ORG_ID !== null && window.USER_ORG_ID !== '') {
-        document.getElementById('org-lock-screen').style.display = 'none';
-        document.getElementById('final-exam-content').style.display = 'block';
-    }
-});
-</script>
-HTML;
 
         Lesson::create([
             'module_id'   => $statsModule->id,

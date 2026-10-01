@@ -125,7 +125,6 @@
           <h2 class="panel-title">Recent Security Flags</h2>
           <p class="panel-subtitle">Recent assignment and challenge events requiring review.</p>
         </div>
-        <a class="btn secondary small" href="{{ route('admin.reports.index') }}">Open Reports</a>
       </div>
       <div class="table-wrap">
         <table class="compact-table">
@@ -158,7 +157,7 @@
       <a class="quick-action" href="{{ route('admin.users.index') }}"><strong>Manage Users</strong><span>Create, update, filter, and enable or disable managed accounts.</span></a>
       <a class="quick-action" href="{{ route('admin.content.index') }}"><strong>Manage Content</strong><span>Maintain module, category, and challenge metadata.</span></a>
       <a class="quick-action" href="{{ route('admin.gamification.index') }}"><strong>Manage Gamification</strong><span>Review rank tiers and update achievements and missions.</span></a>
-      <a class="quick-action" href="{{ route('admin.reports.index') }}"><strong>Open Reports</strong><span>Review submissions, security events, and operational activity.</span></a>
+      <a class="quick-action" href="{{ route('admin.reports.index') }}"><strong>Open Reports</strong><span>Users, modules, classes, class work, challenges, gamification and the audit log.</span></a>
     </div>
   </section>
 @endsection

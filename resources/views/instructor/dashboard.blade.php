@@ -78,14 +78,12 @@
     .meta{margin-top:2px;color:var(--muted);font-size:.8125rem;line-height:1.45}
     td .meta{font-size:.75rem}
 
-    /* status labels */
-    .pill{flex-shrink:0;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);
-      border-radius:var(--radius-xs);background:var(--surface2);color:var(--ds-text-secondary);
-      font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
-    .pill.status{text-transform:capitalize}
-    .pill.green{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
-    .pill.amber{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-text)}
-    .pill.red{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-text)}
+    /* status labels: plain text (DataSensei Updates 9) */
+    .state{flex-shrink:0;color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;white-space:nowrap}
+    .state.status{text-transform:capitalize}
+    .state.green{color:var(--ds-success-text)}
+    .state.amber{color:var(--ds-warning-text)}
+    .state.red{color:var(--ds-danger-text)}
 
     .empty{padding:28px 20px;color:var(--muted);font-size:.875rem;line-height:1.5;text-align:center}
 
@@ -126,8 +124,8 @@
     <header class="topbar"><h1 class="ds-page-title">Instructor Dashboard</h1><a class="link" href="{{ route('profile') }}">{{ $instructor->name }}</a></header>
     <main class="content">
       <section class="welcome">
-        <div><h2>Welcome back, {{ $instructor->name }}.</h2><p>Review live class, coursework, mastery, and risk data from the classes assigned to you.</p></div>
-        <div class="actions"><a class="btn primary" href="{{ route('instructor.classes.create') }}">Create class</a><a class="btn" href="{{ route('instructor.assignments.create') }}">Create assignment</a><a class="btn" href="{{ route('instructor.analytics.index') }}">Open analytics</a><a class="btn" href="{{ route('instructor.competencies.index') }}">Competency matrix</a></div>
+        <div><h2>Welcome back, {{ $instructor->name }}.</h2><p>Review live class, coursework, and risk data from the classes assigned to you.</p></div>
+        <div class="actions"><a class="btn primary" href="{{ route('instructor.classes.create') }}">Create class</a><a class="btn" href="{{ route('instructor.assignments.create') }}">Create assignment</a><a class="btn" href="{{ route('instructor.analytics.index') }}">Open analytics</a></div>
       </section>
 
       <section class="stats" aria-label="Instructor summary">
@@ -135,7 +133,7 @@
         <div class="stat"><span class="label">Unique learners</span><strong>{{ $stats['total_students'] }}</strong><small>across active classes</small></div>
         <div class="stat"><span class="label">Published work</span><strong>{{ $stats['published_work'] }}</strong><small>assignments and assessments</small></div>
         <div class="stat"><span class="label">Average score</span><strong>{{ $stats['average_score'] }}%</strong><small>latest performance snapshots</small></div>
-        <div class="stat"><span class="label">ILO mastery</span><strong>{{ $stats['mastery_rate'] }}%</strong><small>mastered evidence rows</small></div>
+        <div class="stat"><span class="label">Class modules</span><strong>{{ $stats['assigned_modules'] }}</strong><small>assigned to your classes</small></div>
         <div class="stat"><span class="label">High risk</span><strong>{{ $stats['at_risk'] }}</strong><small>unique flagged learners</small></div>
       </section>
 
@@ -170,7 +168,7 @@
             <div class="card-head"><h3>Recently updated work</h3><a class="link" href="{{ route('instructor.assignments.index') }}">Manage work →</a></div>
             <div class="card-body work-list">
               @forelse ($recentWork as $work)
-                <a class="item" href="{{ $work['url'] }}"><div><div class="item-title">{{ $work['title'] }}</div><div class="meta">{{ $work['type'] }}{{ $work['class_name'] ? ', '.$work['class_name'] : '' }}, {{ $work['at']->diffForHumans() }}</div></div><span class="pill status {{ $work['status'] === 'published' ? 'green' : '' }}">{{ $work['status'] }}</span></a>
+                <a class="item" href="{{ $work['url'] }}"><div><div class="item-title">{{ $work['title'] }}</div><div class="meta">{{ $work['type'] }}{{ $work['class_name'] ? ', '.$work['class_name'] : '' }}, {{ $work['at']->diffForHumans() }}</div></div><span class="state status {{ $work['status'] === 'published' ? 'green' : '' }}">{{ $work['status'] }}</span></a>
               @empty
                 <div class="empty">No assignments or assessments have been created.</div>
               @endforelse
@@ -181,7 +179,7 @@
             <div class="card-head"><h3>Recent submissions</h3><a class="link" href="{{ route('instructor.submissions.index') }}">All submissions →</a></div>
             <div class="card-body submission-list">
               @forelse ($recentSubmissions as $submission)
-                <div class="item"><div><div class="item-title">{{ $submission['student'] }}, {{ $submission['title'] }}</div><div class="meta">{{ $submission['type'] }}, {{ $submission['at']->diffForHumans() }}</div></div><span class="pill status {{ $submission['status'] === 'late' ? 'amber' : 'green' }}">{{ $submission['status'] }}</span></div>
+                <div class="item"><div><div class="item-title">{{ $submission['student'] }}, {{ $submission['title'] }}</div><div class="meta">{{ $submission['type'] }}, {{ $submission['at']->diffForHumans() }}</div></div><span class="state status {{ $submission['status'] === 'late' ? 'amber' : 'green' }}">{{ $submission['status'] }}</span></div>
               @empty
                 <div class="empty">No completed submissions are available.</div>
               @endforelse
@@ -194,7 +192,7 @@
             <div class="card-head"><h3>High-risk learners</h3><a class="link" href="{{ route('instructor.risk.index') }}">Risk report →</a></div>
             <div class="card-body risk-list">
               @forelse ($atRiskStudents->take(6) as $snapshot)
-                <div class="item"><div><div class="item-title">{{ $snapshot->student?->name ?? 'Deleted learner' }}</div><div class="meta">{{ $snapshot->classRoom?->name ?? 'Class removed' }}, score {{ number_format((float) $snapshot->average_score_percent, 1) }}%, engagement {{ number_format((float) $snapshot->engagement_score, 1) }}%</div></div><span class="pill red">High risk</span></div>
+                <div class="item"><div><div class="item-title">{{ $snapshot->student?->name ?? 'Deleted learner' }}</div><div class="meta">{{ $snapshot->classRoom?->name ?? 'Class removed' }}, score {{ number_format((float) $snapshot->average_score_percent, 1) }}%, engagement {{ number_format((float) $snapshot->engagement_score, 1) }}%</div></div><span class="state red">High risk</span></div>
               @empty
                 <div class="empty">No learners are currently marked high risk.</div>
               @endforelse

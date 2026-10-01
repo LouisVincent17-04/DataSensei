@@ -78,7 +78,7 @@
     }
 
     /* Counts shown as plain text. */
-    .chip {
+    .count-text {
       display: inline-flex;
       align-items: baseline;
       gap: 4px;
@@ -87,7 +87,7 @@
       white-space: nowrap;
     }
 
-    .chip strong {
+    .count-text strong {
       color: var(--text);
       font-weight: 600;
       font-variant-numeric: tabular-nums;
@@ -113,6 +113,40 @@
       background: var(--ds-danger-soft);
       border-color: var(--ds-danger-border);
       color: #fee2e2;
+    }
+
+    .alert[hidden] { display: none; }
+
+    /* Saving state and errors beside the fields (DataSensei Updates 7). */
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .save-state {
+      margin: 0;
+      color: var(--muted);
+      font-size: .8125rem;
+      white-space: nowrap;
+    }
+
+    .save-state.is-error { color: var(--ds-danger-text); }
+
+    .field-error {
+      margin: 6px 0 0;
+      color: var(--ds-danger-text);
+      font-size: .8125rem;
+      line-height: 1.4;
+    }
+
+    .field-error[hidden] { display: none; }
+
+    .select.is-invalid { border-color: var(--ds-danger-border); }
+
+    .toolbar-error {
+      grid-column: 1 / -1;
+      margin: 0;
     }
 
     /* ── Filter bar ─────────────────────────────────────── */
@@ -378,23 +412,35 @@
       text-underline-offset: 3px;
     }
 
-    .assigned-pill {
+    /* Plain text (DataSensei Updates 9). */
+    .assigned-label {
       display: none;
       flex-shrink: 0;
-      align-items: center;
-      padding: 2px 8px;
-      border: 1px solid var(--ds-success-border);
-      border-radius: var(--radius-xs);
-      background: var(--ds-success-soft);
       color: var(--ds-success-text);
-      font-size: .75rem;
+      font-size: .8125rem;
       font-weight: 600;
       line-height: 1.4;
       white-space: nowrap;
     }
 
-    .version-row.is-assigned .assigned-pill {
-      display: inline-flex;
+    .remove-link {
+      display: none;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--ds-danger-text, #fca5a5);
+      font: inherit;
+      font-size: .8125rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .remove-link:hover { text-decoration: underline; }
+
+    .version-row.is-assigned .remove-link { display: inline; }
+
+    .version-row.is-assigned .assigned-label {
+      display: inline;
     }
 
     /* ── Empty ──────────────────────────────────────────── */
@@ -448,7 +494,12 @@
         padding: 16px;
       }
 
-      .toolbar > .btn {
+      .toolbar-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .toolbar-actions .btn {
         width: 100%;
       }
 
@@ -484,11 +535,11 @@
           </div>
 
           <div class="header-actions">
-            <div class="chip">
+            <div class="count-text">
               <strong>{{ $totalModuleTitles }}</strong>
               Module Titles
             </div>
-            <div class="chip">
+            <div class="count-text">
               <strong>{{ $totalModuleVersions }}</strong>
               Versions
             </div>
@@ -503,7 +554,9 @@
           <div class="alert danger">{{ $errors->first() }}</div>
         @endif
 
-        <form method="POST" action="{{ route('modules.module-library.assign') }}">
+        <div class="alert" role="status" aria-live="polite" data-library-message hidden></div>
+
+        <form method="POST" action="{{ route('modules.module-library.assign') }}" data-library-form>
           @csrf
 
           <section class="library-panel">
@@ -514,14 +567,14 @@
                   type="search"
                   id="moduleSearch"
                   class="input"
-                  placeholder="Search by title, code, description, version..."
+                  placeholder="Search by title, description, or version..."
                   oninput="filterModules()"
                 >
               </div>
 
               <div class="field">
                 <label>Assign to class</label>
-                <select name="class_id" id="classSelect" class="select" required onchange="updateAssignedMarks()">
+                <select name="class_id" id="classSelect" class="select" required onchange="updateAssignedMarks()" aria-describedby="classSelectError">
                   <option value="">Select class...</option>
                   @foreach ($classes as $class)
                     <option
@@ -532,11 +585,17 @@
                     </option>
                   @endforeach
                 </select>
+                <p class="field-error" id="classSelectError" data-error-for="class_id" hidden></p>
               </div>
 
-              <button type="submit" class="btn primary">
-                Assign Selected
-              </button>
+              <div class="toolbar-actions">
+                <button type="submit" class="btn primary" data-assign-button>
+                  Assign Selected
+                </button>
+                <p class="save-state" data-save-state aria-live="polite"></p>
+              </div>
+
+              <p class="field-error toolbar-error" data-error-for="selected_modules" hidden></p>
             </div>
 
             <div class="body-area">
@@ -599,16 +658,26 @@
                                 <span class="version-info">
                                   <strong>{{ $version->version_name }}</strong>
                                   <small>
-                                    {{ $version->module_code }}
-                                   , {{ $version->version_code }}
-                                   , {{ $version->estimated_minutes }} min
+                                    About {{ $version->estimated_minutes }} min
                                     @unless ($version->is_active)
-                                     , Retired (existing classes only)
+                                     , retired (existing classes only)
                                     @endunless
                                   </small>
                                 </span>
 
-                                <span class="assigned-pill">Assigned</span>
+                                <span class="assigned-label">Assigned</span>
+
+                                <button
+                                  type="submit"
+                                  class="remove-link"
+                                  formaction="{{ route('modules.module-library.unassign') }}"
+                                  formnovalidate
+                                  name="remove_module_id"
+                                  value="{{ $version->id }}"
+                                  onclick="return confirm('Remove this module from the selected class? Its students will no longer see it.');"
+                                >
+                                  Remove from class
+                                </button>
 
                                 <a
                                   href="{{ route('modules.module-library.show', $version) }}"
@@ -687,6 +756,127 @@
     }
 
     document.addEventListener('DOMContentLoaded', updateAssignedMarks);
+
+    // Assigning and removing modules save in the background (DataSensei
+    // Updates 7): the page stays where it is, the class stays selected and
+    // the Assigned marks update. Without fetch the form posts as before.
+    (function () {
+      const form = document.querySelector('[data-library-form]');
+      if (!form || !window.fetch || !window.FormData) return;
+
+      const select = document.getElementById('classSelect');
+      const state = form.querySelector('[data-save-state]');
+      const message = document.querySelector('[data-library-message]');
+      const token = (form.querySelector('input[name="_token"]') || {}).value || '';
+      let busy = false;
+
+      function setState(text, isError) {
+        state.textContent = text;
+        state.classList.toggle('is-error', !!isError);
+      }
+
+      function showMessage(text, kind) {
+        message.textContent = text || '';
+        message.className = 'alert ' + (kind || 'success');
+        message.hidden = !text;
+      }
+
+      function clearErrors() {
+        form.querySelectorAll('[data-error-for]').forEach(node => { node.hidden = true; node.textContent = ''; });
+        select.classList.remove('is-invalid');
+      }
+
+      function showErrors(errors) {
+        let shown = false;
+        Object.keys(errors || {}).forEach(field => {
+          const key = field.split('.')[0];
+          const target = form.querySelector('[data-error-for="' + key + '"]') || form.querySelector('[data-error-for="selected_modules"]');
+          const text = [].concat(errors[field])[0];
+          if (!target || !text) return;
+          target.textContent = text;
+          target.hidden = false;
+          if (key === 'class_id') select.classList.add('is-invalid');
+          shown = true;
+        });
+        return shown;
+      }
+
+      function setBusy(value) {
+        busy = value;
+        form.querySelectorAll('button[type="submit"]').forEach(button => { button.disabled = value; });
+        form.setAttribute('aria-busy', value ? 'true' : 'false');
+      }
+
+      select.addEventListener('change', () => {
+        select.classList.remove('is-invalid');
+        const error = form.querySelector('[data-error-for="class_id"]');
+        error.hidden = true;
+      });
+
+      form.addEventListener('submit', event => {
+        const submitter = event.submitter || document.activeElement;
+        const removing = !!(submitter && submitter.name === 'remove_module_id');
+        event.preventDefault();
+        if (busy) return;
+
+        clearErrors();
+        showMessage('');
+
+        if (!select.value) {
+          showErrors({ class_id: ['Select a class first.'] });
+          setState('Failed to save', true);
+          select.focus();
+          return;
+        }
+
+        const data = new FormData(form);
+        let url = form.action;
+        if (removing) {
+          url = submitter.getAttribute('formaction');
+          data.set('remove_module_id', submitter.value);
+        }
+
+        setBusy(true);
+        setState('Saving...');
+
+        fetch(url, {
+          method: 'POST',
+          body: data,
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token },
+        })
+          .then(response => response.json().catch(() => ({})).then(json => ({ response, json })))
+          .then(({ response, json }) => {
+            if (response.ok) {
+              const option = select.querySelector('option[value="' + json.class_id + '"]');
+              if (option) option.dataset.assigned = JSON.stringify(json.assigned_module_ids || []);
+              updateAssignedMarks();
+              if (!removing) {
+                form.querySelectorAll('.skip-row input[type="radio"]').forEach(radio => { radio.checked = true; });
+              }
+              setState('Saved');
+              showMessage(json.message, 'success');
+              return;
+            }
+
+            setState('Failed to save', true);
+            if (response.status === 422) {
+              if (!showErrors(json.errors)) showMessage(json.message || 'The changes could not be saved.', 'danger');
+            } else if (response.status === 419) {
+              showMessage('Your session has expired. Reload the page, then try again.', 'danger');
+            } else if (response.status === 401) {
+              showMessage('You have been signed out. Sign in again, then try again.', 'danger');
+            } else {
+              showMessage(json.message || 'The changes could not be saved (error ' + response.status + '). Try again.', 'danger');
+            }
+          })
+          .catch(() => {
+            setState('Failed to save', true);
+            showMessage('Could not reach the server. Check your connection and try again.', 'danger');
+          })
+          .finally(() => setBusy(false));
+      });
+    })();
   </script>
 </body>
 </html>

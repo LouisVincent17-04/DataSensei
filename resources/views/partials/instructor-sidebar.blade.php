@@ -69,13 +69,6 @@
       Challenge Builder
     </a>
 
-    <a href="{{ $safeRoute('instructor.class-challenges.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.class-challenges.*') ? 'active' : '' }}">
-      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 13l2 2 4-4"/>
-      </svg>
-      Class Challenges
-    </a>
     <a href="{{ $safeRoute('instructor.assessments.index', '#') }}"
        class="nav-item {{ request()->routeIs('instructor.assessments.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -138,38 +131,12 @@
   <nav class="nav-group">
     <div class="nav-label">Analytics</div>
 
-    <a href="{{ $safeRoute('instructor.model-development.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.model-development.*') ? 'active' : '' }}">
-      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M4 19V5a2 2 0 012-2h12a2 2 0 012 2v14"/>
-        <path d="M8 15l3-3 2 2 3-4"/><path d="M4 19h16"/>
-      </svg>
-      Student Model Development
-    </a>
-
     <a href="{{ $safeRoute('instructor.analytics.index', '#') }}"
        class="nav-item {{ request()->routeIs('instructor.analytics.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
       Class Analytics
-    </a>
-
-    <a href="{{ $safeRoute('instructor.competencies.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.competencies.*') ? 'active' : '' }}">
-      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/>
-        <path d="M2 21h20"/>
-      </svg>
-      Skills Competency Matrix
-    </a>
-
-    <a href="{{ $safeRoute('instructor.mastery.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.mastery.*') ? 'active' : '' }}">
-      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z"/>
-      </svg>
-      ILO Mastery
     </a>
 
     <a href="{{ $safeRoute('instructor.risk.index', '#') }}"
@@ -187,7 +154,7 @@
         <path d="M12 10v6m0 0l-3-3m3 3l3-3"/>
         <path d="M4 4h16v16H4z"/>
       </svg>
-      Reports & Exports
+      Reports
     </a>
   </nav>
 

@@ -31,28 +31,41 @@ class ExecutionErrorDiagnosticService
         ?string $outcome = null
     ): string {
         $diagnostic = $this->diagnose($language, $runOutput);
+        $reason = $this->reasonFor($outcome, $isChat);
+
+        // A follow-up question is not answered by repeating the error summary
+        // of the run; that read as if the question had been ignored. Say that
+        // this question was not answered and keep the error as a reminder.
+        if ($isChat) {
+            $lines = [
+                'Status: Not Answered',
+                "Feedback: {$reason} Your code and last run are still loaded, so you can ask the same question again in a moment.",
+            ];
+
+            if ($diagnostic !== null) {
+                $lines[] = 'Error: '.$diagnostic['error'].($diagnostic['location'] !== '' ? ' ('.$diagnostic['location'].')' : '');
+                $lines[] = 'Explanation: '.$diagnostic['explanation'];
+            }
+
+            return implode("\n", $lines);
+        }
+
         if ($diagnostic !== null) {
             return $this->format($diagnostic);
         }
 
         $subject = $language === 'sql' ? 'query' : 'program';
-        $reason = $this->reasonFor($outcome, $isChat);
 
         $lines = [
             'Status: Not Reviewed',
-            $isChat
-                ? "Feedback: {$reason} Your last run is still loaded, so you can ask again in a moment."
-                : "Feedback: Your {$subject} ran and reported no execution error. {$reason} Nothing is wrong with your run.",
-        ];
-
-        if (! $isChat) {
-            $lines[] = 'Check On Your Own:';
-            $lines[] = '- Compare the result with the expected output or requirement.';
-            $lines[] = '- Test empty, invalid, and boundary inputs where applicable.';
-            $lines[] = $language === 'sql'
+            "Feedback: Your {$subject} ran and reported no execution error. {$reason} Nothing is wrong with your run.",
+            'Check On Your Own:',
+            '- Compare the result with the expected output or requirement.',
+            '- Test empty, invalid, and boundary inputs where applicable.',
+            $language === 'sql'
                 ? '- Confirm that the selected tables, columns, joins, filters, and grouping match the current sandbox schema.'
-                : '- Review input handling, conditions, loops, function results, and edge cases.';
-        }
+                : '- Review input handling, conditions, loops, function results, and edge cases.',
+        ];
 
         return implode("\n", $lines);
     }

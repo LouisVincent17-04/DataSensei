@@ -5,7 +5,11 @@
     'contentSections' => $contentSections,
     'mcqQuestions' => $mcqQuestions,
     'relatedVersions' => $relatedVersions,
+    'learningOutcomes' => $learningOutcomes ?? [],
     'viewerRole' => 'Student',
-    'backRoute' => route('student.modules.index'),
+    'backRoute' => $backRoute ?? route('modules.index'),
     'versionRouteName' => 'student.modules.show',
+    'versionRouteExtra' => ($versionClassId ?? null) ? ['class' => $versionClassId] : [],
+    'sectionOnly' => $sectionOnly ?? false,
+    'completion' => $completion ?? null,
 ])

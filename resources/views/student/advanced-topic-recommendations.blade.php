@@ -41,6 +41,7 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
 .table td{color:var(--ds-text-secondary);font-size:.875rem}
 .table td:first-child{color:var(--text);font-weight:500}
 .table td.muted{color:var(--muted);font-size:.8125rem}
+.table td.wrap{min-width:280px;line-height:1.5}
 .table :is(th,td):first-child{padding-left:20px}
 .table :is(th,td):last-child{padding-right:20px}
 .table tbody tr:last-child td{border-bottom:0}
@@ -117,38 +118,100 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
   @include('partials.sidebar')
   <main class="main">
 
+    @php $n = fn ($value) => rtrim(rtrim(number_format((float) $value, 1, '.', ''), '0'), '.'); @endphp
+
     <div class="top">
       <div>
         <h1 class="title ds-page-title">Advanced Topic Recommendations</h1>
-        <div class="subtitle">DataSensei recommends higher difficulty paths when your score, time efficiency, and completion evidence show exceptional mastery.</div>
+        <div class="subtitle">A level opens when you have 2 different qualifying modules in the level below it. A module qualifies when one attempt reaches the score and stays within the time shown below. Your best attempt at each module counts, and each module counts once. For coding challenges, the score and time are the averages of the items in that challenge.</div>
       </div>
     </div>
 
     @if($recommendations->isEmpty())
       <div class="card">
-        <h2>No advanced recommendation yet</h2>
-        <p class="muted">Complete a full difficulty path with excellent accuracy and efficient time use. When you show exceptional performance, the next-next difficulty can unlock early.</p>
+        <h2>No new level unlocked yet</h2>
+        <p class="muted">Newbie modules need at least 80% score with 50% time consumed or less, Intermediate modules 75% with 70% or less, and Advanced modules 70% with 80% or less. Two qualifying modules open the next level, starting with its first module.</p>
       </div>
     @else
       <div class="grid-2">
         @foreach($recommendations as $item)
           <div class="card">
-            <span class="badge good">{{ $item['track_label'] }}</span>
-            <h2>{{ $item['target_name'] }}</h2>
-            <p class="muted">Recommended because of exceptional performance in <strong>{{ $item['source_name'] }}</strong>.</p>
-            <p>Average Score: <strong>{{ $item['score'] }}%</strong></p>
-            @if($item['time_ratio'] !== null)
-              <p>Average Time Used: <strong>{{ round($item['time_ratio'] * 100) }}% of limit</strong></p>
+            <h2>{{ $item['target_name'] }} is unlocked for {{ $item['track'] === 'coding' ? 'coding challenges' : 'MCQ challenges' }}</h2>
+            <p class="muted">{{ $item['message'] }}</p>
+            @foreach(array_slice($item['qualifying_modules'], 0, $item['required']) as $module)
+              <p>{{ $module['title'] }}: <strong>{{ $n($module['score']) }}%</strong> score, <strong>{{ $n($module['time']) }}%</strong> time consumed</p>
+            @endforeach
+            @if(count($item['qualifying_modules']) > $item['required'])
+              @php $more = count($item['qualifying_modules']) - $item['required']; @endphp
+              <p>{{ $more }} more qualifying {{ $more === 1 ? 'module is' : 'modules are' }} listed in your module results below.</p>
             @endif
-            @if($item['attempts'] !== null)
-              <p>Average Attempts: <strong>{{ round($item['attempts'], 2) }}</strong></p>
-            @endif
-            <a class="btn" href="{{ $item['url'] }}">Open Recommended Path</a>
+            <a class="btn" href="{{ $item['url'] }}">Open {{ $item['target_name'] }}</a>
           </div>
         @endforeach
       </div>
     @endif
 
+    <div class="card table-wrap">
+      <h2>Your progress toward each level</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Level</th>
+            <th scope="col">Qualifying modules</th>
+            <th scope="col">Each module needs</th>
+            <th scope="col">Opens</th>
+            <th scope="col">Status</th>
+            <th scope="col">What is left</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach($progress as $row)
+            <tr>
+              <td>{{ $row['track'] === 'coding' ? 'Coding' : 'Multiple choice' }}</td>
+              <td>{{ $row['source_name'] }}</td>
+              <td>{{ min($row['qualifying'], $row['required']) }} of {{ $row['required'] }}@if($row['qualifying'] > $row['required']) <span class="muted">({{ $row['qualifying'] }} in all)</span>@endif</td>
+              <td>{{ $n($row['required_score']) }}% score, {{ $n($row['required_time']) }}% time or less</td>
+              <td>{{ $row['target_name'] }}</td>
+              <td>{{ $row['status'] === 'Not yet' && $row['total_modules'] === 0 ? 'No modules yet' : $row['status'] }}</td>
+              <td class="muted wrap">{{ $row['message'] }}</td>
+            </tr>
+          @endforeach
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card table-wrap">
+      <h2>Your module results</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Level</th>
+            <th scope="col">Module</th>
+            <th scope="col">Score</th>
+            <th scope="col">Time consumed</th>
+            <th scope="col">Counts toward the next level</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($moduleResults as $result)
+            <tr>
+              <td>{{ $result['track'] === 'coding' ? 'Coding' : 'Multiple choice' }}</td>
+              <td>{{ $result['level'] }}</td>
+              <td>{{ $result['module'] }}</td>
+              <td>{{ $result['score'] === null ? '—' : $n($result['score']) . '%' }} <span class="muted">(needs {{ $n($result['required_score']) }}%)</span></td>
+              <td>{{ $result['time'] === null ? '—' : $n($result['time']) . '%' }} <span class="muted">(needs {{ $n($result['required_time']) }}% or less)</span></td>
+              <td>{{ $result['qualifies'] ? 'Yes' : 'No: ' . lcfirst($result['note']) }}</td>
+            </tr>
+          @empty
+            <tr>
+              <td colspan="6" class="muted">No module results yet. Finish a Newbie module to see how it counts.</td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
   </main>
 </div>
 </body>

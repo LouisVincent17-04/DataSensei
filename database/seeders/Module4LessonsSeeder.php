@@ -1094,28 +1094,11 @@ HTML;
         ];
 
         $finalContent = <<<'HTML'
-<div id="org-lock-screen" style="text-align:center;padding:60px 20px;">
-    <h2 style="color:var(--text);">🔒 Final Examination</h2>
-    <p style="color:var(--muted);max-width:400px;margin:0 auto 16px;">The Module 4 Final Exam is available exclusively to enrolled students.</p>
-    <p style="font-size:0.85rem;color:#f59e0b;margin-top:1rem;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;display:inline-block;">Please contact administration to link your account to an organisation.</p>
-</div>
-<div id="final-exam-content" style="display:none;">
-    <h2>Module 4: Final Examination</h2>
-    <p>This comprehensive exam covers all topics from Lessons 4.1 through 4.10 — real numbers, sequences, limits of functions, continuity, derivatives, the MVT, L'Hôpital's Rule, the definite integral, the Fundamental Theorem of Calculus, integration techniques, and infinite series. Good luck!</p>
+<h2>Module 4: Final Examination</h2>
+<p>This comprehensive exam covers all topics from Lessons 4.1 through 4.10 — real numbers, sequences, limits of functions, continuity, derivatives, the MVT, L'Hôpital's Rule, the definite integral, the Fundamental Theorem of Calculus, integration techniques, and infinite series. Good luck!</p>
 HTML;
 
         $finalContent .= $this->appendQuiz('', 'FINAL_EXAM', $allFinalQuestions);
-        $finalContent .= '</div>';
-        $finalContent .= <<<HTML
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.USER_ORG_ID !== 'undefined' && window.USER_ORG_ID !== null && window.USER_ORG_ID !== '') {
-        document.getElementById('org-lock-screen').style.display = 'none';
-        document.getElementById('final-exam-content').style.display = 'block';
-    }
-});
-</script>
-HTML;
 
         Lesson::create([
             'module_id'   => $mathModule->id,

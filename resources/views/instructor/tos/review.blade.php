@@ -31,7 +31,7 @@
           <strong>{{ $status['label'] }}</strong>
           <div class="muted">{{ $status['message'] }}</div>
         </div>
-        <span class="badge {{ $statusClass }}">{{ $tos->rows->sum('item_count') }} / {{ $tos->total_items ?: $tos->rows->sum('item_count') }} items</span>
+        <span class="state {{ $statusClass }}">{{ $tos->rows->sum('item_count') }} / {{ $tos->total_items ?: $tos->rows->sum('item_count') }} items</span>
       </div>
 
       <div class="grid grid-2" style="margin-top:16px">
@@ -40,7 +40,7 @@
           <div class="review-row"><span>Subject / Course</span><strong>{{ $tos->classRoom->name ?? 'Template / no class' }}</strong></div>
           <div class="review-row"><span>Coverage</span><strong>{{ $tos->coverage_label }}{{ $module ? ' — '.$module->title : '' }}</strong></div>
           <div class="review-row"><span>Total Number of Items</span><strong>{{ $tos->total_items ?: $tos->rows->sum('item_count') }}</strong></div>
-          <div class="review-row"><span>Blueprint Status</span><span class="badge {{ $statusClass }}">{{ $status['label'] }}</span></div>
+          <div class="review-row"><span>Blueprint Status</span><span class="state {{ $statusClass }}">{{ $status['label'] }}</span></div>
         </section>
 
         <section class="card">

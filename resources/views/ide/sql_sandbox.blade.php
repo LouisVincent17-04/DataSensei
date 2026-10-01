@@ -406,6 +406,15 @@
         .rb-clear { min-height: 32px; padding: 0 8px; margin-left: -8px; font: 500 .8125rem/1.2 var(--ds-font-sans); color: var(--muted); background: transparent; border: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background .12s ease, color .12s ease; }
         .rb-clear:hover { color: var(--text); background: var(--surface2); }
         .rb-clear:disabled { opacity: .55; cursor: not-allowed; }
+        /* Code sent for review: a short preview with See more for the whole code */
+        .rb-msg.rb-user .rb-bubble.rb-expanded { max-height: none; }
+        .rb-more { display: block; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--ds-accent-text); font: 600 .75rem/1.3 var(--ds-font-sans); cursor: pointer; }
+        .rb-more:hover { text-decoration: underline; }
+        /* Expand: read long reviewer answers in a larger panel */
+        .rb-expand { flex-shrink: 0; min-height: 28px; padding: 0 8px; font: 500 .75rem/1.2 var(--ds-font-sans); color: var(--muted); background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: background .12s ease, color .12s ease; }
+        .rb-expand:hover { color: var(--text); background: var(--surface2); }
+        #rb-panel.rb-wide { width: min(760px, calc(100vw - 40px)); height: calc(100dvh - 120px); }
+        #rb-panel.rb-wide .rb-line, #rb-panel.rb-wide .rb-bullet { font-size: .875rem; }
         #rb-send {
           display: inline-flex; align-items: center; gap: 6px;
           min-height: 32px; padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--accent);
@@ -532,9 +541,9 @@
                         <option value="join_group">JOIN + GROUP BY</option>
                         <option value="safe_update">Safe UPDATE</option>
                     </select>
-                    <button class="tb-btn run" id="run-btn" onclick="runQuery()">
+                    <button class="tb-btn run" id="run-btn" onclick="runQuery()" title="Runs the highlighted SQL when text is selected, otherwise everything in the editor">
                         <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
-                        Run Query
+                        <span id="run-btn-label">Run Query</span>
                     </button>
                     <button class="tb-btn" onclick="clearAll()">Clear</button>
                     <div class="spinner" id="spinner"></div>
@@ -599,6 +608,7 @@
     <div class="rb-status" id="rb-status">
       <div class="rb-status-dot"></div><span>Ready</span>
     </div>
+    <button type="button" class="rb-expand" id="rb-expand" aria-pressed="false" onclick="ReviewBot.toggleWide()" title="Show the conversation in a larger panel">Expand</button>
   </div>
 
   <div id="rb-msgs"></div>
@@ -686,6 +696,9 @@ const ReviewBot = (() => {
   let _lastCode = '';
   let _lastLang = 'sqlite';
   let _lastRunOutput = '';
+  // The reviewer keeps the last query, its result and the conversation for
+  // this browser tab, so a reload does not make it forget them.
+  const STATE_KEY = @json('datasensei:reviewer:sql:'.auth()->id());
   let _activeController = null;
   // A review that outlived the request keeps going on the server.
   let _backgroundWait = null;
@@ -698,6 +711,55 @@ const ReviewBot = (() => {
   const $status = () => document.getElementById('rb-status');
   const $send   = () => document.getElementById('rb-send');
   const $input  = () => document.getElementById('rb-input');
+
+  function _persist() {
+    try {
+      const messages = $msgs().cloneNode(true);
+      messages.querySelectorAll('.rb-typing').forEach(el => el.remove());
+      const html = messages.innerHTML;
+      sessionStorage.setItem(STATE_KEY, JSON.stringify({
+        code: _lastCode,
+        output: _lastRunOutput,
+        history: _history.slice(-12),
+        html: html.length <= 300000 ? html : '',
+      }));
+    } catch (_) {
+      // Private mode or a full storage quota: the chat still works for this page.
+    }
+  }
+
+  function _restore() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STATE_KEY) || 'null');
+      if (!saved || typeof saved !== 'object') return;
+      _lastCode = String(saved.code || '');
+      _lastRunOutput = String(saved.output || '');
+      _history.length = 0;
+      (Array.isArray(saved.history) ? saved.history : []).forEach(item => {
+        if (item && (item.role === 'user' || item.role === 'assistant')) {
+          _history.push({ role: item.role, content: String(item.content || '') });
+        }
+      });
+      if (saved.html) {
+        $msgs().innerHTML = saved.html;
+        if (_lastCode) $toggle().classList.add('rb-has-review');
+      }
+    } catch (_) {
+      // Ignore unreadable saved state.
+    }
+  }
+
+  // Tables and columns of the student's sandbox, filled in by loadTables().
+  function _schema() {
+    return String(window.DataSenseiSqlSchema || '').slice(0, 10000);
+  }
+
+  // Recent turns, labelled and bounded so the request never exceeds the limit.
+  function _conversationContext(excludeLast) {
+    const turns = (excludeLast ? _history.slice(0, -1) : _history).slice(-6);
+    const text = turns.map(h => `${h.role === 'user' ? 'STUDENT' : 'REVIEWER'}: ${h.content}`).join('\n---\n');
+    return text.length > 12000 ? text.slice(-12000) : text;
+  }
 
   /* ── Open / close ── */
   function toggle() {
@@ -736,8 +798,7 @@ const ReviewBot = (() => {
     $toggle().classList.add('rb-has-review');
 
     // Show user bubble — truncated SQL preview
-    const preview = sql.length > 220 ? sql.slice(0, 217) + '…' : sql;
-    _addUser(preview);
+    _addCode(sql);
 
     _addBot(
       '<div class="rb-line">I see you just ran a <strong style="color:var(--text)">SQL query</strong> — let me review it now...</div>'
@@ -746,36 +807,32 @@ const ReviewBot = (() => {
     _sendReview(sql, 'sqlite');
   }
 
-  /* ── Code generation detection ── */
-  const CODE_GEN_RE = /\b(generate|write\s+(?:me\s+)?(?:a|the|this|some)?|create|give\s+me|produce|make\s+me|implement|build)\b.{0,40}\b(code|function|class|script|program|solution|example|snippet|query|sql)\b/i;
-  function _isCodeGenRequest(text) {
-    return CODE_GEN_RE.test(text);
-  }
-
   /* ── Manual follow-up from input ── */
+  // Requests for a finished query are answered by the server with a short
+  // guidance note; every other question goes to the reviewer. The old check
+  // here also blocked questions such as "Did I write the query right?".
   function sendFollowUp() {
     const question = $input().value.trim();
     if (!question || _busy) return;
 
-    // Block code generation requests on the frontend
-    if (_isCodeGenRequest(question)) {
-      $input().value = '';
-      _addUser(question);
-      _addBot(
-        '<div class="rb-line" style="color:var(--warn2)">⚠ I\'m an <strong style="color:var(--text)">SQL reviewer</strong>, not a query generator. ' +
-        'I can\'t write or produce SQL for you — but I can help you understand issues in your existing query, explain concepts, or point you in the right direction.</div>'
-      );
-      return;
+    if (!_lastCode.trim()) {
+      // No run yet in this tab: discuss the SQL in the editor.
+      const editorSql = (document.getElementById('query')?.value || '').trim();
+      if (!editorSql) {
+        _addBot('<div class="rb-line" style="color:var(--warn2)">Type or run a query first so I have SQL to discuss.</div>');
+        return;
+      }
+      _lastCode = editorSql;
+      _lastRunOutput = '';
     }
 
     $input().value = '';
     _addUser(question);
 
-    const messages = _history.length
-      ? [..._history, { role: 'user', content: question }]
-      : [{ role: 'user', content: `Regarding this SQL query:\n\`\`\`sql\n${_lastCode}\n\`\`\`\n\n${question}` }];
-
-    _callAI(messages);
+    // The question is part of the conversation the next answers build on.
+    _history.push({ role: 'user', content: question });
+    _persist();
+    _callAI(question);
   }
 
   function handleKey(e) {
@@ -784,9 +841,11 @@ const ReviewBot = (() => {
 
   /* ── Clear ── */
   function clear() {
+    if (_busy) return;
     $msgs().innerHTML = '';
     _history.length = 0;
     _addWelcome();
+    _persist();
   }
 
   function _boundedRunOutput(output) {
@@ -803,7 +862,7 @@ const ReviewBot = (() => {
       return 'Status: Has Issues\nFeedback: The SQL Sandbox reported an execution error. The detailed reviewer was unavailable, but the original database error remains valid.\nSteps to Fix:\n- Read the reported error and identify the affected statement.\n- Check the table name, column names, clause order, and database constraints.\n- Correct the underlying cause and run the query again.';
     }
     return isChat
-      ? 'Status: Review Limited\nFeedback: The detailed reviewer was unavailable within the response deadline. Review the current query and result, then ask a narrower question or try again.'
+      ? 'Status: Not Answered\nFeedback: The AI reviewer could not be reached from this page. Your query and its result are still loaded, so you can ask the same question again in a moment.'
       : 'Status: Review Limited\nFeedback: The query completed, but the detailed reviewer was unavailable within the response deadline. Check that the result matches the intended rows and columns.';
   }
 
@@ -902,6 +961,7 @@ const ReviewBot = (() => {
       form.append('code',     code);
       form.append('language', lang || 'sqlite');
       form.append('run_output', _boundedRunOutput(_lastRunOutput));
+      form.append('schema',   _schema());
 
       const res  = await _postReview(form);
       const data = await _readJsonResponse(res);
@@ -925,11 +985,12 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } finally {
       if (generation === _generation) _setBusy(false);
+      _persist();
     }
   }
 
   /* ── Core: send follow-up ── */
-  async function _callAI(messages) {
+  async function _callAI(question) {
     const generation = ++_generation;
     const typingId = _addTyping();
     _setBusy(true);
@@ -939,14 +1000,30 @@ const ReviewBot = (() => {
       form.append('mode',     'chat');
       form.append('code',     _lastCode);
       form.append('language', _lastLang);
-      form.append('question', messages[messages.length - 1].content);
+      form.append('question', question);
       form.append('run_output', _boundedRunOutput(_lastRunOutput));
-      form.append('previous_context', _history.map(h => h.content).slice(-4).join('\n---\n'));
+      form.append('previous_context', _conversationContext(true));
+      form.append('schema',   _schema());
+      // The editor may hold a changed query that has not been run yet.
+      const editorSql = (document.getElementById('query')?.value || '').trim();
+      if (editorSql && editorSql !== _lastCode.trim() && !editorSql.includes(_lastCode.trim())) {
+        form.append('current_code', editorSql.slice(0, 50000));
+      }
       form.append('stream', '1');
 
       let finalMessage = '';
       let pending = null;
       const res = await _postReview(form, async response => {
+        // Policy notes, waiting-in-line answers and fallbacks arrive as plain
+        // JSON rather than a stream. They used to be dropped, and the panel
+        // said the reviewer was unavailable instead.
+        const type = response.headers.get('content-type') || '';
+        if (!type.includes('text/event-stream')) {
+          const data = await _readJsonResponse(response);
+          if (data.pending && data.status_url) pending = data;
+          else finalMessage = data.message || '';
+          return;
+        }
         await _readEventStream(response, event => {
           if (event.event === 'done') finalMessage = event.data.message || '';
           if (event.event === 'pending' && event.data.status_url) pending = event.data;
@@ -969,6 +1046,7 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } finally {
       if (generation === _generation) _setBusy(false);
+      _persist();
     }
   }
 
@@ -1045,6 +1123,36 @@ const ReviewBot = (() => {
   }
 
   /* ── DOM helpers ── */
+  // The code bubble shows the first lines; See more reveals all of it. Both
+  // versions are in the markup, so a conversation restored after a reload
+  // keeps working (the click is handled on the message list).
+  function _addCode(code) {
+    const full = String(code || '');
+    const lines = full.split('\n');
+    const long = full.length > 220 || lines.length > 6;
+    if (!long) {
+      _addUser(full);
+      return;
+    }
+    const preview = lines.slice(0, 6).join('\n').slice(0, 217) + '…';
+    const html = `<div class="rb-code-preview">${escH(preview)}</div><div class="rb-code-full" hidden>${escH(full)}</div><button type="button" class="rb-more" aria-expanded="false">See more (${lines.length} lines)</button>`;
+    $msgs().appendChild(_buildMsg('rb-user', html));
+    _scroll();
+  }
+
+  document.addEventListener('click', event => {
+    const button = event.target.closest('#rb-msgs .rb-more');
+    if (!button) return;
+    const bubble = button.closest('.rb-bubble');
+    const expanded = button.getAttribute('aria-expanded') !== 'true';
+    bubble.querySelector('.rb-code-preview').hidden = expanded;
+    bubble.querySelector('.rb-code-full').hidden = !expanded;
+    bubble.classList.toggle('rb-expanded', expanded);
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    const count = bubble.querySelector('.rb-code-full').textContent.split('\n').length;
+    button.textContent = expanded ? 'See less' : `See more (${count} lines)`;
+  });
+
   function _addUser(text) {
     const el = _buildMsg('rb-user', escH(text));
     $msgs().appendChild(el);
@@ -1098,10 +1206,21 @@ const ReviewBot = (() => {
   function _formatReview(raw) {
     if (!raw || !raw.trim()) return '<div class="rb-line" style="color:var(--dim)">(No response)</div>';
     const SECTION = /^(Status|Issues?|Fix|Suggestion|Suggestions|Warning|Warnings|Notes?|Summary|Result|Performance|Optimization)s?:/i;
-    const proseOnly = raw.replace(/```[\s\S]*?```/g, '').replace(/`/g, '');
+    // The server has already removed any SQL; a fenced block that remains is
+    // query output, so it is shown as a block instead of being dropped.
+    const blocks = [];
+    const proseOnly = raw.replace(/```[^\n`]*\n?([\s\S]*?)(?:```|$)/g, (_, body) => {
+      blocks.push(body.replace(/\n+$/, ''));
+      return `\n\u0000${blocks.length - 1}\u0000\n`;
+    }).replace(/`/g, '');
     let html = '';
     for (const line of proseOnly.split('\n')) {
         const t = line.trim(); if (!t) continue;
+        const block = t.match(/^\u0000(\d+)\u0000$/);
+        if (block) {
+          html += `<div class="rb-code">${escH(blocks[Number(block[1])] || '')}</div>`;
+          continue;
+        }
         if (SECTION.test(t)) {
           const cls = /correct|clean|good|pass|ok/i.test(t) ? 'rb-section ok' : /error|issue|fail|wrong/i.test(t) ? 'rb-section err' : 'rb-section';
           html += `<div class="${cls}">${escH(t)}</div>`;
@@ -1120,7 +1239,26 @@ const ReviewBot = (() => {
     return (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  return { toggle, autoReview, sendFollowUp, handleKey, clear };
+  /* Larger panel for reading long answers in full. */
+  function toggleWide() {
+    const panel = $panel();
+    if (!panel) return;
+    const wide = panel.classList.toggle('rb-wide');
+    const button = document.getElementById('rb-expand');
+    if (button) {
+      button.textContent = wide ? 'Collapse' : 'Expand';
+      button.setAttribute('aria-pressed', wide ? 'true' : 'false');
+    }
+    _scroll();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _restore);
+  } else {
+    _restore();
+  }
+
+  return { toggle, autoReview, sendFollowUp, handleKey, clear, toggleWide };
 })();
 </script>
 
@@ -1336,8 +1474,29 @@ WHERE id = 2;`
     function updateLines() {
         const n = $query.value.split('\n').length;
         $lineNums.innerHTML = Array.from({length: n}, (_, i) => `<span>${i + 1}</span>`).join('');
+        syncRunLabel();
     }
     $query.addEventListener('input', updateLines);
+
+    // ── Run selection ─────────────────────────────────────────────────────
+    // With text highlighted in the editor, Run (and Ctrl+Enter) executes only
+    // that text, like other SQL tools. The textarea keeps its selection when
+    // the Run button takes focus, so the click still sees it.
+    function selectedSql() {
+        const start = $query.selectionStart ?? 0;
+        const end = $query.selectionEnd ?? 0;
+        return end > start ? $query.value.slice(start, end).trim() : '';
+    }
+
+    function syncRunLabel() {
+        const label = document.getElementById('run-btn-label');
+        if (label) label.textContent = selectedSql() ? 'Run Selection' : 'Run Query';
+    }
+
+    ['select', 'keyup', 'mouseup', 'focus'].forEach(type => $query.addEventListener(type, syncRunLabel));
+    document.addEventListener('selectionchange', () => {
+        if (document.activeElement === $query) syncRunLabel();
+    });
     $query.addEventListener('scroll', () => { $lineNums.scrollTop = $query.scrollTop; });
 
     // ── Full-width bottom resize handle ───────────────────────────────────
@@ -1531,7 +1690,7 @@ WHERE id = 2;`
 
     // ── Run Query ─────────────────────────────────────────────────────────
     window.runQuery = async () => {
-        const q = $query.value.trim();
+        const q = selectedSql() || $query.value.trim();
         if (!q) return;
 
         $runBtn.disabled = true;
@@ -1551,8 +1710,9 @@ WHERE id = 2;`
                 reviewOutput = cols
                     ? `Columns: ${cols.join(', ')}\nRows returned: ${(data.rows || []).length}\nPreview: ${JSON.stringify((data.rows || []).slice(0, 5))}`
                     : (data.message || 'SQL executed successfully.');
-                // Refresh sidebar schema in case CREATE/DROP/ALTER ran
-                loadTables();
+                // Refresh sidebar schema in case CREATE/DROP/ALTER ran; the
+                // reviewer below reads the refreshed tables and columns.
+                await loadTables();
             } else {
                 showResult(false, data.message || 'Query failed.');
                 reviewOutput = data.message || 'Query failed.';
@@ -1582,6 +1742,11 @@ WHERE id = 2;`
                 fill.classList.toggle('full', data.count >= data.limit);
             }
             document.getElementById('quota-text').textContent = `${data.count}/${data.limit}`;
+
+            // Tables and columns for the AI reviewer, so it can check names.
+            window.DataSenseiSqlSchema = (data.tables || []).map(table =>
+                `${table.name}(${(table.columns || []).map(column => `${column.name} ${column.type}${column.pk ? ' PRIMARY KEY' : ''}`).join(', ')})`
+            ).join('\n');
 
             if (data.tables.length === 0) {
                 $tableList.innerHTML = '<div class="empty-state">No tables yet</div>';

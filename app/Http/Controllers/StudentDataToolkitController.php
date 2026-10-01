@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SchemaInspector;
 use App\Models\StudentDataToolkitActivity;
 use App\Services\DataToolkit\BuiltInDatasetService;
 use App\Services\DataToolkit\DataToolkitAnalysisService;
@@ -10,7 +11,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -335,7 +335,7 @@ class StudentDataToolkitController extends Controller
      */
     private function recordActivity(string $datasetKey, string $activityType, array $selectedColumns = [], array $summary = []): void
     {
-        if (! Auth::check() || ! Schema::hasTable('student_data_toolkit_activities')) {
+        if (! Auth::check() || ! SchemaInspector::hasTable('student_data_toolkit_activities')) {
             return;
         }
 

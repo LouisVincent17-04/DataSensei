@@ -198,6 +198,33 @@
       background: var(--surface);
     }
 
+    .card + .card { margin-top: 18px; }
+
+    .card-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-head h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 650;
+    }
+
+    .card-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: .8125rem;
+      line-height: 1.45;
+    }
+
+    .empty-line {
+      padding: 20px;
+      color: var(--muted);
+      font-size: .875rem;
+    }
+
     .toolbar {
       display: grid;
       grid-template-columns: minmax(240px, 1fr) 220px auto auto;
@@ -344,52 +371,26 @@
       font-size: .8125rem;
     }
 
-    /* "Attempt #n" is plain text; statuses are compact labels */
-    .attempt-badge {
+    /* "Attempt #n" and statuses are plain text (DataSensei Updates 9) */
+    .attempt-text {
       color: var(--ds-text-secondary);
       font-size: .875rem;
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
     }
 
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid var(--ds-border-strong);
-      border-radius: var(--radius-xs);
-      background: var(--surface2);
-      padding: 2px 8px;
+    .state {
       color: var(--ds-text-secondary);
-      font-size: .75rem;
-      font-weight: 600;
+      font-size: .875rem;
+      font-weight: 500;
       line-height: 1.4;
       white-space: nowrap;
     }
 
-    .pill.good {
-      color: var(--ds-success-text);
-      border-color: var(--ds-success-border);
-      background: var(--ds-success-soft);
-    }
-
-    .pill.warn {
-      color: var(--ds-warning-text);
-      border-color: var(--ds-warning-border);
-      background: var(--ds-warning-soft);
-    }
-
-    .pill.danger {
-      color: var(--ds-danger-text);
-      border-color: var(--ds-danger-border);
-      background: var(--ds-danger-soft);
-    }
-
-    .pill.info {
-      color: var(--ds-accent-text);
-      border-color: var(--ds-accent-border);
-      background: var(--ds-accent-soft);
-    }
+    .state.good { color: var(--ds-success-text); }
+    .state.warn { color: var(--ds-warning-text); }
+    .state.danger { color: var(--ds-danger-text); }
+    .state.info { color: var(--ds-accent-text); }
 
     .score {
       color: var(--text);
@@ -629,7 +630,7 @@
           <div>
             <h1 class="page-title ds-page-title">My Submissions</h1>
             <p class="page-subtitle">
-              Review your assignment attempts, scores, status, and instructor feedback.
+              Review your assignment attempts, challenge results, scores, and instructor feedback.
             </p>
           </div>
 
@@ -759,7 +760,7 @@
                     <tr>
                       <td data-label="Assignment">
                         <span class="submission-title">{{ $assignment?->title ?? 'Deleted Assignment' }}</span>
-                        <span class="subtext">{{ $assignment?->libraryItem?->topic_title ?? 'No topic' }}@if($assignment?->libraryItem?->version_name), {{ $assignment->libraryItem->version_name }}@endif</span>
+                        <span class="subtext">{{ $assignment?->libraryItem?->topic_title ?? 'No topic' }}</span>
                       </td>
 
                       <td data-label="Class">
@@ -767,7 +768,7 @@
                       </td>
 
                       <td data-label="Attempt">
-                        <span class="attempt-badge">Attempt #{{ $submission->attempt_no }}</span>
+                        <span class="attempt-text">Attempt #{{ $submission->attempt_no }}</span>
                       </td>
 
                       <td data-label="Activity Time">
@@ -783,7 +784,7 @@
                       </td>
 
                       <td data-label="Status">
-                        <span class="pill {{ $statusClass }}">{{ $statusLabel }}</span>
+                        <span class="state {{ $statusClass }}">{{ $statusLabel }}</span>
                       </td>
 
                       <td data-label="Score">
@@ -846,6 +847,123 @@
                 <a class="btn primary" href="{{ route('student.assignments.index') }}">View Assignments</a>
               </div>
             </div>
+          @endif
+        </section>
+
+        <section class="card" aria-labelledby="challenge-history-title">
+          <div class="card-head">
+            <h2 id="challenge-history-title">Challenge Results</h2>
+            <p>Finished multiple-choice challenges and graded coding challenge submissions, newest first.</p>
+          </div>
+
+          @if(isset($challengeActivity) && $challengeActivity->count())
+            <div class="table-scroll" role="region" aria-label="Challenge results">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Challenge</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Activity Time</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Score</th>
+                    <th scope="col">XP</th>
+                    <th scope="col">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach($challengeActivity as $row)
+                    @php
+                      $rowChallenge = $challengeLookup->get($row->challenge_id);
+                      $rowSlug = $rowChallenge?->category?->slug;
+                      $isMcq = $row->kind === 'mcq';
+                      $activityAt = $row->activity_at ? \Illuminate\Support\Carbon::parse($row->activity_at) : null;
+                      $earned = (int) $row->earned;
+                      $possible = (int) $row->possible;
+                      $percent = $possible > 0 ? (int) round(($earned / $possible) * 100) : 0;
+
+                      if ($isMcq) {
+                        $rowStatusLabel = match ($row->status) {
+                          'expired' => 'Time expired',
+                          'disqualified' => 'Disqualified',
+                          default => $percent >= 70 ? 'Passed' : 'Below passing',
+                        };
+                        $rowStatusClass = $row->status === 'disqualified'
+                          ? 'danger'
+                          : ($percent >= 70 ? 'good' : 'warn');
+                      } else {
+                        $rowStatusLabel = match ($row->status) {
+                          'passed' => 'Passed',
+                          'failed' => 'Some tests failed',
+                          default => 'Error',
+                        };
+                        $rowStatusClass = $row->status === 'passed' ? 'good' : ($row->status === 'failed' ? 'warn' : 'danger');
+                      }
+
+                      $rowLink = null;
+                      if ($rowChallenge && $rowSlug) {
+                        $rowLink = $isMcq
+                          ? route('challenges.quiz.result', ['slug' => $rowSlug, 'challenge' => $rowChallenge->id, 'attempt' => $row->record_id])
+                          : route('challenges.coding.quiz', ['slug' => $rowSlug, 'challenge' => $rowChallenge->id]);
+                      }
+
+                      $questionLabel = $isMcq
+                        ? ($row->attempt_no ? 'Attempt #' . $row->attempt_no . ((int) $row->ranked ? ', ranked' : ', practice') : null)
+                        : (filled($row->question_title) ? $row->question_title : 'Problem ' . ((int) $row->question_order + 1));
+                    @endphp
+                    <tr>
+                      <td data-label="Challenge">
+                        <span class="submission-title">{{ $rowChallenge?->title ?? 'Removed challenge' }}</span>
+                        @if($questionLabel)
+                          <span class="subtext">{{ $questionLabel }}</span>
+                        @endif
+                      </td>
+
+                      <td data-label="Type">{{ $isMcq ? 'Multiple choice' : 'Coding' }}</td>
+
+                      <td data-label="Activity Time">
+                        @if($activityAt)
+                          {{ $activityAt->format('M d, Y') }}
+                          <span class="subtext">{{ $activityAt->format('h:i A') }}</span>
+                        @else
+                          —
+                        @endif
+                      </td>
+
+                      <td data-label="Status">
+                        <span class="state {{ $rowStatusClass }}">{{ $rowStatusLabel }}</span>
+                      </td>
+
+                      <td data-label="Score">
+                        <span class="score">{{ $earned }}/{{ $possible }}</span>
+                        <span class="subtext">{{ $isMcq ? $percent . '% correct' : $percent . '% of tests' }}</span>
+                      </td>
+
+                      <td data-label="XP">
+                        <span class="score">{{ (int) $row->xp }}</span>
+                      </td>
+
+                      <td data-label="Action">
+                        @if($rowLink)
+                          <a class="btn secondary" href="{{ $rowLink }}">{{ $isMcq ? 'View Result' : 'Open Challenge' }}</a>
+                        @else
+                          <span class="subtext">Unavailable</span>
+                        @endif
+                      </td>
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pagination">{{ $challengeActivity->links() }}</div>
+          @else
+            <p class="empty-line">
+              @if(request()->filled('search'))
+                No challenge results match this search.
+              @else
+                Finished MCQ and coding challenges will appear here.
+              @endif
+            </p>
           @endif
         </section>
       </div>

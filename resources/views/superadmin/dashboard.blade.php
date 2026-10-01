@@ -66,12 +66,11 @@
     .tbl tr:last-child td { border-bottom: none; }
     .tbl tbody tr:hover td { background: rgba(255, 255, 255, .02); }
 
-    /* ── Role label (plain text) and status badge ── */
-    .pill { color: var(--ds-text-secondary); font-size: .875rem; white-space: nowrap; }
-    .pill-active, .pill-disabled { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid; border-radius: var(--radius-xs);
-      font-size: .75rem; font-weight: 600; line-height: 1.4; text-transform: capitalize; }
-    .pill-active   { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: var(--ds-success-text); }
-    .pill-disabled { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: var(--ds-danger-text); }
+    /* ── Role and status: plain text (DataSensei Updates 9) ── */
+    .role-text { color: var(--ds-text-secondary); font-size: .875rem; white-space: nowrap; }
+    .state { font-size: .875rem; font-weight: 500; text-transform: capitalize; white-space: nowrap; }
+    .state.is-active { color: var(--ds-success-text); }
+    .state.is-disabled { color: var(--ds-danger-text); }
 
     /* ── Initials ── */
     .user-av { width: 32px; height: 32px; flex: 0 0 32px; display: inline-flex; align-items: center; justify-content: center;
@@ -208,15 +207,7 @@
                   <td>
                   {{-- Instructors and institution admins are listed here too.
                        Without their cases the role cell rendered empty. --}}
-                  <span class="pill 
-                      @switch($user->role)
-                          @case(1) pill-student @break
-                          @case(2) pill-admin @break
-                          @case(3) pill-super-admin @break
-                          @case(4) pill-instructor @break
-                          @case(5) pill-institution-admin @break
-                      @endswitch
-                  ">
+                  <span class="role-text">
                       @switch($user->role)
                           @case(1) Student @break
                           @case(2) Admin @break
@@ -228,7 +219,7 @@
                   </span>
                   </td>
                   <td>
-                    <span class="pill {{ $user->status === 'active' ? 'pill-active' : 'pill-disabled' }}">
+                    <span class="state {{ $user->status === 'active' ? 'is-active' : 'is-disabled' }}">
                       {{ $user->status }}
                     </span>
                   </td>
@@ -258,7 +249,7 @@
                 <div class="inst-name">{{ $inst->name }}</div>
                 <div class="inst-meta">
                   <span>{{ $inst->admin_count }} admin{{ $inst->admin_count !== 1 ? 's' : '' }}</span>
-                  <span class="pill {{ $inst->status === 'active' ? 'pill-active' : 'pill-disabled' }}">{{ $inst->status }}</span>
+                  <span class="state {{ $inst->status === 'active' ? 'is-active' : 'is-disabled' }}">{{ $inst->status }}</span>
                 </div>
               </div>
               <div class="inst-count">{{ number_format($inst->student_count) }}</div>

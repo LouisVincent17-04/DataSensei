@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
+use App\Support\SchemaInspector;
 use App\Models\Assessment;
 use App\Models\ClassAssignment;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -23,7 +23,7 @@ class StudentNotificationService
         array $data = [],
         ?string $dedupeKey = null
     ): ?Notification {
-        if (! Schema::hasTable('notifications')) {
+        if (! SchemaInspector::hasTable('notifications')) {
             return null;
         }
 
@@ -203,7 +203,7 @@ class StudentNotificationService
 
     public function syncDeadlineNotifications(User $user): void
     {
-        if (! $user->isLearner() || ! Schema::hasTable('class_student')) {
+        if (! $user->isLearner() || ! SchemaInspector::hasTable('class_student')) {
             return;
         }
 

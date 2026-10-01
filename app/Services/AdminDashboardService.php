@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Support\SchemaInspector;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class AdminDashboardService
@@ -21,22 +21,6 @@ class AdminDashboardService
             'recentUsers' => $this->recentUsers(),
             'recentAntiCheat' => $this->recentAntiCheatEvents(),
             'recentChallengeFlags' => $this->recentChallengeFlags(),
-            'systemHealth' => $this->systemHealth(),
-        ];
-    }
-
-    /**
-     * Return the information displayed on the administrator reports page.
-     */
-    public function reports(): array
-    {
-        return [
-            'cards' => $this->cards(),
-            'recentUsers' => $this->recentUsers(12),
-            'recentAntiCheat' => $this->recentAntiCheatEvents(20),
-            'recentChallengeFlags' => $this->recentChallengeFlags(20),
-            'recentCodingSubmissions' => $this->recentCodingSubmissions(20),
-            'recentAssignmentSubmissions' => $this->recentAssignmentSubmissions(20),
             'systemHealth' => $this->systemHealth(),
         ];
     }
@@ -425,118 +409,6 @@ class AdminDashboardService
     }
 
     /**
-     * Return recent coding-challenge submissions.
-     */
-    private function recentCodingSubmissions(int $limit = 20): array
-    {
-        if (! $this->tableExists('coding_submissions')) {
-            return [];
-        }
-
-        $requiredTables = [
-            'users',
-            'coding_questions',
-            'challenges',
-        ];
-
-        foreach ($requiredTables as $table) {
-            if (! $this->tableExists($table)) {
-                return [];
-            }
-        }
-
-        return DB::table('coding_submissions as s')
-            ->leftJoin(
-                'users as u',
-                'u.id',
-                '=',
-                's.user_id'
-            )
-            ->leftJoin(
-                'coding_questions as q',
-                'q.id',
-                '=',
-                's.coding_question_id'
-            )
-            ->leftJoin(
-                'challenges as c',
-                'c.id',
-                '=',
-                'q.challenge_id'
-            )
-            ->select(
-                's.id',
-                's.status',
-                's.tests_passed',
-                's.tests_total',
-                's.xp_earned',
-                's.created_at',
-                'u.name as user_name',
-                'u.email as user_email',
-                'c.title as challenge_title'
-            )
-            ->orderByDesc('s.created_at')
-            ->limit($this->normalizeLimit($limit))
-            ->get()
-            ->map(fn ($row) => (array) $row)
-            ->all();
-    }
-
-    /**
-     * Return recent class-assignment submissions.
-     */
-    private function recentAssignmentSubmissions(
-        int $limit = 20
-    ): array {
-        if (! $this->tableExists('assignment_submissions')) {
-            return [];
-        }
-
-        $requiredTables = [
-            'users',
-            'class_assignments',
-        ];
-
-        foreach ($requiredTables as $table) {
-            if (! $this->tableExists($table)) {
-                return [];
-            }
-        }
-
-        return DB::table('assignment_submissions as s')
-            ->leftJoin(
-                'users as u',
-                'u.id',
-                '=',
-                's.student_id'
-            )
-            ->leftJoin(
-                'class_assignments as a',
-                'a.id',
-                '=',
-                's.class_assignment_id'
-            )
-            ->select(
-                's.id',
-                's.status',
-                's.score',
-                's.total_points',
-                's.submitted_at',
-                's.created_at',
-                'u.name as user_name',
-                'u.email as user_email',
-                'a.title as assignment_title'
-            )
-            ->orderByDesc(
-                DB::raw('COALESCE(s.submitted_at, s.created_at)')
-            )
-            ->limit($this->normalizeLimit($limit))
-            ->get()
-            ->map(fn ($row) => (array) $row)
-            ->all();
-    }
-
-    /**
      * Return a summary of the application's current configuration.
      */
     private function systemHealth(): array
@@ -648,95 +520,24 @@ class AdminDashboardService
     }
 
     /**
-     * Check whether a table exists.
-     *
-     * The information_schema query keeps MySQL 5.5 working, where Laravel's
-     * newer schema inspection fails. It is MySQL-only syntax, though, so every
-     * other driver (and any failure of the raw query) falls back to Laravel's
-     * own check instead of turning the dashboard into a 500.
+     * Check whether a table exists. Answered from one SHOW TABLES per request:
+     * this page used to make 65 information_schema lookups, which on MySQL 5.5
+     * also recalculate InnoDB statistics and made the dashboard after signing
+     * in very slow (see SchemaInspector).
      */
     private function tableExists(string $table): bool
     {
-        if (! $this->isSafeIdentifier($table)) {
-            return false;
-        }
-
-        if ($this->usesMySql()) {
-            try {
-                $result = DB::selectOne(
-                    '
-                        SELECT COUNT(*) AS aggregate_count
-                        FROM information_schema.TABLES
-                        WHERE TABLE_SCHEMA = DATABASE()
-                          AND TABLE_NAME = ?
-                    ',
-                    [$table]
-                );
-
-                return (int) ($result->aggregate_count ?? 0) > 0;
-            } catch (Throwable) {
-                // Fall through to the portable check below.
-            }
-        }
-
-        try {
-            return Schema::hasTable($table);
-        } catch (Throwable) {
-            return false;
-        }
+        return $this->isSafeIdentifier($table) && SchemaInspector::hasTable($table);
     }
 
-    /**
-     * Check whether a column exists.
-     *
-     * This intentionally does not request the GENERATION_EXPRESSION
-     * metadata field, which is unavailable in MySQL 5.5.
-     */
+    /** Check whether a column exists (SHOW COLUMNS, once per table). */
     private function columnExists(
         string $table,
         string $column
     ): bool {
-        if (
-            ! $this->isSafeIdentifier($table)
-            || ! $this->isSafeIdentifier($column)
-        ) {
-            return false;
-        }
-
-        if ($this->usesMySql()) {
-            try {
-                $result = DB::selectOne(
-                    '
-                        SELECT COUNT(*) AS aggregate_count
-                        FROM information_schema.COLUMNS
-                        WHERE TABLE_SCHEMA = DATABASE()
-                          AND TABLE_NAME = ?
-                          AND COLUMN_NAME = ?
-                    ',
-                    [$table, $column]
-                );
-
-                return (int) ($result->aggregate_count ?? 0) > 0;
-            } catch (Throwable) {
-                // Fall through to the portable check below.
-            }
-        }
-
-        try {
-            return Schema::hasColumn($table, $column);
-        } catch (Throwable) {
-            return false;
-        }
-    }
-
-    /** information_schema with DATABASE() is MySQL/MariaDB syntax. */
-    private function usesMySql(): bool
-    {
-        try {
-            return DB::connection()->getDriverName() === 'mysql';
-        } catch (Throwable) {
-            return false;
-        }
+        return $this->isSafeIdentifier($table)
+            && $this->isSafeIdentifier($column)
+            && SchemaInspector::hasColumn($table, $column);
     }
 
     /**

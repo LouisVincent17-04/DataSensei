@@ -747,7 +747,6 @@
                                 class="{{ $version->id === $module->id ? 'is-current' : '' }}"
                             >
                                 <strong>{{ $version->version_name }}</strong>
-                                <small>{{ $version->version_code }}</small>
                             </a>
                         @endforeach
                     </div>

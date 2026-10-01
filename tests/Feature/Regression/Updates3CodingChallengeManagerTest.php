@@ -14,6 +14,7 @@ use App\Services\CodingChallengeTestRunner;
 use App\Support\AuthSessionFingerprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Tests\Feature\Regression\Concerns\PassesReferenceSolutionCheck;
 use Tests\TestCase;
 
 /**
@@ -25,7 +26,17 @@ use Tests\TestCase;
  */
 class Updates3CodingChallengeManagerTest extends TestCase
 {
+    use PassesReferenceSolutionCheck;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Saving now runs the reference-solution check (Updates 5); these
+        // tests cover storage and versioning, so the check is stubbed.
+        $this->passReferenceSolutionCheck();
+    }
 
     // ── Pages ─────────────────────────────────────────────────────────
 
@@ -529,7 +540,7 @@ class Updates3CodingChallengeManagerTest extends TestCase
 
         $this->assertCount(4, $calls);
         $this->assertSame("import sys\nprint(input().upper())", $calls[0][0], 'Line endings are normalised before running.');
-        $this->assertSame(['timeout' => 10, 'quiet_input_prompts' => true], $calls[0][2], 'Checked the way students are graded: input() prompts are not printed.');
+        $this->assertSame(['quiet_input_prompts' => true], $calls[0][2], 'Checked exactly the way students are graded (Updates 5): input() prompts are not printed, the sandbox time limit applies.');
 
         $this->assertSame(0, Challenge::count());
         $this->assertSame(0, CodingQuestion::count());

@@ -27,6 +27,7 @@ class ModuleLibraryItem extends Model
         'mcq_questions',
         'sort_order',
         'is_active',
+        'learning_outcomes',
     ];
 
     protected $casts = [
@@ -64,6 +65,33 @@ class ModuleLibraryItem extends Model
     public function setMcqQuestionsAttribute(mixed $value): void
     {
         $this->attributes['mcq_questions'] = $this->encodeStructuredArray($value);
+    }
+
+    /**
+     * Intended learning outcomes (DataSensei Updates 5): plain sentences that
+     * say what a learner will be able to do, shown as "What You Will Learn".
+     * Purely descriptive; nothing is scored against them.
+     *
+     * @return list<string>
+     */
+    public function getLearningOutcomesAttribute(mixed $value): array
+    {
+        return self::cleanOutcomes($this->normalizeStructuredArray($value));
+    }
+
+    public function setLearningOutcomesAttribute(mixed $value): void
+    {
+        $outcomes = self::cleanOutcomes(is_array($value) ? $value : $this->normalizeStructuredArray($value));
+        $this->attributes['learning_outcomes'] = json_encode($outcomes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]';
+    }
+
+    /** @return list<string> */
+    public static function cleanOutcomes(array $values): array
+    {
+        return array_values(array_filter(
+            array_map(fn ($value) => is_string($value) ? trim($value) : '', $values),
+            fn (string $value) => $value !== ''
+        ));
     }
 
     private function normalizeStructuredArray(mixed $value): array

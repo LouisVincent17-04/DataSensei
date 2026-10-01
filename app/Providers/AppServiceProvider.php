@@ -3,9 +3,12 @@
 namespace App\Providers;
 
 use App\Services\HybridMl\MlWorkerSupervisor;
+use App\Support\AuditTrail;
+use App\Support\SchemaInspector;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
@@ -19,6 +22,14 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->configureFileBackedRuntimeStorage();
+
+        // One per request: the records a staff action creates, for the audit
+        // log (DataSensei Updates 8).
+        $this->app->scoped(AuditTrail::class);
+
+        // Table and column checks for code that runs on every page, answered
+        // from one SHOW TABLES per request (DataSensei Updates 9).
+        $this->app->scoped(SchemaInspector::class);
     }
 
     /**
@@ -48,6 +59,12 @@ class AppServiceProvider extends ServiceProvider
         // foreign key. 189 leaves enough room without rewriting historical
         // migrations or truncating existing installations.
         Schema::defaultStringLength(189);
+
+        // The audit log names what a "Created" action created. The trail
+        // only keeps models while a staff action is being recorded.
+        Event::listen('eloquent.created: *', function (string $event, array $payload): void {
+            $this->app->make(AuditTrail::class)->noteCreated($payload[0] ?? null);
+        });
 
         $this->configureAuthenticationRateLimiters();
         $this->configurePasswordOtpRateLimiters();

@@ -7,7 +7,6 @@ use App\Models\AssessmentSubmission;
 use App\Models\AssignmentSubmission;
 use App\Models\ClassAssignment;
 use App\Models\ClassRoom;
-use App\Models\StudentIloMastery;
 use App\Models\StudentPerformanceSnapshot;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -48,12 +47,14 @@ class InstructorController extends Controller
                 ->whereIn('class_id', $classIds)
                 ->get();
 
-        $masteryRows = $classIds->isEmpty()
-            ? collect()
-            : StudentIloMastery::query()
+        // ILOs are descriptive only (DataSensei Updates 5): no ILO mastery
+        // rate. The dashboard counts the modules given to classes instead.
+        $assignedModules = $classIds->isEmpty()
+            ? 0
+            : \App\Models\ClassModuleAssignment::query()
                 ->whereIn('class_id', $classIds)
-                ->where('evidence_count', '>', 0)
-                ->get(['status']);
+                ->where('status', 'active')
+                ->count();
 
         $atRiskStudents = $snapshots
             ->where('risk_level', 'high')
@@ -68,9 +69,7 @@ class InstructorController extends Controller
             'average_score' => $snapshots->isNotEmpty()
                 ? (int) round((float) $snapshots->avg('average_score_percent'))
                 : 0,
-            'mastery_rate' => $masteryRows->isNotEmpty()
-                ? (int) round(($masteryRows->where('status', 'mastered')->count() / $masteryRows->count()) * 100)
-                : 0,
+            'assigned_modules' => $assignedModules,
             'at_risk' => $atRiskStudents->count(),
         ];
 

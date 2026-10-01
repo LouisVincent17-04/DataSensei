@@ -79,7 +79,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 .875rem/1
 .ml-card .ml-section-title { font-size: .9375rem; }
 .ml-section-head .ml-section-title:only-child { margin-bottom: 0; }
 
-.ml-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+/* Cards fill the width that is there: 1 to 5 across (DataSensei Updates 9). */
+.ml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
 .ml-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .ml-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .ml-grid > * { min-width: 0; }
@@ -481,7 +482,6 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 .875rem/1
 /* ── Responsive ────────────────────────────────────────────────── */
 /* Beside the roadmap the content column is narrow: fewer, wider columns. */
 @media (max-width: 1500px) {
-  .ml-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ml-roadmap-content .ml-section.ml-grid.two,
   .ml-roadmap-content .ml-history-section .ml-grid.two { grid-template-columns: minmax(0, 1fr); }
 }
@@ -535,7 +535,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 .875rem/1
 /* ══ Simplified four-step flow ═════════════════════════════════════ */
 
 /* Step strip across the top of every page. */
-.ml-steps { max-width: 1080px; margin: 0 0 20px; }
+.ml-steps { max-width: 1680px; margin: 0 0 20px; }
 .ml-steps ol {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -562,7 +562,9 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 .875rem/1
 .ml-steps-item.error .ml-steps-num, .ml-steps-item.error .ml-steps-copy small { color: var(--ds-danger-text); }
 
 /* The old two-column frame is now a single column. */
-.ml-flow { display: block; min-width: 0; max-width: 1080px; }
+/* Uses the page width (DataSensei Updates 9). It used to stop at 1080px and
+   left a wide empty band on the right of large screens. */
+.ml-flow { display: block; min-width: 0; max-width: 1680px; }
 .ml-flow > * + * { margin-top: 16px; }
 .ml-flow .ml-guide-body { display: block; padding: 14px 16px; }
 .ml-flow .ml-guide-body p { margin: 0; color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.6; }
@@ -625,8 +627,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 .875rem/1
 .ml-col-reason:empty { display: none; }
 
 /* Results page. */
-.ml-score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px 28px; align-items: center; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius); background: linear-gradient(180deg, var(--ds-surface-2), var(--surface)); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), var(--ds-shadow-md); }
-.ml-score-dial { position: relative; display: grid; place-items: center; width: 132px; height: 132px; border-radius: 50%; background: conic-gradient(var(--dial, var(--accent)) calc(var(--fill, 0) * 1%), var(--surface3) 0); box-shadow: 0 10px 22px -12px rgba(0,0,0,.8), inset 0 0 0 1px var(--border); }
+.ml-score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px 28px; align-items: center; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.ml-score-dial { position: relative; display: grid; place-items: center; width: 132px; height: 132px; border-radius: 50%; background: conic-gradient(var(--dial, var(--accent)) calc(var(--fill, 0) * 1%), var(--surface3) 0); box-shadow: inset 0 0 0 1px var(--border); }
 .ml-score-dial::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 2px 6px rgba(0,0,0,.45); }
 .ml-score-dial b { position: relative; color: var(--text); font-size: 1.875rem; font-weight: 700; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .ml-score-dial small { position: relative; display: block; margin-top: 4px; color: var(--muted); font-size: .6875rem; text-align: center; }
@@ -665,7 +667,7 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 400 .875rem/1
 .ml-details-body > * + * { margin-top: 18px; }
 
 /* Prediction page. */
-.ml-answer { scroll-margin-top: 16px; padding: 22px 24px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius); background: linear-gradient(180deg, var(--ds-surface-2), var(--surface)); box-shadow: inset 0 1px 0 rgba(255,255,255,.05), inset 4px 0 0 var(--tone, var(--accent)), var(--ds-shadow-lg); }
+.ml-answer { scroll-margin-top: 16px; padding: 22px 24px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius); background: var(--surface); box-shadow: inset 4px 0 0 var(--tone, var(--accent)); }
 .ml-answer.alert { --tone: var(--ds-danger); }
 .ml-answer.calm { --tone: var(--ds-success); }
 .ml-answer-q { margin: 0; color: var(--muted); font-size: .875rem; }

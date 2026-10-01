@@ -14,8 +14,11 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Updates 3, A2: the Module Content Manager, the block editor for the lessons
- * of a public module, its live preview and its image uploads.
+ * Updates 3, A2: the lessons of a public module, their rendered preview and
+ * image uploads. Since Updates 5 the lessons are edited as section cards in
+ * the module editor (AdminPublicModuleController); the guarantees stay: admin
+ * only, every block type renders, a lesson written before the editor saves
+ * byte for byte the same, and a lesson students started cannot be deleted.
  */
 class Updates3LessonEditorTest extends TestCase
 {
@@ -47,54 +50,42 @@ class Updates3LessonEditorTest extends TestCase
         $this->actingAsUser($student)->get(route('admin.modules.lessons.index', $module))->assertForbidden();
         $this->actingAsUser($student)->get(route('admin.modules.lessons.create', $module))->assertForbidden();
         $this->actingAsUser($student)->get(route('admin.modules.lessons.edit', [$module, $lesson]))->assertForbidden();
-        $this->actingAsUser($student)->post(route('admin.modules.lessons.store', $module), ['title' => 'x', 'blocks_json' => '[]'])->assertForbidden();
-        $this->actingAsUser($student)->put(route('admin.modules.lessons.update', [$module, $lesson]), ['title' => 'x', 'blocks_json' => '[]'])->assertForbidden();
-        $this->actingAsUser($student)->delete(route('admin.modules.lessons.destroy', [$module, $lesson]))->assertForbidden();
-        $this->actingAsUser($student)->post(route('admin.modules.lessons.reorder', $module), ['order' => [$lesson->id]])->assertForbidden();
+        $this->actingAsUser($student)->put(route('admin.modules.update', $module), $this->moduleForm($module, ['lessons_json' => '[]']))->assertForbidden();
         $this->actingAsUser($student)->post(route('admin.lessons.preview'), ['blocks_json' => '[]'])->assertForbidden();
         $this->actingAsUser($student)->post(route('admin.lessons.images.store'), ['image' => UploadedFile::fake()->image('a.png')])->assertForbidden();
 
         $this->assertSame('<p>Hi</p>', $lesson->fresh()->content);
     }
 
-    public function test_index_lists_lessons_with_block_counts_and_original_content_marker(): void
+    /**
+     * Updates 5: a module's lessons are its sections in the module editor.
+     * The old lesson pages open that editor.
+     */
+    public function test_the_old_lesson_pages_open_the_module_editor(): void
     {
         $admin = $this->makeUser(User::ROLE_ADMIN);
         $module = $this->makeModule();
-        $legacy = $this->makeLegacyLesson($module, '<h2>Old</h2>', 'Old Lesson');
-        $built = Lesson::create([
-            'module_id' => $module->id,
-            'title' => 'Built Lesson',
-            'content' => '<p>x</p>',
-            'blocks' => json_encode([['type' => 'text', 'body' => 'x'], ['type' => 'html', 'html' => '<p>y</p>']]),
-            'order_index' => 2,
-        ]);
+        $other = $this->makeModule(2);
+        $lesson = $this->makeLegacyLesson($module, '<h2>Old</h2>', 'Old Lesson');
+        $foreign = $this->makeLegacyLesson($other, '<p>Other</p>');
+        $editor = route('admin.modules.edit', $module).'#content';
+
+        $this->actingAsUser($admin)->get(route('admin.modules.lessons.index', $module))->assertRedirect($editor);
+        $this->actingAsUser($admin)->get(route('admin.modules.lessons.create', $module))->assertRedirect($editor);
+        $this->actingAsUser($admin)->get(route('admin.modules.lessons.edit', [$module, $lesson]))->assertRedirect($editor);
+        $this->actingAsUser($admin)->get(route('admin.modules.lessons.edit', [$module, $foreign]))->assertNotFound();
 
         $this->actingAsUser($admin)
-            ->get(route('admin.modules.lessons.index', $module))
+            ->get(route('admin.modules.edit', $module))
             ->assertOk()
             ->assertSee('Old Lesson')
-            ->assertSee('Original content')
-            ->assertSee('Built Lesson')
-            ->assertSee('2 blocks')
-            ->assertSee(route('admin.modules.lessons.edit', [$module, $legacy]), false)
-            ->assertSee(route('admin.modules.lessons.edit', [$module, $built]), false)
-            ->assertSee(route('admin.modules.lessons.create', $module), false);
-
-        $this->actingAsUser($admin)
-            ->get(route('admin.modules.lessons.create', $module))
-            ->assertOk()
-            ->assertSee('Add lesson')
-            ->assertSee('data-add-block="code"', false)
-            ->assertSee('data-preview-frame', false)
-            ->assertSee('js/admin-lesson-editor.js', false)
-            ->assertSee('<meta name="csrf-token"', false);
+            ->assertSee('js/admin-module-editor.js', false)
+            ->assertSee('name="_token"', false);
     }
 
-    public function test_store_renders_every_block_type_and_keeps_the_blocks(): void
+    public function test_the_renderer_renders_every_block_type(): void
     {
         $admin = $this->makeUser(User::ROLE_ADMIN);
-        $module = $this->makeModule();
 
         $blocks = [
             ['type' => 'code', 'label' => 'Hello', 'language' => 'python', 'code' => "print('hi')  # greet", 'output' => 'hi', 'try_in_compiler' => true],
@@ -104,26 +95,17 @@ class Updates3LessonEditorTest extends TestCase
             ['type' => 'html', 'html' => '<div class="custom-note">Raw <em>html</em></div>'],
         ];
 
-        $this->actingAsUser($admin)
-            ->post(route('admin.modules.lessons.store', $module), [
-                'title' => 'Block Lesson',
-                'blocks_json' => json_encode($blocks),
-            ])
-            ->assertRedirect(route('admin.modules.lessons.index', $module))
-            ->assertSessionHas('success');
-
-        $lesson = Lesson::where('module_id', $module->id)->where('title', 'Block Lesson')->firstOrFail();
-        $this->assertSame(1, $lesson->order_index);
-        $this->assertFalse($lesson->usesLegacyHtml());
-
-        $stored = json_decode($lesson->blocks, true);
-        $this->assertIsArray($stored);
+        $stored = app(\App\Services\LessonBlockRenderer::class)->normalize($blocks);
         $this->assertSame(['code', 'text', 'table', 'image', 'html'], array_column($stored, 'type'));
         $this->assertSame("print('hi')  # greet", $stored[0]['code']);
         $this->assertSame([['Ana', '90'], ['Ben', '85']], $stored[2]['rows']);
         $this->assertSame(50, $stored[3]['width']);
 
-        $content = $lesson->content;
+        $content = $this->actingAsUser($admin)
+            ->post(route('admin.lessons.preview'), ['blocks_json' => json_encode($blocks)])
+            ->assertOk()
+            ->getContent();
+
         $this->assertStringContainsString('class="code-window"', $content);
         $this->assertStringContainsString('PYTHON — Hello', $content);
         $this->assertStringContainsString('launchIDE(this)', $content);
@@ -138,39 +120,9 @@ class Updates3LessonEditorTest extends TestCase
         $this->assertStringContainsString('<img src="/uploads/lessons/1/abc.png"', $content);
         $this->assertStringContainsString('width:50%', $content);
         $this->assertStringContainsString('<div class="custom-note">Raw <em>html</em></div>', $content);
-
-        // The learning room reads lessons.content as-is, so it must be there.
-        $this->assertStringContainsString('code-window', DB::table('lessons')->where('id', $lesson->id)->value('content'));
     }
 
-    public function test_store_validates_title_and_blocks(): void
-    {
-        $admin = $this->makeUser(User::ROLE_ADMIN);
-        $module = $this->makeModule();
-
-        $this->actingAsUser($admin)
-            ->from(route('admin.modules.lessons.create', $module))
-            ->post(route('admin.modules.lessons.store', $module), ['title' => '', 'blocks_json' => 'not json'])
-            ->assertRedirect(route('admin.modules.lessons.create', $module))
-            ->assertSessionHasErrors(['title', 'blocks_json']);
-
-        $this->actingAsUser($admin)
-            ->post(route('admin.modules.lessons.store', $module), ['title' => 'Too long '.str_repeat('x', 200), 'blocks_json' => '[]'])
-            ->assertSessionHasErrors(['title']);
-
-        $tooMany = json_encode(array_fill(0, 201, ['type' => 'text', 'body' => 'x']));
-        $this->actingAsUser($admin)
-            ->post(route('admin.modules.lessons.store', $module), ['title' => 'Many', 'blocks_json' => $tooMany])
-            ->assertSessionHasErrors(['blocks_json']);
-
-        $this->actingAsUser($admin)
-            ->post(route('admin.modules.lessons.store', $module), ['title' => 'Object', 'blocks_json' => '"just a string"'])
-            ->assertSessionHasErrors(['blocks_json']);
-
-        $this->assertSame(0, Lesson::count());
-    }
-
-    public function test_legacy_lesson_opens_as_one_html_block_and_saves_byte_identical(): void
+    public function test_legacy_lesson_opens_as_one_card_and_saves_byte_identical(): void
     {
         $admin = $this->makeUser(User::ROLE_ADMIN);
         $module = $this->makeModule();
@@ -179,72 +131,70 @@ class Updates3LessonEditorTest extends TestCase
             .'<div class="code-window"><div class="code-content">SELECT * FROM t; -- keep</div></div>'
             ."\n<script>alert('legacy');</script>\n  ";
         $lesson = $this->makeLegacyLesson($module, $original, 'Legacy');
+        // A lesson built with the older block editor.
+        $built = Lesson::create([
+            'module_id' => $module->id,
+            'title' => 'Built Lesson',
+            'content' => '<p>x</p>',
+            'blocks' => json_encode([['type' => 'text', 'body' => 'x'], ['type' => 'html', 'html' => '<p>y</p>']]),
+            'order_index' => 2,
+        ]);
 
         $page = $this->actingAsUser($admin)
-            ->get(route('admin.modules.lessons.edit', [$module, $lesson]))
+            ->get(route('admin.modules.edit', $module))
             ->assertOk()
             ->assertSee('Legacy');
 
-        // The editor is seeded with exactly one html block holding the original.
-        preg_match('#<script type="application/json" id="lesson-editor-blocks">(.*?)</script>#s', $page->getContent(), $match);
-        $this->assertNotEmpty($match, 'The editor did not receive its initial blocks.');
-        $seeded = json_decode($match[1], true);
-        $this->assertSame([['type' => 'html', 'html' => $original]], $seeded);
-        $this->assertStringContainsString('"legacy":true', $page->getContent());
+        // The editor is seeded with one section per lesson, as content blocks
+        // (Updates 6); the script it cannot split is kept in one block.
+        preg_match('#<script type="application/json" id="module-editor-data">(.*?)</script>#s', $page->getContent(), $match);
+        $this->assertNotEmpty($match, 'The editor did not receive its sections.');
+        $cards = json_decode($match[1], true)['sections'];
+        $this->assertSame('Legacy', $cards[0]['title']);
+        $this->assertSame(['type' => 'heading', 'text' => 'Intro to SQL'], $cards[0]['blocks'][0]);
+        $this->assertContains('preserved', array_column($cards[0]['blocks'], 'type'));
+        $this->assertSame([['type' => 'paragraph', 'text' => 'x'], ['type' => 'paragraph', 'text' => 'y']], $cards[1]['blocks']);
 
-        // Saving what the editor was given, untouched, leaves content byte for byte the same.
+        // Saving what the editor was given, untouched, leaves both lessons as they were.
         $this->actingAsUser($admin)
-            ->put(route('admin.modules.lessons.update', [$module, $lesson]), [
-                'title' => 'Legacy',
-                'blocks_json' => json_encode($seeded),
-            ])
-            ->assertRedirect(route('admin.modules.lessons.index', $module))
+            ->put(route('admin.modules.update', $module), $this->moduleForm($module, ['intent' => 'save', 'lessons_json' => json_encode($cards)]))
+            ->assertRedirect(route('admin.modules.edit', $module))
             ->assertSessionHas('success');
 
         $fresh = $lesson->fresh();
         $this->assertTrue($original === $fresh->content, 'The saved content changed.');
         $this->assertSame(strlen($original), strlen($fresh->content));
-        $this->assertFalse($fresh->usesLegacyHtml());
-        $this->assertSame([['type' => 'html', 'html' => $original]], json_decode($fresh->blocks, true));
+        $this->assertTrue($fresh->usesLegacyHtml());
+        $this->assertSame('<p>x</p>', $built->fresh()->content);
+        $this->assertSame([['type' => 'text', 'body' => 'x'], ['type' => 'html', 'html' => '<p>y</p>']], json_decode($built->fresh()->blocks, true));
     }
 
-    public function test_update_can_add_blocks_around_the_original_html(): void
+    public function test_update_can_add_fields_after_the_original_html(): void
     {
         $admin = $this->makeUser(User::ROLE_ADMIN);
         $module = $this->makeModule();
         $lesson = $this->makeLegacyLesson($module, '<p>Original</p>', 'Legacy');
 
         $this->actingAsUser($admin)
-            ->put(route('admin.modules.lessons.update', [$module, $lesson]), [
-                'title' => 'Legacy plus',
-                'blocks_json' => json_encode([
-                    ['type' => 'text', 'body' => '## New intro'],
-                    ['type' => 'html', 'html' => '<p>Original</p>'],
-                ]),
-            ])
-            ->assertRedirect(route('admin.modules.lessons.index', $module));
+            ->put(route('admin.modules.update', $module), $this->moduleForm($module, [
+                'intent' => 'save',
+                'lessons_json' => json_encode([[
+                    'id' => $lesson->id,
+                    'title' => 'Legacy plus',
+                    'blocks' => [
+                        ['type' => 'heading', 'text' => 'Legacy plus'],
+                        ['type' => 'paragraph', 'text' => 'Original'],
+                        ['type' => 'subheading', 'text' => 'New part'],
+                    ],
+                ]]),
+            ]))
+            ->assertRedirect(route('admin.modules.edit', $module));
 
         $fresh = $lesson->fresh();
         $this->assertSame('Legacy plus', $fresh->title);
-        $this->assertStringContainsString('<h2>New intro</h2>', $fresh->content);
         $this->assertStringContainsString('<p>Original</p>', $fresh->content);
-        $this->assertStringStartsWith('<div class="lesson-text"', $fresh->content);
-    }
-
-    public function test_a_lesson_from_another_module_is_not_reachable_through_this_module(): void
-    {
-        $admin = $this->makeUser(User::ROLE_ADMIN);
-        $module = $this->makeModule();
-        $other = $this->makeModule(2);
-        $lesson = $this->makeLegacyLesson($other, '<p>Other</p>');
-
-        $this->actingAsUser($admin)->get(route('admin.modules.lessons.edit', [$module, $lesson]))->assertNotFound();
-        $this->actingAsUser($admin)
-            ->put(route('admin.modules.lessons.update', [$module, $lesson]), ['title' => 'x', 'blocks_json' => '[]'])
-            ->assertNotFound();
-        $this->actingAsUser($admin)->delete(route('admin.modules.lessons.destroy', [$module, $lesson]))->assertNotFound();
-
-        $this->assertSame('<p>Other</p>', $lesson->fresh()->content);
+        $this->assertStringContainsString('<h3>New part</h3>', $fresh->content);
+        $this->assertFalse($fresh->usesLegacyHtml());
     }
 
     public function test_reorder_and_destroy(): void
@@ -255,14 +205,16 @@ class Updates3LessonEditorTest extends TestCase
         $a = $this->makeLegacyLesson($module, '<p>a</p>', 'A', 1);
         $b = $this->makeLegacyLesson($module, '<p>b</p>', 'B', 2);
         $c = $this->makeLegacyLesson($module, '<p>c</p>', 'C', 3);
+        $card = fn (Lesson $lesson) => ['id' => $lesson->id, 'heading' => $lesson->title, 'html' => $lesson->content];
 
         $this->actingAsUser($admin)
-            ->post(route('admin.modules.lessons.reorder', $module), ['order' => [$b->id, $c->id, $a->id]])
-            ->assertRedirect(route('admin.modules.lessons.index', $module));
+            ->put(route('admin.modules.update', $module), $this->moduleForm($module, ['intent' => 'save', 'lessons_json' => json_encode([$card($b), $card($c), $card($a)])]))
+            ->assertSessionHasNoErrors();
 
         $this->assertSame(1, $b->fresh()->order_index);
         $this->assertSame(2, $c->fresh()->order_index);
         $this->assertSame(3, $a->fresh()->order_index);
+        $this->assertSame('<p>a</p>', $a->fresh()->content);
 
         DB::table('lesson_user')->insert([
             'user_id' => $student->id,
@@ -273,15 +225,13 @@ class Updates3LessonEditorTest extends TestCase
         ]);
 
         $this->actingAsUser($admin)
-            ->delete(route('admin.modules.lessons.destroy', [$module, $a]))
-            ->assertRedirect(route('admin.modules.lessons.index', $module))
-            ->assertSessionHas('error');
+            ->put(route('admin.modules.update', $module), $this->moduleForm($module, ['intent' => 'save', 'lessons_json' => json_encode([$card($b), $card($c)])]))
+            ->assertSessionHasErrors('lessons_json');
         $this->assertDatabaseHas('lessons', ['id' => $a->id]);
 
         $this->actingAsUser($admin)
-            ->delete(route('admin.modules.lessons.destroy', [$module, $b]))
-            ->assertRedirect(route('admin.modules.lessons.index', $module))
-            ->assertSessionHas('success');
+            ->put(route('admin.modules.update', $module), $this->moduleForm($module, ['intent' => 'save', 'lessons_json' => json_encode([$card($c), $card($a)])]))
+            ->assertSessionHasNoErrors();
         $this->assertDatabaseMissing('lessons', ['id' => $b->id]);
     }
 
@@ -370,6 +320,8 @@ class Updates3LessonEditorTest extends TestCase
             'year_level' => 'Year 1',
             'xp_reward' => 100,
             'is_boss' => false,
+            // A published module keeps at least one learning outcome (Updates 5).
+            'learning_outcomes' => ['Read the module.'],
         ]);
     }
 
@@ -385,6 +337,19 @@ class Updates3LessonEditorTest extends TestCase
         $this->assertTrue($lesson->fresh()->usesLegacyHtml());
 
         return $lesson;
+    }
+
+    private function moduleForm(Module $module, array $overrides = []): array
+    {
+        return array_merge([
+            'title' => $module->title,
+            'description' => $module->description,
+            'year_level' => $module->year_level,
+            'xp_reward' => $module->xp_reward,
+            'is_boss' => 0,
+            'has_coding_exercises' => 0,
+            'learning_outcomes' => $module->learning_outcomes,
+        ], $overrides);
     }
 
     private function makeUser(int $role): User

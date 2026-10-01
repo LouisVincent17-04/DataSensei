@@ -199,7 +199,7 @@
         <div class="page-quiz-info-bar">
           <div class="page-quiz-desc">{{ $challenge->description }}</div>
           <div class="page-quiz-meta">
-            <span class="page-quiz-meta-pill xp">{{ $challenge->base_xp }} Base XP</span>
+            <span class="page-quiz-meta-pill xp">{{ $challenge->awardsXp() ? $challenge->base_xp . ' Base XP' : 'No XP (class work)' }}</span>
             <span class="page-quiz-meta-pill time">{{ intval($challenge->time_limit_seconds / 60) }} min</span>
           </div>
         </div>
@@ -214,10 +214,11 @@
             @if(!empty($question->image_path))
               <img class="page-quiz-question-image" src="{{ $question->image_path }}" alt="">
             @endif
+            @php $literalChoices = \App\Support\ChoiceText::anySignificant($question->options); @endphp
             @foreach($question->options as $option)
               <label class="page-quiz-option-label {{ (int) $selectedOption === (int) $option->id ? 'selected' : '' }}" onclick="selectOption(this, {{ $question->id }}, {{ $option->id }})">
                 <input type="radio" name="answers[{{ $question->id }}]" value="{{ $option->id }}" {{ (int) $selectedOption === (int) $option->id ? 'checked' : '' }}>
-                <span>{{ $option->option_text }}</span>
+                <span>{{ \App\Support\ChoiceText::html($option->option_text, $literalChoices) }}</span>
               </label>
             @endforeach
           </div>

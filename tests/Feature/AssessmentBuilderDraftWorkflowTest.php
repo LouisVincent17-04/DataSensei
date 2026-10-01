@@ -130,34 +130,11 @@ class AssessmentBuilderDraftWorkflowTest extends TestCase
         $this->assertSame(2, $this->assessment->fresh()->draft_last_item);
     }
 
-    public function test_quick_setup_changes_only_not_started_items(): void
+    public function test_quick_setup_was_removed_and_a_points_only_draft_is_kept(): void
     {
-        $this->firstQuestion->update([
-            'question_text' => 'Started work',
-        ]);
+        // DataSensei Updates 9: the builder has no bulk "quick setup" any more.
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('instructor.assessments.questions.quick-setup'));
 
-        $this->instructorClient()->patch(
-            route('instructor.assessments.questions.quick-setup', $this->assessment),
-            [
-                'current_question_id' => $this->firstQuestion->id,
-                'scope' => 'tos_group',
-                'question_type' => 'multiple_choice',
-                'points' => 3,
-            ]
-        )->assertRedirect(route('instructor.assessments.builder', [
-            'assessment' => $this->assessment,
-            'item' => 1,
-        ]));
-
-        $this->assertSame('unconfigured', $this->firstQuestion->fresh()->question_type);
-        $this->assertSame('Started work', $this->firstQuestion->fresh()->question_text);
-        $this->assertSame(1, $this->firstQuestion->fresh()->points);
-        $this->assertSame('multiple_choice', $this->secondQuestion->fresh()->question_type);
-        $this->assertSame(3, $this->secondQuestion->fresh()->points);
-    }
-
-    public function test_quick_setup_preserves_a_points_or_required_only_draft(): void
-    {
         $this->instructorClient()->patch(
             route('instructor.assessments.questions.update', [$this->assessment, $this->firstQuestion]),
             [
@@ -176,31 +153,10 @@ class AssessmentBuilderDraftWorkflowTest extends TestCase
         $this->assertSame('in_progress', $draft->authoring_status);
         $this->assertSame('unconfigured', $draft->question_type);
         $this->assertSame(7, $draft->points);
-        $this->assertFalse($draft->is_required);
-
-        $this->instructorClient()->patch(
-            route('instructor.assessments.questions.quick-setup', $this->assessment),
-            [
-                'current_question_id' => $this->firstQuestion->id,
-                'scope' => 'all_unstarted',
-                'question_type' => 'true_false',
-                'points' => 3,
-            ]
-        )->assertRedirect(route('instructor.assessments.builder', [
-            'assessment' => $this->assessment,
-            'item' => 1,
-        ]));
-
-        $draft = $this->firstQuestion->fresh();
-        $notStarted = $this->secondQuestion->fresh();
-
-        $this->assertSame('unconfigured', $draft->question_type);
-        $this->assertSame(7, $draft->points);
-        $this->assertFalse($draft->is_required);
-        $this->assertSame('true_false', $notStarted->question_type);
-        $this->assertSame(3, $notStarted->points);
+        // Every question is answered; the form no longer has a "required" box.
+        $this->assertTrue($draft->is_required);
+        $this->assertSame('unconfigured', $this->secondQuestion->fresh()->question_type);
     }
-
     private function instructorClient()
     {
         return $this->actingAs($this->instructor)->withSession([

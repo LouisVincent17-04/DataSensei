@@ -72,6 +72,8 @@
     .muted{color:var(--muted)}
     .dim{color:var(--dim)}
 
+    .state-good{color:var(--ds-success-text)}
+    .state-warn{color:var(--ds-warning-text)}
     .badge-pill{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
       background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
     .badge-pill.good{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
@@ -133,7 +135,7 @@
 
         <section class="card">
           <form class="toolbar" method="GET" action="{{ route('instructor.assignments.index') }}">
-            <div class="field"><label>Search</label><input class="input" name="search" value="{{ request('search') }}" placeholder="Search assignment, topic, version..."></div>
+            <div class="field"><label>Search</label><input class="input" name="search" value="{{ request('search') }}" placeholder="Search by assignment or topic"></div>
             <div class="field"><label>Class</label><select class="select" name="class_id"><option value="">All classes</option>@foreach($classes as $class)<option value="{{ $class->id }}" @selected(request('class_id') == $class->id)>{{ $class->name }} {{ $class->section ? '— '.$class->section : '' }}</option>@endforeach</select></div>
             <div class="field"><label>Status</label><select class="select" name="status"><option value="">All status</option>@foreach(['draft','published','closed','archived'] as $status)<option value="{{ $status }}" @selected(request('status') === $status)>{{ ucfirst($status) }}</option>@endforeach</select></div>
             <button class="btn secondary" type="submit">Filter</button>
@@ -149,11 +151,11 @@
                     $totalStudents = $assignment->classRoom?->students_count ?? 0;
                   @endphp
                   <tr>
-                    <td><strong>{{ $assignment->title }}</strong><br><span class="muted">{{ $assignment->libraryItem?->topic_title }}, {{ $assignment->libraryItem?->version_name }}</span></td>
+                    <td><strong>{{ $assignment->title }}</strong>@if($assignment->libraryItem?->topic_title && $assignment->libraryItem->topic_title !== $assignment->title)<br><span class="muted">{{ $assignment->libraryItem->topic_title }}</span>@endif</td>
                     <td>{{ $assignment->classRoom?->name }}<br><span class="dim">{{ $assignment->classRoom?->section }}</span></td>
-                    <td><span class="badge-pill">{{ $assignment->libraryItem?->type_label }}</span></td>
+                    <td>{{ $assignment->libraryItem?->type_label === 'MCQ' ? 'Multiple choice' : $assignment->libraryItem?->type_label }}</td>
                     <td>{{ $assignment->due_at ? $assignment->due_at->format('M d, Y h:i A') : 'No due date' }}</td>
-                    <td><span class="badge-pill {{ $assignment->status === 'published' ? 'good' : ($assignment->status === 'draft' ? 'warn' : '') }}">{{ ucfirst($assignment->status) }}</span></td>
+                    <td><span class="{{ $assignment->status === 'published' ? 'state-good' : ($assignment->status === 'draft' ? 'state-warn' : '') }}">{{ ucfirst($assignment->status) }}</span></td>
                     <td>{{ $submitted }}/{{ $totalStudents }}</td>
                     <td>
                       <div class="actions">

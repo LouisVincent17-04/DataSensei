@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SchemaInspector;
 use App\Models\ClassRoom;
 use App\Models\Competency;
 use App\Models\StudentCompetencySnapshot;
@@ -10,7 +11,6 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -206,7 +206,7 @@ class CompetencyMonitoringService
 
     private function performRefreshClass(ClassRoom $class): void
     {
-        if (! Schema::hasTable('competencies') || ! Schema::hasTable('student_competency_snapshots')) {
+        if (! SchemaInspector::hasTable('competencies') || ! SchemaInspector::hasTable('student_competency_snapshots')) {
             return;
         }
 
@@ -255,7 +255,7 @@ class CompetencyMonitoringService
                         'calculated_at' => now(),
                     ]);
 
-                    if (Schema::hasTable('student_competency_trends')) {
+                    if (SchemaInspector::hasTable('student_competency_trends')) {
                         StudentCompetencyTrend::updateOrCreate([
                             'student_id' => $student->id,
                             'class_id' => $class->id,
@@ -292,7 +292,7 @@ class CompetencyMonitoringService
      */
     private function collectAssignmentEvidence(Collection $studentIds, int $classId, array &$evidence): void
     {
-        if (! Schema::hasTable('assignment_submissions')) {
+        if (! SchemaInspector::hasTable('assignment_submissions')) {
             return;
         }
 
@@ -351,7 +351,7 @@ class CompetencyMonitoringService
      */
     private function collectAssessmentEvidence(Collection $studentIds, int $classId, array &$evidence): void
     {
-        if (! Schema::hasTable('assessment_submissions')) {
+        if (! SchemaInspector::hasTable('assessment_submissions')) {
             return;
         }
 
@@ -384,7 +384,7 @@ class CompetencyMonitoringService
             ->keys()
             ->flip();
 
-        if (Schema::hasTable('student_assessment_diagnostics')) {
+        if (SchemaInspector::hasTable('student_assessment_diagnostics')) {
             $diagnostics = DB::table('student_assessment_diagnostics as diagnostic')
                 ->join('assessments as assessment', 'assessment.id', '=', 'diagnostic.assessment_id')
                 ->leftJoin('table_of_specifications as tos', 'tos.id', '=', 'assessment.table_of_specification_id')
@@ -490,7 +490,7 @@ class CompetencyMonitoringService
      */
     private function collectChallengeEvidence(Collection $studentIds, array &$evidence): void
     {
-        if (! Schema::hasTable('challenge_attempts')) {
+        if (! SchemaInspector::hasTable('challenge_attempts')) {
             return;
         }
 
@@ -543,7 +543,7 @@ class CompetencyMonitoringService
      */
     private function collectCodingEvidence(Collection $studentIds, array &$evidence): void
     {
-        if (! Schema::hasTable('coding_submissions')) {
+        if (! SchemaInspector::hasTable('coding_submissions')) {
             return;
         }
 
@@ -594,7 +594,7 @@ class CompetencyMonitoringService
      */
     private function collectToolkitEvidence(Collection $studentIds, array &$evidence): void
     {
-        if (! Schema::hasTable('student_data_toolkit_activities')) {
+        if (! SchemaInspector::hasTable('student_data_toolkit_activities')) {
             return;
         }
 
@@ -646,7 +646,7 @@ class CompetencyMonitoringService
         // The active Hybrid ML pipeline is the primary source. A model counts
         // only for the exact class selected by the learner; private experiments
         // (class_id NULL) must never appear in every instructor's class report.
-        if (Schema::hasTable('training_jobs') && Schema::hasTable('model_versions') && Schema::hasTable('ml_models')) {
+        if (SchemaInspector::hasTable('training_jobs') && SchemaInspector::hasTable('model_versions') && SchemaInspector::hasTable('ml_models')) {
             $currentRuns = DB::table('training_jobs as job')
                 ->join('model_versions as version', 'version.training_job_id', '=', 'job.id')
                 ->join('ml_models as model', 'model.id', '=', 'version.ml_model_id')
@@ -690,7 +690,7 @@ class CompetencyMonitoringService
 
         // Preserve historical evidence from the retired implementation only for
         // learners who have no current Hybrid ML evidence in this exact class.
-        if (! Schema::hasTable('model_development_runs')) {
+        if (! SchemaInspector::hasTable('model_development_runs')) {
             return;
         }
 
@@ -784,7 +784,7 @@ class CompetencyMonitoringService
      */
     private function collectIdeEvidence(Collection $studentIds, array &$evidence): void
     {
-        if (! Schema::hasTable('ide_execution_logs') || ! Schema::hasTable('ide_nodes')) {
+        if (! SchemaInspector::hasTable('ide_execution_logs') || ! SchemaInspector::hasTable('ide_nodes')) {
             return;
         }
 
@@ -969,7 +969,7 @@ class CompetencyMonitoringService
      */
     private function classTrends(ClassRoom $class, Collection $competencies): array
     {
-        if (! Schema::hasTable('student_competency_trends')) {
+        if (! SchemaInspector::hasTable('student_competency_trends')) {
             return [];
         }
 
@@ -1011,7 +1011,7 @@ class CompetencyMonitoringService
      */
     private function studentTrends(User $student, ClassRoom $class, Collection $competencies): array
     {
-        if (! Schema::hasTable('student_competency_trends')) {
+        if (! SchemaInspector::hasTable('student_competency_trends')) {
             return [];
         }
 

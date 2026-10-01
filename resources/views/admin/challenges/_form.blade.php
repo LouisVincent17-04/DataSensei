@@ -29,10 +29,9 @@
             @endforeach
           </select>
         </div>
-        <div class="field">
-          <label for="content-code">Content Code</label>
-          <input id="content-code" class="input" name="content_code" value="{{ old('content_code', $challenge->content_code) }}" placeholder="Leave blank to generate one" maxlength="64">
-        </div>
+        {{-- Internal identifiers, generated automatically (DataSensei Updates 9). --}}
+        <input type="hidden" name="content_code" value="{{ old('content_code', $challenge->content_code) }}">
+        <input type="hidden" name="version_code" value="{{ old('version_code', $challenge->version_code) }}">
         <div class="field">
           <label for="version-no">Version Number</label>
           <input id="version-no" class="input" type="number" name="version_no" min="1" value="{{ old('version_no', $challenge->version_no) }}" required>
@@ -40,10 +39,6 @@
         <div class="field">
           <label for="version-name">Version Name</label>
           <input id="version-name" class="input" name="version_name" value="{{ old('version_name', $challenge->version_name) }}" required>
-        </div>
-        <div class="field">
-          <label for="version-code">Version Code</label>
-          <input id="version-code" class="input" name="version_code" value="{{ old('version_code', $challenge->version_code) }}" placeholder="V1" required>
         </div>
         <div class="field">
           <label for="challenge-status">Publication Status</label>

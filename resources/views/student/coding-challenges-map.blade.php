@@ -345,13 +345,16 @@
                   $canRetake   = $retakeCount < \App\Models\CodingChallengeRetake::MAX_RETAKES;
               }
 
+              // Given to one of the learner's classes and open now: never locked.
+              $isClassChallenge = in_array($ch->id, $classChallengeIds ?? []);
+
               if ($isCompleted) {
                   $state = 'completed';
               } elseif ($isInProgress && $isExpired) {
                   $state = 'expired';       
               } elseif ($isInProgress) {
                   $state = 'inprogress';
-              } elseif ($idx === 0) {
+              } elseif ($idx === 0 || $isClassChallenge) {
                   $state = 'active';
               } else {
                   $prevCompleted = in_array($challenges[$idx - 1]->id, $completedChallengeIds);
@@ -394,11 +397,11 @@
               </div>
 
               <div class="challenge-map-node-info">
-                <div class="challenge-map-node-number">Challenge {{ $idx + 1 }}</div>
+                <div class="challenge-map-node-number">{{ $isClassChallenge ? 'Class challenge' : 'Challenge ' . ($idx + 1) }}</div>
                 <div class="challenge-map-node-title">{{ $ch->title }}</div>
 
                 <div class="challenge-map-node-xp">
-                  {{ $ch->base_xp }} XP, {{ $totalQ }} problems
+                  {{ $ch->awardsXp() ? $ch->base_xp . ' XP' : 'No XP (class work)' }}, {{ $totalQ }} problems
                 </div>
 
                 @if($best)

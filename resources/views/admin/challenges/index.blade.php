@@ -12,7 +12,7 @@
         <p class="panel-subtitle">Search challenge versions and filter by difficulty category or publication status.</p>
       </div>
       <div class="action-row">
-        <span class="badge info">{{ number_format($challenges->total()) }} versions</span>
+        <span class="dim">{{ number_format($challenges->total()) }} versions</span>
         <a class="btn small" href="{{ route('admin.challenges.create') }}">Create MCQ Challenge</a>
       </div>
     </div>
@@ -20,7 +20,7 @@
     <form class="toolbar" method="GET" action="{{ route('admin.challenges.index') }}">
       <div class="field">
         <label for="challenge-search">Search</label>
-        <input id="challenge-search" class="input" name="search" value="{{ $search }}" placeholder="Title, content code, or version">
+        <input id="challenge-search" class="input" name="search" value="{{ $search }}" placeholder="Title or version">
       </div>
       <div class="field">
         <label for="challenge-category">Category</label>
@@ -64,16 +64,15 @@
             <tr>
               <td>
                 <strong>{{ $challenge->title }}</strong>
-                <div class="dim">{{ $challenge->content_code }}, {{ number_format($challenge->time_limit_seconds) }} sec, {{ number_format($challenge->base_xp) }} XP</div>
+                <div class="dim">{{ max(1, (int) ceil($challenge->time_limit_seconds / 60)) }} min, {{ number_format($challenge->base_xp) }} XP</div>
               </td>
               <td>{{ $challenge->category?->name ?? 'Uncategorized' }}</td>
               <td>
-                <strong>{{ $challenge->version_name }}</strong>
-                <div class="dim">{{ $challenge->version_code }}, V{{ $challenge->version_no }}</div>
+                <strong>{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}</strong>
               </td>
               <td>{{ number_format($challenge->questions_count) }}</td>
               <td>
-                <span class="badge {{ $challenge->is_active ? 'active' : 'disabled' }}">{{ $challenge->is_active ? 'Published' : 'Inactive' }}</span>
+                {{ $challenge->is_active ? 'Published' : 'Inactive' }}
                 @if($challenge->attempts_count > 0)
                   <div class="dim">Has attempt history</div>
                 @endif

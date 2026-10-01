@@ -24,7 +24,7 @@ use App\Models\Lesson;
  *  20.8  — Image Data: Representation, Preprocessing & Feature Extraction
  *  20.9  — Audio Data: Waveforms, Spectrograms & Feature Engineering
  *  20.10 — Transformers & Large Language Models for Unstructured Data
- *  20.11 — Final Exam (Org-Locked)
+ *  20.11 — Final Exam
  */
 class Module20LessonsSeeder extends Seeder
 {
@@ -1744,28 +1744,11 @@ HTML;
         ];
 
         $finalContent = <<<'HTML'
-<div id="org-lock-screen" style="display:block;text-align:center;padding:60px 20px;">
-    <h2 style="color:var(--text);margin-bottom:12px;">🔒 Final Exam — Organization Required</h2>
-    <p style="color:var(--muted);">The Module 20 Final Exam is only available to students enrolled in an organization.</p>
-    <p style="font-size:0.85rem;color:#f59e0b;margin-top:1rem;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;display:inline-block;">Please contact administration to link your account to an organization.</p>
-</div>
-<div id="final-exam-content" style="display:none;">
-    <h2>Module 20: Final Examination</h2>
-    <p>This comprehensive exam covers all topics from Lessons 20.1 through 20.10 — unstructured data types, text preprocessing, TF-IDF, word embeddings, topic modeling, sentiment analysis, NER, computer vision basics, audio features, and Transformers. Good luck!</p>
+<h2>Module 20: Final Examination</h2>
+<p>This comprehensive exam covers all topics from Lessons 20.1 through 20.10 — unstructured data types, text preprocessing, TF-IDF, word embeddings, topic modeling, sentiment analysis, NER, computer vision basics, audio features, and Transformers. Good luck!</p>
 HTML;
 
         $finalContent .= $this->appendQuiz('', 'FINAL_EXAM', $allFinalQuestions);
-        $finalContent .= '</div>';
-        $finalContent .= <<<HTML
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.USER_ORG_ID !== 'undefined' && window.USER_ORG_ID !== null && window.USER_ORG_ID !== '') {
-        document.getElementById('org-lock-screen').style.display = 'none';
-        document.getElementById('final-exam-content').style.display = 'block';
-    }
-});
-</script>
-HTML;
 
         Lesson::create([
             'module_id'   => $unstrModule->id,

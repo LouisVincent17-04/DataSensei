@@ -40,8 +40,14 @@ final class PythonCodePolicyService
             '/^\s*(?:from|import)\s+(?:subprocess|socket|ssl|ctypes|cffi|multiprocessing|pty|fcntl|termios|winreg|msvcrt|importlib|webbrowser|http|urllib|requests|httpx|ftplib|smtplib|poplib|imaplib|telnetlib|xmlrpc|venv|ensurepip|pip|setuptools|distutils)\b/im'
                 => 'Imports for process control, networking, dynamic loading, or package installation are blocked in the learning sandbox.',
 
-            '/\b(?:os\s*\.\s*(?:system|popen|spawn\w*|exec\w*|fork\w*|kill|killpg|abort|setuid|setgid|chroot|chown|chmod)|subprocess\s*\.)/i'
-                => 'Operating-system process execution and ownership changes are blocked.',
+            /*
+             * "import os" itself is allowed (os.path, os.listdir, os.getcwd,
+             * os.makedirs). Running programs and deleting, renaming or
+             * re-permissioning files are not; the runner enforces the same at
+             * run time however they are reached (pathlib, shutil, aliases).
+             */
+            '/\b(?:os\s*\.\s*(?:system|popen|spawn\w*|exec\w*|fork\w*|kill|killpg|abort|_exit|setuid|setgid|chroot|chown|lchown|chmod|lchmod|remove|unlink|rmdir|removedirs|rename|renames|replace|truncate|link|symlink|startfile)\s*\(|subprocess\s*\.)/i'
+                => 'Running programs and deleting, renaming or changing permissions of files (for example os.remove) are blocked. Reading files, os.path, os.listdir, os.getcwd and os.makedirs are allowed.',
 
             '/\b(?:socket\s*\.\s*socket|requests\s*\.\s*(?:get|post|put|delete|patch|head|request|Session)|urllib\s*\.\s*request|httpx\s*\.\s*(?:get|post|Client))/i'
                 => 'Outbound network access is blocked; the sandbox runs with no network.',

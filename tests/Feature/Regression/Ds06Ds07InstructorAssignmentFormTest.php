@@ -148,7 +148,7 @@ class Ds06Ds07InstructorAssignmentFormTest extends TestCase
         $html = $this->actAs($this->instructor)
             ->get(route('instructor.assignments.edit', $assignmentId))
             ->assertOk()
-            ->assertSee('(inactive version, kept for this assignment)')
+            ->assertSee(', no longer offered')
             ->getContent();
         $this->assertMatchesRegularExpression('/<option value="' . $item . '" data-title[^>]*selected/', $html);
         $this->assertStringNotContainsString('<option value="' . $otherInactive . '" data-title', $html, 'Unrelated inactive versions are not offered.');

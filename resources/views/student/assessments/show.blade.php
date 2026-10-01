@@ -84,7 +84,7 @@
       <div class="grid grid-3">
         <div class="metric"><strong>{{ $assessment->total_items }}</strong><span class="muted">Items</span></div>
         <div class="metric"><strong>{{ $assessment->total_points }}</strong><span class="muted">Points</span></div>
-        <div class="metric"><strong>{{ $assessment->time_limit_minutes ?: '—' }}</strong><span class="muted">Minutes</span></div>
+        <div class="metric"><strong>{{ $assessment->time_limit_minutes ?: 'None' }}</strong><span class="muted">{{ $assessment->time_limit_minutes ? 'Minutes' : 'Time limit' }}</span></div>
       </div>
 
       <div class="card">

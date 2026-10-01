@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SchemaInspector;
 use App\Models\AchievementDefinition;
 use App\Models\User;
 use App\Models\UserAchievement;
@@ -9,7 +10,6 @@ use App\Services\GamificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class StudentGamificationController extends Controller
 {
@@ -17,11 +17,16 @@ class StudentGamificationController extends Controller
     {
         $user = Auth::user();
 
-        $definitions = Schema::hasTable('achievement_definitions')
+        // Catch up on rules the learner already meets (work saved before a
+        // rule existed, or before rewards were measured from saved work).
+        $gamification->evaluateAchievements($user);
+        $user->refresh();
+
+        $definitions = SchemaInspector::hasTable('achievement_definitions')
             ? AchievementDefinition::where('is_active', true)->orderBy('sort_order')->get()
             : collect();
 
-        $unlocked = Schema::hasTable('user_achievements')
+        $unlocked = SchemaInspector::hasTable('user_achievements')
             ? UserAchievement::with('achievement')
                 ->where('user_id', $user->id)
                 ->get()
@@ -29,6 +34,7 @@ class StudentGamificationController extends Controller
             : collect();
 
         $missions = $gamification->currentMissions($user);
+        $achievementProgress = $gamification->achievementProgress($user);
 
         $stats = [
             'unlocked_count' => $unlocked->count(),
@@ -37,14 +43,14 @@ class StudentGamificationController extends Controller
             'streak' => (int) $user->streak,
         ];
 
-        return view('student.gamification.achievements', compact('definitions', 'unlocked', 'missions', 'stats'));
+        return view('student.gamification.achievements', compact('definitions', 'unlocked', 'missions', 'stats', 'achievementProgress'));
     }
 
     public function leaderboard(Request $request)
     {
         $period = 'all';
 
-        $achievementCounts = Schema::hasTable('user_achievements')
+        $achievementCounts = SchemaInspector::hasTable('user_achievements')
             ? DB::table('user_achievements')
                 ->select('user_id', DB::raw('COUNT(*) as achievements_count'))
                 ->groupBy('user_id')

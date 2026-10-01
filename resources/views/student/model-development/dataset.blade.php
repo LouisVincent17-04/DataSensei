@@ -130,7 +130,6 @@
                     <div class="ml-card">
                         <h2 class="ml-section-title">Dataset Information</h2>
                         <div class="ml-meta">
-                            <div><span>Version</span><strong>{{ $dataset->version_label ?? 'v1' }}</strong></div>
                             <div><span>Source</span><strong>{{ $dataset->source_name ?? 'User upload' }}</strong></div>
                             <div><span>Numerical columns</span><strong>{{ count((array) ($profile['numeric_columns'] ?? [])) }}</strong></div>
                             <div><span>Categorical columns</span><strong>{{ count((array) ($profile['categorical_columns'] ?? [])) }}</strong></div>

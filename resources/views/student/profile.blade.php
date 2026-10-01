@@ -24,34 +24,6 @@
 
     /* ── account summary: a plain header, not a banner ── */
     .page-profile-header-card { display: flex; flex-direction: column; gap: 24px; }
-    .page-profile-info-section { display: flex; flex-wrap: wrap; gap: 12px; }
-    .page-profile-identity { flex: 1 1 100%; min-width: 0; display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
-    .page-profile-avatar-large { width: 56px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface2); border: 1px solid var(--ds-border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 1.375rem; font-weight: 600; }
-    .page-profile-text { min-width: 0; }
-    .page-profile-text h2 { margin-bottom: 2px; color: var(--text); font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-    .page-profile-text p { color: var(--muted); font-size: 0.875rem; line-height: 1.5; overflow-wrap: anywhere; }
-
-    .page-profile-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; }
-    .page-profile-badge { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs); background: var(--surface2); color: var(--ds-text-secondary); font-size: 0.75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
-    /* The role is plain text, not a capsule. */
-    .page-profile-badge-ds { padding: 0; border: 0; background: none; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
-
-    /* Summary tiles */
-    .page-profile-stats-row { flex: 2 1 420px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-    .page-profile-stat { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-    .page-profile-stat .lbl { order: -1; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
-    .page-profile-stat .val { margin-top: 2px; color: var(--text); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
-
-    /* Current rank */
-    .page-profile-rank-showcase { flex: 1 1 300px; min-width: 0; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-    .page-profile-rank-shell { display: block; }
-    .page-profile-rank-kicker { margin-bottom: 4px; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
-    .page-profile-rank-title { color: var(--text); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
-    .page-profile-rank-subtitle { margin-top: 4px; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
-    .page-profile-rank-progress { height: 6px; margin-top: 12px; overflow: hidden; border-radius: 999px; background: var(--surface2); }
-    .page-profile-rank-progress-fill { width: var(--rank-progress, 0%); height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.4s ease; }
-    .page-profile-rank-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-top: 8px; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
-    .page-profile-rank-foot strong { color: var(--text); font-weight: 600; }
 
     /* Section tabs (underline) */
     .page-profile-tabs { display: flex; gap: 24px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: none; }
@@ -119,25 +91,24 @@
     .page-profile-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
     .page-profile-alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
 
-    /* ── status labels ── */
-    .page-profile-status-pill { width: fit-content; display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs); background: var(--surface2); color: var(--ds-text-secondary); font-size: 0.75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
-    .page-profile-status-pending { border-color: var(--ds-warning-border); background: var(--ds-warning-soft); color: var(--ds-warning-text); }
-    .page-profile-status-approved { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-text); }
-    .page-profile-status-rejected { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-text); }
 
-    /* ── rank progression ── */
-    .page-profile-rank-path { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
-    .page-profile-rank-step { min-width: 0; padding: 12px 14px; background: var(--surface3); border: 1px solid transparent; border-radius: var(--radius-sm); transition: border-color 0.12s ease, background 0.12s ease; }
-    .page-profile-rank-step.current { background: var(--ds-accent-soft); border-color: var(--ds-accent-border); }
-    .page-profile-rank-step-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-    .page-profile-rank-step-no { color: var(--muted); font-size: 0.75rem; font-weight: 500; font-variant-numeric: tabular-nums; }
-    .page-profile-rank-step-status { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
-    .page-profile-rank-step.current .page-profile-rank-step-status { color: var(--ds-accent-text); }
-    .page-profile-rank-step.unlocked .page-profile-rank-step-status { color: var(--ds-success-text); }
-    .page-profile-rank-step-name { margin-bottom: 2px; color: var(--text); font-size: 0.875rem; font-weight: 600; }
-    .page-profile-rank-step.locked .page-profile-rank-step-name { color: var(--ds-text-secondary); }
-    .page-profile-rank-step-exp { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
     .page-profile-rank-empty { color: var(--muted); font-size: 0.875rem; line-height: 1.6; }
+
+    /* ── account summary (DataSensei Updates 9): plain details, no badges or tiles ── */
+    .pf-summary { padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+    .pf-name { margin: 0; color: var(--text); font-size: 1.125rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+    .pf-email { margin: 2px 0 0; color: var(--muted); font-size: 0.875rem; overflow-wrap: anywhere; }
+    .pf-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 20px; margin: 16px 0 0; }
+    .pf-facts dt { color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
+    .pf-facts dd { margin: 2px 0 0; color: var(--text); font-size: 0.9375rem; font-weight: 500; overflow-wrap: anywhere; }
+    .pf-note { margin: 14px 0 0; color: var(--ds-text-secondary); font-size: 0.875rem; }
+    .pf-status { margin: 4px 0 0; color: var(--ds-text-secondary); font-size: 0.875rem; }
+    .pf-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .pf-table th { padding: 8px 12px; background: var(--surface3); color: var(--muted); font-size: 0.75rem; font-weight: 600; text-align: left; }
+    .pf-table td { padding: 9px 12px; border-top: 1px solid var(--border); color: var(--ds-text-secondary); }
+    .pf-table tr.is-current td { color: var(--text); font-weight: 600; }
+    @media (max-width: 900px) { .pf-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 420px) { .pf-facts { grid-template-columns: minmax(0, 1fr); } }
 
     @media (max-width: 900px) {
       .page-profile-topbar { min-height: 56px; padding: 0 20px; }
@@ -147,22 +118,10 @@
     @media (max-width: 640px) {
       .page-profile-topbar { padding: 0 16px; }
       .page-profile-content { padding: 20px 16px 32px; }
-      .page-profile-avatar-large { width: 48px; height: 48px; font-size: 1.25rem; }
       .page-profile-tabs { gap: 20px; }
       .page-profile-card-header { padding: 12px 16px; }
       .page-profile-card-body { padding: 16px; }
       .page-profile-form-actions .page-profile-btn { flex: 1 1 auto; }
-      .page-profile-rank-path { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    /* Phones: the summary figures become rows of one panel instead of tall tiles. */
-    @media (max-width: 560px) {
-      .page-profile-stats-row { grid-template-columns: minmax(0, 1fr); gap: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-      .page-profile-stat { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; background: none; border: 0; border-top: 1px solid var(--border); border-radius: 0; }
-      .page-profile-stat:first-child { border-top: 0; }
-      .page-profile-stat .val { margin: 0; font-size: 1.125rem; text-align: right; }
-    }
-    @media (max-width: 380px) {
-      .page-profile-rank-path { grid-template-columns: minmax(0, 1fr); }
     }
   </style>
     @include('partials.page-head', ['pageTitle' => 'My Profile', 'pageDescription' => 'Your DataSensei account details and learning summary.'])
@@ -250,90 +209,30 @@
         @endif
 
         <div class="page-profile-header-card">
-          <div class="page-profile-info-section">
-            <div class="page-profile-identity">
-              <div class="page-profile-avatar-large">
-                {{ strtoupper(substr($currentUser->name ?? 'U', 0, 1)) }}
-              </div>
-
-              <div class="page-profile-text">
-                <h2>{{ $currentUser->name }}</h2>
-                <p>{{ $currentUser->email }}</p>
-
-                <div class="page-profile-badges">
-                  <span class="page-profile-badge page-profile-badge-ds">{{ $roleLabel }}</span>
-                  @if ($isLearner)
-                    <span class="page-profile-badge page-profile-badge-rank">{{ $rankName }} Rank</span>
-                  @endif
-                  <span class="page-profile-badge page-profile-badge-rank">
-                    {{ $currentUser->institution_id ? 'Institution Connected' : 'No Institution Yet' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-
-
+        <section class="pf-summary" aria-label="Account summary">
+          <h2 class="pf-name">{{ $currentUser->name }}</h2>
+          <p class="pf-email">{{ $currentUser->email }}</p>
+          <dl class="pf-facts">
+            <div><dt>Role</dt><dd>{{ $roleLabel }}</dd></div>
+            <div><dt>Institution</dt><dd>{{ $currentUser->institution?->name ?? 'None' }}</dd></div>
             @if ($isLearner)
-            <div class="page-profile-rank-showcase {{ $rankTierClass }}" style="--rank-progress: {{ $rankProgressPercent }}%;">
-              <div class="page-profile-rank-shell">
-                <div class="page-profile-rank-details">
-                  <div class="page-profile-rank-kicker">Current Rank, Tier {{ $currentRankPosition }} of {{ $totalRanks }}</div>
-                  <div class="page-profile-rank-title">{{ $rankName }}</div>
-                  <div class="page-profile-rank-subtitle">
-                    @if ($nextRank)
-                      Earn {{ number_format($rankXpToNext) }} more XP to reach {{ $nextRank->rank_name }}.
-                    @else
-                      You have reached the highest available rank.
-                    @endif
-                  </div>
-
-                  <div class="page-profile-rank-progress" aria-label="Rank progress">
-                    <div class="page-profile-rank-progress-fill"></div>
-                  </div>
-
-                  <div class="page-profile-rank-foot">
-                    <span><strong>{{ number_format($currentUser->xp ?? 0) }}</strong> current XP</span>
-                    @if ($nextRank)
-                      <span><strong>{{ number_format($nextRank->exp_required) }}</strong> XP required</span>
-                    @else
-                      <span><strong>Highest rank</strong></span>
-                    @endif
-                  </div>
-                </div>
-              </div>
-            </div>
+              <div><dt>Total XP</dt><dd>{{ number_format($currentUser->xp ?? 0) }}</dd></div>
+              <div><dt>Rank</dt><dd>{{ $rankName }}</dd></div>
+              <div><dt>Day streak</dt><dd>{{ $currentUser->streak ?? 0 }}</dd></div>
             @endif
-
-            <div class="page-profile-stats-row">
-              @if ($isLearner)
-                <div class="page-profile-stat">
-                  <div class="val">{{ number_format($currentUser->xp ?? 0) }}</div>
-                  <div class="lbl">Total XP</div>
-                </div>
-
-                <div class="page-profile-stat">
-                  <div class="val">{{ $currentUser->streak ?? 0 }}</div>
-                  <div class="lbl">Day Streak</div>
-                </div>
+            <div><dt>Member since</dt><dd>{{ optional($currentUser->created_at)->format('M Y') ?? 'Not recorded' }}</dd></div>
+            <div><dt>Account status</dt><dd>{{ ucfirst($currentUser->status ?? 'active') }}</dd></div>
+          </dl>
+          @if ($isLearner)
+            <p class="pf-note">
+              @if ($nextRank)
+                {{ number_format($rankXpToNext) }} more XP to reach the {{ $nextRank->rank_name }} rank.
               @else
-                <div class="page-profile-stat">
-                  <div class="val">{{ $roleLabel }}</div>
-                  <div class="lbl">Account Role</div>
-                </div>
-
-                <div class="page-profile-stat">
-                  <div class="val">{{ optional($currentUser->created_at)->format('M Y') ?? '—' }}</div>
-                  <div class="lbl">Member Since</div>
-                </div>
+                You have reached the highest rank.
               @endif
-
-              <div class="page-profile-stat">
-                <div class="val">{{ $currentUser->status ?? 'active' }}</div>
-                <div class="lbl">Status</div>
-              </div>
-            </div>
-          </div>
+            </p>
+          @endif
+        </section>
 
           <div class="page-profile-tabs">
             <a href="{{ route('profile', ['tab' => 'general']) }}"
@@ -431,25 +330,22 @@
 
               <div class="page-profile-card-body">
                 @if ($ranks->isNotEmpty())
-                  <div class="page-profile-rank-path">
-                    @foreach ($ranks as $rank)
-                      @php
-                        $rankTier = (int) $rank->rank_id;
-                        $isUnlockedRank = (int) ($currentUser->xp ?? 0) >= (int) $rank->exp_required;
-                        $isCurrentRank = $currentRank && (int) $currentRank->rank_id === $rankTier;
-                        $stepClass = $isCurrentRank ? 'current' : ($isUnlockedRank ? 'unlocked' : 'locked');
-                      @endphp
-
-                      <div class="page-profile-rank-step rank-tier-{{ max(1, min(8, $rankTier)) }} {{ $stepClass }}">
-                        <div class="page-profile-rank-step-top">
-                          <span class="page-profile-rank-step-no">Tier {{ $rankTier }}</span>
-                          <span class="page-profile-rank-step-status">{{ $isCurrentRank ? 'Current' : ($isUnlockedRank ? 'Unlocked' : 'Locked') }}</span>
-                        </div>
-                        <div class="page-profile-rank-step-name">{{ $rank->rank_name }}</div>
-                        <div class="page-profile-rank-step-exp">{{ number_format($rank->exp_required) }} XP required</div>
-                      </div>
-                    @endforeach
-                  </div>
+                  <table class="pf-table">
+                    <thead><tr><th>Rank</th><th>XP required</th><th>Status</th></tr></thead>
+                    <tbody>
+                      @foreach ($ranks as $rank)
+                        @php
+                          $isUnlockedRank = (int) ($currentUser->xp ?? 0) >= (int) $rank->exp_required;
+                          $isCurrentRank = $currentRank && (int) $currentRank->rank_id === (int) $rank->rank_id;
+                        @endphp
+                        <tr class="{{ $isCurrentRank ? 'is-current' : '' }}">
+                          <td>{{ $rank->rank_name }}</td>
+                          <td>{{ number_format($rank->exp_required) }}</td>
+                          <td>{{ $isCurrentRank ? 'Your current rank' : ($isUnlockedRank ? 'Reached' : 'Not yet') }}</td>
+                        </tr>
+                      @endforeach
+                    </tbody>
+                  </table>
                 @else
                   <p class="page-profile-rank-empty">
                     No ranks found yet. Run the ranks migration first, then reload the profile page.
@@ -502,9 +398,7 @@
                     <input type="text" value="{{ $currentUser->institution?->name ?? 'Unknown Institution' }}" readonly>
                   </div>
 
-                  <span class="page-profile-status-pill page-profile-status-approved">
-                    Connected
-                  </span>
+                  <p class="pf-status">Status: connected.</p>
 
                 @elseif ($pendingApplication)
                   <p class="page-profile-danger-note">
@@ -521,12 +415,7 @@
                     <input type="text" value="{{ $instructorApplication->institution->name ?? 'Unknown Institution' }}" readonly>
                   </div>
 
-                  <div class="page-profile-form-group">
-                    <label>Status</label>
-                    <span class="page-profile-status-pill page-profile-status-pending">
-                      Pending Approval
-                    </span>
-                  </div>
+                  <p class="pf-status">Status: waiting for approval.</p>
 
                 @elseif ($approvedApplication)
                   <p class="page-profile-danger-note">
@@ -543,9 +432,7 @@
                     <input type="text" value="{{ $instructorApplication->institution->name ?? 'Unknown Institution' }}" readonly>
                   </div>
 
-                  <span class="page-profile-status-pill page-profile-status-approved">
-                    Approved
-                  </span>
+                  <p class="pf-status">Status: approved.</p>
 
                 @else
                   @if ($rejectedApplication)

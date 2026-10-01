@@ -8,6 +8,7 @@ use App\Models\Module;
 use App\Models\User;
 use App\Support\AuthSessionFingerprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Regression\Concerns\PassesReferenceSolutionCheck;
 use Tests\TestCase;
 
 /**
@@ -22,7 +23,17 @@ use Tests\TestCase;
  */
 class Updates3ContentCodeGenerationTest extends TestCase
 {
+    use PassesReferenceSolutionCheck;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Saving now runs the reference-solution check (Updates 5); these
+        // tests cover storage and versioning, so the check is stubbed.
+        $this->passReferenceSolutionCheck();
+    }
 
     private function admin(): User
     {

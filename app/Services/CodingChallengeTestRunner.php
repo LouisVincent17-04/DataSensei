@@ -20,7 +20,11 @@ class CodingChallengeTestRunner
     /** The most test cases a single check will execute. */
     public const MAX_TEST_CASES = 30;
 
-    /** The longest a single test case may run, in seconds. */
+    /**
+     * Kept for callers that still pass it. Test cases now run with the same
+     * time limit as student submissions (the sandbox default), so a
+     * reference solution is checked in exactly the student environment.
+     */
     public const MAX_SECONDS_PER_CASE = 10;
 
     /** @var callable(string, string, array): array */
@@ -45,7 +49,7 @@ class CodingChallengeTestRunner
      *     summary: array{passed:int, total:int, capped:bool, skipped:int}
      * }
      */
-    public function check(string $code, array $testCases, int $timeLimitSeconds): array
+    public function check(string $code, array $testCases, int $timeLimitSeconds = 0): array
     {
         $testCases = array_values($testCases);
         $submitted = count($testCases);
@@ -55,13 +59,12 @@ class CodingChallengeTestRunner
             $testCases = array_slice($testCases, 0, self::MAX_TEST_CASES);
         }
 
-        $timeout = max(1, min(self::MAX_SECONDS_PER_CASE, $timeLimitSeconds));
         $results = [];
         $passedCount = 0;
 
         foreach ($testCases as $index => $testCase) {
             $testCase = is_array($testCase) ? $testCase : [];
-            $result = $this->runCase($code, $testCase, $timeout, $index);
+            $result = $this->runCase($code, $testCase, $index);
 
             if ($result['passed']) {
                 $passedCount++;
@@ -97,14 +100,16 @@ class CodingChallengeTestRunner
         return ! $failed && ! $timedOut && $actual === $expected;
     }
 
-    private function runCase(string $code, array $testCase, int $timeout, int $index): array
+    private function runCase(string $code, array $testCase, int $index): array
     {
         $stdin = (string) ($testCase['input'] ?? '');
         $expected = (string) ($testCase['expected_output'] ?? '');
 
         try {
-            // Same as grading: input() prompts are not printed.
-            $result = ($this->execute)($code, $stdin, ['timeout' => $timeout, 'quiet_input_prompts' => true]);
+            // Exactly the options the grader uses for student submissions
+            // (CodingQuizController::execute): input() prompts are not
+            // printed and the sandbox's own time limit applies.
+            $result = ($this->execute)($code, $stdin, ['quiet_input_prompts' => true]);
             if (! is_array($result)) {
                 $result = ['stdout' => '', 'stderr' => 'The sandbox returned no result.', 'failed' => true, 'timed_out' => false];
             }

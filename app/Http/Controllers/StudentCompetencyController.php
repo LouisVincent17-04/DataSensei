@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SchemaInspector;
 use App\Models\User;
 use App\Services\CompetencyMonitoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class StudentCompetencyController extends Controller
@@ -24,9 +24,9 @@ class StudentCompetencyController extends Controller
         $selectedClass = $classes->firstWhere('id', (int) $request->integer('class_id'))
             ?? $classes->first();
 
-        $migrationRequired = ! Schema::hasTable('competencies')
-            || ! Schema::hasTable('student_competency_snapshots')
-            || ! Schema::hasTable('student_competency_trends');
+        $migrationRequired = ! SchemaInspector::hasTable('competencies')
+            || ! SchemaInspector::hasTable('student_competency_snapshots')
+            || ! SchemaInspector::hasTable('student_competency_trends');
 
         $report = (! $migrationRequired && $selectedClass)
             ? $monitoring->studentReport($student, $selectedClass)

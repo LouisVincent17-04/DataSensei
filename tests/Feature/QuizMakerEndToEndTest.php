@@ -137,8 +137,9 @@ class QuizMakerEndToEndTest extends TestCase
         $this->instructorClient()
             ->get(route('instructor.assessments.builder', $assessment))
             ->assertOk()
-            ->assertSeeText('Item 1 of 5')
-            ->assertSeeText('Descriptive Statistics');
+            // DataSensei Updates 9: every question on one page, with its TOS plan.
+            ->assertSeeText('Questions (5)')
+            ->assertSeeText('Planned topic: Descriptive Statistics');
 
         $definitions = [
             [

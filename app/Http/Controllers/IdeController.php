@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\IdeExecutionLog;
 use App\Models\IdeNode;
 use App\Models\IdeWorkspace;
+use App\Services\GamificationService;
 use App\Services\PythonSandboxService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class IdeController extends Controller
 {
@@ -34,8 +36,13 @@ class IdeController extends Controller
         }
 
         $tree = $this->buildTree($workspace);
+        $ideLimits = [
+            'source_chars' => $this->sourceCharLimit(),
+            'data_file_bytes' => $this->dataFileByteLimit(),
+            'data_file_extensions' => $this->dataFileExtensions(),
+        ];
 
-        return view('ide.index', compact('workspace', 'tree'));
+        return view('ide.index', compact('workspace', 'tree', 'ideLimits'));
     }
 
     public function initializeWorkspace()
@@ -61,14 +68,22 @@ class IdeController extends Controller
             'parent_id' => ['nullable', 'integer', 'exists:ide_nodes,id'],
             'type' => ['required', Rule::in(['file', 'folder'])],
             'name' => $this->nodeNameRules('required'),
-            'content' => ['nullable', 'string', 'max:50000'],
+            'content' => ['nullable', 'string'],
             'language' => ['nullable', 'string', 'max:50'],
         ], $this->nodeNameValidationMessages());
 
         $this->assertSafeNodeName($validated['name']);
 
+        if ($validated['type'] === 'file') {
+            $this->assertContentFits($validated['name'], $validated['content'] ?? '');
+        }
+
         return DB::transaction(function () use ($validated) {
             $workspace = $this->lockWorkspace((int) $validated['workspace_id']);
+
+            if ($validated['type'] === 'file') {
+                $this->assertWorkspaceHasRoom((int) $workspace->id, strlen((string) ($validated['content'] ?? '')));
+            }
 
             if ($workspace->nodes()->count() >= self::MAX_NODES_PER_WORKSPACE) {
                 return response()->json([
@@ -112,7 +127,7 @@ class IdeController extends Controller
 
         $validated = $request->validate([
             'name' => $this->nodeNameRules('sometimes'),
-            'content' => ['sometimes', 'nullable', 'string', 'max:50000'],
+            'content' => ['sometimes', 'nullable', 'string'],
             'parent_id' => ['sometimes', 'nullable', 'integer', 'exists:ide_nodes,id'],
         ], $this->nodeNameValidationMessages());
 
@@ -138,6 +153,15 @@ class IdeController extends Controller
             $targetParent = array_key_exists('parent_id', $validated) ? $validated['parent_id'] : $node->parent_id;
 
             $this->assertNoSiblingCollision($node, $targetName, $targetParent);
+
+            if ($node->type === 'file' && (array_key_exists('content', $validated) || array_key_exists('name', $validated))) {
+                $content = array_key_exists('content', $validated) ? (string) ($validated['content'] ?? '') : (string) $node->content;
+                $this->assertContentFits($targetName, $content);
+
+                if (array_key_exists('content', $validated)) {
+                    $this->assertWorkspaceHasRoom((int) $workspace->id, strlen($content), (int) $node->id);
+                }
+            }
 
             if (array_key_exists('name', $validated) && $node->type === 'file') {
                 $validated['language'] = $this->languageForFilename($validated['name']);
@@ -232,13 +256,18 @@ class IdeController extends Controller
         }
 
         $validated = $request->validate([
-            'content' => ['present', 'string', 'max:50000'],
+            'content' => ['present', 'nullable', 'string'],
         ]);
+        $validated['content'] = (string) ($validated['content'] ?? '');
+
+        $this->assertContentFits($node->name, $validated['content']);
 
         $updatedAt = DB::transaction(function () use ($node, $validated) {
             $workspace = $this->lockWorkspace((int) $node->workspace_id);
             $lockedNode = $this->lockNode((int) $node->id, (int) $workspace->id);
             abort_unless($lockedNode->type === 'file', 422, 'Only files can store source code.');
+            $this->assertContentFits($lockedNode->name, $validated['content']);
+            $this->assertWorkspaceHasRoom((int) $workspace->id, strlen($validated['content']), (int) $lockedNode->id);
             $lockedNode->update(['content' => $validated['content']]);
 
             return $lockedNode->fresh()->updated_at;
@@ -381,6 +410,10 @@ class IdeController extends Controller
             }
         }, 3);
 
+        if (($result['input_required'] ?? false) !== true) {
+            $this->recordLearnerCodeRun();
+        }
+
         return response()->json([
             'output' => $result['stdout'] ?? '',
             'error' => $result['stderr'] ?? '',
@@ -499,6 +532,25 @@ class IdeController extends Controller
         // The self-referencing foreign key cascades through descendants and also
         // removes their execution logs, avoiding an unbounded N+1 recursion here.
         $node->delete();
+    }
+
+    /**
+     * A finished run counts toward the "run code" missions, streaks and the
+     * first-run achievement. Rewards must never break the run itself, so a
+     * failure here is only reported.
+     */
+    private function recordLearnerCodeRun(): void
+    {
+        $user = Auth::user();
+        if (! $user || ! $user->isLearner()) {
+            return;
+        }
+
+        try {
+            app(GamificationService::class)->recordCodeRun($user);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     private function authorizeNode(IdeNode $node): void
@@ -727,6 +779,132 @@ class IdeController extends Controller
         File::ensureDirectoryExists($workspacePath, 0755, true);
 
         return $workspacePath;
+    }
+
+    /** @return array<int, string> */
+    private function dataFileExtensions(): array
+    {
+        return array_values(array_map(
+            'strtolower',
+            (array) config('code_execution.ide.data_file_extensions', ['csv', 'tsv', 'txt', 'json'])
+        ));
+    }
+
+    private function isDataFile(string $filename): bool
+    {
+        return in_array(strtolower(pathinfo($filename, PATHINFO_EXTENSION)), $this->dataFileExtensions(), true);
+    }
+
+    private function sourceCharLimit(): int
+    {
+        return max(1000, (int) config('code_execution.ide.max_source_chars', 50000));
+    }
+
+    /**
+     * Largest data file one save may hold: the configured size, kept below
+     * the database's max_allowed_packet so the save cannot fail mid-query.
+     */
+    private function dataFileByteLimit(): int
+    {
+        $configured = max(50000, (int) config('code_execution.ide.max_data_file_bytes', 5 * 1024 * 1024));
+        $packet = $this->databasePacketLimit();
+
+        if ($packet === null) {
+            return $configured;
+        }
+
+        return max(50000, min($configured, $packet - 64 * 1024));
+    }
+
+    private ?int $packetLimitCache = null;
+
+    private bool $packetLimitRead = false;
+
+    private function databasePacketLimit(): ?int
+    {
+        if ($this->packetLimitRead) {
+            return $this->packetLimitCache;
+        }
+
+        $this->packetLimitRead = true;
+
+        try {
+            if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+                return null;
+            }
+
+            $row = DB::selectOne('SELECT @@max_allowed_packet AS packet');
+            $packet = (int) ($row->packet ?? 0);
+
+            return $this->packetLimitCache = $packet > 0 ? $packet : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Python source keeps the 50,000 character limit. Data files that programs
+     * read (CSV, TXT, JSON, ...) may be several megabytes; they used to be held
+     * to the same 50,000 characters, so uploading a real dataset failed with
+     * "The content field must not be greater than 50000 characters."
+     */
+    private function assertContentFits(string $filename, string $content): void
+    {
+        if ($this->isDataFile($filename)) {
+            $bytes = strlen($content);
+            $limit = $this->dataFileByteLimit();
+
+            if ($bytes <= $limit) {
+                return;
+            }
+
+            $message = '“'.$filename.'” is '.$this->formatBytes($bytes).'. Data files can be up to '
+                .$this->formatBytes($limit).' here.';
+
+            $configured = max(50000, (int) config('code_execution.ide.max_data_file_bytes', 5 * 1024 * 1024));
+            if ($limit < $configured) {
+                $message .= ' The database server accepts about '.$this->formatBytes((int) $this->databasePacketLimit())
+                    .' per save; an administrator can raise max_allowed_packet in the MySQL settings (my.ini) to allow up to '
+                    .$this->formatBytes($configured).'.';
+            }
+
+            throw ValidationException::withMessages(['content' => $message]);
+        }
+
+        if (mb_strlen($content) > $this->sourceCharLimit()) {
+            throw ValidationException::withMessages([
+                'content' => '“'.$filename.'” has more than '.number_format($this->sourceCharLimit())
+                    .' characters. Split the program into smaller files.',
+            ]);
+        }
+    }
+
+    /** All files of one workspace together stay within the sandbox's space. */
+    private function assertWorkspaceHasRoom(int $workspaceId, int $newBytes, ?int $replacingNodeId = null): void
+    {
+        $limit = (int) config('code_execution.ide.max_workspace_bytes', 25 * 1024 * 1024);
+
+        $used = (int) IdeNode::query()
+            ->where('workspace_id', $workspaceId)
+            ->where('type', 'file')
+            ->when($replacingNodeId !== null, fn ($query) => $query->whereKeyNot($replacingNodeId))
+            ->sum(DB::raw('LENGTH(content)'));
+
+        if ($used + $newBytes > $limit) {
+            throw ValidationException::withMessages([
+                'content' => 'Your workspace files would take '.$this->formatBytes($used + $newBytes)
+                    .', more than the '.$this->formatBytes($limit).' allowed. Delete files you no longer need and try again.',
+            ]);
+        }
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1024 * 1024) {
+            return rtrim(rtrim(number_format($bytes / (1024 * 1024), 1), '0'), '.').' MB';
+        }
+
+        return max(1, (int) round($bytes / 1024)).' KB';
     }
 
     private function languageForFilename(string $filename): string

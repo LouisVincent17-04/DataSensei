@@ -21,7 +21,6 @@
       setName(question.querySelector('[data-field="image_path"]'), 'questions[' + questionIndex + '][image_path]');
       setName(question.querySelector('[data-field="points"]'), 'questions[' + questionIndex + '][points]');
       setName(question.querySelector('[data-field="explanation"]'), 'questions[' + questionIndex + '][explanation]');
-      setName(question.querySelector('[data-field="ilo_ids"]'), 'questions[' + questionIndex + '][ilo_ids][]');
 
       var options = Array.from(question.querySelectorAll('[data-option-list] > .option-item'));
       options.forEach(function (option, optionIndex) {

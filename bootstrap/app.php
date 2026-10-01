@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->appendToGroup('web', \App\Http\Middleware\EnforceIdleSessionTimeout::class);
+        // The audit log of admin and instructor actions (DataSensei Updates 8).
+        $middleware->appendToGroup('web', \App\Http\Middleware\RecordStaffActions::class);
 
         // Laravel trims every incoming string by default. For code and program
         // input, whitespace is part of the value: a Python file that ends with a
@@ -82,35 +84,61 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            // Only the sign-in and registration forms. Elsewhere a 419 is left
-            // exactly as it was: the assignment and assessment screens detect
-            // an expired session by that status and handle it themselves, and
-            // quietly turning those into redirects would break them.
-            // Matched by path as well as by name: the POST that actually
-            // submits the sign-in form carries no route name, so keying on the
-            // name alone missed the very request this exists for.
-            if (! $request->routeIs('login', 'register') && ! $request->is('login', 'register')) {
+            // The sign-in and registration forms: send the person back to a
+            // freshly tokened form that retries once by itself.
+            if ($request->routeIs('login', 'register') || $request->is('login', 'register')) {
+                $message = 'Your session expired before the form was sent. Please try again.';
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                        'session_expired' => true,
+                        // Lets a script retry straight away rather than dead-end.
+                        'csrf_token' => $request->hasSession()
+                            ? $request->session()->token()
+                            : null,
+                    ], 419);
+                }
+
+                return redirect()->route('login')
+                    ->withInput($request->except(['password', 'password_confirmation', '_token']))
+                    ->withErrors(['email' => $message])
+                    // Tells the sign-in page this is a bounce, so it can put the
+                    // details back and try once more with the fresh token itself.
+                    ->with('session_expired_retry', true);
+            }
+
+            $signedOut = ! $request->user();
+            $expiredMessage = sprintf(
+                'You were signed out after %d minutes of inactivity. Sign in again to continue.',
+                (int) config('session.idle_timeout', 60)
+            );
+
+            // Scripts: the assignment and assessment screens detect an expired
+            // session by the 419 status and handle it themselves, so it is kept
+            // for them. Signing out and the activity heartbeat are different:
+            // when the session is already gone, that is simply "signed out".
+            if ($request->expectsJson() || $request->ajax()) {
+                if ($signedOut && $request->routeIs('logout', 'session.activity')) {
+                    return response()->json([
+                        'message' => $expiredMessage,
+                        'session_expired' => true,
+                        'login_url' => route('login', ['expired' => 1]),
+                    ], 401);
+                }
+
                 return null;
             }
 
-            $message = 'Your session expired before the form was sent. Please try again.';
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => $message,
-                    'session_expired' => true,
-                    // Lets a script retry straight away rather than dead-end.
-                    'csrf_token' => $request->hasSession()
-                        ? $request->session()->token()
-                        : null,
-                ], 419);
+            // A page left open past the session: the form is still refused,
+            // but the person lands on a working page instead of "Page Expired".
+            if ($signedOut) {
+                return redirect()->route('login', ['expired' => 1])
+                    ->with('status', $expiredMessage);
             }
 
-            return redirect()->route('login')
-                ->withInput($request->except(['password', 'password_confirmation', '_token']))
-                ->withErrors(['email' => $message])
-                // Tells the sign-in page this is a bounce, so it can put the
-                // details back and try once more with the fresh token itself.
-                ->with('session_expired_retry', true);
+            return redirect()->back()
+                ->withInput($request->except(['password', 'password_confirmation', 'current_password', '_token']))
+                ->with('error', 'This page was open for too long, so it was not sent. Please try again.');
         });
     })->create();

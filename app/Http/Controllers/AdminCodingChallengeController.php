@@ -10,6 +10,7 @@ use App\Models\CodingSubmission;
 use App\Models\TestCase;
 use App\Services\CodingChallengeTestRunner;
 use App\Services\PlatformContentService;
+use App\Services\ReferenceSolutionVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,7 @@ class AdminCodingChallengeController extends Controller
     public function __construct(
         private readonly PlatformContentService $contentService,
         private readonly CodingChallengeTestRunner $testRunner,
+        private readonly ReferenceSolutionVerifier $verifier,
     ) {
     }
 
@@ -97,6 +99,10 @@ class AdminCodingChallengeController extends Controller
     public function store(Request $request): RedirectResponse
     {
         [$data, $questions] = $this->validatedData($request);
+
+        // Nothing is saved unless every reference solution produces the
+        // expected output for every test case (checked on the server).
+        $this->verifier->assertPasses($this->verificationQuestions($questions));
 
         $continuingAttempts = 0;
 
@@ -181,6 +187,10 @@ class AdminCodingChallengeController extends Controller
         $this->ensureCoding($challenge);
         [$data, $questions] = $this->validatedData($request, $challenge);
 
+        // Nothing is saved unless every reference solution produces the
+        // expected output for every test case (checked on the server).
+        $this->verifier->assertPasses($this->verificationQuestions($questions));
+
         $continuingAttempts = 0;
 
         DB::transaction(function () use ($challenge, $data, $questions, &$continuingAttempts): void {
@@ -223,6 +233,18 @@ class AdminCodingChallengeController extends Controller
     public function toggleStatus(Challenge $challenge): RedirectResponse
     {
         $this->ensureCoding($challenge);
+
+        // Publishing needs a verified reference solution for every problem.
+        if (! $challenge->is_active) {
+            $failures = $this->verifier->failures($this->storedVerificationQuestions($challenge));
+
+            if ($failures !== []) {
+                session()->flash(ReferenceSolutionVerifier::SESSION_KEY, $failures);
+
+                return back()->with('error', 'Not published: the reference solution must produce the expected output for every test case. '
+                    .$this->failureSummary($failures).' Edit the challenge to fix it.');
+            }
+        }
 
         $continuingAttempts = 0;
 
@@ -331,7 +353,7 @@ class AdminCodingChallengeController extends Controller
             'questions.*.problem_description' => ['required', 'string', 'max:20000'],
             'questions.*.language' => ['required', 'string', Rule::in(self::LANGUAGES)],
             'questions.*.starter_code' => ['nullable', 'string', 'max:50000'],
-            'questions.*.reference_solution' => ['nullable', 'string', 'max:50000'],
+            'questions.*.reference_solution' => ['required', 'string', 'max:50000'],
             'questions.*.time_limit_seconds' => ['required', 'integer', 'min:60', 'max:7200'],
             'questions.*.base_xp' => ['required', 'integer', 'min:0', 'max:10000'],
             'questions.*.test_cases' => ['required', 'array', 'min:1', 'max:' . self::MAX_TEST_CASES_PER_QUESTION],
@@ -342,6 +364,7 @@ class AdminCodingChallengeController extends Controller
         ], [
             'questions.required' => 'Add at least one coding problem.',
             'questions.*.problem_description.required' => 'Every problem needs a description.',
+            'questions.*.reference_solution.required' => 'Every problem needs a reference solution. It is run against the test cases before the challenge is saved.',
             'questions.*.test_cases.required' => 'Every problem needs at least one test case.',
             'questions.*.test_cases.min' => 'Every problem needs at least one test case.',
             'questions.*.test_cases.*.expected_output.required' => 'Every test case needs an expected output.',
@@ -684,6 +707,50 @@ class AdminCodingChallengeController extends Controller
      * entirely blank becomes NULL. Line endings are normalised so a form
      * submitted from Windows compares equal to what was stored.
      */
+    /**
+     * The problems as they would be saved, for the reference-solution check:
+     * the same newline and blank-value normalisation the store applies.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function verificationQuestions(array $questions): array
+    {
+        return array_map(fn (array $question): array => [
+            'title' => $this->nullableText($question['title'] ?? null, 189),
+            'reference_solution' => $this->nullableCode($question['reference_solution'] ?? null) ?? '',
+            'test_cases' => array_map(fn (array $case): array => [
+                'input' => $this->nullableCode($case['input'] ?? null) ?? '',
+                'expected_output' => $this->normalizeNewlines((string) ($case['expected_output'] ?? '')),
+                'is_hidden' => filter_var($case['is_hidden'] ?? false, FILTER_VALIDATE_BOOL),
+            ], array_values((array) ($question['test_cases'] ?? []))),
+        ], array_values($questions));
+    }
+
+    /** The saved problems of a challenge, for the check before publishing. */
+    private function storedVerificationQuestions(Challenge $challenge): array
+    {
+        return $challenge->codingQuestions()->with('testCases')->get()
+            ->map(fn (CodingQuestion $question): array => [
+                'title' => $question->title,
+                'reference_solution' => (string) $question->reference_solution,
+                'test_cases' => $question->testCases->map(fn (TestCase $case): array => [
+                    'input' => (string) $case->input,
+                    'expected_output' => (string) $case->expected_output,
+                    'is_hidden' => (bool) $case->is_hidden,
+                ])->values()->all(),
+            ])->values()->all();
+    }
+
+    private function failureSummary(array $failures): string
+    {
+        return collect($failures)->take(3)->map(fn (array $failure): string => $failure['case'] === 0
+            ? "{$failure['problem_title']}: {$failure['error']}"
+            : "{$failure['problem_title']}, test case {$failure['case']}: expected \"".\Illuminate\Support\Str::limit($failure['expected'], 60)
+                ."\", got \"".\Illuminate\Support\Str::limit($failure['actual'], 60).'"'
+                .($failure['error'] !== '' ? ' ('.\Illuminate\Support\Str::limit($failure['error'], 120).')' : '').'.'
+        )->implode(' ').(count($failures) > 3 ? ' '.(count($failures) - 3).' more failed.' : '');
+    }
+
     private function nullableCode(mixed $value): ?string
     {
         if ($value === null) {

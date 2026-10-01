@@ -131,6 +131,15 @@ class Challenge extends Model
         return $this->visibility === self::VISIBILITY_INSTRUCTOR;
     }
 
+    /**
+     * Whether finishing this challenge can award XP. Class work (an
+     * instructor-built challenge or the University Student level) never does.
+     */
+    public function awardsXp(): bool
+    {
+        return \App\Services\XpPolicy::challengeAwardsXp($this);
+    }
+
     /** Platform content only: what every learner on a level can see. */
     public function scopePlatform(Builder $query): Builder
     {

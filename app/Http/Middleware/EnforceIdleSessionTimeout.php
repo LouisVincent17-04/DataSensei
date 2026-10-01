@@ -25,6 +25,9 @@ class EnforceIdleSessionTimeout
         'api.code-review.status',
     ];
 
+    /** The page's keep-alive call (routes/web.php). */
+    private const HEARTBEAT_ROUTE_NAME = 'session.activity';
+
     public function handle(Request $request, Closure $next): Response
     {
         if (! Auth::guard('web')->check()) {
@@ -32,7 +35,7 @@ class EnforceIdleSessionTimeout
         }
 
         $now = time();
-        $timeoutSeconds = max(60, (int) config('session.idle_timeout', 240) * 60);
+        $timeoutSeconds = max(60, (int) config('session.idle_timeout', 60) * 60);
         $lastActivity = (int) $request->session()->get(self::LAST_ACTIVITY_KEY, $now);
 
         if (($now - $lastActivity) >= $timeoutSeconds) {
@@ -40,10 +43,34 @@ class EnforceIdleSessionTimeout
         }
 
         if ($this->countsAsUserActivity($request)) {
-            $request->session()->put(self::LAST_ACTIVITY_KEY, $now);
+            $request->session()->put(self::LAST_ACTIVITY_KEY, $this->activityTime($request, $now, $lastActivity, $timeoutSeconds));
         }
 
         return $next($request);
+    }
+
+    /**
+     * When the activity happened. A page request is activity now. The
+     * page's heartbeat is sent up to half a minute after the last real
+     * input and says how long ago that was, so the server dates it from
+     * then and signs the session out at the same moment the page does
+     * (DataSensei Updates 9). A heartbeat can only move the time forward,
+     * never past now, so it can shorten an idle session but never extend it.
+     */
+    private function activityTime(Request $request, int $now, int $lastActivity, int $timeoutSeconds): int
+    {
+        if ($request->route()?->getName() !== self::HEARTBEAT_ROUTE_NAME) {
+            return $now;
+        }
+
+        $idleMs = $request->input('idle_ms');
+        if (! is_numeric($idleMs)) {
+            return $now;
+        }
+
+        $idleSeconds = (int) ceil(min(max(0.0, (float) $idleMs), $timeoutSeconds * 1000.0) / 1000);
+
+        return max(min($lastActivity, $now), $now - $idleSeconds);
     }
 
     private function countsAsUserActivity(Request $request): bool
@@ -65,7 +92,7 @@ class EnforceIdleSessionTimeout
 
         $message = sprintf(
             'You were signed out after %d minutes of inactivity.',
-            (int) config('session.idle_timeout', 240)
+            (int) config('session.idle_timeout', 60)
         );
 
         if ($request->expectsJson() || $request->ajax()) {

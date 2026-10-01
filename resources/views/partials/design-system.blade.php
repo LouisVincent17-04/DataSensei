@@ -174,6 +174,27 @@
     font-family: var(--ds-font-mono);
   }
 
+  /* Answer choices whose spaces matter (App\Support\ChoiceText). */
+  .ds-choice-literal {
+    font-family: var(--ds-font-mono);
+    font-size: .95em;
+    white-space: pre;
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  .ds-choice-literal.is-block {
+    display: block;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
+  .ds-choice-space {
+    color: var(--muted, #94a3b8);
+    opacity: .75;
+  }
+
   :where(table) {
     font-variant-numeric: tabular-nums;
   }

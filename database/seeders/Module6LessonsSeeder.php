@@ -1360,28 +1360,11 @@ HTML;
         ];
 
         $finalContent = <<<'HTML'
-<div id="org-lock-screen" style="display:block;">
-    <h2>Module 6: Final Examination — Modeling & Simulation</h2>
-    <p>This examination is restricted to enrolled students. Please verify your organization account to continue.</p>
-    <p style="font-size:0.85rem;color:#f59e0b;margin-top:1rem;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;display:inline-block;">Please contact administration to link your account to an organization.</p>
-</div>
-<div id="final-exam-content" style="display:none;">
-    <h2>Module 6: Final Examination — Modeling & Simulation</h2>
-    <p>This comprehensive exam covers all topics from Lessons 6.1 through 6.10 — simulation fundamentals, Monte Carlo methods, discrete-event simulation, differential equations, epidemic modeling, agent-based models, system dynamics, sensitivity analysis, and output statistics. Good luck!</p>
+<h2>Module 6: Final Examination — Modeling & Simulation</h2>
+<p>This comprehensive exam covers all topics from Lessons 6.1 through 6.10 — simulation fundamentals, Monte Carlo methods, discrete-event simulation, differential equations, epidemic modeling, agent-based models, system dynamics, sensitivity analysis, and output statistics. Good luck!</p>
 HTML;
 
         $finalContent .= $this->appendQuiz('', 'FINAL_EXAM_6', $allFinalQuestions);
-        $finalContent .= '</div>';
-        $finalContent .= <<<HTML
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.USER_ORG_ID !== 'undefined' && window.USER_ORG_ID !== null && window.USER_ORG_ID !== '') {
-        document.getElementById('org-lock-screen').style.display = 'none';
-        document.getElementById('final-exam-content').style.display = 'block';
-    }
-});
-</script>
-HTML;
 
         Lesson::create([
             'module_id'   => $module->id,

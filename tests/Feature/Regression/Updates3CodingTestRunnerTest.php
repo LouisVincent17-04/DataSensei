@@ -162,7 +162,7 @@ class Updates3CodingTestRunnerTest extends TestCase
         $this->assertSame(29, $report['results'][29]['index']);
     }
 
-    public function test_the_sandbox_receives_the_code_the_stdin_and_a_capped_timeout(): void
+    public function test_the_sandbox_receives_the_code_the_stdin_and_the_student_grading_options(): void
     {
         $calls = [];
         $runner = new CodingChallengeTestRunner($this->fakeSandbox([], $calls));
@@ -177,15 +177,14 @@ class Updates3CodingTestRunnerTest extends TestCase
         $this->assertSame('print(input())', $calls[0]['code']);
         $this->assertSame("first\n", $calls[0]['stdin']);
         $this->assertSame('', $calls[1]['stdin'], 'A NULL input becomes empty stdin.');
-        $this->assertSame(CodingChallengeTestRunner::MAX_SECONDS_PER_CASE, $calls[0]['options']['timeout']);
+
+        // DataSensei Updates 5: the reference solution runs in the student
+        // grading environment, with exactly the grader's options (no shorter
+        // time limit of its own).
+        $this->assertSame(['quiet_input_prompts' => true], $calls[0]['options']);
 
         $report = $runner->check('x', [['input' => 'a', 'expected_output' => 'a']], 3);
         $this->assertTrue($report['results'][0]['passed']);
-
-        $calls = [];
-        $runner = new CodingChallengeTestRunner($this->fakeSandbox([], $calls));
-        $runner->check('x', [['input' => 'a', 'expected_output' => 'a', 'is_hidden' => '1']], 3);
-        $this->assertSame(3, $calls[0]['options']['timeout'], 'A shorter question limit is honoured.');
     }
 
     public function test_hidden_flag_is_echoed_so_the_form_can_label_cases(): void

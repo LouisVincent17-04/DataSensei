@@ -11,8 +11,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <base href="{{ url('/') }}/">
-  <title>Lesson preview</title>
-  @include('partials.page-head', ['pageTitle' => 'Lesson preview', 'pageDescription' => 'Live preview of a lesson as students will see it.'])
+  <title>{{ $frameTitle ?? 'Lesson preview' }}</title>
+  @include('partials.page-head', ['pageTitle' => $frameTitle ?? 'Lesson preview', 'pageDescription' => 'Preview of lesson content as students will see it.'])
 <style>
     :root {
       --accent3: var(--ds-success);
@@ -287,7 +287,7 @@
   <div class="page-learning-content-inner">
     <div class="page-learning-lesson-body">
       @if(trim((string) $html) === '')
-        <p style="color:var(--muted);">Nothing to show yet. Add a block on the left and it appears here as students will see it.</p>
+        <p style="color:var(--muted);">{{ $emptyMessage ?? 'Nothing to show yet. Add a block on the left and it appears here as students will see it.' }}</p>
       @else
         {!! $html !!}
       @endif

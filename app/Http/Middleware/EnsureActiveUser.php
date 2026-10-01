@@ -30,9 +30,14 @@ class EnsureActiveUser
             if (is_string($storedFingerprint) && ! hash_equals($storedFingerprint, $currentFingerprint)) {
                 $reason = 'Your account access changed. Please sign in again.';
             } elseif (Auth::viaRemember()) {
-                // A valid remember-me cookie was already checked against the
-                // rotated remember token, so it is safe to initialise here.
-                $request->session()->put(AuthSessionFingerprint::SESSION_KEY, $currentFingerprint);
+                // "Remember me" was removed: every role is signed out after an
+                // hour without activity. A sign-in cookie saved before that
+                // must not bring an expired session back. Signing out below
+                // also rotates the token, so the old cookie stops working.
+                $reason = sprintf(
+                    'You were signed out after %d minutes of inactivity.',
+                    (int) config('session.idle_timeout', 60)
+                );
             } elseif (! is_string($storedFingerprint)) {
                 $reason = 'Your session needs to be refreshed. Please sign in again.';
             }

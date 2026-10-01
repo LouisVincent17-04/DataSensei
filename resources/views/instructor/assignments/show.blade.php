@@ -40,35 +40,19 @@
     .card{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
     .card-pad{padding:20px}
 
-    /* summary figures: label above value */
-    .grid{display:grid;gap:20px}
-    .stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
-    .stat{display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:4px;padding:16px 18px;
-      border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
-    .stat .num{font-size:1.5rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-    .stat .label{color:var(--muted);font-size:.8125rem;font-weight:500}
-
-    .detail-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:start}
+    .grid{display:grid;gap:16px}
     .card h2{font-size:1rem;font-weight:600;line-height:1.35}
-    .card > p.muted{font-size:.875rem;line-height:1.6}
-    .card > p.muted strong{color:var(--text);font-weight:600}
     .muted{color:var(--muted)}
     .dim{color:var(--dim)}
 
-    /* question preview: rows separated by rules */
-    .question-card{padding:16px 0;border-top:1px solid var(--border);font-size:.875rem;line-height:1.55}
-    .question-card:last-child{padding-bottom:0}
-    .question-card > p{color:var(--ds-text-secondary)}
-    .question-card strong{color:var(--text);font-weight:600}
-    .option-row{display:flex;align-items:flex-start;gap:8px;margin-top:8px;padding:8px 12px;border-radius:var(--radius-sm);
-      background:var(--surface3);color:var(--ds-text-secondary);font-size:.875rem;line-height:1.5}
-    .option-row span{min-width:0;overflow-wrap:anywhere}
-
-    .badge-pill{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
-    .badge-pill.good{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
-    .badge-pill.warn{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-text)}
-    .badge-pill.danger{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-text)}
+    /* details: plain label and value pairs */
+    .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 24px;margin:14px 0 0}
+    .facts dt{color:var(--muted);font-size:.8125rem;font-weight:500}
+    .facts dd{margin:2px 0 0;color:var(--text);font-size:.9375rem;font-weight:500;overflow-wrap:anywhere}
+    .instructions{margin-top:10px;color:var(--ds-text-secondary);font-size:.875rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+    .section-note{margin-top:4px;color:var(--muted);font-size:.8125rem;line-height:1.5}
+    .state-good{color:var(--ds-success-text)}
+    .state-bad{color:var(--ds-danger-text)}
 
     /* submissions table */
     .table{width:100%;min-width:380px;border-collapse:collapse}
@@ -84,8 +68,7 @@
     .empty{padding:32px 20px;color:var(--muted);font-size:.875rem;line-height:1.5;text-align:center}
 
     @media(max-width:1100px){
-      .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .detail-grid{grid-template-columns:minmax(0,1fr)}
+      .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
     @media(max-width:900px){
       .ds-main{padding:24px 20px 40px}
@@ -98,7 +81,7 @@
       .top-row .actions > *{flex:1 1 auto}
       .top-row .actions form .btn{width:100%}
     }
-    @media(max-width:420px){.stats{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:420px){.facts{grid-template-columns:minmax(0,1fr)}}
     @media(prefers-reduced-motion:reduce){.btn{transition:none}}
   </style>
   @include('partials.admin-inspired-page-style')
@@ -110,13 +93,20 @@
     <main class="ds-main">
 
       <div class="wrap">
+        @php
+          $item = $assignment->libraryItem;
+          $fmt = fn ($date) => $date ? $date->format('M d, Y, g:i A') : null;
+          $instructions = trim((string) ($assignment->instructions ?: $item?->instructions));
+        @endphp
         <div class="top-row">
           <div>
             <h1 class="page-title ds-page-title">{{ $assignment->title }}</h1>
-            <p class="page-subtitle">{{ $assignment->libraryItem->topic_title }}, {{ $assignment->libraryItem->version_name }}, {{ $assignment->libraryItem->type_label }}</p>
+            <p class="page-subtitle">{{ $assignment->classRoom->name }}{{ $assignment->classRoom->section ? ', '.$assignment->classRoom->section : '' }}. {{ $item?->type_label === 'MCQ' ? 'Multiple choice' : ($item?->type_label ?? 'Assignment') }}. {{ ucfirst($assignment->status) }}.</p>
           </div>
           <div class="actions">
-            <a href="{{ route('instructor.assignments.edit', $assignment) }}" class="btn secondary">Edit</a>
+            @if($assignment->status !== 'archived')
+              <a href="{{ route('instructor.assignments.edit', $assignment) }}" class="btn secondary">Edit</a>
+            @endif
             @if($assignment->status === 'draft')<form method="POST" action="{{ route('instructor.assignments.publish', $assignment) }}">@csrf @method('PATCH')<button class="btn good" type="submit">Publish</button></form>@endif
             @if($assignment->status === 'published')<form method="POST" action="{{ route('instructor.assignments.close', $assignment) }}">@csrf @method('PATCH')<button class="btn secondary" type="submit">Close</button></form>@endif
             <a href="{{ route('instructor.assignments.index') }}" class="btn secondary">Back</a>
@@ -124,35 +114,42 @@
         </div>
 
         @if(session('success')) <div class="alert success">{{ session('success') }}</div> @endif
+        @if(session('error')) <div class="alert danger">{{ session('error') }}</div> @endif
 
-        <div class="grid stats">
-          <div class="stat"><div class="num">{{ $assignment->libraryItem->questions->count() }}</div><div class="label">Questions</div></div>
-          <div class="stat"><div class="num">{{ $assignment->libraryItem->total_points }}</div><div class="label">Points</div></div>
-          <div class="stat"><div class="num">{{ $submittedCount }}/{{ $studentCount }}</div><div class="label">Submitted</div></div>
-          <div class="stat"><div class="num">{{ ucfirst($assignment->status) }}</div><div class="label">Status</div></div>
-        </div>
-
-        <div class="grid detail-grid">
-          <section class="card card-pad">
-            <h2 style="margin-bottom:12px">Question Preview</h2>
-            @foreach($assignment->libraryItem->questions as $question)
-              <div class="question-card">
-                <div class="badge-pill">{{ $question->type_label }}, {{ $question->points }} pt</div>
-                <p style="margin-top:8px;line-height:1.6"><strong>{{ $loop->iteration }}. {{ $question->question_text }}</strong></p>
-                @if($question->question_type === 'mcq')
-                  @foreach($question->options as $option)
-                    <div class="option-row">{{ $option->is_correct ? '✓' : '○' }} <span>{{ $option->option_text }}</span></div>
-                  @endforeach
-                @else
-                  <p class="muted" style="margin-top:8px">Accepted: {{ $question->blankAnswers->pluck('answer_text')->join(', ') }}</p>
-                @endif
-              </div>
-            @endforeach
+        <div class="grid">
+          <section class="card card-pad" aria-labelledby="details-title">
+            <h2 id="details-title">Assignment details</h2>
+            <dl class="facts">
+              <div><dt>Class</dt><dd>{{ $assignment->classRoom->name }}</dd></div>
+              <div><dt>Status</dt><dd>{{ ucfirst($assignment->status) }}</dd></div>
+              <div><dt>Available from</dt><dd>{{ $fmt($assignment->available_at) ?? 'When published' }}</dd></div>
+              <div><dt>Due date</dt><dd>{{ $fmt($assignment->due_at) ?? 'No due date' }}</dd></div>
+              <div><dt>Questions</dt><dd>{{ $item?->questions->count() ?? 0 }}</dd></div>
+              <div><dt>Total points</dt><dd>{{ (int) ($item?->questions->sum('points') ?: $item?->total_points) }}</dd></div>
+              <div><dt>Time limit</dt><dd>{{ $item?->time_limit_minutes ? $item->time_limit_minutes.' minutes' : 'None' }}</dd></div>
+              <div><dt>Attempts allowed</dt><dd>{{ $assignment->max_attempts ?: 1 }}</dd></div>
+              <div><dt>Submitted</dt><dd>{{ $submittedCount }} of {{ $studentCount }} students</dd></div>
+              <div><dt>Published</dt><dd>{{ $fmt($assignment->assigned_at) ?? 'Not yet' }}</dd></div>
+            </dl>
           </section>
 
-          <section class="card card-pad">
-            <h2 style="margin-bottom:12px">Submissions</h2>
-            <p class="muted" style="margin-bottom:16px">Class: <strong>{{ $assignment->classRoom->name }}</strong><br>Due: {{ $assignment->due_at ? $assignment->due_at->format('M d, Y h:i A') : 'No due date' }}</p>
+          <section class="card card-pad" aria-labelledby="instructions-title">
+            <h2 id="instructions-title">Instructions</h2>
+            <p class="instructions">{{ $instructions !== '' ? $instructions : 'No instructions were added.' }}</p>
+          </section>
+
+          <section class="card card-pad" aria-labelledby="content-title">
+            <h2 id="content-title">Questions and answers</h2>
+            <p class="section-note">What students answer, with the correct and expected answers. Students do not see the answers.</p>
+            @if($item)
+              @include('instructor.assignments._content', ['item' => $item])
+            @else
+              <p class="muted" style="margin-top:12px">This assignment has no question source.</p>
+            @endif
+          </section>
+
+          <section class="card card-pad" aria-labelledby="submissions-title">
+            <h2 id="submissions-title" style="margin-bottom:12px">Submissions</h2>
             @if($assignment->submissions->count())
               <table class="table">
                 <thead><tr><th>Student</th><th>Attempt</th><th>Score</th><th>Status</th></tr></thead>
@@ -176,7 +173,7 @@
                             <form method="POST" action="{{ route('instructor.assignments.submissions.keep-blocked', [$assignment, $submission]) }}">@csrf @method('PATCH')<button class="btn secondary" type="submit" onclick="return confirm('Keep this attempt blocked with no credit?')">Keep blocked</button></form>
                           </div>
                         @else
-                          <span class="badge-pill {{ $submission->status === 'late' ? 'danger' : 'good' }}">{{ str_replace('_',' ',ucfirst($submission->status)) }}</span>
+                          <span class="{{ $submission->status === 'late' ? 'state-bad' : ($submission->status === 'in_progress' ? '' : 'state-good') }}">{{ str_replace('_',' ',ucfirst($submission->status)) }}</span>
                           @if($submission->integrity_status === 'blocked' && $submission->integrity_reviewed_at)
                             <br><span class="dim">Kept blocked after integrity review, no credit.</span>
                           @elseif($submission->integrity_reviewed_at)

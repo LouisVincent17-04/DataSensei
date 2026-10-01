@@ -29,11 +29,9 @@ class SupportUtilityBehaviorTest extends TestCase
 
         foreach ([
             ['password' => 'different-password-hash'],
-            ['remember_token' => 'different-remember-token'],
             ['email' => 'another.student@example.test'],
             ['role' => User::ROLE_INSTRUCTOR],
             ['status' => 'disabled'],
-            ['institution_id' => 99],
         ] as $change) {
             $this->assertNotSame(
                 $fingerprint,
@@ -41,6 +39,29 @@ class SupportUtilityBehaviorTest extends TestCase
                 'Changing a security-sensitive user field must invalidate the stored session fingerprint.'
             );
         }
+
+        // Signing out on another device rotates the remember-me token, and an
+        // instructor enrolling a student fills in the student's institution.
+        // Neither may sign the student out of the session they are using.
+        $this->assertSame(
+            $fingerprint,
+            AuthSessionFingerprint::for($this->fingerprintUser(['remember_token' => 'rotated-by-another-sign-out']))
+        );
+        $this->assertSame(
+            $fingerprint,
+            AuthSessionFingerprint::for($this->fingerprintUser(['institution_id' => 99]))
+        );
+
+        // For staff, the institution decides what they may manage.
+        $instructor = AuthSessionFingerprint::for($this->fingerprintUser(['role' => User::ROLE_INSTRUCTOR]));
+        $this->assertNotSame(
+            $instructor,
+            AuthSessionFingerprint::for($this->fingerprintUser(['role' => User::ROLE_INSTRUCTOR, 'institution_id' => 99]))
+        );
+        $this->assertSame(
+            $instructor,
+            AuthSessionFingerprint::for($this->fingerprintUser(['role' => User::ROLE_INSTRUCTOR, 'remember_token' => 'rotated']))
+        );
     }
 
     #[DataProvider('validOtpLengthProvider')]

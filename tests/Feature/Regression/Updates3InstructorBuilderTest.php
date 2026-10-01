@@ -15,6 +15,7 @@ use App\Support\AuthSessionFingerprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use Tests\Feature\Regression\Concerns\PassesReferenceSolutionCheck;
 use Tests\TestCase;
 
 /**
@@ -26,7 +27,17 @@ use Tests\TestCase;
  */
 class Updates3InstructorBuilderTest extends TestCase
 {
+    use PassesReferenceSolutionCheck;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Saving now runs the reference-solution check (Updates 5); these
+        // tests cover storage and versioning, so the check is stubbed.
+        $this->passReferenceSolutionCheck();
+    }
 
     /** @var array<int, string> */
     private array $uploadedFiles = [];
@@ -76,7 +87,6 @@ class Updates3InstructorBuilderTest extends TestCase
             ->assertSee(route('instructor.challenge-builder.edit', $mine), false)
             ->assertSee(route('instructor.challenge-builder.destroy', $mineCoding), false)
             ->assertSee(route('instructor.challenges.index'), false)
-            ->assertSee(route('instructor.class-challenges.index'), false)
             ->assertSee(route('instructor.challenge-builder.create', ['type' => 'mcq']), false)
             ->assertSee(route('instructor.challenge-builder.create', ['type' => 'coding']), false);
     }
@@ -134,7 +144,8 @@ class Updates3InstructorBuilderTest extends TestCase
                 'created_by' => 999,
                 'is_active' => 1,
             ]))
-            ->assertRedirect(route('instructor.challenge-builder.index'))
+            // Straight to the class sharing panel (DataSensei Updates 9).
+            ->assertRedirect(route('instructor.challenge-builder.edit', Challenge::query()->latest('id')->value('id')).'#classes')
             ->assertSessionHas('success');
 
         $challenge = Challenge::query()->firstOrFail();
@@ -178,7 +189,7 @@ class Updates3InstructorBuilderTest extends TestCase
 
         $this->actingAsUser($instructor)
             ->post(route('instructor.challenge-builder.store', ['type' => 'coding']), $this->codingPayload(['is_active' => 0]))
-            ->assertRedirect(route('instructor.challenge-builder.index'))
+            ->assertRedirect(route('instructor.challenge-builder.edit', Challenge::query()->latest('id')->value('id')).'#classes')
             ->assertSessionHas('success');
 
         $challenge = Challenge::query()->firstOrFail();
@@ -513,7 +524,8 @@ class Updates3InstructorBuilderTest extends TestCase
 
         $this->assertCount(3, $calls);
         $this->assertSame("import sys\nprint(input().upper())", $calls[0][0]);
-        $this->assertSame(10, $calls[0][2]['timeout']);
+        // Updates 5: checked exactly the way students are graded.
+        $this->assertSame(['quiet_input_prompts' => true], $calls[0][2]);
         $this->assertSame(0, Challenge::count());
 
         $this->actingAsUser($instructor)

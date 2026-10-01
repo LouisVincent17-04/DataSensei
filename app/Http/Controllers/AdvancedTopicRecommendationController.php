@@ -9,8 +9,10 @@ class AdvancedTopicRecommendationController extends Controller
 {
     public function index(AdvancedTopicRecommendationService $service)
     {
-        $recommendations = $service->recommendationsFor(Auth::user());
+        $progress = $service->progressFor(Auth::user());
+        $recommendations = $progress->where('eligible', true)->values();
+        $moduleResults = $service->moduleResultsFor(Auth::user());
 
-        return view('student.advanced-topic-recommendations', compact('recommendations'));
+        return view('student.advanced-topic-recommendations', compact('recommendations', 'progress', 'moduleResults'));
     }
 }

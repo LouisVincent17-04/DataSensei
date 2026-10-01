@@ -148,8 +148,10 @@ class Ds01AssignmentDeadlineTest extends TestCase
         $this->actAs($this->student)->post(route('student.assignments.submit', [$assignmentId, $attempt->id]), $payload)
             ->assertRedirect();
         $xpAfterFirst = (int) $this->student->fresh()->xp;
-        $this->assertSame(50, $xpAfterFirst);
-        $this->assertSame(1, $this->missionProgress($this->student));
+        // DataSensei Updates 5: class work (an assignment) gives no XP and no
+        // mission progress.
+        $this->assertSame(0, $xpAfterFirst);
+        $this->assertSame(0, $this->missionProgress($this->student));
 
         // The repeat (double click, browser retry, late auto-submit) is inert.
         for ($i = 0; $i < 2; $i++) {
@@ -160,25 +162,27 @@ class Ds01AssignmentDeadlineTest extends TestCase
 
         $this->assertSame(10, $attempt->fresh()->score);
         $this->assertSame($xpAfterFirst, (int) $this->student->fresh()->xp);
-        $this->assertSame(1, $this->missionProgress($this->student));
+        $this->assertSame(0, $this->missionProgress($this->student));
         $this->assertSame(2, DB::table('assignment_submission_answers')->where('assignment_submission_id', $attempt->id)->count());
         $this->assertSame(1, DB::table('notifications')->where('type', 'assignment_graded')->count());
     }
 
-    public function test_the_reward_service_itself_pays_a_submission_only_once(): void
+    public function test_the_reward_service_pays_nothing_for_class_work(): void
     {
         $q = $this->makeLibraryItem(5);
         $assignmentId = $this->makeClassAssignment($q['item']);
         $attempt = $this->makeAttempt($assignmentId);
         $attempt->update(['status' => 'graded', 'score' => 10, 'submitted_at' => now(), 'graded_at' => now()]);
 
+        // DataSensei Updates 5: an assignment is class work and gives no XP,
+        // achievement or mission progress, however often it is reported.
         $service = app(\App\Services\GamificationService::class);
         $first = $service->awardForAssignmentSubmission($this->student, $attempt->fresh());
         $second = $service->awardForAssignmentSubmission($this->student, $attempt->fresh());
 
-        $this->assertNotEmpty($first);
+        $this->assertSame([], $first);
         $this->assertSame([], $second);
-        $this->assertSame(1, $this->missionProgress($this->student), 'Mission progress is a counter and must not advance twice.');
-        $this->assertNotNull(AssignmentSubmission::find($attempt->id)->rewards_awarded_at);
+        $this->assertSame(0, $this->missionProgress($this->student));
+        $this->assertSame(0, (int) $this->student->fresh()->xp);
     }
 }

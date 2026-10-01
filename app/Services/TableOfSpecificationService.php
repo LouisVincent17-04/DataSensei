@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\ClassRoom;
-use App\Models\IntendedLearningOutcome;
+use App\Models\Module;
 use App\Models\TableOfSpecification;
 use App\Models\TableOfSpecificationRow;
 use Illuminate\Support\Collection;
@@ -347,35 +347,17 @@ class TableOfSpecificationService
 
     private function buildSuggestedRows(TableOfSpecification $tos, array $distribution, array $weights = []): void
     {
-        $competencies = IntendedLearningOutcome::active()
-            ->where('module_no', $tos->module_no)
-            ->orderBy('sort_order')
-            ->get();
-
-        if ($competencies->isEmpty()) {
-            $customCoverage = trim((string) $tos->custom_coverage);
-            $fallbackTitle = $customCoverage !== '' ? $customCoverage : 'General module competency';
-            $fallbackDescription = $customCoverage !== ''
-                ? 'Demonstrate understanding of ' . $customCoverage . '.'
-                : 'Demonstrate understanding of the module coverage.';
-
-            $competencies = collect([
-                (object) [
-                    'id' => null,
-                    'title' => $fallbackTitle,
-                    'description' => $fallbackDescription,
-                ],
-            ]);
-        }
+        // Topics come from the module's lessons, not from its ILOs: ILOs only
+        // describe a module and are never used to score or analyse an
+        // assessment (DataSensei Updates 5).
+        $competencies = $this->suggestedTopics($tos);
 
         $cognitiveTotals = $this->allocateByPercentages((int) $tos->total_items, $distribution);
         $cellCounts = [];
         $competencyWeights = [];
 
-        foreach ($competencies->values() as $index => $ilo) {
-            $key = $ilo->id !== null
-                ? 'ilo:' . $ilo->id
-                : 'topic:' . strtolower(trim((string) ($ilo->title ?? 'General module competency')));
+        foreach ($competencies->values() as $index => $topic) {
+            $key = 'topic:' . strtolower(trim((string) $topic->title));
             $competencyWeights[$index] = max(0, (float) ($weights[$key] ?? 1));
         }
 
@@ -386,14 +368,14 @@ class TableOfSpecificationService
             }
         }
 
-        foreach ($competencies->values() as $index => $ilo) {
+        foreach ($competencies->values() as $index => $topic) {
             foreach (self::COGNITIVE_LEVELS as $cognitive => $definition) {
                 TableOfSpecificationRow::create([
                     'table_of_specification_id' => $tos->id,
-                    'ilo_id' => $ilo->id ?? null,
-                    'topic_title' => $ilo->title ?? 'General module competency',
+                    'ilo_id' => null,
+                    'topic_title' => $topic->title,
                     'subtopic_title' => null,
-                    'learning_objective' => $ilo->description ?? $ilo->title ?? 'General module competency',
+                    'learning_objective' => $topic->description,
                     'difficulty_slug' => $definition['difficulty_slug'],
                     'item_count' => (int) ($cellCounts[$index][$cognitive] ?? 0),
                     'default_points' => 1,
@@ -401,6 +383,49 @@ class TableOfSpecificationService
                 ]);
             }
         }
+    }
+
+    /**
+     * The topics a suggested blueprint covers: the instructor's own coverage
+     * when typed, otherwise the lessons of the module (up to eight), otherwise
+     * the module itself.
+     *
+     * @return Collection<int, object{title: string, description: string}>
+     */
+    private function suggestedTopics(TableOfSpecification $tos): Collection
+    {
+        $topic = fn (string $title): object => (object) [
+            'title' => $title,
+            'description' => 'Demonstrate understanding of ' . $title . '.',
+        ];
+
+        $customCoverage = trim((string) $tos->custom_coverage);
+        if ($customCoverage !== '') {
+            return collect([$topic($customCoverage)]);
+        }
+
+        $module = Module::query()->where('order_index', (int) $tos->module_no)->orderBy('id')->first();
+
+        if ($module) {
+            $lessons = $module->lessons()
+                ->limit(8)
+                ->pluck('title')
+                ->map(fn ($title) => trim((string) $title))
+                ->filter()
+                ->unique(fn (string $title) => strtolower($title))
+                ->values();
+
+            if ($lessons->isNotEmpty()) {
+                return $lessons->map($topic);
+            }
+
+            return collect([$topic(trim((string) $module->title) ?: 'General module competency')]);
+        }
+
+        return collect([(object) [
+            'title' => 'General module competency',
+            'description' => 'Demonstrate understanding of the module coverage.',
+        ]]);
     }
 
     private function validatedDistribution(array $distribution): array

@@ -145,7 +145,8 @@ class Ds02AssignmentIntegrityAfterTimeoutTest extends TestCase
         $this->assertSame('clear', $attempt->integrity_status);
         $this->assertSame(10, $attempt->score);
         $this->assertNull($attempt->provisional_score);
-        $this->assertSame(50, (int) $this->student->fresh()->xp);
+        // DataSensei Updates 5: class work (an assignment) gives no XP.
+        $this->assertSame(0, (int) $this->student->fresh()->xp);
     }
 
     public function test_held_attempt_still_counts_towards_max_attempts(): void
@@ -192,8 +193,10 @@ class Ds02AssignmentIntegrityAfterTimeoutTest extends TestCase
         $this->assertNotNull($attempt->integrity_reviewed_at);
         $this->assertNotNull($attempt->graded_at);
         $this->assertSame(10, (int) DB::table('assignment_submission_answers')->where('assignment_submission_id', $attempt->id)->sum('points_awarded'));
-        $this->assertSame(50, (int) $this->student->fresh()->xp, 'XP is awarded exactly once, at release.');
-        $this->assertSame(1, $this->missionProgress($this->student));
+        // DataSensei Updates 5: releasing the attempt grades it, but class
+        // work gives no XP or mission progress.
+        $this->assertSame(0, (int) $this->student->fresh()->xp, 'Releasing class work gives no XP.');
+        $this->assertSame(0, $this->missionProgress($this->student));
     }
 
     public function test_instructor_can_keep_a_held_attempt_blocked(): void

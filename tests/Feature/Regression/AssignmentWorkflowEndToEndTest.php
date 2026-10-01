@@ -105,16 +105,17 @@ class AssignmentWorkflowEndToEndTest extends TestCase
         $this->assertSame('graded', $attempt->status);
         $this->assertSame(10, $attempt->score, 'posted MCQ answer merged over the saved blank answer');
         $this->assertSame('clear', $attempt->integrity_status);
-        $this->assertSame(50, (int) $this->student->fresh()->xp);
+        // DataSensei Updates 5: class work (an assignment) gives no XP.
+        $this->assertSame(0, (int) $this->student->fresh()->xp);
 
-        // Duplicate submit: inert, single XP award.
+        // Duplicate submit: inert.
         $this->actAs($this->student)->post($submit, [
             '_anti_cheat_session_id' => $attempt->anti_cheat_session_id,
             'answers' => [$q['mcq'] => (string) $q['wrong']],
         ]);
         $this->assertSame(10, $attempt->fresh()->score);
-        $this->assertSame(50, (int) $this->student->fresh()->xp);
-        $this->assertSame(1, $this->missionProgress($this->student));
+        $this->assertSame(0, (int) $this->student->fresh()->xp);
+        $this->assertSame(0, $this->missionProgress($this->student));
 
         // Autosave after completion is refused.
         $this->actAs($this->student)->postJson($autosave, ['answers' => [], 'client_version' => 9])
@@ -159,7 +160,7 @@ class AssignmentWorkflowEndToEndTest extends TestCase
         $this->assertSame('graded', $second->status);
         $this->assertSame(5, $second->score, 'Only the draft saved before the deadline counts.');
         $this->assertNotNull($second->timed_out_at);
-        $this->assertSame(2, $this->missionProgress($this->student));
+        $this->assertSame(0, $this->missionProgress($this->student), 'Class work never counts toward missions (Updates 5).');
 
         // Attempts are exhausted now.
         $this->actAs($this->student)->post(route('student.assignments.start', $assignment))

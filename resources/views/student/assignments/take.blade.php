@@ -37,12 +37,11 @@
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     .actions form{display:contents}
 
-    /* status labels */
-    .badge-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .badge-pill.good{color:var(--ds-success-text);border-color:var(--ds-success-border);background:var(--ds-success-soft)}
-    .badge-pill.warn{color:var(--ds-warning-text);border-color:var(--ds-warning-border);background:var(--ds-warning-soft)}
-    .badge-pill.danger{color:var(--ds-danger-text);border-color:var(--ds-danger-border);background:var(--ds-danger-soft)}
+    /* status labels: plain text (DataSensei Updates 9) */
+    .state{color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;font-variant-numeric:tabular-nums}
+    .state.good{color:var(--ds-success-text)}
+    .state.warn{color:var(--ds-warning-text)}
+    .state.danger{color:var(--ds-danger-text)}
 
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);
       background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.55}
@@ -110,7 +109,7 @@
           @endif
           @foreach($assignment->libraryItem->questions as $question)
             <div class="question-card" data-assignment-question-id="{{ $question->id }}">
-              <div class="badge-pill">{{ $question->type_label }}, {{ $question->points }} pt</div>
+              <div class="state">{{ $question->type_label }}, {{ $question->points }} {{ (int) $question->points === 1 ? 'point' : 'points' }}</div>
               <p style="margin-top:8px;line-height:1.6"><strong>{{ $loop->iteration }}. {{ $question->question_text }}</strong></p>
               @if($question->question_type === 'mcq')
                 @foreach($question->options as $option)

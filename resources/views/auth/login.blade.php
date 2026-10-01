@@ -542,57 +542,11 @@
   .form-extras {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     flex-wrap: wrap;
     gap: 8px 12px;
     margin: 20px 0 24px;
   }
-
-  .check-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 32px;
-    color: var(--ds-text-secondary);
-    font-size: 0.875rem;
-    cursor: pointer;
-    user-select: none;
-    transition: color var(--ds-dur-2) ease;
-  }
-
-  .check-label:hover { color: var(--ds-text); }
-
-  .check-box {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--ds-border-strong);
-    border-radius: var(--ds-radius-xs);
-    background: var(--ds-surface-3);
-    transition: background var(--ds-dur-2) ease, border-color var(--ds-dur-2) ease;
-  }
-
-  .check-label input[type="checkbox"] { position: absolute; width: 0; height: 0; opacity: 0; }
-
-  .check-label input:checked + .check-box {
-    border-color: var(--ds-accent);
-    background: var(--ds-accent);
-  }
-
-  .check-label input:checked + .check-box::after {
-    content: '';
-    display: block;
-    width: 8px;
-    height: 4px;
-    border-bottom: 2px solid #ffffff;
-    border-left: 2px solid #ffffff;
-    transform: rotate(-45deg) translateY(-1px);
-  }
-
-  .check-label input:focus-visible + .check-box { box-shadow: var(--ds-focus-ring); }
 
   .forgot-link {
     color: var(--ds-accent-text);
@@ -934,12 +888,6 @@
           </div>
 
           <div class="form-extras">
-            <label class="check-label">
-              <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-              <span class="check-box"></span>
-              Remember me
-            </label>
-
             @if (Route::has('password.request'))
               <a href="{{ route('password.request') }}" class="forgot-link">Forgot password?</a>
             @else
@@ -1439,7 +1387,6 @@ function checkStrength(value){
       window.sessionStorage.setItem(STASH_KEY, JSON.stringify({
         email: form.querySelector('input[name="email"]')?.value ?? '',
         password: form.querySelector('input[name="password"]')?.value ?? '',
-        remember: !!form.querySelector('input[name="remember"]')?.checked,
         retried,
         at: Date.now(),
       }));
@@ -1455,10 +1402,8 @@ function checkStrength(value){
   const restoreInto = (form, stash) => {
     const email = form.querySelector('input[name="email"]');
     const password = form.querySelector('input[name="password"]');
-    const remember = form.querySelector('input[name="remember"]');
     if (email && !email.value) email.value = stash.email || '';
     if (password) password.value = stash.password || '';
-    if (remember) remember.checked = !!stash.remember;
   };
 
   if (loginForm) {
@@ -1585,7 +1530,7 @@ function checkStrength(value){
           autoRetrying = false;
         }
 
-        // Keep the normal POST, validation errors, remember-me and role redirects.
+        // Keep the normal POST, validation errors and role redirects.
         HTMLFormElement.prototype.submit.call(form);
       } catch (_) {
         if (activeRequest !== controller) return;

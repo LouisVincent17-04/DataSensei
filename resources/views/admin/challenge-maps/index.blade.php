@@ -120,10 +120,9 @@
                       </td>
                       <td>
                         <strong>{{ $challenge->title }}</strong>
-                        <div class="dim">{{ $challenge->content_code }}</div>
                       </td>
                       <td>{{ $challenge->module?->title ?? '—' }}</td>
-                      <td>{{ $challenge->version_name }} ({{ $challenge->version_code }})</td>
+                      <td>{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}</td>
                       <td>{{ number_format((int) $questionCount) }}</td>
                       <td>{{ $challenge->is_active ? 'Available' : 'Unavailable' }}</td>
                       <td>

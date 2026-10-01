@@ -61,7 +61,7 @@ class AssessmentQuestionAuthoringTest extends TestCase
         $this->assertFalse($question->isAuthoringComplete());
     }
 
-    public function test_true_false_and_essay_require_their_type_specific_answers(): void
+    public function test_true_false_needs_its_answer_and_essay_grading_notes_are_optional(): void
     {
         $trueFalse = $this->question([
             'question_type' => 'true_false',
@@ -81,6 +81,10 @@ class AssessmentQuestionAuthoringTest extends TestCase
         $essay->rubric_text = null;
 
         $this->assertFalse($trueFalse->isAuthoringComplete());
+        // DataSensei Updates 9: the instructor scores essays, so grading notes
+        // are optional; the question itself is still required.
+        $this->assertTrue($essay->isAuthoringComplete());
+        $essay->question_text = '';
         $this->assertFalse($essay->isAuthoringComplete());
     }
 

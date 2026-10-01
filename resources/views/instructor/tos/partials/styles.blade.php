@@ -38,7 +38,7 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
 .section-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px}
 .section-title > div:first-child{min-width:0;flex:1 1 280px}
 .section-title .muted{margin-top:4px;font-size:.8125rem;line-height:1.5}
-.section-title > .badge{flex-shrink:0}
+.section-title > .state{flex-shrink:0}
 
 .grid{display:grid;gap:16px}
 .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -70,12 +70,11 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
 .btn.disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
-/* status labels */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-  background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap;font-variant-numeric:tabular-nums}
-.badge.good{color:var(--ds-success-text);border-color:var(--ds-success-border);background:var(--ds-success-soft)}
-.badge.warn{color:var(--ds-warning-text);border-color:var(--ds-warning-border);background:var(--ds-warning-soft)}
-.badge.bad{color:var(--ds-danger-text);border-color:var(--ds-danger-border);background:var(--ds-danger-soft)}
+/* status labels: plain text (DataSensei Updates 9) */
+.state{color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;white-space:nowrap;font-variant-numeric:tabular-nums}
+.state.good{color:var(--ds-success-text)}
+.state.warn{color:var(--ds-warning-text)}
+.state.bad{color:var(--ds-danger-text)}
 .muted{color:var(--muted)}
 .small{font-size:.8125rem}
 
@@ -142,7 +141,7 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
 .status-panel > div{min-width:0}
 .status-panel strong{display:block;margin-bottom:2px;font-size:.9375rem;font-weight:600}
 .status-panel .muted{font-size:.875rem;line-height:1.5}
-.status-panel > .badge{flex-shrink:0}
+.status-panel > .state{flex-shrink:0}
 .status-panel.good{border-color:var(--ds-success-border)}
 .status-panel.warn{border-color:var(--ds-warning-border)}
 .status-panel.bad{border-color:var(--ds-danger-border)}

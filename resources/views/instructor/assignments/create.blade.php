@@ -58,6 +58,10 @@
     @media(max-width:760px){
       .form-grid{grid-template-columns:minmax(0,1fr)}
     }
+    .select-row{display:flex;gap:8px;align-items:stretch}
+    .select-row .select{flex:1 1 auto;min-width:0}
+    .hint{display:block;margin-top:6px;color:var(--muted);font-size:.8125rem;line-height:1.5}
+    .btn.is-disabled{opacity:.5;pointer-events:auto;cursor:not-allowed}
     @media(max-width:640px){
       .ds-main{padding:20px 16px 32px}
       .card-pad{padding:16px}
@@ -78,13 +82,13 @@
 
       @php
         $isEdit = isset($classAssignment);
-        $selectedLibrary = old('assignment_library_item_id', $isEdit ? $classAssignment->assignment_library_item_id : '');
+        $selectedLibrary = old('assignment_library_item_id', $isEdit ? $classAssignment->assignment_library_item_id : ($preselectedItem ?? ''));
       @endphp
       <div class="wrap">
         <div class="top-row">
           <div>
-            <h1 class="page-title ds-page-title">{{ $isEdit ? 'Update assignment' : 'Assign a topic version' }}</h1>
-            <p class="page-subtitle">Choose a seeded MCQ or fill-in-the-blanks assignment version, then publish it to a class. Published assignments immediately appear on the student assignment page.</p>
+            <h1 class="page-title ds-page-title">{{ $isEdit ? 'Edit assignment' : 'Create assignment' }}</h1>
+            <p class="page-subtitle">Choose the assignment and the class, set the dates, then save it as a draft or publish it. Use Preview to read every question and answer first.</p>
           </div>
           <a href="{{ route('instructor.assignments.index') }}" class="btn secondary">Back</a>
         </div>
@@ -133,19 +137,23 @@
             </div>
 
             <div class="field span-2">
-              <label>Assignment Library Version</label>
-              <select name="assignment_library_item_id" class="select" required onchange="fillAssignmentTitle(this)">
-                <option value="">Choose seeded assignment version</option>
-                @foreach($libraryItems->groupBy('year_level') as $year => $items)
-                  <optgroup label="{{ $year }}">
-                    @foreach($items as $item)
-                      <option value="{{ $item->id }}" data-title="{{ $item->title }}" @selected((string)$selectedLibrary === (string)$item->id)>
-                        Module {{ $item->module_no }} — {{ $item->topic_title }} / {{ $item->version_name }} / {{ $item->type_label }} / {{ $item->questions_count }} items{{ $item->is_active ? '' : ' (inactive version, kept for this assignment)' }}
-                      </option>
-                    @endforeach
-                  </optgroup>
-                @endforeach
-              </select>
+              <label for="library-item">Assignment</label>
+              <div class="select-row">
+                <select id="library-item" name="assignment_library_item_id" class="select" required onchange="fillAssignmentTitle(this)">
+                  <option value="">Choose an assignment</option>
+                  @foreach($libraryItems->groupBy('year_level') as $year => $items)
+                    <optgroup label="{{ $year }}">
+                      @foreach($items as $item)
+                        <option value="{{ $item->id }}" data-title="{{ $item->title }}" data-preview="{{ route('instructor.assignments.library-preview', $item) }}" @selected((string)$selectedLibrary === (string)$item->id)>
+                          {{ $item->title }} ({{ $item->type_label === 'MCQ' ? 'multiple choice' : strtolower($item->type_label) }}, {{ $item->questions_count }} {{ $item->questions_count === 1 ? 'question' : 'questions' }}){{ $item->is_active ? '' : ', no longer offered' }}
+                        </option>
+                      @endforeach
+                    </optgroup>
+                  @endforeach
+                </select>
+                <a id="preview-link" class="btn secondary" href="#" target="_blank" rel="noopener" aria-disabled="true">Preview</a>
+              </div>
+              <span class="hint">Preview opens the full assignment, with the correct and expected answers, in a new tab.</span>
             </div>
 
             <div class="field span-2">
@@ -188,7 +196,34 @@
           if (option && option.dataset.title && !titleInput.value.trim()) {
             titleInput.value = option.dataset.title;
           }
+          updatePreviewLink(select);
         }
+
+        function updatePreviewLink(select) {
+          const link = document.getElementById('preview-link');
+          const option = select.options[select.selectedIndex];
+          const url = option ? option.dataset.preview : '';
+          if (url) {
+            link.href = url;
+            link.removeAttribute('aria-disabled');
+            link.classList.remove('is-disabled');
+          } else {
+            link.href = '#';
+            link.setAttribute('aria-disabled', 'true');
+            link.classList.add('is-disabled');
+          }
+        }
+
+        (function () {
+          const select = document.getElementById('library-item');
+          const link = document.getElementById('preview-link');
+          if (!select || !link) return;
+          updatePreviewLink(select);
+          if (select.value) fillAssignmentTitle(select);
+          link.addEventListener('click', (event) => {
+            if (link.getAttribute('aria-disabled') === 'true') event.preventDefault();
+          });
+        })();
       </script>
 
     </main>

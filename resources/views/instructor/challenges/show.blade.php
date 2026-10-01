@@ -37,8 +37,8 @@
     .section-note{margin:4px 0 0;color:var(--muted);font-size:.875rem;line-height:1.55}
 
     /* questions: rows separated by rules, running edge to edge in the card */
-    .questions{display:grid;margin:16px -20px -20px;border-top:1px solid var(--border)}
-    .question{border-bottom:1px solid var(--border)}
+    .questions{display:grid;grid-template-columns:minmax(0,1fr);margin:16px -20px -20px;border-top:1px solid var(--border)}
+    .question{min-width:0;border-bottom:1px solid var(--border)}
     .question:last-child{border-bottom:0}
     .question summary{list-style:none;cursor:pointer;padding:14px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
       transition:background .12s ease}
@@ -62,6 +62,13 @@
     .option.correct .option-key{background:rgba(16,185,129,.2);color:var(--ds-success-text)}
     .correct-tag{flex-shrink:0;margin-left:auto;color:var(--ds-success-text);font-size:.75rem;font-weight:600;white-space:nowrap;padding-top:2px}
     .empty{padding:32px 20px;color:var(--muted);font-size:.875rem;text-align:center}
+    .notice-ok{color:var(--ds-success-text);font-size:.875rem}
+    .code-block,.tests pre{margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface3);color:var(--text);font:400 .8125rem/1.5 var(--ds-font-mono,monospace);white-space:pre-wrap;overflow-wrap:anywhere}
+    .code-block{margin:6px 0 14px}
+    .tests{width:100%;border-collapse:collapse;font-size:.8125rem}
+    .tests th{padding:8px 10px;background:var(--surface3);color:var(--muted);text-align:left;font-weight:600}
+    .tests td{padding:8px 10px;border-top:1px solid var(--border);vertical-align:top;color:var(--ds-text-secondary)}
+    .tests pre{padding:6px 8px}
 
     @media(max-width:1100px){.meta-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(max-width:900px){.main{padding:24px 20px 40px}}
@@ -91,7 +98,7 @@
     <div class="top">
       <div>
         <h1 class="title ds-page-title">{{ $challenge->title }}</h1>
-        <p class="subtitle">{{ $challenge->description ?: 'Review the published questions and answer key available to students in this challenge.' }}</p>
+        <p class="subtitle">{{ $challenge->description ?: 'Review the questions and answers students see in this challenge.' }}</p>
       </div>
 
       <a class="btn secondary" href="{{ route('instructor.challenges.index', request()->only(['type', 'page'])) }}">Back to Challenge Pool</a>
@@ -104,8 +111,8 @@
           <span class="meta-value">{{ $challenge->category->name ?? 'Uncategorized' }}</span>
         </div>
         <div class="meta">
-          <span class="meta-label">Questions</span>
-          <span class="meta-value">{{ number_format($challenge->questions->count()) }}</span>
+          <span class="meta-label">{{ $challenge->is_coding_challenge ? 'Problems' : 'Questions' }}</span>
+          <span class="meta-value">{{ number_format($challenge->is_coding_challenge ? $challenge->codingQuestions->count() : $challenge->questions->count()) }}</span>
         </div>
         <div class="meta">
           <span class="meta-label">Time Limit</span>
@@ -113,15 +120,65 @@
         </div>
         <div class="meta">
           <span class="meta-label">Base XP</span>
-          <span class="meta-value">{{ number_format($challenge->base_xp) }}</span>
+          <span class="meta-value">{{ $challenge->awardsXp() ? number_format($challenge->base_xp) : 'None (class work)' }}</span>
         </div>
         <div class="meta">
-          <span class="meta-label">Version</span>
-          <span class="meta-value">{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}</span>
+          <span class="meta-label">Type</span>
+          <span class="meta-value">{{ $challenge->is_coding_challenge ? 'Coding' : 'Quiz' }}</span>
         </div>
       </div>
     </section>
 
+    @if(session('success'))
+      <div class="card notice-ok" role="status">{{ session('success') }}</div>
+    @endif
+
+    @include('instructor.challenges._class_practice')
+
+    @if($challenge->is_coding_challenge)
+    <section class="card">
+      <h2 class="section-title">Problems and Test Cases</h2>
+      <p class="section-note">This page is read-only. Hidden test cases are the ones students do not see before they submit.</p>
+
+      <div class="questions">
+        @forelse($challenge->codingQuestions as $problem)
+          <details class="question" @if($loop->first) open @endif>
+            <summary>
+              <div>
+                <span class="question-number">Problem {{ $loop->iteration }}</span>
+                <span class="question-preview">{{ $problem->title ?: \Illuminate\Support\Str::limit($problem->problem_description, 145) }}</span>
+              </div>
+              <span class="toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="question-body">
+              <p class="question-text" style="white-space:pre-wrap">{{ $problem->problem_description }}</p>
+              @if(filled($problem->starter_code))
+                <p class="meta-label">Starter code</p>
+                <pre class="code-block">{{ $problem->starter_code }}</pre>
+              @endif
+              <table class="tests">
+                <thead><tr><th>Test</th><th>Input</th><th>Expected output</th><th>Shown to students</th></tr></thead>
+                <tbody>
+                  @forelse($problem->testCases as $case)
+                    <tr>
+                      <td>{{ $loop->iteration }}</td>
+                      <td><pre>{{ $case->input }}</pre></td>
+                      <td><pre>{{ $case->expected_output }}</pre></td>
+                      <td>{{ $case->is_hidden ? 'No (hidden)' : 'Yes' }}</td>
+                    </tr>
+                  @empty
+                    <tr><td colspan="4" class="muted">No test cases.</td></tr>
+                  @endforelse
+                </tbody>
+              </table>
+            </div>
+          </details>
+        @empty
+          <div class="empty">This challenge has no problems yet.</div>
+        @endforelse
+      </div>
+    </section>
+    @else
     <section class="card">
       <h2 class="section-title">Questions and Answer Key</h2>
       <p class="section-note">This page is read-only. Correct answers are highlighted for instructor review and lesson planning.</p>
@@ -141,10 +198,11 @@
               <p class="question-text">{{ $question->question_text }}</p>
 
               <ol class="options">
+                @php $literalChoices = \App\Support\ChoiceText::anySignificant($question->options); @endphp
                 @foreach($question->options as $option)
                   <li class="option {{ $option->is_correct ? 'correct' : '' }}">
                     <span class="option-key">{{ chr(64 + $loop->iteration) }}</span>
-                    <span>{{ $option->option_text }}</span>
+                    <span>{{ \App\Support\ChoiceText::html($option->option_text, $literalChoices) }}</span>
                     @if($option->is_correct)
                       <span class="correct-tag">Correct answer</span>
                     @endif
@@ -158,6 +216,7 @@
         @endforelse
       </div>
     </section>
+    @endif
   </main>
 </div>
 </body>

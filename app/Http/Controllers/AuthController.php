@@ -49,7 +49,9 @@ class AuthController extends Controller
 
         $credentials['email'] = strtolower(trim($credentials['email']));
 
-        if (! Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
+        // No "remember me": every role is signed out after an hour without
+        // activity, and a long-lived sign-in cookie would quietly undo that.
+        if (! Auth::guard('web')->attempt($credentials)) {
             return back()
                 ->withErrors([
                     'email' => 'The provided credentials do not match our records.',
@@ -105,7 +107,7 @@ class AuthController extends Controller
                 'status'   => 'active',
             ]);
 
-            $firstModule = Module::orderBy('order_index', 'asc')->first();
+            $firstModule = Module::published()->orderBy('order_index', 'asc')->first();
 
             if ($firstModule) {
                 $user->modules()->syncWithoutDetaching([

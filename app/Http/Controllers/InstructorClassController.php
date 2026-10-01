@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SchemaInspector;
 use App\Http\Controllers\Controller;
 use App\Models\ClassRoom;
 use App\Models\Institution;
@@ -9,7 +10,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class InstructorClassController extends Controller
 {
@@ -183,7 +183,7 @@ class InstructorClassController extends Controller
             // and submittable through their existing closed records.
             $lockedClass->assignmentPosts()->where('status', 'published')->update(['status' => 'closed']);
 
-            if (Schema::hasTable('assessments')) {
+            if (SchemaInspector::hasTable('assessments')) {
                 DB::table('assessments')
                     ->where('class_id', $lockedClass->id)
                     ->where('status', 'published')
@@ -242,17 +242,22 @@ class InstructorClassController extends Controller
             foreach ([
                 'table_of_specifications' => 'tables of specification',
                 'assessments' => 'assessments',
-                'student_ilo_masteries' => 'ILO mastery records',
                 'student_performance_snapshots' => 'performance snapshots',
                 'student_performance_clusters' => 'performance cluster records',
             ] as $table => $label) {
-                if (Schema::hasTable($table) && DB::table($table)->where('class_id', $lockedClass->id)->exists()) {
+                if (SchemaInspector::hasTable($table) && DB::table($table)->where('class_id', $lockedClass->id)->exists()) {
                     $blockingReasons[] = "it has {$label}";
                 }
             }
 
             if ($blockingReasons !== []) {
                 return ['deleted' => false, 'reasons' => $blockingReasons, 'name' => $lockedClass->name];
+            }
+
+            // ILO mastery records are no longer kept (DataSensei Updates 5:
+            // ILOs are descriptive only); old rows of this class go with it.
+            if (SchemaInspector::hasTable('student_ilo_masteries')) {
+                DB::table('student_ilo_masteries')->where('class_id', $lockedClass->id)->delete();
             }
 
             $name = $lockedClass->name;

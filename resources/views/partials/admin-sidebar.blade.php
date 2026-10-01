@@ -65,20 +65,20 @@
   <nav class="nav-group" aria-label="Admin content navigation">
     <div class="nav-label">Platform Content</div>
 
-    <a class="nav-item {{ request()->routeIs('admin.module-library.*') ? 'active' : '' }}" href="{{ route('admin.module-library.index') }}"
-       @if(request()->routeIs('admin.module-library.*')) aria-current="page" @endif>
-      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-      </svg>
-      Learning Modules
-    </a>
-
     <a class="nav-item {{ request()->routeIs('admin.modules.*') ? 'active' : '' }}" href="{{ route('admin.modules.index') }}"
        @if(request()->routeIs('admin.modules.*')) aria-current="page" @endif>
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>
       </svg>
-      Module Manager
+      DataSensei Modules
+    </a>
+
+    <a class="nav-item {{ request()->routeIs('admin.module-library.*') ? 'active' : '' }}" href="{{ route('admin.module-library.index') }}"
+       @if(request()->routeIs('admin.module-library.*')) aria-current="page" @endif>
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+      </svg>
+      Instructor Module Library
     </a>
 
     <a class="nav-item {{ request()->routeIs('admin.challenge-maps.*') ? 'active' : '' }}" href="{{ route('admin.challenge-maps.index') }}"

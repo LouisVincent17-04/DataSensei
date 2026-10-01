@@ -37,12 +37,11 @@
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     .actions form{display:contents}
 
-    /* status labels */
-    .badge-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .badge-pill.good{color:var(--ds-success-text);border-color:var(--ds-success-border);background:var(--ds-success-soft)}
-    .badge-pill.warn{color:var(--ds-warning-text);border-color:var(--ds-warning-border);background:var(--ds-warning-soft)}
-    .badge-pill.danger{color:var(--ds-danger-text);border-color:var(--ds-danger-border);background:var(--ds-danger-soft)}
+    /* status labels: plain text (DataSensei Updates 9) */
+    .state{color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;font-variant-numeric:tabular-nums}
+    .state.good{color:var(--ds-success-text)}
+    .state.warn{color:var(--ds-warning-text)}
+    .state.danger{color:var(--ds-danger-text)}
 
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);
       background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.55}
@@ -97,7 +96,7 @@
             <div class="muted">{{ $submission->percentage }}%. <strong>Held for instructor review.</strong></div>
             <p class="muted" style="margin-top:8px">Your saved answers are stored below, but this attempt has no credit until your instructor reviews it. {{ $submission->integrity_reason }}</p>
           @else
-            <div class="muted">{{ $submission->percentage }}% <span class="badge-pill {{ $submission->status === 'late' ? 'danger' : 'good' }}">{{ ucfirst($submission->status) }}</span></div>
+            <div class="muted">{{ $submission->percentage }}% <span class="state {{ $submission->status === 'late' ? 'danger' : 'good' }}">{{ ucfirst($submission->status) }}</span></div>
             @if($submission->integrity_status === 'blocked' && $submission->integrity_reviewed_at)
               <p class="muted" style="margin-top:8px">Your instructor reviewed this attempt and kept it blocked, so it has no credit.</p>
             @endif
@@ -108,7 +107,7 @@
           <h2 style="margin-bottom:12px">Answer Review</h2>
           @foreach($submission->answers->sortBy('question.order_index') as $answer)
             <div class="question-card">
-              <div class="badge-pill {{ $answer->is_correct ? 'good' : 'danger' }}">{{ $answer->is_correct ? 'Correct' : 'Incorrect' }}, {{ $answer->points_awarded }}/{{ $answer->question->points }} pt</div>
+              <div class="state {{ $answer->is_correct ? 'good' : 'danger' }}">{{ $answer->is_correct ? 'Correct' : 'Incorrect' }}, {{ $answer->points_awarded }} of {{ $answer->question->points }} {{ (int) $answer->question->points === 1 ? 'point' : 'points' }}</div>
               <p style="margin-top:8px;line-height:1.6"><strong>{{ $answer->question->question_text }}</strong></p>
               @if($answer->question->question_type === 'mcq')
                 <p class="muted" style="margin-top:8px">Your answer: <strong>{{ $answer->selectedOption?->option_text ?? 'No answer' }}</strong></p>

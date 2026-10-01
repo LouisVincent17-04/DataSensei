@@ -21,10 +21,115 @@ namespace App\Services;
  *   table  {label, columns*: [..], rows*: [[..], ..], note}
  *   image  {src*, alt, caption, width: 25..100}
  *   html   {html*}  raw HTML, used for lessons written before the editor
+ *   section {heading, subheading, body, code, walkthrough[], activity,
+ *           common_mistakes[], key_points[], check_your_understanding[],
+ *           html}  one lesson written with the module editor's section
+ *           card (DataSensei Updates 5); html keeps a lesson's original
+ *           markup, and a section holding only that markup renders it
+ *           byte for byte
  */
 class LessonBlockRenderer
 {
-    public const TYPES = ['code', 'text', 'table', 'image', 'html'];
+    public const TYPES = [
+        'code', 'text', 'table', 'image', 'html', 'section',
+        // The module builder's content blocks (DataSensei Updates 6).
+        'heading', 'subheading', 'paragraph', 'bulleted_list', 'numbered_list',
+        'note', 'example', 'python_code', 'sql_code', 'code_snippet',
+        'walkthrough', 'activity', 'mistakes', 'key_points', 'check',
+        'quiz', 'preserved',
+    ];
+
+    /**
+     * The content blocks the module builder offers (DataSensei Updates 6),
+     * in menu order, with the name admins see. "table" and "image" are
+     * shared with the older block editor; "preserved" holds original
+     * formatting that could not be split into blocks and is never offered
+     * in the menu.
+     */
+    public const BUILDER_TYPES = [
+        'heading' => 'Heading',
+        'subheading' => 'Subheading',
+        'paragraph' => 'Paragraph',
+        'bulleted_list' => 'Bulleted List',
+        'numbered_list' => 'Numbered List',
+        'note' => 'Important Note',
+        'example' => 'Example',
+        'image' => 'Image',
+        'python_code' => 'Python Code',
+        'sql_code' => 'SQL Code',
+        'code_snippet' => 'General Code',
+        'walkthrough' => 'Step-by-Step Walkthrough',
+        'activity' => 'Practice Activity',
+        'mistakes' => 'Common Mistakes',
+        'key_points' => 'Key Points',
+        'check' => 'Check Your Understanding',
+        'table' => 'Table',
+        'quiz' => 'Knowledge Check',
+        'preserved' => 'Original Formatting',
+    ];
+
+    /** Builder blocks whose content is a list of items. */
+    public const ITEM_TYPES = ['bulleted_list', 'numbered_list', 'walkthrough', 'mistakes', 'key_points', 'check'];
+
+    public const MAX_ITEMS = 200;
+
+    public const MAX_QUIZ_QUESTIONS = 50;
+
+    /** The quiz styles the original lessons ship with (unchanged). */
+    public const QUIZ_STYLE = <<<'HTML'
+<style>
+            .quiz-wrapper{display:flex;flex-direction:column;gap:24px;margin-top:40px;}
+            .quiz-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+            .quiz-card-header{background:rgba(0,0,0,0.2);padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;}
+            .quiz-q-num{background:var(--accent);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:4px;font-family:"JetBrains Mono",monospace;white-space:nowrap;margin-top:2px;}
+            .quiz-q-text{font-size:0.95rem;font-weight:600;color:var(--text);line-height:1.5;}
+            .quiz-options{padding:16px 20px;display:flex;flex-direction:column;gap:10px;}
+            .quiz-option{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:7px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s;font-size:0.875rem;color:var(--muted);background:transparent;text-align:left;width:100%;font-family:"Inter",sans-serif;}
+            .quiz-option:hover:not(.locked){border-color:var(--border-hover);background:var(--bg);color:var(--text);}
+            .quiz-option .opt-key{width:22px;height:22px;border-radius:4px;border:1px solid var(--dim);font-size:0.7rem;font-weight:700;font-family:"JetBrains Mono",monospace;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all 0.15s;}
+            .quiz-option.correct{border-color:#10b981;background:rgba(16,185,129,0.08);color:var(--text);}
+            .quiz-option.correct .opt-key{background:#10b981;border-color:#10b981;color:#fff;}
+            .quiz-option.wrong{border-color:#ef4444;background:rgba(239,68,68,0.08);color:var(--muted);opacity:0.7;}
+            .quiz-option.locked{cursor:default;}
+            .quiz-explanation{display:none;margin:0 20px 20px;padding:14px 16px;background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.25);border-radius:7px;font-size:0.875rem;color:var(--muted);line-height:1.7;}
+            .quiz-explanation strong{color:var(--text);}
+            .quiz-score-bar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:0.875rem;color:var(--muted);font-weight:600;}
+            .quiz-score-val{font-size:1.1rem;font-weight:700;color:#f59e0b;font-family:"JetBrains Mono",monospace;}
+        </style>
+HTML;
+
+    /** The quiz script the original lessons ship with (unchanged). */
+    public const QUIZ_SCRIPT = <<<'HTML'
+<script>
+if(typeof window.answeredQuizzes==='undefined'){window.answeredQuizzes={};}
+if(typeof window.quizScores==='undefined'){window.quizScores={};}
+window.checkAnswer=function(btn,qId,isCorrect,prefix){
+    if(window.answeredQuizzes[qId])return;
+    window.answeredQuizzes[qId]=true;
+    if(typeof window.quizScores[prefix]==='undefined')window.quizScores[prefix]=0;
+    const card=document.getElementById(qId);
+    const allOpts=card.querySelectorAll('.quiz-option');
+    allOpts.forEach(o=>o.classList.add('locked'));
+    if(isCorrect){
+        btn.classList.add('correct');
+        window.quizScores[prefix]++;
+    } else {
+        btn.classList.add('wrong');
+        allOpts.forEach(o=>{if(o.getAttribute('onclick').includes(',true,'))o.classList.add('correct');});
+    }
+    document.getElementById(qId+'-exp').style.display='block';
+    document.getElementById('score_'+prefix).textContent=window.quizScores[prefix];
+};
+</script>
+HTML;
+
+    /** List fields of a section block, with their headings. */
+    public const SECTION_LISTS = [
+        'walkthrough' => 'Walkthrough',
+        'common_mistakes' => 'Common Mistakes',
+        'key_points' => 'Key Points',
+        'check_your_understanding' => 'Check Your Understanding',
+    ];
 
     public const FONTS = [
         'sans' => "'Inter', ui-sans-serif, system-ui, sans-serif",
@@ -59,6 +164,32 @@ class LessonBlockRenderer
         return implode("\n\n", $html);
     }
 
+    /**
+     * A public module lesson written with the module builder: its title is
+     * the lesson heading unless the lesson starts with a Heading block of its
+     * own (as the original hand-written lessons do).
+     *
+     * @param  list<array<string, mixed>>  $blocks
+     */
+    public function renderLesson(string $title, array $blocks): string
+    {
+        $firstType = null;
+        foreach ($blocks as $block) {
+            if (is_array($block) && $this->renderBlock($block) !== '') {
+                $firstType = $block['type'] ?? null;
+                break;
+            }
+        }
+
+        $body = $this->render($blocks);
+
+        if (trim($title) === '' || $firstType === 'heading') {
+            return $body;
+        }
+
+        return '<h2>'.e(trim($title)).'</h2>'.($body !== '' ? "\n\n".$body : '');
+    }
+
     /** @param  array<string, mixed>  $block */
     public function renderBlock(array $block): string
     {
@@ -68,6 +199,24 @@ class LessonBlockRenderer
             'table' => $this->table($block),
             'image' => $this->image($block),
             'html' => (string) ($block['html'] ?? ''),
+            'section' => $this->section($block),
+            'heading' => $this->plainTag('h2', $block['text'] ?? ''),
+            'subheading' => $this->plainTag('h3', $block['text'] ?? ''),
+            'paragraph' => $this->paragraphs((string) ($block['text'] ?? '')),
+            'bulleted_list' => $this->itemList($block['items'] ?? [], 'ul'),
+            'numbered_list' => $this->itemList($block['items'] ?? [], 'ol'),
+            'note' => $this->textCallout($block, 'Important Note', 'accent'),
+            'example' => $this->textCallout($block, 'Example', 'neutral'),
+            'python_code' => $this->codeBlock($block, 'python', 'output', 'Console Output'),
+            'sql_code' => $this->codeBlock($block, 'sql', 'result', 'Expected Result'),
+            'code_snippet' => $this->codeBlock($block, 'text', 'output', 'Output'),
+            'walkthrough' => $this->listCallout($block, 'Walkthrough', 'neutral', 'ol'),
+            'activity' => $this->textCallout(['title' => '', 'text' => $block['text'] ?? ''], 'Practice Activity', 'accent'),
+            'mistakes' => $this->listCallout($block, 'Common Mistakes', 'warning'),
+            'key_points' => $this->listCallout($block, 'Key Points', 'success'),
+            'check' => $this->listCallout($block, 'Check Your Understanding', 'neutral'),
+            'quiz' => $this->quiz($block),
+            'preserved' => (string) ($block['html'] ?? ''),
             default => '',
         };
     }
@@ -138,13 +287,236 @@ class LessonBlockRenderer
                     'type' => 'html',
                     'html' => (string) ($block['html'] ?? ''),
                 ],
+                'section' => $this->normalizeSection($block),
+                default => $this->normalizeBuilderBlock($type, $block),
             };
         }
 
         return $clean;
     }
 
+    /**
+     * One content block of the module builder, cleaned. Every block keeps
+     * exactly the fields of its type, so the same content always normalizes
+     * to the same array (the editors rely on that to tell whether a section
+     * was changed).
+     *
+     * @param  array<string, mixed>  $b
+     * @return array<string, mixed>
+     */
+    public function normalizeBuilderBlock(string $type, array $b): array
+    {
+        $items = fn ($value) => array_values(array_filter(
+            array_map(fn ($item) => $this->str($item, 5000, false), array_slice(is_array($value) ? array_values($value) : [], 0, self::MAX_ITEMS)),
+            fn (string $item) => trim($item) !== ''
+        ));
+        $multi = fn ($value, int $max = 50000) => $this->str($value, $max, false);
+
+        return match ($type) {
+            'heading', 'subheading' => ['type' => $type, 'text' => $this->str($b['text'] ?? '', 500)],
+            'paragraph', 'activity' => ['type' => $type, 'text' => $multi($b['text'] ?? '', 50000)],
+            'note', 'example' => ['type' => $type, 'title' => $this->str($b['title'] ?? '', 189), 'text' => $multi($b['text'] ?? '', 50000)],
+            'bulleted_list', 'numbered_list', 'walkthrough', 'mistakes', 'key_points', 'check' => ['type' => $type, 'items' => $items($b['items'] ?? [])],
+            'python_code', 'code_snippet' => [
+                'type' => $type,
+                'title' => $this->str($b['title'] ?? '', 189),
+                'code' => $multi($b['code'] ?? ''),
+                'explanation' => $multi($b['explanation'] ?? '', 20000),
+                'output' => $multi($b['output'] ?? '', 20000),
+            ],
+            'sql_code' => [
+                'type' => $type,
+                'title' => $this->str($b['title'] ?? '', 189),
+                'code' => $multi($b['code'] ?? ''),
+                'explanation' => $multi($b['explanation'] ?? '', 20000),
+                'result' => $multi($b['result'] ?? '', 20000),
+            ],
+            'quiz' => $this->normalizeQuiz($b),
+            'preserved' => [
+                'type' => $type,
+                'label' => $this->str($b['label'] ?? '', 189),
+                'html' => (string) ($b['html'] ?? ''),
+            ],
+            default => ['type' => $type],
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $b
+     * @return array<string, mixed>
+     */
+    private function normalizeQuiz(array $b): array
+    {
+        $questions = [];
+
+        foreach (array_slice(is_array($b['questions'] ?? null) ? array_values($b['questions']) : [], 0, self::MAX_QUIZ_QUESTIONS) as $question) {
+            if (! is_array($question)) {
+                continue;
+            }
+
+            $choices = array_values(array_map(
+                fn ($choice) => $this->str($choice, 1000),
+                array_slice(is_array($question['choices'] ?? null) ? array_values($question['choices']) : [], 0, 8)
+            ));
+            $answer = (int) ($question['answer'] ?? -1);
+
+            $questions[] = [
+                'question' => $this->str($question['question'] ?? '', 2000),
+                'choices' => $choices,
+                'answer' => $answer >= 0 && $answer < count($choices) ? $answer : -1,
+                'explanation' => $this->str($question['explanation'] ?? '', 5000, false),
+            ];
+        }
+
+        $prefix = preg_replace('/[^A-Za-z0-9_]/', '', (string) ($b['prefix'] ?? '')) ?? '';
+
+        if ($prefix === '') {
+            // A stable id for the quiz's elements, derived from its content.
+            $prefix = 'kc_'.substr(md5((string) json_encode($questions)), 0, 8);
+        }
+
+        return [
+            'type' => 'quiz',
+            'title' => $this->str($b['title'] ?? '', 189),
+            'prefix' => substr($prefix, 0, 40),
+            'questions' => $questions,
+        ];
+    }
+
+    /**
+     * A section block from the module editor, cleaned. Lists keep only
+     * non-empty lines.
+     *
+     * @param  array<string, mixed>  $block
+     * @return array<string, mixed>
+     */
+    public function normalizeSection(array $block): array
+    {
+        $section = [
+            'type' => 'section',
+            'heading' => $this->str($block['heading'] ?? '', 189),
+            'subheading' => $this->str($block['subheading'] ?? '', 500),
+            'body' => $this->str($block['body'] ?? '', 50000, false),
+            'code' => $this->str($block['code'] ?? '', 50000, false),
+            'activity' => $this->str($block['activity'] ?? '', 10000, false),
+            'html' => (string) ($block['html'] ?? ''),
+        ];
+
+        foreach (array_keys(self::SECTION_LISTS) as $list) {
+            $section[$list] = array_values(array_filter(
+                array_map(fn ($item) => $this->str($item, 2000), array_slice((array) ($block[$list] ?? []), 0, 100)),
+                fn (string $item) => $item !== ''
+            ));
+        }
+
+        return $section;
+    }
+
     // ── Blocks ─────────────────────────────────────────────────────────
+
+    /**
+     * One lesson written as a section card. A section that holds only the
+     * lesson's original HTML renders it unchanged, so opening and saving an
+     * older lesson in the new editor does not change what students see.
+     *
+     * @param  array<string, mixed>  $b
+     */
+    private function section(array $b): string
+    {
+        $html = (string) ($b['html'] ?? '');
+        $heading = trim((string) ($b['heading'] ?? ''));
+        $subheading = trim((string) ($b['subheading'] ?? ''));
+        $body = (string) ($b['body'] ?? '');
+        $code = (string) ($b['code'] ?? '');
+        $activity = trim((string) ($b['activity'] ?? ''));
+
+        $lists = [];
+        foreach (array_keys(self::SECTION_LISTS) as $list) {
+            $lists[$list] = array_values(array_filter(array_map(
+                fn ($item) => is_string($item) ? trim($item) : '',
+                (array) ($b[$list] ?? [])
+            ), fn (string $item) => $item !== ''));
+        }
+
+        $hasStructured = $subheading !== '' || trim($body) !== '' || trim($code) !== '' || $activity !== ''
+            || array_filter($lists) !== [];
+
+        if ($html !== '' && ! $hasStructured) {
+            return $html;
+        }
+
+        $parts = [];
+
+        if ($html !== '') {
+            $parts[] = $html;
+        } else {
+            if ($heading !== '') {
+                $parts[] = '<h2>'.e($heading).'</h2>';
+            }
+            if ($subheading !== '') {
+                $parts[] = '<p class="lesson-subtitle" style="color:var(--muted);">'.e($subheading).'</p>';
+            }
+        }
+
+        if (trim($body) !== '') {
+            $parts[] = '<div class="lesson-text">'."\n".$this->markup($body)."\n".'</div>';
+        }
+
+        if (trim($code) !== '') {
+            $isSql = preg_match('/^\s*(?:--[^\n]*\n\s*)*(?:SELECT|WITH|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i', $code) === 1;
+            $parts[] = $this->code([
+                'language' => $isSql ? 'sql' : 'python',
+                'label' => 'Example',
+                'code' => $code,
+                'output' => '',
+                'try_in_compiler' => true,
+            ]);
+        }
+
+        if ($lists['walkthrough'] !== []) {
+            $parts[] = $this->callout('Walkthrough', $this->listItems($lists['walkthrough'], 'ol'));
+        }
+
+        if ($activity !== '') {
+            $parts[] = $this->callout('Practice Activity', '<p style="margin:0;">'.$this->inline($activity).'</p>', 'accent');
+        }
+
+        if ($lists['common_mistakes'] !== []) {
+            $parts[] = $this->callout('Common Mistakes', $this->listItems($lists['common_mistakes']), 'warning');
+        }
+
+        if ($lists['key_points'] !== []) {
+            $parts[] = $this->callout('Key Points', $this->listItems($lists['key_points']), 'success');
+        }
+
+        if ($lists['check_your_understanding'] !== []) {
+            $parts[] = $this->callout('Check Your Understanding', $this->listItems($lists['check_your_understanding']));
+        }
+
+        return implode("\n\n", $parts);
+    }
+
+    private function listItems(array $items, string $tag = 'ul'): string
+    {
+        return '<'.$tag.' style="margin:0;padding-left:20px;line-height:1.6;">'
+            .implode('', array_map(fn (string $item) => '<li>'.$this->inline($item).'</li>', $items))
+            .'</'.$tag.'>';
+    }
+
+    private function callout(string $title, string $inner, string $tone = 'neutral'): string
+    {
+        [$border, $background] = match ($tone) {
+            'warning' => ['var(--ds-warning-border)', 'var(--ds-warning-soft)'],
+            'success' => ['var(--ds-success-border)', 'var(--ds-success-soft)'],
+            'accent' => ['var(--ds-accent-border)', 'var(--ds-accent-soft)'],
+            default => ['var(--border)', 'var(--surface2)'],
+        };
+
+        return '<div class="lesson-callout" style="margin:0 0 24px;padding:14px 18px;border:1px solid '.$border.';border-radius:12px;background:'.$background.';">'
+            ."\n  ".'<h4 style="margin:0 0 8px;font-size:0.95rem;">'.e($title).'</h4>'
+            ."\n  ".$inner
+            ."\n".'</div>';
+    }
 
     /** @param  array<string, mixed>  $b */
     private function code(array $b): string
@@ -184,7 +556,7 @@ class LessonBlockRenderer
 
         if ($output !== '') {
             $body .= "\n".'<div style="color:#9ca3af;font-size:0.85rem;overflow-x:auto;white-space:pre;font-family:\'JetBrains Mono\',monospace;">'
-                ."\n".'<span style="color:var(--dim);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;display:block;margin-bottom:8px;font-family:\'Inter\',sans-serif;font-weight:600;">Console Output</span>'
+                ."\n".'<span style="color:var(--dim);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.05em;display:block;margin-bottom:8px;font-family:\'Inter\',sans-serif;font-weight:600;">'.e((string) ($b['output_label'] ?? 'Console Output')).'</span>'
                 .e($output).'</div>';
         }
 
@@ -285,6 +657,148 @@ class LessonBlockRenderer
         return $html."\n</figure>";
     }
 
+    // ── Module builder blocks (DataSensei Updates 6) ───────────────────
+
+    private function plainTag(string $tag, mixed $text): string
+    {
+        $text = trim((string) $text);
+
+        return $text === '' ? '' : '<'.$tag.'>'.$this->inline($text).'</'.$tag.'>';
+    }
+
+    /**
+     * Lesson text: a blank line starts a new paragraph, a single line break
+     * stays a line break. **bold**, *italic* and `code` work inside.
+     */
+    public function paragraphs(string $text): string
+    {
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+        $out = [];
+
+        foreach (preg_split('/\n\s*\n/', $text) ?: [] as $paragraph) {
+            $lines = array_values(array_filter(array_map('rtrim', explode("\n", trim($paragraph))), fn ($line) => $line !== ''));
+
+            if ($lines !== []) {
+                $out[] = '<p>'.implode('<br>', array_map(fn ($line) => $this->inline(trim($line)), $lines)).'</p>';
+            }
+        }
+
+        return implode("\n", $out);
+    }
+
+    /** @param  mixed  $items */
+    private function itemList(mixed $items, string $tag): string
+    {
+        $items = array_values(array_filter(array_map(fn ($item) => is_scalar($item) ? trim((string) $item) : '', (array) $items), fn ($item) => $item !== ''));
+
+        return $items === [] ? '' : '<'.$tag.'>'.implode('', array_map(fn ($item) => '<li>'.$this->inline($item).'</li>', $items)).'</'.$tag.'>';
+    }
+
+    /** @param  array<string, mixed>  $b */
+    private function textCallout(array $b, string $defaultTitle, string $tone): string
+    {
+        $text = trim((string) ($b['text'] ?? ''));
+
+        if ($text === '') {
+            return '';
+        }
+
+        $title = trim((string) ($b['title'] ?? '')) ?: $defaultTitle;
+
+        return $this->callout($title, str_replace('<p>', '<p style="margin:0 0 8px;">', $this->paragraphs($text)), $tone);
+    }
+
+    /** @param  array<string, mixed>  $b */
+    private function listCallout(array $b, string $title, string $tone, string $tag = 'ul'): string
+    {
+        $items = array_values(array_filter(array_map(fn ($item) => is_scalar($item) ? trim((string) $item) : '', (array) ($b['items'] ?? [])), fn ($item) => $item !== ''));
+
+        return $items === [] ? '' : $this->callout($title, $this->listItems($items, $tag), $tone);
+    }
+
+    /**
+     * A Python, SQL or general code block: the same code window as the
+     * hand-written lessons ("Try in Compiler" for Python, the SQL sandbox for
+     * SQL), the expected output inside it, and the explanation below.
+     *
+     * @param  array<string, mixed>  $b
+     */
+    private function codeBlock(array $b, string $language, string $outputKey, string $outputLabel): string
+    {
+        $code = (string) ($b['code'] ?? '');
+        $output = (string) ($b[$outputKey] ?? '');
+        $explanation = trim((string) ($b['explanation'] ?? ''));
+
+        if (trim($code) === '' && trim($output) === '' && $explanation === '') {
+            return '';
+        }
+
+        $html = trim($code) === '' ? '' : $this->code([
+            'language' => $language,
+            'label' => (string) ($b['title'] ?? ''),
+            'code' => $code,
+            'output' => $output,
+            'output_label' => $outputLabel,
+            'try_in_compiler' => $language !== 'text',
+        ]);
+
+        if (trim($code) === '' && trim($output) !== '') {
+            $html = $this->callout($outputLabel, '<div style="white-space:pre-wrap;font-family:\'JetBrains Mono\',monospace;font-size:0.85rem;">'.e($output).'</div>');
+        }
+
+        if ($explanation !== '') {
+            $html .= ($html === '' ? '' : "\n").'<div class="lesson-text">'."\n".$this->paragraphs($explanation)."\n".'</div>';
+        }
+
+        return $html;
+    }
+
+    /**
+     * A knowledge check: the same markup, styles and script as the quizzes in
+     * the original lessons, so a converted quiz behaves exactly as before.
+     *
+     * @param  array<string, mixed>  $b
+     */
+    private function quiz(array $b): string
+    {
+        $block = $this->normalizeQuiz($b);
+        $questions = array_values(array_filter($block['questions'], fn (array $q) => $q['question'] !== '' && count($q['choices']) >= 2));
+
+        if ($questions === []) {
+            return '';
+        }
+
+        $prefix = $block['prefix'];
+        $title = $block['title'] !== '' ? $block['title'] : 'Knowledge Check';
+
+        $html = self::QUIZ_STYLE
+            .'<div class="quiz-wrapper" id="wrap_'.$prefix.'"><div class="quiz-score-bar"><span>'.e($title).'</span>'
+            .'<span class="quiz-score-val"><span id="score_'.$prefix.'">0</span> / '.count($questions).'</span></div>';
+
+        foreach ($questions as $index => $question) {
+            $qid = $prefix.'_q'.($index + 1);
+            $html .= '<div class="quiz-card" id="'.$qid.'"><div class="quiz-card-header"><span class="quiz-q-num">Q'.($index + 1).'</span>'
+                .'<span class="quiz-q-text">'.e($question['question']).'</span></div><div class="quiz-options">';
+
+            foreach ($question['choices'] as $choiceIndex => $choice) {
+                $html .= '<button class="quiz-option" onclick="checkAnswer(this,\''.$qid.'\','.($choiceIndex === $question['answer'] ? 'true' : 'false').',\''.$prefix.'\')">'
+                    .'<span class="opt-key">'.chr(65 + $choiceIndex).'</span> '.e($choice).'</button>';
+            }
+
+            $html .= '</div>';
+
+            if (trim($question['explanation']) !== '') {
+                $html .= '<div class="quiz-explanation" id="'.$qid.'-exp"><strong>Explanation:</strong> '.e($question['explanation']).'</div>';
+            } else {
+                $html .= '<div class="quiz-explanation" id="'.$qid.'-exp"></div>';
+            }
+
+            $html .= '</div>';
+        }
+
+        return $html.'</div>'.self::QUIZ_SCRIPT;
+    }
+
     // ── Light markup for text blocks ───────────────────────────────────
 
     /**
@@ -355,12 +869,18 @@ class LessonBlockRenderer
     {
         $escaped = e($text);
 
-        // Code first, so nothing inside backticks is treated as emphasis.
-        $escaped = preg_replace('/`([^`]+)`/', '<code>$1</code>', $escaped) ?? $escaped;
+        // Code first, and set aside, so nothing inside backticks (such as
+        // *args or **kwargs) is treated as emphasis.
+        $codes = [];
+        $escaped = preg_replace_callback('/`([^`]+)`/', function (array $m) use (&$codes): string {
+            $codes[] = '<code>'.$m[1].'</code>';
+
+            return "\u{E000}".(count($codes) - 1)."\u{E001}";
+        }, $escaped) ?? $escaped;
         $escaped = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $escaped) ?? $escaped;
         $escaped = preg_replace('/(?<![*\w])\*(?!\s)(.+?)(?<!\s)\*(?![*\w])/s', '<em>$1</em>', $escaped) ?? $escaped;
 
-        return $escaped;
+        return preg_replace_callback("/\u{E000}(\d+)\u{E001}/u", fn (array $m) => $codes[(int) $m[1]] ?? '', $escaped) ?? $escaped;
     }
 
     // ── Syntax colouring, matching the hand-written lessons ────────────
@@ -473,7 +993,7 @@ class LessonBlockRenderer
     }
 
     /** Only uploaded lesson images or absolute http(s) URLs; nothing else. */
-    private function imageSource(string $src): string
+    public function imageSource(string $src): string
     {
         $src = trim($src);
 

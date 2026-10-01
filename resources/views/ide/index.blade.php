@@ -343,6 +343,15 @@
     .rb-clear { min-height: 32px; padding: 0 8px; margin-left: -8px; font: 500 .8125rem/1.2 var(--ds-font-sans); color: var(--muted); background: transparent; border: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background .12s ease, color .12s ease; }
     .rb-clear:hover { color: var(--text); background: var(--surface2); }
     .rb-clear:disabled { opacity: .55; cursor: not-allowed; }
+    /* Code sent for review: a short preview with See more for the whole code */
+    .rb-msg.rb-user .rb-bubble.rb-expanded { max-height: none; }
+    .rb-more { display: block; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--ds-accent-text); font: 600 .75rem/1.3 var(--ds-font-sans); cursor: pointer; }
+    .rb-more:hover { text-decoration: underline; }
+    /* Expand: read long reviewer answers in a larger panel */
+    .rb-expand { flex-shrink: 0; min-height: 28px; padding: 0 8px; font: 500 .75rem/1.2 var(--ds-font-sans); color: var(--muted); background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: background .12s ease, color .12s ease; }
+    .rb-expand:hover { color: var(--text); background: var(--surface2); }
+    #rb-panel.rb-wide { width: min(760px, calc(100vw - 40px)); height: calc(100dvh - 120px); }
+    #rb-panel.rb-wide .rb-line, #rb-panel.rb-wide .rb-bullet { font-size: .875rem; }
     #rb-send {
       display: inline-flex; align-items: center; gap: 6px;
       min-height: 32px; padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--accent);
@@ -557,6 +566,7 @@
     <div class="rb-status" id="rb-status" role="status" aria-live="polite">
       <div class="rb-status-dot"></div><span>Ready</span>
     </div>
+    <button type="button" class="rb-expand" id="rb-expand" aria-pressed="false" onclick="ReviewBot.toggleWide()" title="Show the conversation in a larger panel">Expand</button>
   </div>
 
   <div id="rb-msgs" aria-live="polite"></div>
@@ -616,6 +626,11 @@ const ReviewBot = (() => {
   let _lastCode = '';
   let _lastLang = 'python';
   let _lastRunOutput = '';
+  let _lastFile = '';
+  // The reviewer keeps the last run (code, output, conversation) for this
+  // browser tab, so a page reload or a trip to another page no longer makes it
+  // forget what it was discussing.
+  const STATE_KEY = @json('datasensei:reviewer:ide:'.auth()->id());
   const _typingTimers = {};
   let _activeController = null;
   // A review that outlived the request keeps going on the server; this token
@@ -631,6 +646,63 @@ const ReviewBot = (() => {
   const $status = () => document.getElementById('rb-status');
   const $send   = () => document.getElementById('rb-send');
   const $input  = () => document.getElementById('rb-input');
+
+  function _persist() {
+    try {
+      const messages = $msgs().cloneNode(true);
+      messages.querySelectorAll('.rb-typing').forEach(el => el.remove());
+      const html = messages.innerHTML;
+      sessionStorage.setItem(STATE_KEY, JSON.stringify({
+        code: _lastCode,
+        lang: _lastLang,
+        output: _lastRunOutput,
+        file: _lastFile,
+        history: _history.slice(-12),
+        html: html.length <= 300000 ? html : '',
+      }));
+    } catch (_) {
+      // Private mode or a full storage quota: the chat still works for this page.
+    }
+  }
+
+  function _restore() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STATE_KEY) || 'null');
+      if (!saved || typeof saved !== 'object') return;
+      _lastCode = String(saved.code || '');
+      _lastLang = String(saved.lang || 'python');
+      _lastRunOutput = String(saved.output || '');
+      _lastFile = String(saved.file || '');
+      _history.length = 0;
+      (Array.isArray(saved.history) ? saved.history : []).forEach(item => {
+        if (item && (item.role === 'user' || item.role === 'assistant')) {
+          _history.push({ role: item.role, content: String(item.content || '') });
+        }
+      });
+      if (saved.html) {
+        $msgs().innerHTML = saved.html;
+        if (_lastCode) $toggle().classList.add('rb-has-review');
+      }
+    } catch (_) {
+      // Ignore unreadable saved state.
+    }
+  }
+
+  // The code open in the editor right now (it may have changed since the run).
+  function _editorSnapshot() {
+    try {
+      return (typeof IDE !== 'undefined' && IDE.editorSnapshot) ? IDE.editorSnapshot() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Recent turns, labelled and bounded so the request never exceeds the limit.
+  function _conversationContext(excludeLast) {
+    const turns = (excludeLast ? _history.slice(0, -1) : _history).slice(-6);
+    const text = turns.map(h => `${h.role === 'user' ? 'STUDENT' : 'REVIEWER'}: ${h.content}`).join('\n---\n');
+    return text.length > 12000 ? text.slice(-12000) : text;
+  }
 
   /* ── Open / close ── */
   function toggle() {
@@ -671,14 +743,14 @@ const ReviewBot = (() => {
     _lastCode = code;
     _lastLang = lang || 'python';
     _lastRunOutput = runOutput || '';
+    _lastFile = filename || '';
     _history.length = 0; // reset context per new run
 
     _open_panel();
     $toggle().classList.add('rb-has-review');
 
     // Show user bubble — truncated code preview
-    const preview = code.length > 220 ? code.slice(0, 217) + '…' : code;
-    _addUser(preview);
+    _addCode(code);
 
     // Bot opening line depends on language
     const langLabel = lang === 'mysql' ? 'MySQL query' : 'Python code';
@@ -689,37 +761,33 @@ const ReviewBot = (() => {
     void _sendReview(code, lang);
   }
 
-  /* ── Code generation detection ── */
-  const CODE_GEN_RE = /\b(generate|write\s+(?:me\s+)?(?:a|the|this|some)?|create|give\s+me|produce|make\s+me|implement|build)\b.{0,40}\b(code|function|class|script|program|solution|example|snippet|query|sql)\b/i;
-  function _isCodeGenRequest(text) {
-    return CODE_GEN_RE.test(text);
-  }
-
   /* ── Manual follow-up from input ── */
+  // Requests for finished code are answered by the server with a short
+  // guidance note; every other question goes to the reviewer. The old check
+  // here also blocked ordinary questions such as "Did I write the function
+  // right?", which were never answered.
   function sendFollowUp() {
     const question = $input().value.trim();
     if (!question || _busy) return;
 
     if (!_lastCode.trim()) {
-      _addBot('<div class="rb-line" style="color:var(--warn2)">Run a Python file first so I have code and output to discuss.</div>');
-      return;
-    }
-
-    // Block code generation requests on the frontend
-    if (_isCodeGenRequest(question)) {
-      $input().value = '';
-      _addUser(question);
-      _addBot(
-        '<div class="rb-line" style="color:var(--warn2)">⚠ I\'m a <strong style="color:var(--text)">code reviewer</strong>, not a code generator. ' +
-        'I can\'t write or produce code for you — but I can help you understand issues in your existing code, explain concepts, or point you in the right direction.</div>'
-      );
-      return;
+      // No run yet in this tab: discuss the file open in the editor.
+      const snapshot = _editorSnapshot();
+      if (!snapshot || !snapshot.code.trim()) {
+        _addBot('<div class="rb-line" style="color:var(--warn2)">Open a Python file (or run one) so I have code to discuss.</div>');
+        return;
+      }
+      _lastCode = snapshot.code;
+      _lastLang = 'python';
+      _lastRunOutput = '';
+      _lastFile = snapshot.name || '';
     }
 
     $input().value = '';
     _addUser(question);
 
     _history.push({ role: 'user', content: question });
+    _persist();
     void _callAI(question);
   }
 
@@ -733,6 +801,7 @@ const ReviewBot = (() => {
     $msgs().innerHTML = '';
     _history.length = 0;
     _addWelcome();
+    _persist();
   }
 
   function _boundedRunOutput(value) {
@@ -751,7 +820,7 @@ const ReviewBot = (() => {
     }
 
     return isChat
-      ? 'Status: Not Reviewed\nFeedback: The AI reviewer could not be reached from this page. Your last run is still loaded, so you can ask again in a moment.'
+      ? 'Status: Not Answered\nFeedback: The AI reviewer could not be reached from this page. Your code and last run are still loaded, so you can ask the same question again in a moment.'
       : 'Status: Not Reviewed\nFeedback: Your program ran and reported no execution error. The AI reviewer could not be reached from this page, so it was not reviewed. Nothing is wrong with your run.\nCheck On Your Own:\n- Compare the result with the expected output.\n- Test invalid and boundary inputs.\n- Review conditions, loops, function results, and edge cases.';
   }
 
@@ -862,6 +931,7 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } finally {
       if (generation === _generation) _setBusy(false);
+      _persist();
     }
   }
 
@@ -881,7 +951,13 @@ const ReviewBot = (() => {
       form.append('language', _lastLang);
       form.append('question', question);
       form.append('run_output', _boundedRunOutput(_lastRunOutput));
-      form.append('previous_context', _history.slice(0, -1).slice(-4).map(h => `${h.role.toUpperCase()}: ${h.content}`).join('\n---\n'));
+      form.append('previous_context', _conversationContext(true));
+      // If the student edited the same file after the run, the reviewer also
+      // sees the current version (marked as not run yet).
+      const snapshot = _editorSnapshot();
+      if (snapshot && snapshot.code.trim() && (!_lastFile || snapshot.name === _lastFile) && snapshot.code !== _lastCode) {
+        form.append('current_code', snapshot.code.slice(0, 50000));
+      }
       form.append('stream', '1');
 
       let completed = false;
@@ -938,6 +1014,7 @@ const ReviewBot = (() => {
       _history.push({ role: 'assistant', content: msg });
     } finally {
       if (generation === _generation) _setBusy(false);
+      _persist();
     }
   }
 
@@ -1048,6 +1125,36 @@ const ReviewBot = (() => {
   }
 
   /* ── DOM helpers ── */
+  // The code bubble shows the first lines; See more reveals all of it. Both
+  // versions are in the markup, so a conversation restored after a reload
+  // keeps working (the click is handled on the message list).
+  function _addCode(code) {
+    const full = String(code || '');
+    const lines = full.split('\n');
+    const long = full.length > 220 || lines.length > 6;
+    if (!long) {
+      _addUser(full);
+      return;
+    }
+    const preview = lines.slice(0, 6).join('\n').slice(0, 217) + '…';
+    const html = `<div class="rb-code-preview">${escH(preview)}</div><div class="rb-code-full" hidden>${escH(full)}</div><button type="button" class="rb-more" aria-expanded="false">See more (${lines.length} lines)</button>`;
+    $msgs().appendChild(_buildMsg('rb-user', html));
+    _scroll();
+  }
+
+  document.addEventListener('click', event => {
+    const button = event.target.closest('#rb-msgs .rb-more');
+    if (!button) return;
+    const bubble = button.closest('.rb-bubble');
+    const expanded = button.getAttribute('aria-expanded') !== 'true';
+    bubble.querySelector('.rb-code-preview').hidden = expanded;
+    bubble.querySelector('.rb-code-full').hidden = !expanded;
+    bubble.classList.toggle('rb-expanded', expanded);
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    const count = bubble.querySelector('.rb-code-full').textContent.split('\n').length;
+    button.textContent = expanded ? 'See less' : `See more (${count} lines)`;
+  });
+
   function _addUser(text) {
     const el = _buildMsg('rb-user', escH(text));
     $msgs().appendChild(el);
@@ -1122,7 +1229,13 @@ const ReviewBot = (() => {
   /* ── Review formatter ── */
   function _formatReview(raw) {
     if (!raw || !raw.trim()) return '<div class="rb-line" style="color:var(--dim)">(No response)</div>';
-    raw = raw.replace(/```[\s\S]*?```/g, '').replace(/`/g, '');
+    // The server has already removed any code; a fenced block that remains is
+    // program output, so it is shown as a block instead of being dropped.
+    const blocks = [];
+    raw = raw.replace(/```[^\n`]*\n?([\s\S]*?)(?:```|$)/g, (_, body) => {
+      blocks.push(body.replace(/\n+$/, ''));
+      return `\n\u0000${blocks.length - 1}\u0000\n`;
+    }).replace(/`/g, '');
     // Headings introduce a list; everything else is a labelled sentence and must
     // stay readable prose instead of becoming a shouting section header.
     const HEADING = /^(Issues?|Suggestions?|Warnings?|Notes?|Steps to (?:Fix|Check)|Check On Your Own|Checked|Verified|Summary)\s*:\s*$/i;
@@ -1134,6 +1247,11 @@ const ReviewBot = (() => {
     {
       for (const line of raw.split('\n')) {
         const t = line.trim(); if (!t) continue;
+        const block = t.match(/^\u0000(\d+)\u0000$/);
+        if (block) {
+          html += `<div class="rb-code">${escH(blocks[Number(block[1])] || '')}</div>`;
+          continue;
+        }
         const label = t.match(LABEL);
         if (HEADING.test(t)) {
           html += `<div class="rb-section">${escH(t.replace(/\s*:\s*$/, ''))}</div>`;
@@ -1161,7 +1279,26 @@ const ReviewBot = (() => {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  return { toggle, autoReview, sendFollowUp, handleKey, clear };
+  /* Larger panel for reading long answers in full. */
+  function toggleWide() {
+    const panel = $panel();
+    if (!panel) return;
+    const wide = panel.classList.toggle('rb-wide');
+    const button = document.getElementById('rb-expand');
+    if (button) {
+      button.textContent = wide ? 'Collapse' : 'Expand';
+      button.setAttribute('aria-pressed', wide ? 'true' : 'false');
+    }
+    _scroll();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _restore);
+  } else {
+    _restore();
+  }
+
+  return { toggle, autoReview, sendFollowUp, handleKey, clear, toggleWide };
 })();
 </script>
 
@@ -1171,6 +1308,10 @@ const TREE_DATA = @json($tree);
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const NODES_URL = @json(route('ide.nodes.store'));
 const TREE_URL = @json(route('ide.tree'));
+// Size limits the server enforces on saved files (data files may be larger
+// than Python source); checked here first so a large upload fails with a
+// clear message before it is sent.
+const IDE_LIMITS = @json($ideLimits ?? null);
 
 const IDE = (() => {
   let openTabs = []; let activeTab = null; let cm = null; let treeData = [...TREE_DATA]; let cmChanging = false;
@@ -1373,8 +1514,26 @@ const IDE = (() => {
       }
   }
 
+  function uploadSizeProblem(file, fileName) {
+      if (!IDE_LIMITS) return null;
+      const extension = (fileName.split('.').pop() || '').toLowerCase();
+      const isData = fileName.includes('.') && (IDE_LIMITS.data_file_extensions || []).includes(extension);
+      // Source files are limited in characters, which the server counts.
+      if (!isData) return null;
+      const limit = IDE_LIMITS.data_file_bytes;
+      if (!limit || file.size <= limit) return null;
+      const size = (bytes) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1).replace(/\.0$/, '')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+      return `"${fileName}" is ${size(file.size)}. Data files can be up to ${size(limit)} here.`;
+  }
+
   function uploadExternalFile(file, parentId, overrideName = null) {
       const fileNameToUse = overrideName || file.name;
+      const sizeProblem = uploadSizeProblem(file, fileNameToUse);
+      if (sizeProblem) {
+          termPrint('error', `Failed to upload ${file.name}: ${sizeProblem}`);
+          setStatus('Upload too large');
+          return Promise.resolve();
+      }
       return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = async (e) => {
@@ -1922,6 +2081,7 @@ const IDE = (() => {
       const reviewOutput = [
         res.output ? 'STDOUT:\n' + res.output : '',
         res.error ? 'STDERR:\n' + res.error : '',
+        inputValues.length > 0 ? 'Input typed during the run:\n' + inputValues.join('\n') : '',
         `Exit code: ${res.exit_code}`,
         `Execution time: ${res.execution_time_ms}ms`,
         res.plots && res.plots.length > 0 ? `Plots generated: ${res.plots.length}` : ''
@@ -2279,7 +2439,14 @@ plt.show()
   function findNode(nodes, id) { for (const n of nodes) { if (n.id === id) return n; if (n.children) { const found = findNode(n.children, id); if (found) return found; } } return null; }
   function escHtml(str) { return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  return { init, save, run, runOrStop, stopRun, submitInput, cancelInput, promptCreate, promptRename, closeModal, confirmModal, clearTerminal, toggleTerminal, togglePanel, collapseAll, focusSearch, insertPythonSample };
+  // The file open in the editor, for the AI reviewer's follow-up questions.
+  function editorSnapshot() {
+    if (activeTab === null || !cm) return null;
+    const tab = openTabs.find(t => t.id === activeTab);
+    return tab ? { name: tab.name, code: cm.getValue() } : null;
+  }
+
+  return { init, save, run, runOrStop, stopRun, submitInput, cancelInput, promptCreate, promptRename, closeModal, confirmModal, clearTerminal, toggleTerminal, togglePanel, collapseAll, focusSearch, insertPythonSample, editorSnapshot };
 })();
 
 window.addEventListener('DOMContentLoaded', IDE.init);

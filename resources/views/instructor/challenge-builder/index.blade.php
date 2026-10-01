@@ -6,7 +6,7 @@
   <title>Challenge Builder — DataSensei</title>
   @include('instructor.challenge-builder._styles')
   @include('partials.admin-inspired-page-style')
-  @include('partials.page-head', ['pageTitle' => 'Challenge Builder', 'pageDescription' => 'Build your own quiz and coding challenges and give them to your classes.'])
+  @include('partials.page-head', ['pageTitle' => 'Challenge Builder', 'pageDescription' => 'Build your own quiz and coding challenges for your classes to practice.'])
 </head>
 <body class="ds-admin-inspired">
   <div class="ds-shell">
@@ -16,9 +16,8 @@
         <div class="top-row">
           <div>
             <h1 class="page-title ds-page-title">Challenge Builder</h1>
-            <p class="page-subtitle">Quiz and coding challenges you built. They live on the University Student level and reach students only through the classes you give them to.</p>
+            <p class="page-subtitle">Quiz and coding challenges you built for practice. Students see one only after you share it with their class (open the challenge and tick the classes). Graded class work with a due date belongs in Assignments.</p>
             <div class="page-links">
-              <a href="{{ route('instructor.class-challenges.index') }}">Give a challenge to a class</a>
               <a href="{{ route('instructor.challenges.index') }}">Browse the platform challenge pool</a>
             </div>
           </div>
@@ -46,7 +45,7 @@
                 <th>Type</th>
                 <th>Items</th>
                 <th>Availability</th>
-                <th>Given to</th>
+                <th>Shared with</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -63,8 +62,8 @@
                 <td>{{ $challenge->is_coding_challenge ? $challenge->coding_questions_count : $challenge->questions_count }}</td>
                 <td>{{ $challenge->is_active ? 'Available' : 'Unavailable' }}</td>
                 <td>
-                  @if($challenge->class_assignments_count > 0)
-                    {{ $challenge->class_assignments_count }} {{ $challenge->class_assignments_count === 1 ? 'class' : 'classes' }}
+                  @if($challenge->practice_classes_count > 0)
+                    {{ $challenge->practice_classes_count }} {{ $challenge->practice_classes_count === 1 ? 'class' : 'classes' }}
                   @else
                     <span class="muted">No class yet</span>
                   @endif
@@ -72,7 +71,7 @@
                 <td>
                   <div class="action-row">
                     <a class="btn secondary small" href="{{ route('instructor.challenge-builder.edit', $challenge) }}">Edit</a>
-                    <form method="POST" action="{{ route('instructor.challenge-builder.destroy', $challenge) }}" onsubmit="return confirm('Delete this challenge? Class entries that use it are removed as well.');">
+                    <form method="POST" action="{{ route('instructor.challenge-builder.destroy', $challenge) }}" onsubmit="return confirm('Delete this challenge? It is also removed from the classes it is shared with.');">
                       @csrf
                       @method('DELETE')
                       <button class="btn danger small" type="submit">Delete</button>

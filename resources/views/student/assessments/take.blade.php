@@ -34,8 +34,7 @@
     .question-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px 20px;border-bottom:1px solid var(--border)}
     .question-head strong{min-width:0;flex:1 1 auto;font-size:.9375rem;font-weight:600;line-height:1.45;overflow-wrap:anywhere}
     .question-body{padding:16px 20px 20px}
-    .question-head .badge{flex-shrink:0;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
+    .question-head .points{flex-shrink:0;color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;white-space:nowrap}
 
     .option-row{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:center;min-height:40px;margin-top:8px;padding:8px 12px;
       border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);background:var(--surface3);
@@ -108,7 +107,7 @@
             <div class="question-card">
               <div class="question-head">
                 <strong>{{ $question->item_number }}. {{ $question->question_text }}</strong>
-                <span class="badge">{{ $question->points }} pt</span>
+                <span class="points">{{ $question->points }} {{ (int) $question->points === 1 ? 'point' : 'points' }}</span>
               </div>
               <div class="question-body">
                 @if($question->image_path)

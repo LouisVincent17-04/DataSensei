@@ -57,7 +57,7 @@
                 <td>{{ $tos->coverage_label }}</td>
                 <td>{{ (int) $tos->assigned_items }} / {{ (int) ($tos->total_items ?: $tos->assigned_items) }}</td>
                 <td>
-                  <span class="badge {{ $summary['code'] === 'complete' ? 'good' : ($summary['code'] === 'invalid' ? 'bad' : 'warn') }}">
+                  <span class="state {{ $summary['code'] === 'complete' ? 'good' : ($summary['code'] === 'invalid' ? 'bad' : 'warn') }}">
                     {{ $summary['label'] }}
                   </span>
                 </td>
@@ -72,7 +72,7 @@
                         <button class="btn bad" type="submit">Delete</button>
                       </form>
                     @else
-                      <span class="badge">Protected</span>
+                      <span class="state">Protected</span>
                     @endif
                   </div>
                 </td>

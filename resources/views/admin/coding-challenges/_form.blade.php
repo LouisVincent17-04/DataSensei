@@ -10,6 +10,7 @@
   foreach (array_values($questions) as $qi => $q) { $questionRows[] = ['index' => $qi, 'question' => $q, 'template' => false]; }
   $questionRows[] = ['index' => '__Q__', 'question' => $emptyQuestion, 'template' => true];
 @endphp
+@include('partials.reference-check-failures')
 <div class="cc-editor-layout">
 <form method="POST" action="{{ $formAction }}" data-coding-form data-check-url="{{ route('admin.coding-challenges.check-tests') }}" data-locked="{{ $locked ? '1' : '0' }}">
   @csrf
@@ -41,10 +42,9 @@
             @endforeach
           </select>
         </div>
-        <div class="field">
-          <label for="content-code">Content Code</label>
-          <input id="content-code" class="input" name="content_code" value="{{ old('content_code', $challenge->content_code) }}" placeholder="Leave blank to generate one" maxlength="64">
-        </div>
+        {{-- Internal identifiers, generated automatically (DataSensei Updates 9). --}}
+        <input type="hidden" name="content_code" value="{{ old('content_code', $challenge->content_code) }}">
+        <input type="hidden" name="version_code" value="{{ old('version_code', $challenge->version_code) }}">
         <div class="field">
           <label for="version-no">Version Number</label>
           <input id="version-no" class="input" type="number" name="version_no" min="1" max="9999" value="{{ old('version_no', $challenge->version_no) }}" required>
@@ -52,10 +52,6 @@
         <div class="field">
           <label for="version-name">Version Name</label>
           <input id="version-name" class="input" name="version_name" value="{{ old('version_name', $challenge->version_name) }}" required>
-        </div>
-        <div class="field">
-          <label for="version-code">Version Code</label>
-          <input id="version-code" class="input" name="version_code" value="{{ old('version_code', $challenge->version_code) }}" placeholder="V1" required>
         </div>
         <div class="field">
           <label for="challenge-status">Availability</label>
@@ -158,8 +154,9 @@
               <textarea class="textarea cc-code" data-field="starter_code" name="questions[{{ $qi }}][starter_code]" maxlength="50000" spellcheck="false" @readonly($locked) placeholder="# Code the learner starts from (optional)">{{ $question['starter_code'] ?? '' }}</textarea>
             </div>
             <div class="field">
-              <label>Reference Solution</label>
-              <textarea class="textarea cc-code" data-field="reference_solution" name="questions[{{ $qi }}][reference_solution]" maxlength="50000" spellcheck="false" placeholder="# A solution that passes every test case (optional, never shown to learners)">{{ $question['reference_solution'] ?? '' }}</textarea>
+              <label>Reference Solution (required, never shown to learners)</label>
+              <textarea class="textarea cc-code" data-field="reference_solution" name="questions[{{ $qi }}][reference_solution]" maxlength="50000" spellcheck="false" placeholder="# A solution that passes every test case" required>{{ $question['reference_solution'] ?? '' }}</textarea>
+              <span class="dim">When you save or publish, it runs against every test case with the checker that grades learners. The challenge is saved only if every case prints the expected output.</span>
             </div>
           </div>
 

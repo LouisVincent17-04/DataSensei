@@ -2,13 +2,13 @@
 
 @section('title', 'Platform Content')
 @section('page_title', 'Platform Content')
-@section('page_subtitle', 'Create, version, publish, and maintain learning modules, MCQ challenges, and assessment-library content.')
+@section('page_subtitle', 'Create, version, publish, and maintain library modules, MCQ challenges, and assessment-library content. The open DataSensei Modules are managed under DataSensei Modules.')
 
 @section('content')
   <section class="grid cards">
     <a class="stat" href="{{ route('admin.module-library.index') }}">
       <div class="stat-header">
-        <span class="label">Learning Modules</span>
+        <span class="label">Instructor Module Library</span>
         <span class="stat-icon" aria-hidden="true">M</span>
       </div>
       <div class="value">{{ number_format($summary['modules']) }}</div>
@@ -47,8 +47,8 @@
 
     <div class="quick-actions">
       <a class="quick-action" href="{{ route('admin.module-library.create') }}">
-        <strong>Create Learning Module</strong>
-        <span>Add a module version with seeded-compatible content sections and review questions.</span>
+        <strong>Create Library Module</strong>
+        <span>Add a module version for classes, with its learning outcomes, sections and review questions.</span>
       </a>
       <a class="quick-action" href="{{ route('admin.challenges.create') }}">
         <strong>Create MCQ Challenge</strong>

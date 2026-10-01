@@ -10,7 +10,9 @@ use App\Models\ChallengeCategory;
 use App\Models\ChallengeOption;
 use App\Models\ChallengeQuestion;
 use App\Models\ClassChallengeAssignment;
+use App\Services\ChallengeModuleAccessService;
 use App\Services\ChallengePathUnlockService;
+use App\Services\XpPolicy;
 use App\Services\GamificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,7 +89,9 @@ class ChallengesController extends Controller
             ? $unlockService->notifyExceptionalUnlocks(Auth::user(), 'mcq')
             : [];
 
-        return view('student.challenges', compact('categories', 'hasUniversity', 'pathLocks', 'exceptionalNotifications'));
+        $classChallenges = $this->classChallengeCards(false);
+
+        return view('student.challenges', compact('categories', 'hasUniversity', 'pathLocks', 'exceptionalNotifications', 'classChallenges'));
     }
 
     public function codingIndex(ChallengePathUnlockService $unlockService)
@@ -110,7 +114,9 @@ class ChallengesController extends Controller
             ? $unlockService->notifyExceptionalUnlocks(Auth::user(), 'coding')
             : [];
 
-        return view('student.coding-challenges', compact('categories', 'hasUniversity', 'pathLocks', 'exceptionalNotifications'));
+        $classChallenges = $this->classChallengeCards(true);
+
+        return view('student.coding-challenges', compact('categories', 'hasUniversity', 'pathLocks', 'exceptionalNotifications', 'classChallenges'));
     }
 
     public function map($slug, ChallengePathUnlockService $unlockService)
@@ -145,9 +151,12 @@ class ChallengesController extends Controller
                 ->get()
                 ->groupBy('challenge_id');
 
-            $rankedAttempts = $finishedAttempts->map(
+            // Any finished attempt counts toward passing a module, retakes
+            // included (DataSensei Updates 4): a failed first try no longer
+            // keeps the next module locked for good. XP and the leaderboard
+            // still come from the first (ranked) attempt only.
+            $scoredAttempts = $finishedAttempts->map(
                 fn ($attempts) => $attempts
-                    ->where('is_ranked', true)
                     ->whereIn('status', ['submitted', 'expired'])
                     ->filter(fn (ChallengeAttempt $attempt): bool => (int) $attempt->total_questions > 0)
                     ->values()
@@ -167,13 +176,13 @@ class ChallengesController extends Controller
                 ->mapWithKeys(fn ($id): array => [(int) $id => true]);
 
             foreach ($challenges as $ch) {
-                $attempts = $rankedAttempts->get($ch->id, collect());
+                $attempts = $scoredAttempts->get($ch->id, collect());
                 $best = $attempts->sortByDesc(fn (ChallengeAttempt $attempt): float =>
                     (float) $attempt->score / max(1, (int) $attempt->total_questions)
                 )->first();
 
                 if ($best) {
-                    $bestScores[$ch->id] = ['score' => $best->score, 'xp' => $best->xp_awarded];
+                    $bestScores[$ch->id] = ['score' => $best->score, 'xp' => (int) $attempts->max('xp_awarded')];
                     if (((int) $best->score / max(1, (int) $best->total_questions)) >= 0.70) {
                         $completedChallengeIds[] = $ch->id;
                     }
@@ -184,8 +193,7 @@ class ChallengesController extends Controller
                     continue;
                 }
 
-                // Preserve pre-attempt-table progress without allowing newer
-                // practice attempts to count as ranked completion.
+                // Preserve progress saved before the attempts table existed.
                 $legacy = DB::table('challenge_user')
                     ->where('user_id', Auth::id())
                     ->where('challenge_id', $ch->id)
@@ -211,8 +219,12 @@ class ChallengesController extends Controller
             ? $unlockService->notifyExceptionalUnlocks(Auth::user(), 'mcq')
             : [];
 
+        // Challenges an instructor has opened for one of the learner's classes
+        // are unlocked on the map, whatever the learner's place in the path.
+        $classChallengeIds = $this->openClassChallengeIdsAmong($challenges);
+
         return view('student.challenges-map', compact(
-            'slug', 'category', 'challenges', 'completedChallengeIds', 'bestScores', 'exceptionalNotifications', 'activeAttemptIds', 'latestResultAttemptIds'
+            'slug', 'category', 'challenges', 'completedChallengeIds', 'bestScores', 'exceptionalNotifications', 'activeAttemptIds', 'latestResultAttemptIds', 'classChallengeIds'
         ));
     }
 
@@ -295,21 +307,24 @@ class ChallengesController extends Controller
             ? $unlockService->notifyExceptionalUnlocks(Auth::user(), 'coding')
             : [];
 
+        $classChallengeIds = $this->openClassChallengeIdsAmong($challenges);
+
         return view('student.coding-challenges-map', compact(
             'slug', 'category', 'challenges',
-            'completedChallengeIds', 'inProgressChallengeIds', 'bestScores', 'exceptionalNotifications'
+            'completedChallengeIds', 'inProgressChallengeIds', 'bestScores', 'exceptionalNotifications', 'classChallengeIds'
         ));
     }
 
     public function showQuiz($slug, $challenge_id, ChallengePathUnlockService $unlockService, GamificationService $gamification)
     {
-        $this->ensurePathIsUnlocked($slug, 'mcq', $unlockService);
-
         $challenge = Challenge::with('category')->findOrFail($challenge_id);
+        $this->ensurePathIsUnlocked($slug, 'mcq', $unlockService, $challenge);
+
         // An inactive version accepts no NEW attempts, but getOrCreateMcqAttempt()
         // still resumes an in-progress attempt that was started before a newer
         // version was published, so that learner can finish on the original version.
         $this->ensureChallengeBelongsToSlug($challenge, $slug, false, false);
+        $this->ensureModuleIsOpen($challenge, $slug);
 
         $attempt = $this->getOrCreateMcqAttempt($challenge);
 
@@ -569,9 +584,9 @@ class ChallengesController extends Controller
 
     public function submitQuiz(Request $request, $slug, $challenge_id, ChallengePathUnlockService $unlockService, GamificationService $gamification)
     {
-        $this->ensurePathIsUnlocked($slug, 'mcq', $unlockService);
-
         $challenge = Challenge::with('questions.options', 'category')->findOrFail($challenge_id);
+        $this->ensurePathIsUnlocked($slug, 'mcq', $unlockService, $challenge);
+
         // The owned attempt row is the gate: an attempt started before this
         // version was deactivated can still be submitted (and re-submitted
         // idempotently). New attempts on an inactive version are refused in
@@ -626,9 +641,8 @@ class ChallengesController extends Controller
     public function submitCodingQuiz(Request $request, $slug, $challenge_id)
     {
         $unlockService = app(ChallengePathUnlockService::class);
-        $this->ensurePathIsUnlocked($slug, 'coding', $unlockService);
-
         $challenge = Challenge::with('category')->findOrFail($challenge_id);
+        $this->ensurePathIsUnlocked($slug, 'coding', $unlockService, $challenge);
         $this->ensureChallengeBelongsToSlug($challenge, $slug, true);
 
         $totalQuestions = $challenge->codingQuestions()->count();
@@ -885,11 +899,21 @@ class ChallengesController extends Controller
             && $attempt->suspicious_event_count < self::SUSPICIOUS_EVENT_LIMIT
             && $status !== 'disqualified';
 
+        // The first (ranked) attempt always earns XP for the questions the
+        // student answered correctly. Switching tabs or apps five or more times
+        // used to wipe the whole reward, so a learner who alt-tabbed a few
+        // times finished a challenge with no XP, no achievement and no rank
+        // change. Such an attempt now keeps its score XP but loses the speed
+        // bonus, stays marked as not leaderboard eligible, and its events are
+        // still listed for the instructor. Practice retakes and disqualified
+        // attempts earn nothing, as before.
         $earnedXp = 0;
-        if ($leaderboardEligible) {
+        // Class work (an instructor-built challenge or the University Student
+        // level) gives no XP: XP comes from platform content only.
+        if ($attempt->is_ranked && $status !== 'disqualified' && XpPolicy::challengeAwardsXp($challenge)) {
             $earnedXp = (int) round($challenge->base_xp * $scorePercentage);
 
-            if ($passed) {
+            if ($passed && $leaderboardEligible) {
                 $secondsSaved = max(0, (int) $attempt->time_limit_seconds - $timeTaken);
                 $earnedXp += (int) round($secondsSaved * 2);
             }
@@ -908,26 +932,33 @@ class ChallengesController extends Controller
         $this->recordLearningCompletion($attempt, $earnedXp);
 
         $user = Auth::user();
+        $xpBefore = (int) $user->xp;
 
         if ($earnedXp > 0) {
             $user->increment('xp', $earnedXp);
         }
 
-        $achievements = [];
-        if ($leaderboardEligible) {
-            if ($passed) {
-                $unlockService->notifyExceptionalUnlocks($user, 'mcq');
-            }
+        // Any finished attempt can make this module qualify for the next
+        // level (retakes included), so check after each one. The notice is
+        // sent once per level.
+        if ($status !== 'disqualified') {
+            $unlockService->notifyExceptionalUnlocks($user, 'mcq');
+        }
 
-            $achievements = $gamification->awardForMcqChallenge(
+        // Missions, streaks, achievements and the rank-up notice follow every
+        // finished attempt (practice retakes count as activity too); XP-based
+        // rules only move when XP was actually earned above.
+        $achievements = $status === 'disqualified'
+            ? []
+            : $gamification->awardForMcqChallenge(
                 $user,
                 $challenge,
                 $correctCount,
                 $totalQuestions,
                 $timeTaken,
-                $passed
+                $passed,
+                $xpBefore
             );
-        }
 
         return [
             'message' => $this->finishedAttemptMessage($attempt, $correctCount, $totalQuestions, $earnedXp, $leaderboardEligible, $achievements, $status),
@@ -986,11 +1017,17 @@ class ChallengesController extends Controller
         $xpText = $xp > 0 ? " You earned {$xp} XP." : ' No leaderboard XP was awarded for this attempt.';
 
         if (!$leaderboardEligible && $attempt->is_ranked) {
-            $xpText = ' This attempt was saved, but it is not leaderboard eligible because suspicious activity was detected.';
+            $xpText = $xp > 0
+                ? " You earned {$xp} XP for your correct answers. The speed bonus was not added because you left the challenge page several times."
+                : ' This attempt was saved, but no XP was awarded.';
         }
 
         if (!$attempt->is_ranked) {
             $xpText = ' Practice mode does not affect the leaderboard or award leaderboard XP.';
+        }
+
+        if (! XpPolicy::challengeAwardsXp($attempt->challenge)) {
+            $xpText = ' Class challenges do not award XP.';
         }
 
         $message = "{$statusText} {$modeText}. Score: {$correct}/{$total}.{$xpText}";
@@ -1027,15 +1064,48 @@ class ChallengesController extends Controller
         return [];
     }
 
-    private function ensurePathIsUnlocked(string $slug, string $track, ChallengePathUnlockService $unlockService): void
+    private function ensurePathIsUnlocked(string $slug, string $track, ChallengePathUnlockService $unlockService, ?Challenge $challenge = null): void
     {
         $this->ensureUniversityStudentEnrollment($slug);
 
         $lockInfo = $unlockService->lockInfo(Auth::user(), $slug, $track);
 
-        if (!($lockInfo['unlocked'] ?? false)) {
-            abort(403, $lockInfo['reason'] ?? 'This difficulty path is locked.');
+        if ($lockInfo['unlocked'] ?? false) {
+            return;
         }
+
+        // A challenge an instructor has opened for one of the learner's classes
+        // is reachable through that class assignment, even when the learner has
+        // not unlocked the difficulty path it belongs to yet. The challenge
+        // must still sit in this path, so the URL cannot be used to reach any
+        // other path's challenges.
+        if ($challenge !== null && $this->isOpenClassChallengeInPath($challenge, $slug)) {
+            return;
+        }
+
+        abort(403, $lockInfo['reason'] ?? 'This difficulty path is locked.');
+    }
+
+    /**
+     * Inside an open level, modules open one at a time (DataSensei Updates 4):
+     * a new level starts with its first module and the next one opens after
+     * the learner passes the one before it. Modules already worked on stay
+     * open, and a class assignment opens its challenge whatever the learner's
+     * place in the level. Checked where an attempt is started.
+     */
+    private function ensureModuleIsOpen(Challenge $challenge, string $slug): void
+    {
+        $user = Auth::user();
+
+        if ($user === null || app(ChallengeModuleAccessService::class)->isOpen($user, $challenge)) {
+            return;
+        }
+
+        abort_unless(
+            $this->isOpenClassChallengeInPath($challenge, $slug),
+            403,
+            'Pass the previous module in this level first. Modules open one at a time.'
+        );
     }
 
     private function ensureChallengeBelongsToSlug(Challenge $challenge, string $slug, bool $coding, bool $requireActive = true): void
@@ -1075,12 +1145,167 @@ class ChallengesController extends Controller
     }
 
     /**
-     * Ids of the challenges that a published, currently open class
-     * assignment gives to the signed-in learner through an active class.
+     * The challenges an instructor has opened for the learner's classes, for
+     * the "From your classes" list on the challenge pages. Class work used to
+     * appear only on the dashboard, and inside the path map it sat behind the
+     * learner's path progress, so a student could not find or open it.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function classChallengeCards(bool $coding)
+    {
+        $user = Auth::user();
+
+        if ($user === null) {
+            return collect();
+        }
+
+        $classIds = $user->classesAsStudent()->active()->pluck('classes.id');
+
+        if ($classIds->isEmpty()) {
+            return collect();
+        }
+
+        $assignments = ClassChallengeAssignment::query()
+            ->openNow()
+            ->whereIn('class_id', $classIds)
+            ->whereHas('challenge', fn ($query) => $query
+                ->where('is_coding_challenge', $coding)
+                ->where('is_active', true))
+            ->with(['challenge.category', 'class:id,name'])
+            ->orderByRaw('CASE WHEN due_at IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('due_at')
+            ->orderByDesc('id')
+            ->get()
+            ->filter(fn (ClassChallengeAssignment $assignment): bool => $assignment->challenge?->category !== null)
+            ->unique('challenge_id')
+            ->values();
+
+        if ($assignments->isEmpty()) {
+            return collect();
+        }
+
+        $challengeIds = $assignments->pluck('challenge_id')->map(fn ($id): int => (int) $id)->all();
+        $finished = $this->finishedChallengeIds((int) $user->id, $challengeIds, $coding);
+
+        return $assignments->map(function (ClassChallengeAssignment $assignment) use ($coding, $finished): array {
+            $challenge = $assignment->challenge;
+            $slug = $challenge->category->slug;
+
+            return [
+                'title' => $challenge->title,
+                'class_name' => $assignment->class?->name,
+                'description' => $challenge->description,
+                'finished' => in_array((int) $challenge->id, $finished, true),
+                'url' => $coding
+                    ? route('challenges.coding.quiz', ['slug' => $slug, 'challenge' => $challenge->id])
+                    : route('challenges.quiz', ['slug' => $slug, 'challenge' => $challenge->id]),
+            ];
+        });
+    }
+
+    /**
+     * Of the given challenges, the ones this learner has finished: an MCQ with
+     * a submitted attempt, or a coding challenge whose problems all passed.
+     *
+     * @param  array<int, int>  $challengeIds
+     * @return array<int, int>
+     */
+    private function finishedChallengeIds(int $userId, array $challengeIds, bool $coding): array
+    {
+        if ($challengeIds === []) {
+            return [];
+        }
+
+        if (! $coding) {
+            return ChallengeAttempt::query()
+                ->where('user_id', $userId)
+                ->whereIn('challenge_id', $challengeIds)
+                ->whereIn('status', ['submitted', 'expired'])
+                ->distinct()
+                ->pluck('challenge_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+        }
+
+        $questionCounts = DB::table('coding_questions')
+            ->whereIn('challenge_id', $challengeIds)
+            ->groupBy('challenge_id')
+            ->select('challenge_id', DB::raw('COUNT(*) as total'))
+            ->pluck('total', 'challenge_id');
+
+        $passedCounts = DB::table('coding_submissions')
+            ->join('coding_questions', 'coding_questions.id', '=', 'coding_submissions.coding_question_id')
+            ->where('coding_submissions.user_id', $userId)
+            ->where('coding_submissions.status', 'passed')
+            ->where('coding_submissions.voided', false)
+            ->whereIn('coding_questions.challenge_id', $challengeIds)
+            ->groupBy('coding_questions.challenge_id')
+            ->select('coding_questions.challenge_id', DB::raw('COUNT(DISTINCT coding_submissions.coding_question_id) as passed'))
+            ->pluck('passed', 'challenge_id');
+
+        return collect($questionCounts)
+            ->filter(fn ($total, $challengeId): bool => (int) $total > 0
+                && (int) ($passedCounts[$challengeId] ?? 0) >= (int) $total)
+            ->keys()
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    /** The challenge is in this path and one of the learner's classes has it open. */
+    private function isOpenClassChallengeInPath(Challenge $challenge, string $slug): bool
+    {
+        $challenge->loadMissing('category');
+
+        return $challenge->category !== null
+            && $challenge->category->slug === $slug
+            && in_array((int) $challenge->id, $this->assignedInstructorChallengeIds(), true);
+    }
+
+    /**
+     * Ids from the given challenges that an open class assignment gives to
+     * the learner (platform-pool or instructor-built).
+     *
+     * @return array<int, int>
+     */
+    private function openClassChallengeIdsAmong($challenges): array
+    {
+        $open = $this->assignedInstructorChallengeIds();
+
+        if ($open === []) {
+            return [];
+        }
+
+        return collect($challenges)
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => in_array($id, $open, true))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Ids of the challenges (platform-pool or instructor-built) that a
+     * published, currently open class assignment gives to the signed-in
+     * learner through an active class. Cached for the request.
      *
      * @return array<int, int>
      */
     private function assignedInstructorChallengeIds(): array
+    {
+        // Kept on the request (not the controller, which the router may reuse).
+        $attributes = request()->attributes;
+        $key = 'datasensei.open_class_challenge_ids.'.(int) Auth::id();
+
+        if (! $attributes->has($key)) {
+            $attributes->set($key, $this->loadOpenClassChallengeIds());
+        }
+
+        return $attributes->get($key);
+    }
+
+    private function loadOpenClassChallengeIds(): array
     {
         $user = Auth::user();
 

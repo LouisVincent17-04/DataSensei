@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\AssessmentQuestionIlo;
 use App\Models\AssignmentLibraryItem;
-use App\Models\IntendedLearningOutcome;
 use App\Services\PlatformContentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -64,7 +64,6 @@ class AdminAssessmentContentController extends Controller
                 'is_active' => false,
             ]),
             'questions' => old('questions', [$this->emptyMcqQuestion()]),
-            'ilos' => $this->availableIlos(),
         ]);
     }
 
@@ -81,12 +80,12 @@ class AdminAssessmentContentController extends Controller
 
         return redirect()
             ->route('admin.assessments.show', $assessment)
-            ->with('success', 'Assessment content version created successfully.');
+            ->with('success', 'Assessment created.');
     }
 
     public function show(AssignmentLibraryItem $assessment): View
     {
-        $assessment->load(['questions.options', 'questions.blankAnswers', 'questions.iloMappings.ilo'])
+        $assessment->load(['questions.options', 'questions.blankAnswers'])
             ->loadCount('classAssignments');
 
         return view('admin.assessments.show', [
@@ -98,13 +97,12 @@ class AdminAssessmentContentController extends Controller
 
     public function edit(AssignmentLibraryItem $assessment): View
     {
-        $assessment->load(['questions.options', 'questions.blankAnswers', 'questions.iloMappings']);
+        $assessment->load(['questions.options', 'questions.blankAnswers']);
 
         return view('admin.assessments.edit', [
             'assessment' => $assessment,
             'questions' => old('questions', $this->questionsForForm($assessment)),
             'hasReferences' => $this->contentService->assessmentHasReferences($assessment),
-            'ilos' => $this->availableIlos(),
         ]);
     }
 
@@ -137,23 +135,28 @@ class AdminAssessmentContentController extends Controller
 
         return redirect()
             ->route('admin.assessments.show', $assessment)
-            ->with('success', 'Assessment content version updated successfully.');
+            ->with('success', 'Assessment saved.');
     }
 
+    /**
+     * Copies an assessment, with every question and answer, into a new
+     * inactive version that can be edited freely. The code and version
+     * fields are generated; older forms that still send them are honoured.
+     */
     public function duplicate(Request $request, AssignmentLibraryItem $assessment): RedirectResponse
     {
         $data = $request->validate([
-            'assignment_code' => ['required', 'string', 'max:189', 'unique:assignment_library_items,assignment_code'],
+            'assignment_code' => ['nullable', 'string', 'max:189', 'unique:assignment_library_items,assignment_code'],
             'version_no' => [
-                'required',
+                'nullable',
                 'integer',
                 'min:1',
                 Rule::unique('assignment_library_items', 'version_no')
                     ->where(fn ($query) => $query->where('module_no', $assessment->module_no)),
             ],
-            'version_name' => ['required', 'string', 'max:189'],
+            'version_name' => ['nullable', 'string', 'max:189'],
             'version_code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:100',
                 Rule::unique('assignment_library_items', 'version_code')
@@ -161,18 +164,25 @@ class AdminAssessmentContentController extends Controller
             ],
             'is_active' => ['nullable', 'boolean'],
         ]);
+        $generated = ! isset($data['assignment_code']);
+        $nextVersion = (int) ($data['version_no'] ?? $this->contentService->nextAssessmentVersion((int) $assessment->module_no));
+        $data['version_no'] = $nextVersion;
+        $data['version_name'] = $data['version_name'] ?? 'Version '.$nextVersion;
+        $data['version_code'] = $data['version_code'] ?? 'V'.$nextVersion;
+        $data['assignment_code'] = $data['assignment_code'] ?? $this->generatedAssignmentCode((int) $assessment->module_no);
+        $data['copy_title'] = $generated;
 
         $copy = DB::transaction(function () use ($assessment, $data): AssignmentLibraryItem {
             $source = AssignmentLibraryItem::query()
                 ->whereKey($assessment->id)
                 ->lockForUpdate()
                 ->firstOrFail();
-            $source->load(['questions.options', 'questions.blankAnswers', 'questions.iloMappings']);
+            $source->load(['questions.options', 'questions.blankAnswers']);
 
             $copy = AssignmentLibraryItem::create([
                 'module_no' => $source->module_no,
                 'assignment_code' => strtoupper(trim($data['assignment_code'])),
-                'title' => $source->title,
+                'title' => ($data['copy_title'] ?? false) ? mb_substr($source->title.' (copy)', 0, 189) : $source->title,
                 'topic_title' => $source->topic_title,
                 'year_level' => $source->year_level,
                 'assignment_type' => $source->assignment_type,
@@ -211,14 +221,6 @@ class AdminAssessmentContentController extends Controller
                     ]);
                 }
 
-                foreach ($question->iloMappings as $mapping) {
-                    AssessmentQuestionIlo::create([
-                        'ilo_id' => $mapping->ilo_id,
-                        'assessment_source' => 'assignment',
-                        'question_id' => $newQuestion->id,
-                        'weight' => max(1, (int) $mapping->weight),
-                    ]);
-                }
             }
 
             return $copy;
@@ -226,7 +228,7 @@ class AdminAssessmentContentController extends Controller
 
         return redirect()
             ->route('admin.assessments.edit', $copy)
-            ->with('success', 'Assessment duplicated as a new version. Review it before publishing.');
+            ->with('success', 'A copy was made. It is inactive until you publish it.');
     }
 
     public function toggleStatus(AssignmentLibraryItem $assessment): RedirectResponse
@@ -242,8 +244,8 @@ class AdminAssessmentContentController extends Controller
         }, 3);
 
         return back()->with('success', $isActive
-            ? 'Assessment content version published.'
-            : 'Assessment content version deactivated.');
+            ? 'Assessment published. Instructors can now give it to their classes.'
+            : 'Assessment deactivated. Instructors can no longer choose it.');
     }
 
     public function destroy(AssignmentLibraryItem $assessment): RedirectResponse
@@ -269,7 +271,7 @@ class AdminAssessmentContentController extends Controller
 
         return redirect()
             ->route('admin.assessments.index')
-            ->with('success', 'Assessment content version deleted successfully.');
+            ->with('success', 'Assessment deleted.');
     }
 
     private function validatedData(Request $request, ?AssignmentLibraryItem $assessment = null): array
@@ -278,8 +280,11 @@ class AdminAssessmentContentController extends Controller
 
         $data = $request->validate([
             'module_no' => ['required', 'integer', 'min:1', 'max:9999'],
+            // The code and version fields are internal (DataSensei Updates 9):
+            // the form no longer asks for them and they are generated below.
+            // Values sent by older forms or scripts are still checked.
             'assignment_code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:189',
                 Rule::unique('assignment_library_items', 'assignment_code')->ignore($assessmentId),
@@ -289,7 +294,7 @@ class AdminAssessmentContentController extends Controller
             'year_level' => ['required', 'string', 'max:50'],
             'assignment_type' => ['required', Rule::in(['mcq', 'fill_blank', 'mixed'])],
             'version_no' => [
-                'required',
+                'nullable',
                 'integer',
                 'min:1',
                 'max:9999',
@@ -297,9 +302,9 @@ class AdminAssessmentContentController extends Controller
                     ->where(fn ($query) => $query->where('module_no', $request->integer('module_no')))
                     ->ignore($assessmentId),
             ],
-            'version_name' => ['required', 'string', 'max:189'],
+            'version_name' => ['nullable', 'string', 'max:189'],
             'version_code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:100',
                 Rule::unique('assignment_library_items', 'version_code')
@@ -309,7 +314,7 @@ class AdminAssessmentContentController extends Controller
             'description' => ['nullable', 'string', 'max:10000'],
             'instructions' => ['nullable', 'string', 'max:10000'],
             'time_limit_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
-            'sort_order' => ['required', 'integer', 'min:0', 'max:100000'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'is_active' => ['nullable', 'boolean'],
             'questions' => ['required', 'array', 'min:1', 'max:200'],
             'questions.*.question_type' => ['required', Rule::in(['mcq', 'fill_blank'])],
@@ -322,13 +327,9 @@ class AdminAssessmentContentController extends Controller
             'questions.*.blank_answers' => ['nullable', 'array', 'max:20'],
             'questions.*.blank_answers.*.answer_text' => ['nullable', 'string', 'max:189'],
             'questions.*.blank_answers.*.is_case_sensitive' => ['nullable', 'boolean'],
-            'questions.*.ilo_ids' => ['nullable', 'array', 'max:5'],
-            'questions.*.ilo_ids.*' => [
-                'integer',
-                Rule::exists('intended_learning_outcomes', 'id')
-                    ->where(fn ($query) => $query->where('is_active', true)),
-            ],
         ]);
+
+        $data = $this->withGeneratedIdentity($data, $assessment);
 
         $questions = array_values($data['questions']);
         $types = [];
@@ -359,12 +360,6 @@ class AdminAssessmentContentController extends Controller
                 $question['blank_answers'] ?? [],
                 fn ($answer) => trim((string) ($answer['answer_text'] ?? '')) !== ''
             ));
-            $question['ilo_ids'] = collect($question['ilo_ids'] ?? [])
-                ->map(fn ($id): int => (int) $id)
-                ->filter(fn (int $id): bool => $id > 0)
-                ->unique()
-                ->values()
-                ->all();
 
             if ($type === 'mcq') {
                 if (count($question['options']) < 2) {
@@ -388,20 +383,6 @@ class AdminAssessmentContentController extends Controller
         }
         unset($question);
 
-        $selectedIloIds = collect($questions)->pluck('ilo_ids')->flatten()->unique()->values();
-        if ($selectedIloIds->isNotEmpty()) {
-            $wrongModuleExists = IntendedLearningOutcome::query()
-                ->whereIn('id', $selectedIloIds)
-                ->where('module_no', '!=', (int) $data['module_no'])
-                ->exists();
-
-            if ($wrongModuleExists) {
-                throw ValidationException::withMessages([
-                    'questions' => 'Every selected ILO must belong to this assessment module. Remove ILOs from other modules and try again.',
-                ]);
-            }
-        }
-
         $assignmentType = $data['assignment_type'];
         if ($assignmentType === 'mcq' && collect($types)->contains('fill_blank')) {
             throw ValidationException::withMessages(['assignment_type' => 'An MCQ assessment may contain only MCQ questions.']);
@@ -416,6 +397,45 @@ class AdminAssessmentContentController extends Controller
         return [$data, $questions];
     }
 
+
+    /**
+     * Fills the internal code and version fields the admin no longer types:
+     * an existing assessment keeps its own, a new one gets the next version
+     * number of its module and a generated code.
+     */
+    private function withGeneratedIdentity(array $data, ?AssignmentLibraryItem $existing): array
+    {
+        $moduleNo = (int) $data['module_no'];
+        $sameModule = $existing !== null && (int) $existing->module_no === $moduleNo;
+
+        $versionNo = $data['version_no'] ?? null;
+        if ($versionNo === null) {
+            $versionNo = $sameModule ? (int) $existing->version_no : $this->contentService->nextAssessmentVersion($moduleNo);
+        }
+
+        $data['version_no'] = (int) $versionNo;
+        $data['version_name'] = trim((string) ($data['version_name'] ?? '')) !== ''
+            ? $data['version_name']
+            : ($sameModule && $existing->version_name ? $existing->version_name : 'Version '.$versionNo);
+        $data['version_code'] = trim((string) ($data['version_code'] ?? '')) !== ''
+            ? $data['version_code']
+            : ($sameModule && $existing->version_code ? $existing->version_code : 'V'.$versionNo);
+        $data['assignment_code'] = trim((string) ($data['assignment_code'] ?? '')) !== ''
+            ? $data['assignment_code']
+            : ($existing?->assignment_code ?: $this->generatedAssignmentCode($moduleNo));
+        $data['sort_order'] = $data['sort_order'] ?? ($existing?->sort_order ?? $moduleNo);
+
+        return $data;
+    }
+
+    private function generatedAssignmentCode(int $moduleNo): string
+    {
+        do {
+            $code = 'ASN-'.str_pad((string) $moduleNo, 3, '0', STR_PAD_LEFT).'-'.strtoupper(Str::random(6));
+        } while (AssignmentLibraryItem::query()->where('assignment_code', $code)->exists());
+
+        return $code;
+    }
 
     private function assertReferencedAssessmentIdentityUnchanged(AssignmentLibraryItem $assessment, array $data): void
     {
@@ -468,6 +488,9 @@ class AdminAssessmentContentController extends Controller
 
     private function syncQuestions(AssignmentLibraryItem $assessment, array $questions): void
     {
+        // Older ILO evidence rows of the replaced questions are removed with
+        // them. Assessments are not linked to ILOs any more (DataSensei
+        // Updates 5): ILOs only describe a module.
         $existingQuestionIds = $assessment->questions()->pluck('id');
         if ($existingQuestionIds->isNotEmpty()) {
             AssessmentQuestionIlo::query()
@@ -504,15 +527,6 @@ class AdminAssessmentContentController extends Controller
                     ]);
                 }
             }
-
-            foreach ($questionData['ilo_ids'] ?? [] as $iloId) {
-                AssessmentQuestionIlo::create([
-                    'ilo_id' => (int) $iloId,
-                    'assessment_source' => 'assignment',
-                    'question_id' => $question->id,
-                    'weight' => 1,
-                ]);
-            }
         }
     }
 
@@ -535,7 +549,6 @@ class AdminAssessmentContentController extends Controller
                     'answer_text' => $answer->answer_text,
                     'is_case_sensitive' => (bool) $answer->is_case_sensitive,
                 ])->values()->all(),
-                'ilo_ids' => $question->iloMappings->pluck('ilo_id')->map(fn ($id): int => (int) $id)->values()->all(),
             ];
         })->values()->all();
     }
@@ -557,16 +570,6 @@ class AdminAssessmentContentController extends Controller
             'blank_answers' => [
                 ['answer_text' => '', 'is_case_sensitive' => false],
             ],
-            'ilo_ids' => [],
         ];
-    }
-
-    private function availableIlos()
-    {
-        return IntendedLearningOutcome::active()
-            ->orderBy('module_no')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
     }
 }

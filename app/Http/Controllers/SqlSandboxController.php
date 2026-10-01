@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GamificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -638,6 +639,8 @@ class SqlSandboxController extends Controller
             ], 500);
         }
 
+        $this->recordLearnerCodeRun();
+
         // ── 6. Build response ─────────────────────────────────────────────────
 
         // If the final meaningful statement was a SELECT, return its result set
@@ -664,5 +667,23 @@ class SqlSandboxController extends Controller
             'columns' => [],
             'rows'    => [],
         ]);
+    }
+
+    /**
+     * A successful batch counts toward the "run code" missions and streaks.
+     * Rewards must never break the query itself, so a failure is only reported.
+     */
+    private function recordLearnerCodeRun(): void
+    {
+        $user = Auth::user();
+        if (! $user || ! $user->isLearner()) {
+            return;
+        }
+
+        try {
+            app(GamificationService::class)->recordCodeRun($user);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 }

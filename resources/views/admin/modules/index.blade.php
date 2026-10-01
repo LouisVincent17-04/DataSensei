@@ -1,15 +1,15 @@
 @extends('admin.layout')
 
-@section('title', 'Module Manager')
-@section('page_title', 'Module Manager')
-@section('page_subtitle', 'The public curriculum students work through in order. Reorder modules, edit their details, or open one to manage its lessons.')
+@section('title', 'DataSensei Modules')
+@section('page_title', 'DataSensei Modules')
+@section('page_subtitle', 'The public DataSensei curriculum: open to every learner with or without a class, grouped by year level and unlocked in the order shown here. Modules instructors assign to their classes are managed separately in the Instructor Module Library.')
 
 @section('content')
   <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Modules</h2>
-        <p class="panel-subtitle">{{ $modules->count() }} {{ $modules->count() === 1 ? 'module' : 'modules' }} across {{ count(array_filter($groups)) }} {{ count(array_filter($groups)) === 1 ? 'year level' : 'year levels' }}. Students unlock them in the order shown here. A new module also gets one locked challenge on each of the {{ $levelCount }} challenge {{ $levelCount === 1 ? 'level' : 'levels' }}.</p>
+        <p class="panel-subtitle">{{ $modules->count() }} {{ $modules->count() === 1 ? 'module' : 'modules' }} across {{ count(array_filter($groups)) }} {{ count(array_filter($groups)) === 1 ? 'year level' : 'year levels' }}. Students unlock published modules in the order shown here; drafts are skipped. A new module also gets one locked challenge on each of the {{ $levelCount }} challenge {{ $levelCount === 1 ? 'level' : 'levels' }}.</p>
       </div>
       <div class="action-row">
         <a class="btn small" href="{{ route('admin.modules.create') }}">Add module</a>
@@ -30,11 +30,11 @@
                 <tr>
                   <th style="width:56px">Order</th>
                   <th>Module</th>
-                  <th>Lessons</th>
+                  <th>Content</th>
+                  <th>Status</th>
                   <th>XP</th>
                   <th>Type</th>
-                  <th>Coding exercises</th>
-                  <th style="width:250px">Actions</th>
+                  <th style="width:330px">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -52,10 +52,13 @@
                         <div class="dim module-description">{{ \Illuminate\Support\Str::limit($module->description, 140) }}</div>
                       @endif
                     </td>
-                    <td>{{ $module->lessons_count }}</td>
+                    <td>
+                      {{ $module->lessons_count }} {{ $module->lessons_count === 1 ? 'section' : 'sections' }}
+                      <div class="dim">{{ count($module->learning_outcomes) }} learning {{ count($module->learning_outcomes) === 1 ? 'outcome' : 'outcomes' }}</div>
+                    </td>
+                    <td>{{ ($module->is_published ?? true) ? 'Published' : 'Draft' }}</td>
                     <td>{{ $module->xp_reward }}</td>
-                    <td>{{ $module->is_boss ? 'Boss module' : 'Standard' }}</td>
-                    <td>{{ $module->has_coding_exercises ? 'Yes' : 'No' }}</td>
+                    <td>{{ $module->is_boss ? 'Boss module' : 'Standard' }}@if($module->has_coding_exercises)<div class="dim">Coding exercises</div>@endif</td>
                     <td>
                       <div class="action-row">
                         @if($prevId !== null)
@@ -82,8 +85,13 @@
                             <button class="btn small secondary" type="submit" title="Move down" aria-label="Move {{ $module->title }} down">↓</button>
                           </form>
                         @endif
-                        <a class="btn small secondary" href="{{ route('admin.modules.lessons.index', $module) }}">Lessons</a>
+                        <a class="btn small secondary" href="{{ route('admin.modules.preview', $module) }}" target="_blank" rel="noopener">Preview</a>
                         <a class="btn small" href="{{ route('admin.modules.edit', $module) }}">Edit</a>
+                        <form method="POST" action="{{ route('admin.modules.status', $module) }}">
+                          @csrf
+                          @method('PATCH')
+                          <button class="btn small {{ ($module->is_published ?? true) ? 'secondary' : 'green' }}" type="submit">{{ ($module->is_published ?? true) ? 'Unpublish' : 'Publish' }}</button>
+                        </form>
                       </div>
                     </td>
                   </tr>
@@ -107,5 +115,6 @@
   .module-group-title { padding:14px 20px 10px; color:var(--text); font-size:.875rem; font-weight:600; }
   .module-description { margin-top:2px; max-width:60ch; font-size:.8125rem; line-height:1.45; }
   .action-row form { display:inline; }
+  .module-group td .action-row { flex-wrap:nowrap; }
 </style>
 @endpush

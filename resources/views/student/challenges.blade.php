@@ -35,6 +35,12 @@
     .page-challenges-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
     .page-challenges-alert-error   { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
 
+    /* ── Class challenges ── */
+    .page-challenges-class-block { margin-bottom: 28px; }
+    .page-challenges-section-title { margin: 0 0 4px; color: var(--text); font-size: 1rem; font-weight: 600; line-height: 1.35; }
+    .page-challenges-section-note { margin: 0 0 12px; color: var(--muted); font-size: .8125rem; line-height: 1.5; }
+    .page-challenges-due { display: block; margin-top: 2px; color: var(--ds-text-secondary); font-size: .8125rem; line-height: 1.45; }
+
     /* ── Path grid ── */
     .page-challenges-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 
@@ -75,12 +81,10 @@
     .page-challenges-card.is-bonus { border-color: var(--ds-warning-border); }
     a.page-challenges-card.is-bonus:hover { border-color: var(--ds-warning); }
     .page-challenges-card.is-bonus .page-challenges-lock-reason { background: var(--ds-warning-soft); color: var(--ds-warning-text); }
-    .page-challenges-card-badge {
+    .page-challenges-card-note {
       position: absolute; top: 19px; right: 20px;
-      display: inline-flex; align-items: center; padding: 2px 8px;
-      border: 1px solid var(--ds-warning-border); border-radius: var(--radius-xs);
-      background: var(--ds-warning-soft); color: var(--ds-warning-text);
-      font-size: .75rem; font-weight: 600; line-height: 1.4; white-space: nowrap;
+      color: var(--ds-warning-text);
+      font-size: .8125rem; font-weight: 600; line-height: 1.4; white-space: nowrap;
     }
 
     /* ── Dialog ── */
@@ -134,7 +138,7 @@
       .page-challenges-header { margin-bottom: 20px; }
       .page-challenges-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
       .page-challenges-card { padding: 16px; }
-      .page-challenges-card-badge { top: 15px; right: 16px; }
+      .page-challenges-card-note { top: 15px; right: 16px; }
     }
   </style>
     @include('partials.page-head', ['pageTitle' => 'Select Your Path', 'pageDescription' => 'Practise data science challenges and track your mastery.'])
@@ -150,7 +154,7 @@
       <h1 class="ds-page-title">Challenges</h1>
       <p class="page-challenges-hero-subtitle">Choose a path that matches your current experience level.</p>
       <p class="page-challenges-institution-note">
-        Paths now unlock through progression. Complete the previous difficulty to move forward; exceptional speed and accuracy can unlock the next-next difficulty early.
+        Paths unlock one level at a time. You need 2 different qualifying modules in a level to open the next one: a Newbie module qualifies with at least 80% score and 50% time consumed or less, an Intermediate module with 75% and 70% or less, and an Advanced module with 70% and 80% or less. A new level starts with its first module, and each next module opens after you pass the one before it.
       </p>
     </header>
 
@@ -170,6 +174,28 @@
 
       @include('student.partials.exceptional-unlock-notifications', ['exceptionalNotifications' => $exceptionalNotifications ?? []])
     </div>
+
+    @if(isset($classChallenges) && $classChallenges->isNotEmpty())
+      <section class="page-challenges-class-block" aria-labelledby="class-challenges-title">
+        <h2 class="page-challenges-section-title" id="class-challenges-title">From your classes</h2>
+        <p class="page-challenges-section-note">Your instructor shared these with your class for practice. They are open now, whatever your progress in the paths below, and nothing is due.</p>
+        <div class="page-challenges-grid">
+          @foreach($classChallenges as $given)
+            <a href="{{ $given['url'] }}" class="page-challenges-card">
+              <h3 class="page-challenges-card-title">{{ $given['title'] }}</h3>
+              @if($given['class_name'])
+                <span class="page-challenges-card-audience">{{ $given['class_name'] }}</span>
+              @endif
+              <p class="page-challenges-card-desc">{{ \Illuminate\Support\Str::limit((string) ($given['description'] ?: 'Open the challenge to begin.'), 160) }}</p>
+              <div class="page-challenges-card-action">
+                {{ $given['finished'] ? 'View challenge' : 'Start challenge' }}
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path fill="none" stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </div>
+            </a>
+          @endforeach
+        </div>
+      </section>
+    @endif
 
     <div class="page-challenges-grid">
 
@@ -196,7 +222,7 @@
         @else
           <a href="{{ route('challenges.map', $cat->slug) }}" class="page-challenges-card {{ $isBonusUnlocked ? 'is-bonus' : '' }}">
             @if($isBonusUnlocked)
-              <div class="page-challenges-card-badge">Exceptional Unlock</div>
+              <div class="page-challenges-card-note">Exceptional Unlock</div>
             @endif
             <h2 class="page-challenges-card-title">{{ $cat->name }}</h2>
             <span class="page-challenges-card-audience">{{ $cat->target_audience }}</span>

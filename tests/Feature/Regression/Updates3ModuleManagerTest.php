@@ -32,7 +32,8 @@ class Updates3ModuleManagerTest extends TestCase
             ->assertOk()
             ->assertSee('Seeded Module')
             ->assertSee(route('admin.modules.edit', $module), false)
-            ->assertSee(route('admin.modules.lessons.index', $module), false);
+            // Updates 5: the lessons are edited inside the module editor.
+            ->assertSee(route('admin.modules.preview', $module), false);
 
         $this->actingAsUser($this->makeUser(User::ROLE_USER))
             ->get(route('admin.modules.index'))
@@ -52,7 +53,7 @@ class Updates3ModuleManagerTest extends TestCase
         $admin = $this->makeUser(User::ROLE_ADMIN);
         $module = $this->makeModule('Editable Module');
 
-        $this->actingAsUser($admin)->get(route('admin.modules.create'))->assertOk()->assertSee('Create module');
+        $this->actingAsUser($admin)->get(route('admin.modules.create'))->assertOk()->assertSee('Add DataSensei Module');
         $this->actingAsUser($admin)->get(route('admin.modules.edit', $module))->assertOk()->assertSee('Editable Module');
     }
 
@@ -99,11 +100,13 @@ class Updates3ModuleManagerTest extends TestCase
             'has_coding_exercises' => '0',
         ]);
 
-        $response->assertRedirect(route('admin.modules.index'))->assertSessionHas('success');
+        $response->assertSessionHas('success');
         $this->assertStringContainsString('3 challenges', session('success'));
         $this->assertStringContainsString('unavailable', session('success'));
 
         $module = Module::where('title', 'Fanned Out Module')->firstOrFail();
+        // Updates 5: saving keeps the admin in the module editor.
+        $response->assertRedirect(route('admin.modules.edit', $module));
         $this->assertSame(2, $module->order_index);
         $this->assertSame('Year 2', $module->year_level);
         $this->assertSame(250, $module->xp_reward);
@@ -145,7 +148,7 @@ class Updates3ModuleManagerTest extends TestCase
             'year_level' => 'Year 1',
             'xp_reward' => 100,
             'has_coding_exercises' => '1',
-        ])->assertRedirect(route('admin.modules.index'));
+        ])->assertSessionHasNoErrors();
 
         $this->assertStringContainsString('6 challenges', session('success'));
 
@@ -185,7 +188,7 @@ class Updates3ModuleManagerTest extends TestCase
             'xp_reward' => 400,
             'is_boss' => '1',
             'has_coding_exercises' => '1',
-        ])->assertRedirect(route('admin.modules.index'))->assertSessionHas('success');
+        ])->assertRedirect(route('admin.modules.edit', $module))->assertSessionHas('success');
 
         $module->refresh();
         $this->assertSame('After', $module->title);

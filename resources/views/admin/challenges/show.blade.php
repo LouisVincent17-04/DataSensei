@@ -8,11 +8,11 @@
   <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
-        <h2 class="panel-title">{{ $challenge->version_name }}</h2>
-        <p class="panel-subtitle">{{ $challenge->content_code }}, {{ $challenge->version_code }}, {{ $challenge->category?->name }}</p>
+        <h2 class="panel-title">{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}</h2>
+        <p class="panel-subtitle">{{ $challenge->category?->name }}</p>
       </div>
       <div class="action-row">
-        <span class="badge {{ $challenge->is_active ? 'active' : 'disabled' }}">{{ $challenge->is_active ? 'Published' : 'Inactive' }}</span>
+        <span class="dim">{{ $challenge->is_active ? 'Published' : 'Inactive' }}</span>
         <a class="btn small" href="{{ route('admin.challenges.edit', $challenge) }}">Edit</a>
         <form method="POST" action="{{ route('admin.challenges.status', $challenge) }}">
           @csrf
@@ -48,7 +48,7 @@
           <summary>
             <div class="management-main"><strong>Question {{ $loop->iteration }}</strong><span>{{ Str::limit($question->question_text, 120) }}</span></div>
             <div class="management-metric"><strong>{{ $question->options->count() }} choices</strong>Order {{ $question->order_index }}</div>
-            <div class="summary-status"><span class="badge info">MCQ</span></div>
+            <div class="summary-status"><span class="dim">Multiple choice</span></div>
             <span class="management-toggle">View</span>
           </summary>
           <div class="management-editor">
@@ -57,8 +57,9 @@
               <img src="{{ $question->image_path }}" alt="" style="display:block;max-width:100%;height:auto;max-height:320px;margin-top:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface3)">
             @endif
             <ol style="margin:16px 0 0 24px;color:var(--muted);line-height:1.8">
+              @php $literalChoices = \App\Support\ChoiceText::anySignificant($question->options); @endphp
               @foreach($question->options as $option)
-                <li style="color:{{ $option->is_correct ? '#a7f3d0' : 'var(--muted)' }}">{{ $option->option_text }} @if($option->is_correct)<strong> — Correct</strong>@endif</li>
+                <li style="color:{{ $option->is_correct ? '#a7f3d0' : 'var(--muted)' }}">{{ \App\Support\ChoiceText::html($option->option_text, $literalChoices) }} @if($option->is_correct)<strong> — Correct</strong>@endif</li>
               @endforeach
             </ol>
           </div>
@@ -73,7 +74,7 @@
       @csrf
       <div class="form-grid three">
         <div class="field"><label for="duplicate-version-no">Version Number</label><input id="duplicate-version-no" class="input" type="number" name="version_no" min="1" value="{{ $nextVersionNo }}" required></div>
-        <div class="field"><label for="duplicate-version-code">Version Code</label><input id="duplicate-version-code" class="input" name="version_code" value="V{{ $nextVersionNo }}" required></div>
+        <input type="hidden" name="version_code" value="V{{ $nextVersionNo }}">
         <div class="field"><label for="duplicate-version-name">Version Name</label><input id="duplicate-version-name" class="input" name="version_name" value="Version {{ $nextVersionNo }}" required></div>
         <div class="field"><label for="duplicate-status">Initial Status</label><select id="duplicate-status" class="select" name="is_active"><option value="0">Inactive / Draft</option><option value="1">Published</option></select></div>
       </div>

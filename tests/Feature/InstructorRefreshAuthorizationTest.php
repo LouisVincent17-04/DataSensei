@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\CompetencyMonitoringService;
 use App\Services\StudentPerformanceClusteringService;
 use App\Support\AuthSessionFingerprint;
 use Illuminate\Database\Schema\Blueprint;
@@ -76,21 +75,20 @@ class InstructorRefreshAuthorizationTest extends TestCase
         $ownedClassId = $this->createClass((int) $owner->id, 'OWNED01');
         $otherClassId = $this->createClass((int) $other->id, 'OTHER01');
 
+        // Class Analytics reads live data and the Skills Competency Matrix was
+        // removed (DataSensei Updates 8): only the at-risk refresh is left.
         $segmentation = $this->mock(StudentPerformanceClusteringService::class);
-        $segmentation->shouldReceive('refreshForClass')->twice();
-        $competencies = $this->mock(CompetencyMonitoringService::class);
-        $competencies->shouldReceive('refreshClass')->once();
+        $segmentation->shouldReceive('refreshForClass')->once();
 
         $client = $this->actingAs($owner)->withSession($this->activeSession($owner));
-        $client->post(route('instructor.analytics.refresh'), ['class_id' => $ownedClassId])
-            ->assertRedirect(route('instructor.analytics.index', ['class_id' => $ownedClassId]));
         $client->post(route('instructor.risk.refresh'), ['class_id' => $ownedClassId])
             ->assertRedirect(route('instructor.risk.index', ['class_id' => $ownedClassId]));
-        $client->post(route('instructor.competencies.refresh'), ['class_id' => $ownedClassId])
-            ->assertRedirect(route('instructor.competencies.index', ['class_id' => $ownedClassId]));
 
-        $client->post(route('instructor.analytics.refresh'), ['class_id' => $otherClassId])
+        $client->post(route('instructor.risk.refresh'), ['class_id' => $otherClassId])
             ->assertNotFound();
+
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('instructor.analytics.refresh'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('instructor.competencies.refresh'));
     }
 
     public function test_malformed_class_id_is_rejected_before_refresh(): void
@@ -102,7 +100,7 @@ class InstructorRefreshAuthorizationTest extends TestCase
 
         $this->actingAs($owner)
             ->withSession($this->activeSession($owner))
-            ->post(route('instructor.analytics.refresh'), ['class_id' => 'not-a-number'])
+            ->post(route('instructor.risk.refresh'), ['class_id' => 'not-a-number'])
             ->assertSessionHasErrors('class_id');
     }
 
@@ -112,7 +110,7 @@ class InstructorRefreshAuthorizationTest extends TestCase
 
         $this->actingAs($student)
             ->withSession($this->activeSession($student))
-            ->post(route('instructor.analytics.refresh'), ['class_id' => 1])
+            ->post(route('instructor.risk.refresh'), ['class_id' => 1])
             ->assertForbidden();
     }
 

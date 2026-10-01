@@ -9,7 +9,9 @@ use App\Models\CodingQuestion;
 use App\Models\CodingQuestionAttempt;
 use App\Models\CodingSubmission;
 use App\Models\TestCase;
+use App\Services\ChallengeModuleAccessService;
 use App\Services\ChallengePathUnlockService;
+use App\Services\XpPolicy;
 use App\Services\GamificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,7 +49,7 @@ class CodingQuizController extends Controller
     }
 
 
-    private function ensureCodingPathIsUnlocked(string $slug): void
+    private function ensureCodingPathIsUnlocked(string $slug, ?Challenge $challenge = null): void
     {
         if ($slug === 'university-student') {
             $user = Auth::user();
@@ -62,9 +64,47 @@ class CodingQuizController extends Controller
         $service = app(ChallengePathUnlockService::class);
         $lockInfo = $service->lockInfo(Auth::user(), $slug, 'coding');
 
-        if (!($lockInfo['unlocked'] ?? false)) {
-            abort(403, $lockInfo['reason'] ?? 'This coding difficulty path is locked.');
+        if ($lockInfo['unlocked'] ?? false) {
+            return;
         }
+
+        // A challenge an instructor has opened for one of the learner's classes
+        // is reachable through that class assignment, even before the learner
+        // unlocks the difficulty path it belongs to. It must still sit in this
+        // path (checked here and again in ensureCodingChallengeBelongsToSlug).
+        if ($challenge !== null) {
+            $challenge->loadMissing('category');
+
+            if ($challenge->category
+                && $challenge->category->slug === $slug
+                && $this->hasOpenClassAssignment($challenge)) {
+                return;
+            }
+        }
+
+        abort(403, $lockInfo['reason'] ?? 'This coding difficulty path is locked.');
+    }
+
+    /**
+     * Inside an open level, coding challenges open in the order the coding map
+     * shows (DataSensei Updates 4): a new level starts with its first
+     * challenge, and the next one opens once the one before it is started or
+     * solved. A class assignment opens its challenge whatever the learner's
+     * place in the level. Checked where the challenge is opened or started.
+     */
+    private function ensureCodingModuleIsOpen(Challenge $challenge): void
+    {
+        $user = Auth::user();
+
+        if ($user === null || app(ChallengeModuleAccessService::class)->isOpen($user, $challenge)) {
+            return;
+        }
+
+        abort_unless(
+            $this->hasOpenClassAssignment($challenge),
+            403,
+            'Start or solve the previous coding challenge in this level first.'
+        );
     }
 
     private function ensureCodingChallengeBelongsToSlug(Challenge $challenge, string $slug): void
@@ -114,8 +154,9 @@ class CodingQuizController extends Controller
             $challenge = Challenge::findOrFail($challenge);
         }
 
-        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingPathIsUnlocked($slug, $challenge);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
+        $this->ensureCodingModuleIsOpen($challenge);
 
         // DS-14: visible test cases are loaded further down, and only for the
         // questions whose timed content this learner is already entitled to.
@@ -258,9 +299,10 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function start(string $slug, Challenge $challenge, CodingQuestion $question)
     {
-        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingPathIsUnlocked($slug, $challenge);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
         $this->ensureQuestionBelongsToChallenge($question, $challenge);
+        $this->ensureCodingModuleIsOpen($challenge);
         $this->ensureQuestionIsAvailable($question, $challenge);
 
         $userId = Auth::id();
@@ -351,7 +393,7 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function ping(string $slug, Challenge $challenge, CodingQuestion $question)
     {
-        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingPathIsUnlocked($slug, $challenge);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
         $this->ensureQuestionBelongsToChallenge($question, $challenge);
         $this->ensureQuestionIsAvailable($question, $challenge);
@@ -379,7 +421,7 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function run(Request $request, string $slug, Challenge $challenge, CodingQuestion $question)
     {
-        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingPathIsUnlocked($slug, $challenge);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
         $this->ensureQuestionBelongsToChallenge($question, $challenge);
         $this->ensureQuestionIsAvailable($question, $challenge);
@@ -409,7 +451,7 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function submit(Request $request, string $slug, Challenge $challenge, CodingQuestion $question, GamificationService $gamification)
     {
-        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingPathIsUnlocked($slug, $challenge);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
         $this->ensureQuestionBelongsToChallenge($question, $challenge);
         $this->ensureQuestionIsAvailable($question, $challenge);
@@ -577,11 +619,16 @@ class CodingQuizController extends Controller
         };
 
         $xp = 0;
-        if ($passed > 0) {
+        // Class work (an instructor-built challenge or the University Student
+        // level) gives no XP: XP comes from platform content only.
+        if ($passed > 0 && XpPolicy::challengeAwardsXp($challenge)) {
             $rawXp  = (int) round($question->base_xp * ($passed / $total));
             $bonus  = ($status === 'passed' && $timeTaken < $question->time_limit_seconds * 0.5) ? 1.2 : 1.0;
             $xp     = (int) round($rawXp * $bonus);
         }
+
+        // XP before this submission, so a rank reached with it is announced.
+        $xpBefore = (int) DB::table('users')->where('id', $userId)->value('xp');
 
         $commit = $this->commitSubmission($userId, $question, $identity, [
             'code'               => $request->input('code'),
@@ -613,16 +660,18 @@ class CodingQuizController extends Controller
 
         $challengeComplete = $passedCount >= $questionIds->count();
 
-        if ($challengeComplete) {
-            app(ChallengePathUnlockService::class)->notifyExceptionalUnlocks(Auth::user(), 'coding');
-        }
+        // A challenge counts toward the next level once every item is
+        // submitted, solved or not, so check after each saved submission.
+        // The notice is sent once per level.
+        app(ChallengePathUnlockService::class)->notifyExceptionalUnlocks(Auth::user(), 'coding');
 
         $achievementMessages = $gamification->awardForCodingSubmission(
             Auth::user(),
             $challenge,
             $question,
             $submission,
-            $challengeComplete
+            $challengeComplete,
+            $xpBefore
         );
 
         return response()->json([
@@ -943,7 +992,7 @@ class CodingQuizController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function retake(string $slug, Challenge $challenge)
     {
-        $this->ensureCodingPathIsUnlocked($slug);
+        $this->ensureCodingPathIsUnlocked($slug, $challenge);
         $this->ensureCodingChallengeBelongsToSlug($challenge, $slug);
 
         $userId      = Auth::id();
@@ -1049,7 +1098,10 @@ class CodingQuizController extends Controller
         // sandbox policy or is killed by the time limit has FAILED this test.
         $timedOut = (bool) $result['timed_out'];
         $failed   = (bool) $result['failed'] || $timedOut;
-        $passed   = !$failed && $actual === $expected;
+        // The same comparison the reference-solution check uses when a
+        // challenge is saved (DataSensei Updates 5), so what the author
+        // verified is exactly what students are graded against.
+        $passed   = \App\Services\CodingChallengeTestRunner::grade($result, $tc->expected_output);
 
         $category = match (true) {
             $timedOut => 'time_limit',

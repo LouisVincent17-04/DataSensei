@@ -198,6 +198,30 @@
 
     .page-modules-alert svg { flex: 0 0 auto; }
 
+    /* ── module source: DataSensei modules or one class ────────── */
+    .page-modules-source { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+    .page-modules-source label { color: var(--muted); font-size: .8125rem; font-weight: 500; }
+    .page-modules-source select {
+      min-width: 240px;
+      max-width: 100%;
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--ds-input-border);
+      border-radius: var(--radius-sm);
+      background: var(--surface3);
+      color: var(--text);
+      font-family: inherit;
+      font-size: .875rem;
+    }
+    .page-modules-source select:focus { outline: none; border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
+
+    /* ── class module cards: what they will learn, no year level ── */
+    .page-modules-outcomes { margin-top: 12px; }
+    .page-modules-outcomes > summary { color: var(--ds-text-secondary); font-size: .75rem; font-weight: 600; }
+    .page-modules-outcomes ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: .8125rem; line-height: 1.5; }
+    .page-modules-outcomes li + li { margin-top: 2px; }
+    .page-modules-class-meta { margin-top: 12px; color: var(--muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+
     /* ── year groups and module cards ──────────────────────────── */
     .page-modules-year-group { display: flex; flex-direction: column; gap: 12px; }
 
@@ -402,6 +426,65 @@
           </div>
         @endif
 
+        @if(($classes ?? collect())->isNotEmpty())
+          <form method="GET" action="{{ route('modules.index') }}" class="page-modules-source">
+            <label for="module-source">Module source</label>
+            <select id="module-source" name="source" onchange="this.form.submit()">
+              <option value="datasensei" @selected($source === 'datasensei')>DataSensei Modules</option>
+              @foreach($classes as $class)
+                <option value="class-{{ $class->id }}" @selected($source === 'class-'.$class->id)>{{ \App\Http\Controllers\ModuleController::classLabel($class) }}</option>
+              @endforeach
+            </select>
+            <noscript><button type="submit" class="page-modules-filter-tab">Show</button></noscript>
+          </form>
+        @endif
+
+        @if($selectedClass ?? null)
+        <div class="page-modules-header">
+          <div class="page-modules-header-text">
+            <h2>{{ \App\Http\Controllers\ModuleController::classLabel($selectedClass) }}</h2>
+            <p>Modules your instructor assigned to this class. Open any of them in any order.</p>
+          </div>
+          <div class="page-modules-summary">
+            <div class="page-modules-stat">
+              <div class="val">{{ $classModules->count() }}</div>
+              <div class="lbl">{{ $classModules->count() === 1 ? 'Module' : 'Modules' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="page-modules-filter-row">
+          <div class="page-modules-filter-spacer"></div>
+          <span class="page-modules-search-status" id="moduleSearchStatus" role="status" aria-live="polite"></span>
+        </div>
+
+        @if($classModules->isEmpty())
+          <div class="page-modules-empty-search">Your instructor has not assigned any modules to this class yet.</div>
+        @else
+          <div class="page-modules-grid">
+            @foreach($classModules as $classModule)
+              @php $outcomes = $classModule->learning_outcomes; @endphp
+              <div class="page-modules-card unlocked" data-status="unlocked" data-year="class">
+                <div class="page-modules-stripe" style="background: var(--accent)"></div>
+                <div class="page-modules-card-body">
+                  <div class="page-modules-title">{{ $classModule->title }}</div>
+                  <div class="page-modules-desc">{{ Str::limit($classModule->description, 90) }}</div>
+                  @if($outcomes !== [])
+                    @include('partials.learning-outcomes-toggle', ['outcomes' => $outcomes, 'class' => 'page-modules-outcomes'])
+                  @endif
+                  <div class="page-modules-class-meta">About {{ max(1, (int) $classModule->estimated_minutes) }} minutes</div>
+                  @if(in_array((int) $classModule->id, $completedClassModuleIds ?? [], true))
+                    <div class="page-modules-class-meta" style="margin-top: 4px; color: var(--ds-success-text)">You marked this module complete</div>
+                  @endif
+                </div>
+                <div class="page-modules-card-footer">
+                  <a href="{{ route('student.modules.show', ['module' => $classModule->id, 'class' => $selectedClass->id]) }}" class="page-modules-btn page-modules-btn-start">Open module →</a>
+                </div>
+              </div>
+            @endforeach
+          </div>
+        @endif
+        @else
         <div class="page-modules-header">
           <div class="page-modules-header-text">
             <h2>Course Modules</h2>
@@ -499,6 +582,10 @@
 
                     <div class="page-modules-title">{{ $module->title }}</div>
                     <div class="page-modules-desc">{{ Str::limit($module->description, 90) }}</div>
+                    @php $moduleOutcomes = $module->learning_outcomes; @endphp
+                    @if($moduleOutcomes !== [])
+                      @include('partials.learning-outcomes-toggle', ['outcomes' => $moduleOutcomes, 'class' => 'page-modules-outcomes'])
+                    @endif
                     
                     <div class="page-modules-meta-row">
                       <span class="page-modules-meta-chip">{{ $tLessons }} lessons</span>
@@ -541,6 +628,7 @@
             </div>
           </div>
         @endforeach
+        @endif
 
         <div class="page-modules-empty-search" id="moduleSearchEmpty" hidden>
           No modules match the current search and filter.
@@ -597,7 +685,7 @@
         group.hidden = ![...group.querySelectorAll('.page-modules-card')].some(card => !card.hidden);
       });
 
-      document.getElementById('moduleSearchEmpty').hidden = visibleCount !== 0;
+      document.getElementById('moduleSearchEmpty').hidden = visibleCount !== 0 || cards.length === 0;
       document.getElementById('moduleSearchStatus').textContent = `${visibleCount} module${visibleCount === 1 ? '' : 's'} shown`;
       document.getElementById('clearModuleSearch').hidden = query === '';
     }

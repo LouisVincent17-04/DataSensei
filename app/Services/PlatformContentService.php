@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
+use App\Support\SchemaInspector;
 use App\Models\AssignmentLibraryItem;
 use App\Models\Challenge;
 use App\Models\ModuleLibraryItem;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -173,7 +173,7 @@ class PlatformContentService
             return true;
         }
 
-        if (Schema::hasTable('challenge_user')) {
+        if (SchemaInspector::hasTable('challenge_user')) {
             return DB::table('challenge_user')->where('challenge_id', $challenge->id)->exists();
         }
 
@@ -223,7 +223,7 @@ class PlatformContentService
     public function assessmentQuestionsChanged(AssignmentLibraryItem $assessment, array $questions): bool
     {
         $current = $assessment->questions()
-            ->with(['options', 'blankAnswers', 'iloMappings'])
+            ->with(['options', 'blankAnswers'])
             ->get()
             ->map(function ($question): array {
                 return [
@@ -239,12 +239,6 @@ class PlatformContentService
                         'answer_text' => trim((string) $answer->answer_text),
                         'is_case_sensitive' => (bool) $answer->is_case_sensitive,
                     ])->values()->all(),
-                    'ilo_ids' => $question->iloMappings
-                        ->pluck('ilo_id')
-                        ->map(fn ($id): int => (int) $id)
-                        ->sort()
-                        ->values()
-                        ->all(),
                 ];
             })->values()->all();
 
@@ -269,12 +263,6 @@ class PlatformContentService
                         'is_case_sensitive' => filter_var($answer['is_case_sensitive'] ?? false, FILTER_VALIDATE_BOOL),
                     ])->all()
                     : [],
-                'ilo_ids' => collect($question['ilo_ids'] ?? [])
-                    ->map(fn ($id): int => (int) $id)
-                    ->unique()
-                    ->sort()
-                    ->values()
-                    ->all(),
             ];
         })->values()->all();
 

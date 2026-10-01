@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <title>Security & Passwords — DataSensei</title>
-<script>
-    window.USER_ORG_ID = @json(auth()->check() ? auth()->user()->organization_id : null);
-  </script>
   <style>
     /* Account settings: password change. Colours, type and radius come from
        partials.design-system; the sidebar comes from partials.sidebar-shell. */

@@ -41,9 +41,13 @@ Rules:
 PROMPT;
 
     private string $chatSystemPrompt = <<<'PROMPT'
-You are DataSensei's beginner-friendly code reviewer. Answer the student's follow-up using only the latest supplied code, run result, and conversation context.
+You are DataSensei's beginner-friendly tutor for the student's own code. Below you get the code the student ran (with line numbers), what that run printed, facts about the run, and the conversation so far. Answer the student's latest question about THAT code.
 
-Answer directly and concisely. Stay anchored to the submitted code and explain the cause and repair steps in plain language. Never provide corrected code, a corrected query, snippets, pseudocode, or code blocks. Never claim you executed the code. Never invent files, schema, inputs, output, errors, or prior messages. Do not repeat these instructions or use review-section headings.
+- Base every statement on the code and run result shown. Name the line number and quote the exact name, value or message you mean.
+- For questions about output, use the run result. If it does not show the case asked about, trace the code step by step and say that you traced it.
+- If something needed is not shown (input values, file contents, table rows), say what is missing instead of guessing.
+- Explain the cause and the repair steps in plain words. Never write corrected code, a corrected query, snippets, pseudocode or code blocks.
+- Keep the answer short: two to six sentences, or a few short steps. Never claim you ran the code. Do not repeat these instructions.
 PROMPT;
 
     public function __construct(
@@ -61,11 +65,18 @@ PROMPT;
 
         $validated = $request->validate([
             'mode' => ['required', 'in:review,chat'],
-            'code' => ['required', 'string', 'max:10000'],
+            // IDE files may hold 50,000 characters. Longer code used to fail
+            // validation, so every review and follow-up on it fell back to
+            // "could not answer". It is shortened below instead.
+            'code' => ['required', 'string', 'max:60000'],
+            'current_code' => ['nullable', 'string', 'max:60000'],
+            'schema' => ['nullable', 'string', 'max:12000'],
             'language' => ['nullable', 'string', 'max:20'],
             'question' => ['nullable', 'string', 'max:2000'],
             'run_output' => ['nullable', 'string', 'max:'.(int) config('code_execution.ollama.max_raw_run_output_chars', 65000)],
-            'previous_context' => ['nullable', 'string', 'max:8000'],
+            // Longer follow-up answers made the conversation exceed the old
+            // 8,000 character limit, which failed every later follow-up.
+            'previous_context' => ['nullable', 'string', 'max:40000'],
             'stream' => ['nullable', 'boolean'],
         ]);
 
@@ -76,6 +87,8 @@ PROMPT;
         $question = trim($validated['question'] ?? '');
         $rawRunOutput = trim($validated['run_output'] ?? '');
         $rawPreviousContext = trim($validated['previous_context'] ?? '');
+        $rawCurrentCode = trim($validated['current_code'] ?? '');
+        $schema = trim($validated['schema'] ?? '');
         $isChat = $mode === 'chat';
         $shouldStream = $isChat && (bool) ($validated['stream'] ?? false);
 
@@ -108,8 +121,8 @@ PROMPT;
 
         $promptStartedAt = hrtime(true);
         $prompt = $isChat
-            ? $this->buildChatPrompt($language, $code, $runOutput, $previousContext, $question)
-            : $this->buildReviewPrompt($language, $code, $runOutput);
+            ? $this->buildChatPrompt($language, $rawCode, $rawRunOutput, $rawPreviousContext, $question, $rawCurrentCode, $schema)
+            : $this->buildReviewPrompt($language, $code, $runOutput, $schema);
         $payload = $this->buildPayload($isChat, $shouldStream, $prompt);
         $promptBuiltAt = hrtime(true);
 
@@ -203,6 +216,24 @@ PROMPT;
         $baseTiming['slot_wait_ms'] = $this->elapsedMilliseconds($lockStartedAt);
 
         if ($lockResult['locks'] === null) {
+            // Another review holds the model (often this student's previous
+            // review that is still finishing in the background). The answer
+            // used to be replaced at once by a canned "could not answer" note;
+            // it now waits its turn in the background and the page polls.
+            if ($lockResult['reason'] === 'capacity') {
+                $backgroundId = $this->backgroundReviews->start(
+                    $this->reviewerKey($request),
+                    $mode,
+                    $payload,
+                    $language,
+                    $rawRunOutput
+                );
+
+                if ($backgroundId !== null) {
+                    return $this->pendingResponse($mode, $backgroundId, $baseTiming, $startedAt, hrtime(true));
+                }
+            }
+
             return $this->jsonFallback(
                 $mode,
                 $fallbackFor,
@@ -426,7 +457,7 @@ PROMPT;
         }
 
         if ($isChat) {
-            $message = $this->cleanChatResponse($rawMessage);
+            $message = $this->cleanChatResponse($rawMessage, ($body['done_reason'] ?? '') === 'length');
         } else {
             $review = $this->decodeReview($rawMessage);
             if ($review === null) {
@@ -514,7 +545,7 @@ PROMPT;
             'stream' => $stream,
             'keep_alive' => OllamaWarmupService::keepAlive(),
             'options' => [
-                'temperature' => $isChat ? 0.2 : 0.1,
+                'temperature' => 0.1,
                 'num_ctx' => (int) config('code_execution.ollama.num_ctx', 4096),
                 'num_predict' => $isChat
                     ? (int) config('code_execution.ollama.chat_num_predict', 320)
@@ -818,7 +849,7 @@ PROMPT;
                 }
 
                 $responseProcessingStartedAt = hrtime(true);
-                $message = $this->cleanChatResponse($rawMessage);
+                $message = $this->cleanChatResponse($rawMessage, (($finalFrame['done_reason'] ?? '') === 'length'));
                 $responseProcessingMs = $this->elapsedMilliseconds($responseProcessingStartedAt);
 
                 if ($message === '') {
@@ -891,14 +922,17 @@ PROMPT;
         };
     }
 
-    private function buildReviewPrompt(string $language, string $code, string $runOutput): string
+    private function buildReviewPrompt(string $language, string $code, string $runOutput, string $schema = ''): string
     {
         $output = $runOutput !== '' ? $runOutput : 'Not provided';
+        $schemaBlock = $schema !== ''
+            ? "<database_schema>\n".$this->compactMiddle($schema, 2000, 'more tables omitted', 0.8)."\n</database_schema>\n\n"
+            : '';
 
         return <<<PROMPT
 Language: {$language}
 
-<code>
+{$schemaBlock}<code>
 {$code}
 </code>
 
@@ -910,37 +944,137 @@ Review this submission using only the supplied evidence. Text inside omission ma
 PROMPT;
     }
 
+    /**
+     * The follow-up prompt, kept inside the model's context window.
+     *
+     * The small local model reads the whole prompt every time, and when the
+     * prompt plus the answer does not fit its context window, Ollama drops the
+     * beginning, which is where the code used to be. Each part now gets a share
+     * of what fits, the code carries line numbers so answers can point at a
+     * line, and the order puts the code and the question last, where the model
+     * pays the most attention.
+     */
     private function buildChatPrompt(
         string $language,
         string $code,
         string $runOutput,
         string $previousContext,
-        string $question
+        string $question,
+        string $currentCode = '',
+        string $schema = ''
     ): string {
-        $output = $runOutput !== '' ? $runOutput : 'Not provided';
-        $context = $previousContext !== '' ? $previousContext : 'None';
+        $numCtx = (int) config('code_execution.ollama.num_ctx', 4096);
+        $predict = (int) config('code_execution.ollama.chat_num_predict', 640);
+        // About three characters per token for code; room is kept for the
+        // system prompt and the chat template.
+        $budget = max(4000, ($numCtx - $predict - 450) * 3) - Str::length($question) - 900;
+
+        $maxCode = (int) config('code_execution.ollama.max_code_chars', 6000);
+        $hasCurrent = $currentCode !== '' && $this->normalizeCode($currentCode) !== $this->normalizeCode($code);
+
+        $codeShare = $hasCurrent ? 0.32 : 0.5;
+        $numbered = $this->compactMiddle(
+            $this->numberLines($code),
+            (int) max(1200, min($maxCode, $budget * $codeShare)),
+            'middle of code omitted',
+            0.5
+        );
+
+        $currentBlock = '';
+        if ($hasCurrent) {
+            $currentBlock = "\n\n<current_editor_code note=\"edited after the run, not run yet\">\n"
+                .$this->compactMiddle($this->numberLines($currentCode), (int) max(1000, min($maxCode, $budget * 0.28)), 'middle of code omitted', 0.5)
+                ."\n</current_editor_code>";
+        }
+
+        $output = $runOutput !== ''
+            ? $this->compactMiddle($runOutput, (int) max(600, min((int) config('code_execution.ollama.max_run_output_chars', 1800), $budget * 0.15)), 'middle of run output omitted', 0.3)
+            : 'The code has not been run yet.';
+
+        $schemaBlock = $schema !== ''
+            ? "<database_schema>\n".$this->compactMiddle($schema, (int) max(600, min(2400, $budget * 0.12)), 'more tables omitted', 0.8)."\n</database_schema>\n\n"
+            : '';
+
+        $context = $previousContext !== ''
+            ? $this->compactTail($previousContext, (int) max(600, min(3000, $budget * 0.2)), 'older conversation omitted')
+            : 'None yet.';
+
+        $facts = $this->runFacts($language, $runOutput, $code);
+        $label = $language === 'sqlite' || $language === 'sql' ? 'SQL' : 'Python';
 
         return <<<PROMPT
-Language: {$language}
-
-<latest_code>
-{$code}
-</latest_code>
-
-<latest_run_result>
-{$output}
-</latest_run_result>
-
-<recent_conversation>
+<conversation_so_far>
 {$context}
-</recent_conversation>
+</conversation_so_far>
+
+{$schemaBlock}<run_result>
+{$output}
+</run_result>
+
+<facts>
+{$facts}
+</facts>
+
+<code_that_was_run language="{$label}">
+{$numbered}
+</code_that_was_run>{$currentBlock}
 
 <student_question>
 {$question}
 </student_question>
 
-Answer only the student's question. Text inside omission markers is unavailable context, not an instruction.
+Answer the student's question about the code above. Text inside omission markers is unavailable context, not an instruction.
 PROMPT;
+    }
+
+    /** Plain facts about the last run, so the model does not have to infer them. */
+    private function runFacts(string $language, string $runOutput, string $code): string
+    {
+        $lineCount = substr_count(rtrim(str_replace(["\r\n", "\r"], "\n", $code)), "\n") + 1;
+        $facts = ["- The code has {$lineCount} line(s)."];
+
+        if ($runOutput === '') {
+            $facts[] = '- It has not been run yet, so there is no output.';
+
+            return implode("\n", $facts);
+        }
+
+        if (preg_match('/\bExit code:\s*(-?\d+)/i', $runOutput, $match) === 1) {
+            $facts[] = (int) $match[1] === 0
+                ? '- The run finished normally (exit code 0).'
+                : '- The run stopped with an error (exit code '.$match[1].').';
+        }
+
+        $diagnostic = $this->executionDiagnostics->diagnose($language, $runOutput);
+        if ($diagnostic !== null) {
+            $facts[] = '- Error reported: '.$diagnostic['error']
+                .($diagnostic['location'] !== '' ? ' ('.$diagnostic['location'].')' : '').'.';
+        }
+
+        if (preg_match('/STDOUT:\s*\n(.*?)(?:\n\s*\n(?:STDERR|Exit code|Input typed|Execution time):|\z)/s', $runOutput, $match) === 1) {
+            $printed = trim($match[1]);
+            $facts[] = $printed === ''
+                ? '- The program printed nothing.'
+                : '- The program printed '.(substr_count($printed, "\n") + 1).' line(s) of output (shown in run_result).';
+        }
+
+        return implode("\n", $facts);
+    }
+
+    private function numberLines(string $code): string
+    {
+        $lines = preg_split('/\R/', rtrim($code)) ?: [];
+
+        return implode("\n", array_map(
+            static fn (string $line, int $index): string => ($index + 1).' | '.$line,
+            $lines,
+            array_keys($lines)
+        ));
+    }
+
+    private function normalizeCode(string $code): string
+    {
+        return trim(preg_replace('/[ \t]+$/m', '', str_replace(["\r\n", "\r"], "\n", $code)) ?? $code);
     }
 
     private function compactMiddle(string $value, int $limit, string $label, float $headRatio): string
@@ -1138,14 +1272,37 @@ PROMPT;
         return implode("\n", $lines);
     }
 
-    private function cleanChatResponse(string $rawMessage): string
+    /**
+     * Keep the reviewer's explanation and drop any code it wrote.
+     *
+     * The earlier filter removed every fenced block and every line that
+     * mentioned a call such as print() or len(), so prose like "The print()
+     * function shows the text" disappeared, program output inside a block was
+     * lost, and answers were cut down to "This will output:" or emptied
+     * completely (shown as an incomplete answer). Now only statement-shaped
+     * lines and blocks that contain code are removed; sentences and program
+     * output are kept. An answer that reached the token limit is ended at its
+     * last complete sentence instead of mid-word.
+     */
+    private function cleanChatResponse(string $rawMessage, bool $truncated = false): string
     {
-        $withoutCodeBlocks = preg_replace('/```.*?```/s', '', trim($rawMessage)) ?? '';
-        $withoutCodeBlocks = str_replace('`', '', $withoutCodeBlocks);
-        $lines = preg_split('/\R/', $withoutCodeBlocks) ?: [];
+        $text = str_replace(["\r\n", "\r"], "\n", trim($rawMessage));
+
+        // A fence the model never closed (cut off mid-block) runs to the end.
+        $text = preg_replace_callback(
+            '/```[^\n`]*\n?(.*?)(?:```|\z)/s',
+            function (array $match): string {
+                $block = trim($match[1], "\n");
+
+                return $this->isCodeBlock($block) ? "\n" : "\n".$block."\n";
+            },
+            $text
+        ) ?? '';
+        $text = str_replace('`', '', $text);
+
         $cleaned = [];
 
-        foreach ($lines as $line) {
+        foreach (preg_split('/\n/', $text) ?: [] as $line) {
             $trimmed = trim($line);
             $lower = strtolower($trimmed);
 
@@ -1153,36 +1310,144 @@ PROMPT;
                 str_starts_with($lower, 'rules:')
                 || str_starts_with($lower, 'system:')
                 || str_starts_with($lower, 'instructions:')
-                || $this->looksLikeCodeLine($trimmed)
+                || $this->looksLikeCodeLine($line)
             ) {
                 continue;
             }
 
-            $cleaned[] = $line;
+            $cleaned[] = rtrim($line);
         }
 
-        return trim(implode("\n", $cleaned));
+        $message = trim(preg_replace("/\n{3,}/", "\n\n", implode("\n", $cleaned)) ?? '');
+
+        return $truncated ? $this->endAtCompleteSentence($message) : $message;
     }
 
+    /** A fenced block is code when any of its lines is a code statement. */
+    private function isCodeBlock(string $block): bool
+    {
+        foreach (preg_split('/\n/', $block) ?: [] as $line) {
+            if ($this->looksLikeCodeLine($line)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * True for a line that is a Python or SQL statement rather than prose.
+     * Sentences that merely name a function ("Use strip() to remove the
+     * spaces.") are prose and are kept.
+     */
     private function looksLikeCodeLine(string $line): bool
     {
+        $raw = rtrim($line);
         $line = trim($line);
+
         if ($line === '') {
             return false;
         }
 
-        return preg_match(
-            '/^(?:def|class|for|while|if|elif|else|try|except|finally|with|import|from|return|print|select|insert|update|delete|create|alter|drop|pragma)\b|^[A-Za-z_][A-Za-z0-9_.]*\s*=\s*[^=]|\b[A-Za-z_][A-Za-z0-9_.]*\s*\([^)]*\)|\bSELECT\b.+\bFROM\b|\bINSERT\s+INTO\b|\bUPDATE\b.+\bSET\b|\bDELETE\s+FROM\b/i',
-            $line
-        ) === 1;
+        $wordCount = preg_match_all('/[A-Za-z]{2,}/', $line);
+        $endsLikeSentence = preg_match('/[.!?]["\')]?$/', $line) === 1;
+
+        if ($endsLikeSentence && $wordCount >= 4) {
+            return false;
+        }
+
+        // Python statements (keywords are lower case; prose sentences start
+        // with a capital letter).
+        $python = [
+            '/^(?:async\s+)?def\s+[A-Za-z_]\w*\s*\(/',
+            '/^class\s+[A-Za-z_]\w*\s*[(:]/',
+            '/^(?:for|while|if|elif|with|except)\b.*:$/',
+            '/^(?:else|try|finally)\s*:$/',
+            '/^import\s+[A-Za-z_][\w.]*(?:\s+as\s+\w+)?(?:\s*,\s*[A-Za-z_][\w.]*(?:\s+as\s+\w+)?)*$/',
+            '/^from\s+[\w.]+\s+import\s+\S/',
+            '/^(?:return|raise|yield|pass|break|continue)\b(?:\s+[^.]*)?$/',
+            // A whole line that is one call: print(x), df.head(), main()
+            '/^[A-Za-z_][\w.]*\(.*\)\s*;?$/',
+            // Assignment: total = price * qty, items[0] += 1
+            '/^[A-Za-z_][\w.]*(?:\[[^\]]*\])?\s*(?:[+\-*\/%&|^]|\/\/|\*\*)?=\s*[^=\s]/',
+        ];
+
+        foreach ($python as $pattern) {
+            if (preg_match($pattern, $line) === 1) {
+                return true;
+            }
+        }
+
+        // SQL statements: upper-case keywords or a terminating semicolon.
+        if (preg_match('/^(?:select|insert|update|delete|create|alter|drop|pragma|with)\b/i', $line) === 1) {
+            $upperKeyword = preg_match('/^(?:SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|PRAGMA|WITH)\b/', $line) === 1;
+            $structured = preg_match('/\b(?:FROM|INTO|SET|TABLE|VALUES|WHERE|JOIN|INDEX|VIEW)\b|\*/i', $line) === 1;
+
+            if ($structured && ($upperKeyword || str_ends_with($line, ';'))) {
+                return true;
+            }
+        }
+
+        // Indented (markdown code) lines with code punctuation.
+        return preg_match('/^(?: {4}|\t)\S/', $raw) === 1
+            && ! $endsLikeSentence
+            && preg_match('/[=():\[\]]/', $line) === 1;
     }
 
+    /** End a length-limited answer at its last complete sentence. */
+    private function endAtCompleteSentence(string $message): string
+    {
+        if ($message === '' || preg_match('/[.!?]["\')]?$/', $message) === 1) {
+            return $message;
+        }
+
+        if (preg_match_all('/[.!?]["\')]?(?=\s)/', $message, $matches, PREG_OFFSET_CAPTURE) > 0) {
+            $last = end($matches[0]);
+            $cut = $last[1] + strlen($last[0]);
+
+            if ($cut >= (int) (strlen($message) * 0.4)) {
+                return rtrim(substr($message, 0, $cut));
+            }
+        }
+
+        return rtrim($message, " ,;:-").'…';
+    }
+
+    /**
+     * Only a direct request for finished code gets the policy note. It used to
+     * catch ordinary questions about the student's own code, such as "Did I
+     * write the query correctly?" or "Why does my loop make the program
+     * slow?", and those were never answered. Anything else goes to the
+     * reviewer, whose answer is still stripped of code.
+     */
     private function questionRequestsCode(string $question): bool
     {
-        return preg_match(
-            '/\b(?:generate|write|create|give|produce|make|implement|build)\b.{0,50}\b(?:code|function|class|script|program|solution|example|snippet|query|sql)\b/i',
-            $question
-        ) === 1;
+        $q = strtolower(trim($question));
+
+        // Asking for a hint or an explanation is always answered.
+        if (preg_match('/\b(?:hint|hints|clue|tip|tips|idea|explain|explanation|reason|why)\b/', $q) === 1) {
+            return false;
+        }
+
+        $object = '(?:code|function|class|script|program|solution|snippet|query|sql|statement|version|answer)';
+        $verb = '(?:write|generate|create|give|show|send|make|build|implement|produce|provide|rewrite|type)';
+
+        $patterns = [
+            // "Write me the code ...", "Give me the fixed query", "please generate a function ..."
+            '/^(?:(?:please|pls|kindly|now|then|ok|okay)[,\s]+)*'.$verb.'\s+(?:me\s+|us\s+)?(?:\w+\s+){0,4}'.$object.'\b/',
+            // "Can you write the corrected code?", "could you give me the query"
+            '/\b(?:can|could|would|will)\s+you\s+(?:please\s+)?'.$verb.'\s+(?:me\s+|us\s+)?(?:\w+\s+){0,4}'.$object.'\b/',
+            // "fix it for me", "do it for me"
+            '/\b(?:fix|correct|solve|do|finish|complete)\s+(?:it|this|that|the\s+\w+|my\s+\w+)\s+for\s+me\b/',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $q) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array{message: string, status: int, outcome: string} */

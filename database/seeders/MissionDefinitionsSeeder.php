@@ -9,12 +9,14 @@ class MissionDefinitionsSeeder extends Seeder
 {
     public function run(): void
     {
+        // Class work gives no XP (DataSensei Updates 5), so no mission counts
+        // it. The former "Weekly Assignment Progress" mission was switched
+        // off by the 2026_09_28 migration.
         $missions = [
             ['daily_run_code', 'Run Code Today', 'Run at least one Python or SQL activity today.', 'daily', 'code_runs', 1, 20, 10],
             ['daily_complete_lesson', 'Complete a Lesson', 'Finish one lesson or module activity today.', 'daily', 'lesson_completions', 1, 30, 20],
             ['daily_attempt_challenge', 'Attempt a Challenge', 'Submit one MCQ or coding challenge today.', 'daily', 'challenge_attempts', 1, 35, 30],
             ['weekly_coding_practice', 'Weekly Coding Practice', 'Submit five coding challenge attempts this week.', 'weekly', 'coding_submissions', 5, 120, 40],
-            ['weekly_assignment_progress', 'Weekly Assignment Progress', 'Submit two class assignment attempts this week.', 'weekly', 'assignment_submissions', 2, 150, 50],
             ['weekly_mastery_builder', 'Weekly Mastery Builder', 'Complete ten learning activities this week.', 'weekly', 'activity_count', 10, 180, 60],
         ];
 

@@ -39,7 +39,7 @@
           <strong id="live-status-label">{{ $status['label'] }}</strong>
           <div class="muted" id="live-status-message">{{ $status['message'] }}</div>
         </div>
-        <span class="badge {{ $statusClass }}" id="live-status-count">{{ $tos->rows->sum('item_count') }} / {{ $tos->total_items ?: $tos->rows->sum('item_count') }}</span>
+        <span class="state {{ $statusClass }}" id="live-status-count">{{ $tos->rows->sum('item_count') }} / {{ $tos->total_items ?: $tos->rows->sum('item_count') }}</span>
       </div>
 
       @if($tos->assessments_count > 0)
@@ -106,7 +106,7 @@
               <h2>Learning Competency Distribution</h2>
               <div class="muted">Weights and totals recalculate automatically as you edit item counts.</div>
             </div>
-            <span class="badge">Target: {{ $matrix['target_items'] }} items</span>
+            <span class="state">Target: {{ $matrix['target_items'] }} items</span>
           </div>
 
           <div class="table-wrap">
@@ -202,7 +202,7 @@
                     <div class="field" style="margin-top:8px"><label>Learning Objective</label><textarea class="textarea" name="learning_objective" {{ $tos->assessments_count > 0 ? 'disabled' : '' }}>{{ $row->learning_objective }}</textarea></div>
                   </form>
                 </td>
-                <td><span class="badge">{{ ucwords(str_replace('-', ' ', $row->difficulty_slug)) }}</span></td>
+                <td><span class="state">{{ ucwords(str_replace('-', ' ', $row->difficulty_slug)) }}</span></td>
                 <td><input form="row-{{ $row->id }}" class="input" name="cognitive_level" value="{{ $row->cognitive_level }}" {{ $tos->assessments_count > 0 ? 'disabled' : '' }}></td>
                 <td><input form="row-{{ $row->id }}" class="input number-input" type="number" min="0" max="200" name="item_count" value="{{ $row->item_count }}" {{ $tos->assessments_count > 0 ? 'disabled' : '' }}></td>
                 <td><input form="row-{{ $row->id }}" class="input number-input" type="number" min="1" max="1000" name="default_points" value="{{ $row->default_points }}" {{ $tos->assessments_count > 0 ? 'disabled' : '' }}></td>

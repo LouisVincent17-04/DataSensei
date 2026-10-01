@@ -60,12 +60,18 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | will be used by the PHP date and date-time functions.
+    |
+    | Instructors type "Available from" and "Due" times in their own local
+    | time (datetime-local inputs), and those values are stored as typed. With
+    | the application on UTC they were compared with a clock eight hours
+    | behind Philippine time, so a challenge set to open at 4:00 PM showed
+    | "Opens later" until midnight. Set APP_TIMEZONE in .env if the school is
+    | in another timezone.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Manila'),
 
     /*
     |--------------------------------------------------------------------------

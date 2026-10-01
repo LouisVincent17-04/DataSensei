@@ -37,13 +37,6 @@
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     .actions form{display:contents}
 
-    /* status labels */
-    .badge-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap;font-variant-numeric:tabular-nums}
-    .badge-pill.good{color:var(--ds-success-text);border-color:var(--ds-success-border);background:var(--ds-success-soft)}
-    .badge-pill.warn{color:var(--ds-warning-text);border-color:var(--ds-warning-border);background:var(--ds-warning-soft)}
-    .badge-pill.danger{color:var(--ds-danger-text);border-color:var(--ds-danger-border);background:var(--ds-danger-soft)}
-
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);
       background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.55}
     .alert.success{background:var(--ds-success-soft);border-color:var(--ds-success-border);color:#d1fae5}
@@ -83,7 +76,7 @@
             <h1 class="page-title ds-page-title">{{ $assignment->title }}</h1>
             <p class="page-subtitle">{{ $assignment->classRoom->name }}, {{ $assignment->libraryItem->topic_title }}, {{ $assignment->libraryItem->type_label }}</p>
           </div>
-          <a href="{{ route('student.assignments.index') }}" class="btn secondary">Back</a>
+          <a href="{{ route('student.assignments.class', $assignment->class_id) }}" class="btn secondary">Back to {{ $assignment->classRoom?->name ?? 'the class' }}</a>
         </div>
 
         <section class="card card-pad">

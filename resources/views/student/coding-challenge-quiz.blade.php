@@ -448,7 +448,7 @@
             </div>
 
             <div class="problem-meta">
-              <span class="pill pill-xp">{{ $question->base_xp }} XP</span>
+              <span class="pill pill-xp">{{ $challenge->awardsXp() ? $question->base_xp . ' XP' : 'No XP' }}</span>
               <span class="pill pill-lang">Python</span>
               <span class="pill pill-time">{{ intval($question->time_limit_seconds / 60) }} min limit</span>
               @if($isDone)

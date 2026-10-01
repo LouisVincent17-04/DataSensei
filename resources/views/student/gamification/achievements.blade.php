@@ -211,8 +211,13 @@
               <div class="desc">{{ $definition->description }}</div>
               <div class="reward">+{{ number_format($definition->xp_reward) }} XP</div>
               <div class="when">
+                @php
+                  $ruleProgress = ($achievementProgress ?? [])[$definition->id] ?? null;
+                @endphp
                 @if($record)
                   Unlocked {{ optional($record->unlocked_at)->diffForHumans() }}
+                @elseif($ruleProgress && $ruleProgress['target'] > 0)
+                  Progress: {{ number_format(min($ruleProgress['value'], $ruleProgress['target'])) }} of {{ number_format($ruleProgress['target']) }}
                 @else
                   Not unlocked yet
                 @endif

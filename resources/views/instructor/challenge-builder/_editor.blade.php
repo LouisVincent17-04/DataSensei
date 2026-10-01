@@ -8,7 +8,7 @@
   <title>{{ $pageTitle }} — DataSensei</title>
   @include('instructor.challenge-builder._styles')
   @include('partials.admin-inspired-page-style')
-  @include('partials.page-head', ['pageTitle' => $pageTitle, 'pageDescription' => 'Build your own quiz and coding challenges and give them to your classes.'])
+  @include('partials.page-head', ['pageTitle' => $pageTitle, 'pageDescription' => 'Build your own quiz and coding challenges for your classes to practice.'])
 </head>
 <body class="ds-admin-inspired">
   <div class="ds-shell">
@@ -23,6 +23,10 @@
           <a class="btn secondary" href="{{ route('instructor.challenge-builder.index') }}">Back to my challenges</a>
         </div>
 
+        @if(session('success'))
+          <div class="notice" role="status">{{ session('success') }}</div>
+        @endif
+
         @if($errors->any())
           <div class="notice error" role="alert">
             <strong>Please fix the following:</strong>
@@ -35,6 +39,7 @@
         @endif
 
         @if($type === 'coding')
+          @include('partials.reference-check-failures')
           @include('instructor.challenge-builder._coding_form', [
             'formAction' => $formAction,
             'formMethod' => $formMethod,
@@ -48,6 +53,10 @@
             'submitLabel' => $submitLabel,
             'cancelUrl' => route('instructor.challenge-builder.index'),
           ])
+        @endif
+
+        @if($challenge->exists && isset($practiceClasses))
+          @include('instructor.challenges._class_practice')
         @endif
       </div>
     </main>

@@ -9,8 +9,10 @@ use App\Models\CodingQuestion;
 use App\Models\CodingQuestionAttempt;
 use App\Models\CodingSubmission;
 use App\Models\TestCase;
+use App\Services\ClassChallengePractice;
 use App\Services\CodingChallengeTestRunner;
 use App\Services\PlatformContentService;
+use App\Services\ReferenceSolutionVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,9 +30,9 @@ use Illuminate\View\View;
  * Every challenge made here is a row in `challenges` with
  * visibility = instructor, created_by = the instructor, always in the
  * University Student level. Students never see it on the public path: it
- * reaches them only through a class_challenge_assignments row for a class
- * they are enrolled in (InstructorClassChallengeController), and they take
- * it with the ordinary quiz and coding screens.
+ * reaches them only when the instructor shares it with a class they are
+ * enrolled in, for practice (ClassChallengePractice, on the edit page), and
+ * they take it with the ordinary quiz and coding screens.
  *
  * Instructors do not manage versions: each challenge is a single version
  * with its own content code, so publishing one never touches another.
@@ -57,13 +59,14 @@ class InstructorChallengeBuilderController extends Controller
     public function __construct(
         private readonly PlatformContentService $contentService,
         private readonly CodingChallengeTestRunner $testRunner,
+        private readonly ReferenceSolutionVerifier $verifier,
     ) {
     }
 
     public function index(Request $request): View
     {
         $challenges = $this->ownedQuery()
-            ->withCount(['questions', 'codingQuestions', 'classAssignments'])
+            ->withCount(['questions', 'codingQuestions', 'classAssignments as practice_classes_count' => fn ($query) => $query->where('status', 'published')])
             ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
@@ -84,7 +87,7 @@ class InstructorChallengeBuilderController extends Controller
                 'type' => 'coding',
                 'challenge' => new Challenge([
                     'time_limit_seconds' => 1800,
-                    'base_xp' => 100,
+                    'base_xp' => 0,
                     'is_active' => false,
                 ]),
                 'questions' => old('questions', [$this->emptyCodingQuestion()]),
@@ -96,7 +99,7 @@ class InstructorChallengeBuilderController extends Controller
             'type' => 'mcq',
             'challenge' => new Challenge([
                 'time_limit_seconds' => 600,
-                'base_xp' => 100,
+                'base_xp' => 0,
                 'is_active' => false,
             ]),
             'questions' => old('questions', [$this->emptyMcqQuestion()]),
@@ -111,6 +114,9 @@ class InstructorChallengeBuilderController extends Controller
 
         if ($type === 'coding') {
             [$data, $questions] = $this->validatedCodingData($request);
+            // Nothing is saved unless every reference solution produces the
+            // expected output for every test case (checked on the server).
+            $this->verifier->assertPasses($this->verificationQuestions($questions));
         } else {
             [$data, $questions] = $this->validatedMcqData($request);
         }
@@ -128,9 +134,9 @@ class InstructorChallengeBuilderController extends Controller
         }, 3);
 
         return redirect()
-            ->route('instructor.challenge-builder.index')
+            ->to(route('instructor.challenge-builder.edit', $challenge) . '#classes')
             ->with('success', ($type === 'coding' ? 'Coding challenge' : 'Quiz challenge') . ' "' . $challenge->title . '" saved.'
-                . ($challenge->is_active ? ' Give it to a class from Class Challenges so students can take it.' : ' It stays unavailable to students until you publish it.'));
+                . ($challenge->is_active ? ' Choose the classes that can practice it below.' : ' It stays unavailable to students until you make it available.'));
     }
 
     /**
@@ -192,9 +198,13 @@ class InstructorChallengeBuilderController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Challenge $challenge): View
+    public function edit(Request $request, Challenge $challenge, ClassChallengePractice $practice): View
     {
         $this->ensureOwned($challenge);
+        $practiceView = [
+            'practiceClasses' => $practice->classesFor((int) Auth::id()),
+            'sharedClassIds' => $practice->sharedClassIds($challenge, (int) Auth::id()),
+        ];
 
         if ($challenge->is_coding_challenge) {
             $challenge->load('codingQuestions.testCases');
@@ -204,7 +214,7 @@ class InstructorChallengeBuilderController extends Controller
                 'challenge' => $challenge,
                 'questions' => old('questions', $this->codingQuestionsForForm($challenge)),
                 'hasHistory' => $this->hasCodingHistory($challenge),
-            ]);
+            ] + $practiceView);
         }
 
         $challenge->load('questions.options');
@@ -214,7 +224,7 @@ class InstructorChallengeBuilderController extends Controller
             'challenge' => $challenge,
             'questions' => old('questions', $this->mcqQuestionsForForm($challenge)),
             'hasHistory' => $this->contentService->challengeHasHistory($challenge),
-        ]);
+        ] + $practiceView);
     }
 
     public function update(Request $request, Challenge $challenge): RedirectResponse
@@ -224,6 +234,9 @@ class InstructorChallengeBuilderController extends Controller
 
         if ($isCoding) {
             [$data, $questions] = $this->validatedCodingData($request);
+            // Nothing is saved unless every reference solution produces the
+            // expected output for every test case (checked on the server).
+            $this->verifier->assertPasses($this->verificationQuestions($questions));
         } else {
             [$data, $questions] = $this->validatedMcqData($request);
         }
@@ -259,7 +272,8 @@ class InstructorChallengeBuilderController extends Controller
                 'title' => trim($data['title']),
                 'description' => $data['description'] ?? '',
                 'time_limit_seconds' => (int) $data['time_limit_seconds'],
-                'base_xp' => (int) $data['base_xp'],
+                // Class challenges award no XP (DataSensei Updates 5).
+                'base_xp' => 0,
                 'is_active' => filter_var($data['is_active'] ?? false, FILTER_VALIDATE_BOOL),
             ]);
 
@@ -389,7 +403,8 @@ class InstructorChallengeBuilderController extends Controller
             'title' => trim($data['title']),
             'description' => $data['description'] ?? '',
             'time_limit_seconds' => (int) $data['time_limit_seconds'],
-            'base_xp' => (int) $data['base_xp'],
+            // Class challenges award no XP (DataSensei Updates 5).
+            'base_xp' => 0,
             'order_index' => 0,
             'is_coding_challenge' => $coding,
             'is_active' => filter_var($data['is_active'] ?? false, FILTER_VALIDATE_BOOL),
@@ -411,7 +426,8 @@ class InstructorChallengeBuilderController extends Controller
             'title' => ['required', 'string', 'max:189'],
             'description' => ['nullable', 'string', 'max:10000'],
             'time_limit_seconds' => ['required', 'integer', 'min:60', 'max:21600'],
-            'base_xp' => ['required', 'integer', 'min:0', 'max:100000'],
+            // Ignored: class challenges award no XP.
+            'base_xp' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'is_active' => ['nullable', 'boolean'],
             'questions' => ['required', 'array', 'min:1', 'max:200'],
             'questions.*.question_text' => ['required', 'string', 'max:10000'],
@@ -443,16 +459,13 @@ class InstructorChallengeBuilderController extends Controller
         return [$data, $questions];
     }
 
-    /** With attempt history the timer and XP are frozen, exactly like the admin MCQ manager. */
+    /** With attempt history the timer is frozen, exactly like the admin MCQ manager. */
     private function assertMcqWithHistoryUnchanged(Challenge $challenge, array $data): void
     {
         $changes = [];
 
         if ((int) $challenge->time_limit_seconds !== (int) $data['time_limit_seconds']) {
             $changes['time_limit_seconds'] = 'The time limit cannot change after students have attempted this challenge.';
-        }
-        if ((int) $challenge->base_xp !== (int) $data['base_xp']) {
-            $changes['base_xp'] = 'The XP cannot change after students have attempted this challenge.';
         }
 
         if ($changes !== []) {
@@ -576,7 +589,8 @@ class InstructorChallengeBuilderController extends Controller
             'title' => ['required', 'string', 'max:189'],
             'description' => ['nullable', 'string', 'max:10000'],
             'time_limit_seconds' => ['required', 'integer', 'min:60', 'max:7200'],
-            'base_xp' => ['required', 'integer', 'min:0', 'max:10000'],
+            // Ignored: class challenges award no XP.
+            'base_xp' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'is_active' => ['nullable', 'boolean'],
             'questions' => ['required', 'array', 'min:1', 'max:50'],
             'questions.*' => ['array'],
@@ -584,9 +598,9 @@ class InstructorChallengeBuilderController extends Controller
             'questions.*.problem_description' => ['required', 'string', 'max:20000'],
             'questions.*.language' => ['required', 'string', Rule::in(self::LANGUAGES)],
             'questions.*.starter_code' => ['nullable', 'string', 'max:50000'],
-            'questions.*.reference_solution' => ['nullable', 'string', 'max:50000'],
+            'questions.*.reference_solution' => ['required', 'string', 'max:50000'],
             'questions.*.time_limit_seconds' => ['required', 'integer', 'min:60', 'max:7200'],
-            'questions.*.base_xp' => ['required', 'integer', 'min:0', 'max:10000'],
+            'questions.*.base_xp' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'questions.*.test_cases' => ['required', 'array', 'min:1', 'max:' . self::MAX_TEST_CASES_PER_QUESTION],
             'questions.*.test_cases.*' => ['array'],
             'questions.*.test_cases.*.input' => ['nullable', 'string', 'max:10000'],
@@ -595,6 +609,7 @@ class InstructorChallengeBuilderController extends Controller
         ], [
             'questions.required' => 'Add at least one coding problem.',
             'questions.*.problem_description.required' => 'Every problem needs a description.',
+            'questions.*.reference_solution.required' => 'Every problem needs a reference solution. It is run against the test cases before the challenge is saved.',
             'questions.*.test_cases.required' => 'Every problem needs at least one test case.',
             'questions.*.test_cases.min' => 'Every problem needs at least one test case.',
             'questions.*.test_cases.*.expected_output.required' => 'Every test case needs an expected output.',
@@ -622,7 +637,7 @@ class InstructorChallengeBuilderController extends Controller
                 'starter_code' => $this->nullableCode($questionData['starter_code'] ?? null),
                 'reference_solution' => $this->nullableCode($questionData['reference_solution'] ?? null),
                 'time_limit_seconds' => (int) $questionData['time_limit_seconds'],
-                'base_xp' => (int) $questionData['base_xp'],
+                'base_xp' => 0,
                 'order_index' => $questionIndex + 1,
             ]);
 
@@ -688,7 +703,6 @@ class InstructorChallengeBuilderController extends Controller
                 'language' => (string) $question->language,
                 'starter_code' => $this->nullableCode($question->starter_code),
                 'time_limit_seconds' => (int) $question->time_limit_seconds,
-                'base_xp' => (int) $question->base_xp,
                 'test_cases' => $question->testCases->map(fn (TestCase $case): array => [
                     'input' => $this->nullableCode($case->input),
                     'expected_output' => (string) $case->expected_output,
@@ -701,7 +715,6 @@ class InstructorChallengeBuilderController extends Controller
             'language' => (string) ($question['language'] ?? ''),
             'starter_code' => $this->nullableCode($question['starter_code'] ?? null),
             'time_limit_seconds' => (int) ($question['time_limit_seconds'] ?? 0),
-            'base_xp' => (int) ($question['base_xp'] ?? 0),
             'test_cases' => collect($question['test_cases'] ?? [])->values()->map(fn ($case): array => [
                 'input' => $this->nullableCode($case['input'] ?? null),
                 'expected_output' => $this->normalizeNewlines((string) ($case['expected_output'] ?? '')),
@@ -761,7 +774,7 @@ class InstructorChallengeBuilderController extends Controller
             'starter_code' => '',
             'reference_solution' => '',
             'time_limit_seconds' => 600,
-            'base_xp' => 100,
+            'base_xp' => 0,
             'test_cases' => [
                 ['input' => '', 'expected_output' => '', 'is_hidden' => false],
             ],
@@ -784,6 +797,25 @@ class InstructorChallengeBuilderController extends Controller
      * entirely blank becomes NULL. Line endings are normalised so a form
      * submitted from Windows compares equal to what was stored.
      */
+    /**
+     * The problems as they would be saved, for the reference-solution check:
+     * the same newline and blank-value normalisation the store applies.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function verificationQuestions(array $questions): array
+    {
+        return array_map(fn (array $question): array => [
+            'title' => $this->nullableText($question['title'] ?? null, 189),
+            'reference_solution' => $this->nullableCode($question['reference_solution'] ?? null) ?? '',
+            'test_cases' => array_map(fn (array $case): array => [
+                'input' => $this->nullableCode($case['input'] ?? null) ?? '',
+                'expected_output' => $this->normalizeNewlines((string) ($case['expected_output'] ?? '')),
+                'is_hidden' => filter_var($case['is_hidden'] ?? false, FILTER_VALIDATE_BOOL),
+            ], array_values((array) ($question['test_cases'] ?? []))),
+        ], array_values($questions));
+    }
+
     private function nullableCode(mixed $value): ?string
     {
         if ($value === null) {

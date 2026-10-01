@@ -8,8 +8,8 @@
   <section class="panel">
     <div class="panel-head">
       <div class="panel-heading">
-        <h2 class="panel-title">{{ $challenge->version_name }}</h2>
-        <p class="panel-subtitle">{{ $challenge->content_code }}, {{ $challenge->version_code }}, {{ $challenge->category?->name ?? 'Uncategorized' }}</p>
+        <h2 class="panel-title">{{ $challenge->version_name ?: 'Version '.$challenge->version_no }}</h2>
+        <p class="panel-subtitle">{{ $challenge->category?->name ?? 'Uncategorized' }}</p>
       </div>
       <div class="action-row">
         <span class="dim">{{ $challenge->is_active ? 'Available' : 'Unavailable' }}</span>

@@ -7,7 +7,6 @@ use App\Models\AssignmentSubmission;
 use App\Models\ClassAssignment;
 use App\Models\ClassRoom;
 use App\Services\GamificationService;
-use App\Services\IloMasteryService;
 use App\Services\StudentNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -71,7 +70,29 @@ class InstructorAssignmentController extends Controller
         return view('instructor.assignments.index', compact('assignments', 'classes', 'stats'));
     }
 
-    public function create()
+    /**
+     * The full content of a library assignment before it is given to a class
+     * (DataSensei Updates 9): questions, every choice, the correct and
+     * expected answers, points and instructions.
+     */
+    public function previewLibraryItem(AssignmentLibraryItem $item)
+    {
+        // An inactive item is shown only when one of this instructor's
+        // assignments still uses it.
+        abort_unless(
+            $item->is_active || ClassAssignment::query()
+                ->where('assignment_library_item_id', $item->id)
+                ->whereIn('class_id', ClassRoom::where('instructor_id', Auth::id())->pluck('id'))
+                ->exists(),
+            404
+        );
+
+        $item->load(['questions.options', 'questions.blankAnswers']);
+
+        return view('instructor.assignments.preview', ['item' => $item]);
+    }
+
+    public function create(Request $request)
     {
         $classes = ClassRoom::where('instructor_id', Auth::id())
             ->where('is_archived', false)
@@ -85,7 +106,9 @@ class InstructorAssignmentController extends Controller
             ->orderBy('version_no')
             ->get();
 
-        return view('instructor.assignments.create', compact('classes', 'libraryItems'));
+        $preselectedItem = $request->integer('item') ?: null;
+
+        return view('instructor.assignments.create', compact('classes', 'libraryItems', 'preselectedItem'));
     }
 
     public function store(Request $request, StudentNotificationService $notifications)
@@ -402,7 +425,6 @@ class InstructorAssignmentController extends Controller
 
         if ($released) {
             $released = $released->fresh();
-            app(IloMasteryService::class)->refreshForAssignmentSubmission($released);
 
             $student = $released->student;
             if ($student) {

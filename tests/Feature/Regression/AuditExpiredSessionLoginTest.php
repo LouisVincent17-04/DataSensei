@@ -183,17 +183,25 @@ class AuditExpiredSessionLoginTest extends TestCase
     }
 
     /**
-     * The assignment and assessment screens watch for a 419 to notice an
-     * expired session. Turning those into redirects would break them, so the
-     * friendlier handling is confined to the sign-in and registration forms.
+     * Scripts (the assignment, assessment and module editor screens) watch
+     * for a 419 to notice an expired session, so a script request keeps it.
+     * An ordinary form post is still refused, but lands on a working page
+     * instead of "Page Expired" (DataSensei Updates 9): the sign-in page when
+     * the session is gone, otherwise back where it came from.
      */
-    public function test_an_expired_token_elsewhere_keeps_its_status(): void
+    public function test_an_expired_token_elsewhere_keeps_its_status_for_scripts_only(): void
     {
         Route::middleware('web')->post('/__other-expired-probe', function () {
             abort(419);
         });
 
         $this->from('/login')
+            ->post('/__other-expired-probe', ['anything' => 'here'])
+            ->assertRedirect(route('login', ['expired' => 1]))
+            ->assertSessionHas('status');
+
+        $this->postJson('/__other-expired-probe', ['anything' => 'here'])->assertStatus(419);
+        $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
             ->post('/__other-expired-probe', ['anything' => 'here'])
             ->assertStatus(419);
     }

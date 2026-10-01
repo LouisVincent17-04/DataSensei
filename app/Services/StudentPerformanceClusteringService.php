@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SchemaInspector;
 use App\Models\ClassRoom;
 use App\Models\StudentPerformanceCluster;
 use App\Models\StudentPerformanceSnapshot;
@@ -9,7 +10,6 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -269,7 +269,7 @@ class StudentPerformanceClusteringService
 
     private function antiCheatWarnings(User $student, ?int $classId): int
     {
-        if (!Schema::hasTable('anti_cheat_events')) {
+        if (!SchemaInspector::hasTable('anti_cheat_events')) {
             return 0;
         }
 

@@ -24,8 +24,7 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
 .card.empty p{margin:0;font-size:.875rem}
 .muted{color:var(--muted)}
 
-.card .badge{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-  background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
+.card .state{color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;white-space:nowrap}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
   border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
@@ -44,4 +43,4 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
 }
 @media(prefers-reduced-motion:reduce){.btn{transition:none}}
 </style>    @include('partials.page-head', ['pageTitle' => 'Assessments', 'pageDescription' => 'Take assessments set by your instructor and review your results.'])
-</head><body><div class="layout">@include('partials.sidebar')<main class="main"><div class="wrap"><div class="top"><div><h1 class="title ds-page-title">Assessments</h1><p class="subtitle">Instructor-created assessment forms based on the Table of Specifications.</p></div></div><div class="grid grid-3">@forelse($assessments as $assessment)<div class="card"><span class="badge">{{ ucfirst($assessment->status) }}</span><h3>{{ $assessment->title }}</h3><p class="muted">{{ $assessment->classRoom->name ?? 'Class' }}, {{ $assessment->total_items }} items, {{ $assessment->total_points }} points</p><a class="btn" href="{{ route('student.assessments.show',$assessment) }}">Open</a></div>@empty<div class="card empty"><p class="muted">No assessments are available.</p></div>@endforelse</div>{{ $assessments->links() }}</div></main></div></body></html>
+</head><body><div class="layout">@include('partials.sidebar')<main class="main"><div class="wrap"><div class="top"><div><h1 class="title ds-page-title">Assessments</h1><p class="subtitle">Quizzes and exams your instructors give your classes.</p></div></div><div class="grid grid-3">@forelse($assessments as $assessment)<div class="card"><span class="state">{{ ucfirst($assessment->status) }}</span><h3>{{ $assessment->title }}</h3><p class="muted">{{ $assessment->classRoom->name ?? 'Class' }}, {{ $assessment->total_items }} items, {{ $assessment->total_points }} points</p><a class="btn" href="{{ route('student.assessments.show',$assessment) }}">Open</a></div>@empty<div class="card empty"><p class="muted">No assessments are available.</p></div>@endforelse</div>{{ $assessments->links() }}</div></main></div></body></html>

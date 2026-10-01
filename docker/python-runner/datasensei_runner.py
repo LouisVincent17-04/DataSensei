@@ -694,12 +694,46 @@ def _build_allowed_roots() -> tuple[list[Path], list[Path]]:
 
 ALLOWED_WRITE_ROOTS, ALLOWED_READ_ROOTS = _build_allowed_roots()
 
+WRITE_FLAGS = (
+    getattr(os, "O_WRONLY", 0)
+    | getattr(os, "O_RDWR", 0)
+    | getattr(os, "O_APPEND", 0)
+    | getattr(os, "O_CREAT", 0)
+    | getattr(os, "O_TRUNC", 0)
+)
+
+
+def _standard_library_prefixes() -> list[str]:
+    prefixes = []
+    for base in {sys.base_prefix, sys.prefix, sys.exec_prefix, sys.base_exec_prefix}:
+        for folder in ("lib", "Lib"):
+            try:
+                candidate = normalized_path(Path(base, folder).resolve(strict=False))
+                if candidate not in prefixes:
+                    prefixes.append(candidate)
+            except Exception:
+                pass
+
+    return prefixes
+
+
+STANDARD_LIBRARY_PREFIXES = _standard_library_prefixes()
+
 
 # ------------------------------------------------------------
 # Sandbox policy
 # ------------------------------------------------------------
+# "os" is allowed: data analysis uses os.path, os.listdir, os.getcwd and
+# os.makedirs all the time. What os can do that a lesson must not (run
+# programs, delete, rename or re-permission files, change the environment) is
+# refused by name in the source check below and, whatever route the code takes
+# (pathlib, shutil, aliases), by the audit hook at run time. Its low-level
+# back-ends stay blocked because they bypass the "os" names.
 BLOCKED_IMPORT_ROOTS = {
-    "os",
+    "posix",
+    "nt",
+    "_posixsubprocess",
+    "_winapi",
     "subprocess",
     "socket",
     "ctypes",
@@ -739,6 +773,106 @@ BLOCKED_EVENTS = {
     "socket.bind",
     "socket.listen",
 }
+
+
+# Operations student code may never trigger, even inside its own workspace.
+# They are reported by Python's audit events no matter how they are reached:
+# os.remove, os.unlink, pathlib.Path.unlink, shutil.rmtree, shutil.move ...
+STUDENT_BLOCKED_EVENTS = {
+    "os.remove": "deleting files (os.remove / os.unlink / Path.unlink)",
+    "os.rmdir": "deleting folders (os.rmdir / os.removedirs / Path.rmdir)",
+    "shutil.rmtree": "deleting folders (shutil.rmtree)",
+    "os.rename": "renaming or moving files (os.rename / os.replace / shutil.move)",
+    "os.truncate": "truncating files (os.truncate)",
+    "os.chmod": "changing file permissions (os.chmod)",
+    "os.chown": "changing file owners (os.chown)",
+    "shutil.chown": "changing file owners (shutil.chown)",
+    "os.chflags": "changing file flags (os.chflags)",
+    "os.lchflags": "changing file flags (os.lchflags)",
+    "os.link": "creating links (os.link)",
+    "os.symlink": "creating links (os.symlink)",
+    "os.setxattr": "changing file attributes",
+    "os.removexattr": "changing file attributes",
+    "os.putenv": "changing environment variables (os.putenv)",
+    "os.unsetenv": "changing environment variables (os.unsetenv)",
+    "os.startfile": "opening files with other programs (os.startfile)",
+}
+
+
+HOOK_FUNCTIONS = {"called_from_student_code", "sandbox_audit_hook"}
+
+
+def frame_is_standard_library(filename: str) -> bool:
+    """Python's own modules (os, shutil, pathlib, runpy ...) and frozen code.
+
+    They are transparent when deciding who asked for an operation: shutil
+    deleting a folder is the learner's request when the learner called it.
+    """
+    if filename.startswith("<"):
+        return True
+
+    fold = (lambda text: text.lower()) if os.name == "nt" else (lambda text: text)
+    normalized = fold(normalized_path(filename))
+
+    for package_path in SITE_PACKAGE_PATHS:
+        if package_path and fold(normalized_path(package_path)) in normalized:
+            return False
+
+    for prefix in STANDARD_LIBRARY_PREFIXES:
+        if normalized.startswith(fold(prefix) + "/"):
+            return True
+
+    return False
+
+
+def called_from_student_code() -> bool:
+    """True when the nearest non-standard-library caller is the learner's file.
+
+    The trust check above looks at the whole stack, and the learner's program
+    itself runs inside runpy (standard library), so on some installs it says
+    "trusted" for everything. This one walks outward from the operation and
+    stops at the first frame that is either the learner's code (workspace) or
+    an installed package (site-packages), so pandas cleaning up its own temp
+    file is still allowed while the learner calling os.remove is not.
+    """
+    try:
+        for frame in inspect.stack(context=0):
+            filename = frame.filename
+
+            try:
+                if Path(filename).resolve(strict=False) == RUNNER_FILE:
+                    # The hook's own frames are skipped; any other runner frame
+                    # means the runner itself is working (its input bridge
+                    # replaces a state file while a program waits in input()).
+                    if frame.function in HOOK_FUNCTIONS:
+                        continue
+                    return False
+            except Exception:
+                pass
+
+            if frame_is_standard_library(filename):
+                continue
+
+            path = safe_resolve(filename)
+            if path is not None and (path_is_inside(path, WORKSPACE) or path_is_inside(path, INPUT_DIR)):
+                return True
+
+            return False
+    except Exception:
+        return True
+
+    return False
+
+
+def student_path_allowed(path_value: object, roots: list[Path]) -> bool:
+    if path_value is None:
+        return True
+    if isinstance(path_value, int):
+        return True
+
+    path = safe_resolve(path_value)
+
+    return path is not None and any(path == root or root in path.parents for root in roots)
 
 
 def block(event: str) -> None:
@@ -822,8 +956,26 @@ def sandbox_audit_hook(event: str, args: tuple) -> None:
                 raise
 
     if event in BLOCKED_EVENTS:
-        if not called_from_trusted_code():
+        if called_from_student_code() or not called_from_trusted_code():
             block(event)
+
+    if event in STUDENT_BLOCKED_EVENTS:
+        if called_from_student_code():
+            block(STUDENT_BLOCKED_EVENTS[event] + " is not allowed in the DataSensei IDE")
+
+    # Listing folders: the learner's own files and the libraries only, so a
+    # program cannot map the computer it runs on.
+    if event in {"os.listdir", "os.scandir"}:
+        if called_from_student_code() and not student_path_allowed(args[0] if args else None, ALLOWED_READ_ROOTS):
+            block(f"listing {str(args[0])[:160] if args else '?'} (only your workspace can be listed)")
+
+    if event == "os.chdir":
+        if called_from_student_code() and not student_path_allowed(args[0] if args else None, [WORKSPACE, Path("/tmp").resolve(strict=False)]):
+            block(f"changing to {str(args[0])[:160] if args else '?'} (stay inside your workspace)")
+
+    if event == "os.mkdir":
+        if called_from_student_code() and not student_path_allowed(args[0] if args else None, ALLOWED_WRITE_ROOTS):
+            block(f"creating folder {str(args[0])[:160] if args else '?'} (only inside your workspace)")
 
     if event == "ctypes.dlopen":
         if ctypes_dlopen_is_allowed(args):
@@ -841,6 +993,12 @@ def sandbox_audit_hook(event: str, args: tuple) -> None:
         try:
             path_value = args[0] if len(args) >= 1 else None
             mode_value = args[1] if len(args) >= 2 else "r"
+            flags_value = args[2] if len(args) >= 3 else None
+
+            # os.open() passes its intent in flags, not in a mode string; it
+            # used to be treated as a read wherever it pointed.
+            if isinstance(flags_value, int) and flags_value & WRITE_FLAGS:
+                mode_value = "w"
 
             if not file_access_is_allowed(path_value, mode_value):
                 block(f"open ({str(path_value)[:160]})")
@@ -871,10 +1029,30 @@ FORBIDDEN_ATTRIBUTE_NAMES = {
 }
 
 
+# os functions a lesson must not call. The audit hook enforces the same at
+# run time; naming them here stops the program before it starts and says
+# which line to change.
+BLOCKED_OS_NAMES = {
+    "system", "popen", "fork", "forkpty", "kill", "killpg", "abort", "_exit",
+    "remove", "unlink", "rmdir", "removedirs", "rename", "renames", "replace",
+    "truncate", "ftruncate", "chmod", "lchmod", "fchmod", "chown", "lchown",
+    "fchown", "chroot", "chflags", "lchflags", "link", "symlink", "putenv",
+    "unsetenv", "startfile", "plock", "register_at_fork", "setsid", "setpgid",
+    "setpgrp", "setgroups", "initgroups", "nice", "setpriority",
+}
+BLOCKED_OS_PREFIXES = ("spawn", "exec", "posix_spawn", "setuid", "seteuid", "setgid", "setegid", "setre", "setres")
+
+
+def os_name_is_blocked(name: str) -> bool:
+    return name in BLOCKED_OS_NAMES or name.startswith(BLOCKED_OS_PREFIXES)
+
+
 class WorkspacePolicyVisitor(ast.NodeVisitor):
     def __init__(self, source_path: Path) -> None:
         self.source_path = source_path
         self.violations: list[str] = []
+        # Names bound to the os module in this file: "os", or an alias.
+        self.os_names: set[str] = {"os"}
 
     def reject(self, node: ast.AST, message: str) -> None:
         line = getattr(node, "lineno", 1)
@@ -886,17 +1064,34 @@ class WorkspacePolicyVisitor(ast.NodeVisitor):
             root_name = alias.name.split(".")[0]
             if root_name in BLOCKED_IMPORT_ROOTS:
                 self.reject(node, f"import {root_name} is blocked")
+            if alias.name == "os":
+                self.os_names.add(alias.asname or "os")
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         root_name = (node.module or "").split(".")[0]
         if root_name in BLOCKED_IMPORT_ROOTS:
             self.reject(node, f"import from {root_name} is blocked")
+        if node.module == "os":
+            for alias in node.names:
+                if alias.name == "*":
+                    self.reject(node, "from os import * is blocked; import the names you need, for example from os import listdir")
+                elif os_name_is_blocked(alias.name):
+                    self.reject(node, self.os_message(alias.name))
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
         if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALL_NAMES:
             self.reject(node, f"{node.func.id}() is blocked")
+        # getattr(os, "remove") / vars(os) would reach blocked names indirectly.
+        if (
+            isinstance(node.func, ast.Name)
+            and node.func.id in {"getattr", "vars", "setattr", "delattr"}
+            and node.args
+            and isinstance(node.args[0], ast.Name)
+            and node.args[0].id in self.os_names
+        ):
+            self.reject(node, f"{node.func.id}() on the os module is blocked; call the os function by name")
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
@@ -904,7 +1099,19 @@ class WorkspacePolicyVisitor(ast.NodeVisitor):
             self.reject(node, f"unsafe introspection attribute {node.attr} is blocked")
         if isinstance(node.value, ast.Name) and node.value.id == "sys" and node.attr in {"modules", "path"}:
             self.reject(node, f"sys.{node.attr} is blocked")
+        if isinstance(node.value, ast.Name) and node.value.id in self.os_names:
+            if os_name_is_blocked(node.attr):
+                self.reject(node, self.os_message(node.attr))
+            elif node.attr == "__dict__":
+                self.reject(node, "os.__dict__ is blocked")
         self.generic_visit(node)
+
+    @staticmethod
+    def os_message(name: str) -> str:
+        return (
+            f"os.{name}() is blocked: running programs, deleting, renaming or re-permissioning files "
+            "is not allowed in the IDE (reading files, os.path, os.listdir, os.getcwd and os.makedirs are fine)"
+        )
 
 
 def validate_workspace_sources() -> None:

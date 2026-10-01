@@ -110,9 +110,8 @@ class AssessmentQuestion extends Model
             $errors[] = 'Select True or False as the correct answer.';
         }
 
-        if ($this->question_type === 'essay' && trim((string) $this->rubric_text) === '') {
-            $errors[] = 'Enter a scoring rubric.';
-        }
+        // Essay questions are scored by the instructor; grading notes are
+        // optional (DataSensei Updates 9).
 
         return $errors;
     }

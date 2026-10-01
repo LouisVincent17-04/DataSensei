@@ -10,7 +10,7 @@
 
   @if($hasHistory ?? false)
     <div class="notice error">
-      Students have already attempted this challenge. The title, description, availability and question pictures may still change; questions, answer choices, the time limit and XP are frozen. Build a new challenge to change them.
+      Students have already attempted this challenge. The title, description, availability and question pictures may still change; questions, answer choices and the time limit are frozen. Build a new challenge to change them.
     </div>
   @endif
 
@@ -18,7 +18,7 @@
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Challenge Settings</h2>
-        <p class="panel-subtitle">The title, timer and XP students see. The challenge sits on the University Student level and is visible only to the classes you give it to.</p>
+        <p class="panel-subtitle">The title and timer students see. Instructor challenges do not award XP. Students see the challenge only in the classes you share it with.</p>
       </div>
     </div>
     <div class="panel-body">
@@ -39,8 +39,9 @@
           <input id="time-limit" class="input" type="number" name="time_limit_seconds" min="60" max="21600" value="{{ old('time_limit_seconds', $challenge->time_limit_seconds ?? 600) }}" required @readonly($hasHistory ?? false)>
         </div>
         <div class="field">
-          <label for="base-xp">Base XP</label>
-          <input id="base-xp" class="input" type="number" name="base_xp" min="0" max="100000" value="{{ old('base_xp', $challenge->base_xp ?? 100) }}" required @readonly($hasHistory ?? false)>
+          <label>XP</label>
+          <p class="dim">None. Instructor challenges do not award XP, so every student earns XP the same way.</p>
+          <input type="hidden" name="base_xp" value="0">
         </div>
       </div>
       <div class="field" style="margin-top:16px">
@@ -183,7 +184,7 @@
     <div class="panel-body">
       <h3 class="mcq-preview-title" data-preview-title>Untitled challenge</h3>
       <p class="mcq-preview-desc" data-preview-description hidden></p>
-      <p class="mcq-preview-meta"><span data-preview-xp>0</span> Base XP, <span data-preview-time>0</span> min time limit</p>
+      <p class="mcq-preview-meta">No XP, <span data-preview-time>0</span> min time limit</p>
       <div data-preview-questions>
         <p class="mcq-preview-empty">Add a question to see it here.</p>
       </div>

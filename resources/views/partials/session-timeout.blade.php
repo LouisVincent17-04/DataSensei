@@ -1,6 +1,6 @@
 @once
 @php
-  $idleTimeoutMinutes = max(1, (int) config('session.idle_timeout', 240));
+  $idleTimeoutMinutes = max(1, (int) config('session.idle_timeout', 60));
   $idleWarningMinutes = min(5, max(1, $idleTimeoutMinutes - 1));
 @endphp
 <style id="datasensei-session-timeout-style">
@@ -19,6 +19,7 @@
   .ds-session-timeout-btn.primary{background:var(--ds-accent,#3b82f6);border-color:var(--ds-accent,#3b82f6);color:#fff}
   .ds-session-timeout-btn.primary:hover{background:var(--ds-accent-strong,#2563eb);border-color:var(--ds-accent-strong,#2563eb)}
   .ds-session-timeout-server{margin-top:16px;color:var(--ds-danger-text,#fca5a5)!important}
+  .ds-session-timeout-link{color:var(--ds-accent-text,#93c5fd);font-weight:600;text-decoration:underline}
   .ds-session-timeout.is-ending .ds-session-timeout-countdown{color:var(--ds-warning-text,#fcd34d);border-color:var(--ds-warning-border,rgba(245,158,11,.38));background:var(--ds-warning-soft,rgba(245,158,11,.12))}
   @media(max-width:520px){.ds-session-timeout-actions{flex-direction:column-reverse}.ds-session-timeout-btn{width:100%}}
 </style>
@@ -43,7 +44,10 @@
     let lastActivity = Date.now();
     let lastStoredAt = 0;
     let lastHeartbeatAt = 0;
-    let activityDirty = true;
+    // Loading this page already counted as activity on the server. Only
+    // real input after that sends a heartbeat, so an untouched page never
+    // keeps the session alive past the countdown shown here.
+    let activityDirty = false;
     let warningTimer = null;
     let expiryTimer = null;
     let countdownTimer = null;
@@ -180,6 +184,24 @@
         ? destination
         : (expired ? expiredLoginUrl : loginUrl);
       window.location.replace(target);
+
+      // This screen must never be the last thing the person sees. If the
+      // browser is still here after a few seconds (a busy server, or a
+      // navigation the browser dropped), show a plain link, and try once
+      // more on our own a little later.
+      window.setTimeout(() => {
+        if (countdown) {
+          countdown.textContent = '';
+          const link = document.createElement('a');
+          link.href = target;
+          link.textContent = 'Go to the sign-in page';
+          link.className = 'ds-session-timeout-link';
+          countdown.appendChild(link);
+        }
+      }, 5000);
+      window.setTimeout(() => {
+        try { window.location.assign(target); } catch (_) {}
+      }, 15000);
     };
 
     // This listener is registered before page-level dirty-form guards. During
@@ -190,7 +212,7 @@
       event.stopImmediatePropagation();
     }, { capture: true });
 
-    const requestWithTimeout = async (url, options, timeout = 6000) => {
+    const requestWithTimeout = async (url, options, timeout = 4000) => {
       const controller = new AbortController();
       const timer = window.setTimeout(() => controller.abort(), timeout);
       try {
@@ -219,6 +241,21 @@
       if (actions) actions.hidden = true;
     };
 
+    const signOutRequest = () => requestWithTimeout(logoutUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrf,
+      },
+    });
+
+    // Signed out, already signed out (401), or signed in again elsewhere
+    // with a newer token (419): nothing more to do here.
+    const signOutSettled = response => Boolean(response)
+      && (response.ok || response.status === 401 || response.status === 419);
+
     async function endSession(expired) {
       if (ending) return;
       ending = true;
@@ -226,15 +263,15 @@
       renderEndingState(expired);
 
       try {
-        await requestWithTimeout(logoutUrl, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': csrf,
-          },
-        });
+        const response = await signOutRequest().catch(() => null);
+        if (!signOutSettled(response)) {
+          // The sign-out call did not get through (a dropped connection or
+          // a busy server). Wait a moment, which also lets the server's own
+          // one-hour timer run out, then try once more. Either way the
+          // sign-in page below ends the session.
+          await new Promise(resolve => window.setTimeout(resolve, 3000));
+          await signOutRequest();
+        }
       } catch (_) {
         // A missing or already-expired server session must not trap the user
         // behind the overlay. Continue to the sign-in page in every case.
@@ -255,9 +292,14 @@
           credentials: 'same-origin',
           headers: {
             'Accept': 'application/json',
+            'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRF-TOKEN': csrf,
           },
+          // How long ago the last real input was. The server dates the
+          // activity from then (it can only move it forward, never extend
+          // it past now), so both timers end together.
+          body: JSON.stringify({ idle_ms: Math.max(0, Date.now() - effectiveLastActivity()) }),
         });
 
         if (response.status === 401 || response.status === 419) {

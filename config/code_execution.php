@@ -5,7 +5,10 @@
  * the model is unloaded (weights load + prompt eval + generation), but a review
  * fires on every Run and must never hold the panel for a minute.
  */
-$ollamaTimeout = min(60, max(5, (int) env('OLLAMA_TIMEOUT', 30)));
+/* Follow-up answers: a 1.5B model on a laptop CPU often needs more than 30
+   seconds for a full answer, and a timed-out answer is generated again from
+   the start in the background. Reviews keep their shorter limit below. */
+$ollamaTimeout = min(90, max(5, (int) env('OLLAMA_TIMEOUT', 60)));
 $reviewTimeout = min($ollamaTimeout, max(5, (int) env('OLLAMA_REVIEW_TIMEOUT', 20)));
 
 return [
@@ -100,6 +103,20 @@ return [
     ],
 
     /*
+     * Files saved in the Python IDE workspace. Python source keeps the 50,000
+     * character limit; data files (CSV, TXT, JSON, ...) that programs read may
+     * be larger. Each save is one database row, so the data-file limit is also
+     * capped below MySQL's max_allowed_packet (1 MB on a default XAMPP); raise
+     * that setting in my.ini to allow files up to the size below.
+     */
+    'ide' => [
+        'max_source_chars' => 50000,
+        'max_data_file_bytes' => min(20 * 1024 * 1024, max(50000, (int) env('IDE_MAX_DATA_FILE_BYTES', 5 * 1024 * 1024))),
+        'max_workspace_bytes' => min(30 * 1024 * 1024, max(1024 * 1024, (int) env('IDE_MAX_WORKSPACE_BYTES', 25 * 1024 * 1024))),
+        'data_file_extensions' => ['csv', 'tsv', 'txt', 'json', 'xml', 'dat', 'log', 'md'],
+    ],
+
+    /*
      * Straight-line beginner Python that ran cleanly is reviewed on this server
      * with no model call, which keeps the common lesson case instant.
      */
@@ -130,9 +147,12 @@ return [
         'warmup' => (bool) env('OLLAMA_WARMUP', true),
         /* One local model should not be saturated by accidental parallel work. */
         'max_concurrent_requests' => min(2, max(1, (int) env('OLLAMA_MAX_CONCURRENT', 1))),
-        'num_ctx' => min(8192, max(2048, (int) env('OLLAMA_NUM_CTX', 4096))),
+        /* Room for the code, its output and the conversation in follow-ups.
+           When a prompt does not fit, Ollama silently drops its beginning. */
+        'num_ctx' => min(8192, max(2048, (int) env('OLLAMA_NUM_CTX', 8192))),
         'review_num_predict' => min(512, max(96, (int) env('OLLAMA_REVIEW_NUM_PREDICT', 180))),
-        'chat_num_predict' => min(768, max(128, (int) env('OLLAMA_CHAT_NUM_PREDICT', 320))),
+        /* Follow-up answers were cut off at 320 tokens, mid-sentence. */
+        'chat_num_predict' => min(1024, max(128, (int) env('OLLAMA_CHAT_NUM_PREDICT', 640))),
         'max_code_chars' => 6000,
         'max_run_output_chars' => 1800,
         /* Accept the sandbox's bounded stderr, then compact it before prompting. */

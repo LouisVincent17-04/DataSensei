@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SchemaInspector;
 use App\Models\AssignmentSubmission;
 use App\Models\AssessmentSubmission;
 use App\Models\Challenge;
@@ -11,12 +12,10 @@ use App\Models\Lesson;
 use App\Models\Module;
 use App\Models\Rank;
 use App\Models\StudentDataToolkitActivity;
-use App\Models\StudentIloMastery;
 use App\Models\User;
 use App\Models\UserAchievement;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class StudentAnalyticsService
 {
@@ -40,7 +39,6 @@ class StudentAnalyticsService
             'coding' => $this->codingAnalytics($student),
             'assignments' => $this->assignmentAnalytics($student),
             'assessments' => $this->assessmentAnalytics($student),
-            'ilo_mastery' => $this->iloMastery($student),
             'achievements' => $this->achievementAnalytics($student),
             'data_toolkit' => $this->dataToolkitAnalytics($student),
             'activity' => $this->activitySeries($student),
@@ -60,11 +58,11 @@ class StudentAnalyticsService
 
     private function moduleAnalytics(User $student): array
     {
-        if (! Schema::hasTable('module_user')) {
-            return ['completed' => 0, 'unlocked' => 0, 'total' => Module::count(), 'percent' => 0];
+        if (! SchemaInspector::hasTable('module_user')) {
+            return ['completed' => 0, 'unlocked' => 0, 'total' => Module::published()->count(), 'percent' => 0];
         }
 
-        $total = max(0, Module::count());
+        $total = max(0, Module::published()->count());
         $completed = DB::table('module_user')->where('user_id', $student->id)->where('is_completed', true)->count();
         $unlocked = DB::table('module_user')->where('user_id', $student->id)->where('is_unlocked', true)->count();
 
@@ -78,7 +76,7 @@ class StudentAnalyticsService
 
     private function lessonAnalytics(User $student): array
     {
-        if (! Schema::hasTable('lesson_user')) {
+        if (! SchemaInspector::hasTable('lesson_user')) {
             return ['completed' => 0, 'total' => Lesson::count(), 'percent' => 0];
         }
 
@@ -94,7 +92,7 @@ class StudentAnalyticsService
 
     private function challengeAnalytics(User $student): array
     {
-        $serverAttempts = Schema::hasTable('challenge_attempts')
+        $serverAttempts = SchemaInspector::hasTable('challenge_attempts')
             ? ChallengeAttempt::where('user_id', $student->id)
                 ->where('is_ranked', true)
                 ->whereIn('status', ['submitted', 'expired'])
@@ -104,7 +102,7 @@ class StudentAnalyticsService
         // challenge_user is a best-progress compatibility row. Include it only
         // for challenges that have no server-side attempt records, otherwise the
         // same completion would be counted twice.
-        $legacy = Schema::hasTable('challenge_user')
+        $legacy = SchemaInspector::hasTable('challenge_user')
             ? DB::table('challenge_user as cu')
                 ->leftJoin('challenge_questions as cq', 'cq.challenge_id', '=', 'cu.challenge_id')
                 ->where('cu.user_id', $student->id)
@@ -138,7 +136,7 @@ class StudentAnalyticsService
 
     private function codingAnalytics(User $student): array
     {
-        if (! Schema::hasTable('coding_submissions')) {
+        if (! SchemaInspector::hasTable('coding_submissions')) {
             return ['submissions' => 0, 'passed' => 0, 'pass_rate' => 0, 'test_case_rate' => 0];
         }
 
@@ -158,7 +156,7 @@ class StudentAnalyticsService
 
     private function assignmentAnalytics(User $student): array
     {
-        if (! Schema::hasTable('assignment_submissions')) {
+        if (! SchemaInspector::hasTable('assignment_submissions')) {
             return ['submitted' => 0, 'graded' => 0, 'late' => 0, 'average_score' => 0];
         }
 
@@ -180,7 +178,7 @@ class StudentAnalyticsService
 
     private function assessmentAnalytics(User $student): array
     {
-        if (! Schema::hasTable('assessment_submissions')) {
+        if (! SchemaInspector::hasTable('assessment_submissions')) {
             return ['submitted' => 0, 'graded' => 0, 'pending_review' => 0, 'average_score' => 0];
         }
 
@@ -201,22 +199,9 @@ class StudentAnalyticsService
         ];
     }
 
-    private function iloMastery(User $student): Collection
-    {
-        if (! Schema::hasTable('student_ilo_masteries')) {
-            return collect();
-        }
-
-        return StudentIloMastery::with('ilo')
-            ->where('student_id', $student->id)
-            ->orderByDesc('mastery_percent')
-            ->limit(8)
-            ->get();
-    }
-
     private function achievementAnalytics(User $student): array
     {
-        if (! Schema::hasTable('achievement_definitions') || ! Schema::hasTable('user_achievements')) {
+        if (! SchemaInspector::hasTable('achievement_definitions') || ! SchemaInspector::hasTable('user_achievements')) {
             return ['unlocked' => 0, 'total' => 0, 'percent' => 0, 'latest' => collect()];
         }
 
@@ -236,7 +221,7 @@ class StudentAnalyticsService
 
     private function dataToolkitAnalytics(User $student): array
     {
-        if (! Schema::hasTable('student_data_toolkit_activities')) {
+        if (! SchemaInspector::hasTable('student_data_toolkit_activities')) {
             return [
                 'activities' => 0,
                 'datasets_explored' => 0,
@@ -264,7 +249,7 @@ class StudentAnalyticsService
     {
         $days = collect(range(13, 0))->map(fn (int $daysAgo) => now()->subDays($daysAgo)->toDateString());
 
-        $coding = Schema::hasTable('coding_submissions')
+        $coding = SchemaInspector::hasTable('coding_submissions')
             ? CodingSubmission::selectRaw('DATE(created_at) as day, COUNT(*) as total')
                 ->where('user_id', $student->id)
                 ->where('created_at', '>=', now()->subDays(14))
@@ -272,7 +257,7 @@ class StudentAnalyticsService
                 ->pluck('total', 'day')
             : collect();
 
-        $assignments = Schema::hasTable('assignment_submissions')
+        $assignments = SchemaInspector::hasTable('assignment_submissions')
             ? AssignmentSubmission::selectRaw('DATE(created_at) as day, COUNT(*) as total')
                 ->where('student_id', $student->id)
                 ->where('created_at', '>=', now()->subDays(14))
@@ -280,7 +265,7 @@ class StudentAnalyticsService
                 ->pluck('total', 'day')
             : collect();
 
-        $assessments = Schema::hasTable('assessment_submissions')
+        $assessments = SchemaInspector::hasTable('assessment_submissions')
             ? AssessmentSubmission::selectRaw('DATE(created_at) as day, COUNT(*) as total')
                 ->where('student_id', $student->id)
                 ->where('created_at', '>=', now()->subDays(14))
@@ -288,7 +273,7 @@ class StudentAnalyticsService
                 ->pluck('total', 'day')
             : collect();
 
-        $toolkit = Schema::hasTable('student_data_toolkit_activities')
+        $toolkit = SchemaInspector::hasTable('student_data_toolkit_activities')
             ? StudentDataToolkitActivity::selectRaw('DATE(created_at) as day, COUNT(*) as total')
                 ->where('user_id', $student->id)
                 ->where('created_at', '>=', now()->subDays(14))
@@ -310,7 +295,7 @@ class StudentAnalyticsService
         $score = min(35, ((int) ($student->streak ?? 0)) * 5);
         $score += min(35, (int) floor(((int) ($student->xp ?? 0)) / 300));
 
-        if (Schema::hasTable('student_data_toolkit_activities')) {
+        if (SchemaInspector::hasTable('student_data_toolkit_activities')) {
             $toolkitActivities = StudentDataToolkitActivity::where('user_id', $student->id)->count();
             $score += min(15, $toolkitActivities * 3);
         }

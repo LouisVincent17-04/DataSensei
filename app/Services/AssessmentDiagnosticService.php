@@ -89,7 +89,8 @@ class AssessmentDiagnosticService
             ],
             [
                 'class_id' => $submission->assessment->class_id,
-                'ilo_id' => $first->ilo_id,
+                // Diagnostics are by topic only; ILOs are descriptive (Updates 5).
+                'ilo_id' => null,
                 'topic_title' => $first->topic_title,
                 'subtopic_title' => $first->subtopic_title,
                 'learning_objective' => $first->learning_objective,

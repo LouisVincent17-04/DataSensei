@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SchemaInspector;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -832,13 +833,11 @@ class SuperAdminAnalyticsService
     }
 
     /**
-     * MySQL cannot prepare "SHOW TABLES LIKE ?" or "SHOW COLUMNS ... LIKE ?":
-     * the placeholder is a syntax error, the exception was swallowed, and every
-     * existence check answered "no", so the whole analytics page and all of its
-     * exports reported zero on a populated database. information_schema accepts
-     * bound parameters and exposes only the basic columns the MySQL 5.5
-     * deployment has. Every query in this service is MySQL SQL, so another
-     * driver still reports nothing rather than failing halfway down the page.
+     * Existence checks come from SchemaInspector: one plain SHOW TABLES per
+     * request and SHOW COLUMNS once per table, with no placeholders (MySQL
+     * cannot prepare "SHOW TABLES LIKE ?", which once made every check answer
+     * "no"). Every query in this service is MySQL SQL, so another driver
+     * still reports nothing rather than failing halfway down the page.
      */
     private function tableExists(string $table): bool
     {
@@ -846,13 +845,10 @@ class SuperAdminAnalyticsService
             return $this->tableExistsCache[$table];
         }
 
-        return $this->tableExistsCache[$table] = $this->schemaObjectExists(
-            'SELECT COUNT(*) AS aggregate
-             FROM information_schema.TABLES
-             WHERE TABLE_SCHEMA = DATABASE()
-               AND TABLE_NAME = ?',
-            [$table]
-        );
+        // One SHOW TABLES per request instead of an information_schema lookup
+        // per table (see SchemaInspector for why that mattered on MySQL 5.5).
+        return $this->tableExistsCache[$table] = $this->usesMySql()
+            && SchemaInspector::hasTable($table);
     }
 
     private function columnExists(string $table, string $column): bool
@@ -864,30 +860,14 @@ class SuperAdminAnalyticsService
         }
 
         return $this->columnExistsCache[$cacheKey] = $this->tableExists($table)
-            && $this->schemaObjectExists(
-                'SELECT COUNT(*) AS aggregate
-                 FROM information_schema.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE()
-                   AND TABLE_NAME = ?
-                   AND COLUMN_NAME = ?',
-                [$table, $column]
-            );
+            && SchemaInspector::hasColumn($table, $column);
     }
 
-    /**
-     * @param  array<int, string>  $bindings
-     */
-    private function schemaObjectExists(string $sql, array $bindings): bool
+    private function usesMySql(): bool
     {
-        if (DB::connection()->getDriverName() !== 'mysql') {
-            return false;
-        }
-
         try {
-            $result = DB::selectOne($sql, $bindings);
-
-            return (int) ($result->aggregate ?? 0) > 0;
-        } catch (\Throwable $e) {
+            return DB::connection()->getDriverName() === 'mysql';
+        } catch (\Throwable) {
             return false;
         }
     }

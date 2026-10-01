@@ -126,8 +126,14 @@ class AuditStudentModuleLibraryTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        // Updates 5: class modules are listed on the Modules page under the
+        // class ("Module source"); the old address leads there.
         $this->actingAsStudent($student)
             ->get(route('student.modules.index'))
+            ->assertRedirect(route('modules.index', ['source' => 'class-'.$classId]));
+
+        $this->actingAsStudent($student)
+            ->get(route('modules.index', ['source' => 'class-'.$classId]))
             ->assertOk()
             ->assertSee('Querying data');
 
@@ -174,19 +180,27 @@ class AuditStudentModuleLibraryTest extends TestCase
             ->assertOk();
     }
 
-    public function test_student_without_a_class_sees_the_active_library(): void
+    /**
+     * Updates 5: the instructor module library is reached only through a
+     * class. A learner without a class uses the public DataSensei modules.
+     */
+    public function test_student_without_a_class_cannot_open_the_class_library(): void
     {
         $student = $this->makeStudent();
         $module = $this->makeModule('MOD-OPEN', 'Open module');
 
         $this->actingAsStudent($student)
             ->get(route('student.modules.index'))
+            ->assertRedirect(route('modules.index'));
+
+        $this->actingAsStudent($student)
+            ->get(route('modules.index'))
             ->assertOk()
-            ->assertSee('Open module');
+            ->assertDontSee('Open module');
 
         $this->actingAsStudent($student)
             ->get(route('student.modules.show', $module))
-            ->assertOk();
+            ->assertNotFound();
     }
 
     private function makeStudent(): User

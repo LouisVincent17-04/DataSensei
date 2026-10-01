@@ -24,7 +24,7 @@ use App\Models\Lesson;
  *  7.8  — Heaps & Priority Queues
  *  7.9  — Graphs: Representation, BFS & DFS
  *  7.10 — Sorting & Searching Algorithms
- *  7.11 — Final Exam (Org-Locked)
+ *  7.11 — Final Exam
  */
 class Module7LessonsSeeder extends Seeder
 {
@@ -1756,7 +1756,7 @@ HTML;
         ]);
 
         // ══════════════════════════════════════════════════════════════
-        // LESSON 7.11 — Final Exam (Org-Locked)
+        // LESSON 7.11 — Final Exam
         // ══════════════════════════════════════════════════════════════
         $allFinalQuestions = [
             // Big-O (7.1)
@@ -1794,29 +1794,11 @@ HTML;
         ];
 
         $finalContent = <<<HTML
-<div id="org-lock-screen" style="text-align:center;padding:4rem 2rem;background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-top:2rem;">
-    <div style="font-size:3rem;margin-bottom:1rem;">🔒</div>
-    <h3 style="color:var(--text);margin-bottom:0.5rem;">University / Organization Access Only</h3>
-    <p style="color:var(--muted);">The Final Module Exam is restricted to enrolled students and verified organization members.</p>
-    <p style="font-size:0.85rem;color:#f59e0b;margin-top:1rem;background:rgba(245,158,11,0.1);padding:10px;border-radius:8px;display:inline-block;">Please contact administration to link your account to an organization.</p>
-</div>
-<div id="final-exam-content" style="display:none;">
-    <h2>Module 7: Final Examination</h2>
-    <p>This comprehensive exam covers all topics from Lessons 7.1 through 7.10 — Big-O complexity, arrays, stacks, queues, linked lists, hash tables, trees, heaps, graphs, sorting, and searching. Good luck!</p>
+<h2>Module 7: Final Examination</h2>
+<p>This comprehensive exam covers all topics from Lessons 7.1 through 7.10 — Big-O complexity, arrays, stacks, queues, linked lists, hash tables, trees, heaps, graphs, sorting, and searching. Good luck!</p>
 HTML;
 
         $finalContent .= $this->appendQuiz('', 'FINAL_EXAM', $allFinalQuestions);
-        $finalContent .= '</div>';
-        $finalContent .= <<<HTML
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.USER_ORG_ID !== 'undefined' && window.USER_ORG_ID !== null && window.USER_ORG_ID !== '') {
-        document.getElementById('org-lock-screen').style.display = 'none';
-        document.getElementById('final-exam-content').style.display = 'block';
-    }
-});
-</script>
-HTML;
 
         Lesson::create([
             'module_id'   => $dsaModule->id,

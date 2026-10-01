@@ -7,6 +7,18 @@
     $versionRouteName = $versionRouteName ?? null;
     $isStudentView = strtolower($viewerRole) === 'student';
     $ideUrl = Route::has('ide.index') ? route('ide.index') : url('/ide');
+    $versionRouteExtra = $versionRouteExtra ?? [];
+
+    // What You Will Learn (DataSensei Updates 5): the module's descriptive
+    // learning outcomes. They replace the older "Intended Learning Outcomes"
+    // (or "Learning Objectives") content section, so it is not shown twice.
+    $learningOutcomes = $learningOutcomes ?? (is_array($module->learning_outcomes ?? null) ? $module->learning_outcomes : []);
+    if (! empty($learningOutcomes)) {
+        $contentSections = array_values(array_filter(
+            (array) $contentSections,
+            fn ($section) => ! preg_match('/^\s*(intended\s+)?learning\s+(outcomes?|objectives?)\s*$/i', (string) ($section['heading'] ?? ''))
+        ));
+    }
 @endphp
 
 <!DOCTYPE html>
@@ -197,12 +209,55 @@
             padding: 28px 32px 48px;
         }
 
+        .lesson-shell.is-section-only {
+            display: block;
+            min-height: 0;
+        }
+
+        .lesson-shell.is-section-only .lesson-content {
+            padding: 16px;
+        }
+
         .lesson-content > * {
             max-width: 840px;
         }
 
         .lesson-hero {
             margin-bottom: 24px;
+        }
+
+        .outcome-details > summary h3 {
+            color: var(--text);
+            font-size: 1.125rem;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
+        .outcome-details .ds-outcomes-intro {
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: .875rem;
+            line-height: 1.5;
+        }
+
+        .outcome-section {
+            padding-bottom: 20px;
+        }
+
+        .outcome-list {
+            margin: 12px 0 0;
+            padding-left: 20px;
+            color: var(--ds-text-secondary);
+            font-size: .9375rem;
+            line-height: 1.6;
+        }
+
+        .outcome-list li + li {
+            margin-top: 4px;
+        }
+
+        .lesson-html {
+            white-space: normal;
         }
 
         .lesson-hero p {
@@ -218,6 +273,13 @@
             font-size: .8125rem;
             font-variant-numeric: tabular-nums;
         }
+
+        /* Marking a class module complete (DataSensei Updates 8). */
+        .module-completion { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .module-completion p { margin: 0; max-width: 60ch; color: var(--ds-text-secondary); font-size: .9375rem; line-height: 1.55; }
+        .module-completion .is-done { color: var(--ds-success-text); }
+        .module-complete-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 16px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent); color: #fff; font: 500 .875rem/1.2 var(--ds-font-sans); cursor: pointer; }
+        .module-complete-btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
         .lesson-section {
             margin-bottom: 20px;
@@ -722,7 +784,9 @@
     @include('partials.page-head', ['pageDescription' => 'Read the lesson material for this DataSensei module.'])
 </head>
 <body>
-    <div class="lesson-shell">
+    {{-- sectionOnly: the admin editor's "Preview section" shows one section alone. --}}
+    <div class="lesson-shell {{ ($sectionOnly ?? false) ? 'is-section-only' : '' }}">
+        @unless ($sectionOnly ?? false)
         <aside class="lesson-nav">
             <a href="{{ $backRoute }}" class="lesson-back">← Back</a>
 
@@ -744,11 +808,10 @@
                     <div class="version-list">
                         @foreach ($relatedVersions as $version)
                             <a
-                                href="{{ $versionRouteName ? route($versionRouteName, $version) : '#' }}"
+                                href="{{ $versionRouteName ? route($versionRouteName, array_merge(['module' => $version], $versionRouteExtra)) : '#' }}"
                                 class="{{ $version->id === $module->id ? 'is-current' : '' }}"
                             >
                                 <strong>{{ $version->version_name }}</strong>
-                                <small>{{ $version->version_code }}</small>
                             </a>
                         @endforeach
                     </div>
@@ -758,6 +821,12 @@
             <div class="side-card">
                 <h3>Module Contents</h3>
                 <nav class="topic-list">
+                    @if (! empty($learningOutcomes))
+                        <a href="#what-you-will-learn">
+                            <span>&#10003;</span>
+                            What You Will Learn
+                        </a>
+                    @endif
                     @foreach ($contentSections as $index => $section)
                         <a href="#section-{{ $index + 1 }}">
                             <span>{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
@@ -774,8 +843,10 @@
                 </nav>
             </div>
         </aside>
+        @endunless
 
         <main class="lesson-content">
+            @unless ($sectionOnly ?? false)
             <section class="lesson-hero">
                 <h1 class="ds-page-title">{{ $module->title }}</h1>
                 <p>
@@ -783,96 +854,46 @@
                     review common mistakes, and answer the knowledge check.
                 </p>
             </section>
+            @endunless
+
+            @if (! empty($learningOutcomes))
+                <section class="lesson-section outcome-section" id="what-you-will-learn">
+                    {{-- Closed by default; learners open it when they want (Updates 6). --}}
+                    @include('partials.learning-outcomes-toggle', [
+                        'outcomes' => $learningOutcomes,
+                        'label' => 'What You Will Learn',
+                        'heading' => 'h3',
+                        'intro' => 'By the end of this module you should be able to:',
+                        'listClass' => 'outcome-list',
+                        'class' => 'outcome-details',
+                    ])
+                </section>
+            @endif
 
             @forelse ($contentSections as $index => $section)
+                @php
+                    // The section as content blocks (DataSensei Updates 6): the
+                    // same organised view for every role, whichever way the
+                    // section was written. A first subheading is its subtitle.
+                    $sectionBlocks = app(\App\Services\ModuleBlockConverter::class)->fromLibrarySection(is_array($section) ? $section : []);
+                    $sectionSubtitle = null;
+                    if (($sectionBlocks[0]['type'] ?? null) === 'subheading') {
+                        $sectionSubtitle = $sectionBlocks[0]['text'];
+                        array_shift($sectionBlocks);
+                    }
+                @endphp
                 <section class="lesson-section" id="section-{{ $index + 1 }}">
                     <div class="section-head">
                         <span>{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
                         <div>
                             <h3>{{ $section['heading'] ?? 'Untitled Section' }}</h3>
-                            @if (!empty($section['subheading']))
-                                <p>{{ $section['subheading'] }}</p>
+                            @if (! empty($sectionSubtitle))
+                                <p>{{ $sectionSubtitle }}</p>
                             @endif
                         </div>
                     </div>
 
-                    @if (!empty($section['body']))
-                        <div class="lesson-body">
-                            {!! nl2br(e($section['body'])) !!}
-                        </div>
-                    @endif
-
-                    @if (!empty($section['code']))
-                        <div class="code-card">
-                            <div class="code-head">
-                                @php
-                                    $sectionIsSql = preg_match('/^\s*(?:--[^\n]*\n\s*)*(?:SELECT|WITH|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b/i', (string) $section['code']) === 1;
-                                @endphp
-                                <div class="code-title">{{ $sectionIsSql ? 'SQL Example' : 'Python Example' }}</div>
-
-                                @if ($isStudentView)
-                                    <button
-                                        type="button"
-                                        class="try-btn"
-                                        onclick='tryInCompiler(@json($section["code"]))'
-                                    >
-                                        {{ $sectionIsSql ? 'Try in SQL Sandbox' : 'Try in Compiler' }}
-                                    </button>
-                                @endif
-                            </div>
-                            <pre><code>{{ $section['code'] }}</code></pre>
-                        </div>
-                    @endif
-
-                    @if (!empty($section['walkthrough']) && is_array($section['walkthrough']))
-                        <div class="panel">
-                            <h4>Walkthrough</h4>
-                            <ol>
-                                @foreach ($section['walkthrough'] as $step)
-                                    <li>{{ $step }}</li>
-                                @endforeach
-                            </ol>
-                        </div>
-                    @endif
-
-                    @php
-                        $legacyActivityKey = base64_decode('bmV0YWNhZF9zdHlsZV9hY3Rpdml0eQ==');
-                        $learningActivity = $section['learning_activity']
-                            ?? $section['guided_activity']
-                            ?? $section['lesson_activity']
-                            ?? $section['datasensei_activity']
-                            ?? $section[$legacyActivityKey]
-                            ?? null;
-                    @endphp
-
-                    @if (!empty($learningActivity))
-                        <div class="activity">
-                            <strong>Learning Activity:</strong>
-                            <p>{{ $learningActivity }}</p>
-                        </div>
-                    @endif
-
-                    @if (!empty($section['common_mistakes']) && is_array($section['common_mistakes']))
-                        <div class="panel panel-warning">
-                            <h4>Common Mistakes</h4>
-                            <ul>
-                                @foreach ($section['common_mistakes'] as $mistake)
-                                    <li>{{ $mistake }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    @if (!empty($section['key_points']) && is_array($section['key_points']))
-                        <div class="panel panel-success">
-                            <h4>Key Points</h4>
-                            <ul>
-                                @foreach ($section['key_points'] as $point)
-                                    <li>{{ $point }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+                    @include('partials.module-blocks', ['blocks' => $sectionBlocks, 'isStudentView' => $isStudentView])
                 </section>
             @empty
                 <section class="lesson-section">
@@ -996,9 +1017,32 @@
                     </div>
                 </section>
             @endif
+
+            @if (! empty($completion) && ! ($sectionOnly ?? false))
+                <section class="lesson-section module-completion" id="module-completion">
+                    @if ($completion['completed_at'])
+                        <p class="is-done">You marked this module as complete on {{ $completion['completed_at']->format('M d, Y') }}. Your instructor can see it in your class progress.</p>
+                    @else
+                        <p>When you have read every section and answered the knowledge check, mark the module as complete. Your instructor sees it in your class progress.</p>
+                        <form method="POST" action="{{ $completion['url'] }}">
+                            @csrf
+                            <button type="submit" class="module-complete-btn">Mark module as complete</button>
+                        </form>
+                    @endif
+                </section>
+            @endif
         </main>
     </div>
 
+    <script>
+        // The outcome list starts closed; the contents link opens it.
+        document.querySelectorAll('a[href="#what-you-will-learn"]').forEach(function (link) {
+            link.addEventListener('click', function () {
+                var details = document.querySelector('#what-you-will-learn details');
+                if (details) details.open = true;
+            });
+        });
+    </script>
     <script>
         const ideUrl = @json($ideUrl);
 
