@@ -29,6 +29,7 @@
 @include('partials.brand-head')
 @include('partials.design-system')
 @include('partials.page-heading-style')
+@include('partials.glossary-tips')
 @unless (request()->routeIs('login'))
 {{-- The sign-in page keeps what was typed, in this tab only, so it can retry
      once after a session-expiry bounce. Any other page loading means that is

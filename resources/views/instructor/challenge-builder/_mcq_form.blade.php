@@ -226,7 +226,7 @@
   .mcq-preview-option-radio { width:14px; height:14px; flex:0 0 14px; border:1px solid var(--muted); border-radius:50%; }
   .mcq-preview-option.is-correct { border-color:var(--accent3); }
   .mcq-preview-option.is-correct .mcq-preview-option-radio { border-color:var(--accent3); background:var(--accent3); }
-  .mcq-preview-option-note { margin-left:auto; color:#a7f3d0; font-size:.75rem; font-weight:600; white-space:nowrap; }
+  .mcq-preview-option-note { margin-left:auto; color:var(--ds-success-ink, #a7f3d0); font-size:.75rem; font-weight:600; white-space:nowrap; }
   @media (max-width:700px) { .option-item { grid-template-columns:auto 1fr; } .option-item .btn { grid-column:auto; } .question-head { align-items:flex-start; flex-direction:column; } .question-image-row { flex-direction:column; } }
   @media (max-width:1100px) { .mcq-editor-layout { grid-template-columns:minmax(0,1fr); } .mcq-preview { position:static; } .mcq-preview .panel-body { max-height:none; } }
 </style>

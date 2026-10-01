@@ -151,10 +151,17 @@ class Updates9AssessmentBuilderTest extends TestCase
             ->assertStatus(422);
         $this->assertSame(5, $assessment->questions()->count());
 
+        // Since DataSensei Updates 11 the student Assessments page is My
+        // Classes; the published assessment is listed on its class page.
         $this->authenticateAs($this->student)
             ->get(route('student.assessments.index'))
             ->assertOk()
-            ->assertSee('Midterm Quiz');
+            ->assertSee(route('student.assessments.class', $this->class), false)
+            ->assertSee('1 available');
+        $this->authenticateAs($this->student)
+            ->get(route('student.assessments.class', $this->class))
+            ->assertOk()
+            ->assertSeeInOrder(['Available (1)', 'Midterm Quiz']);
         $this->authenticateAs($this->student)
             ->get(route('student.assessments.show', $assessment))
             ->assertOk();

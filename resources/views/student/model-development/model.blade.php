@@ -119,8 +119,10 @@
             {{-- STEP 3: RESULTS --}}
             <section class="ml-result-section" @if($onPredict) hidden @endif data-result-step="evaluate">
                 <section class="ml-score {{ $verdict['level'] }}" aria-label="How well the model did">
-                    <div class="ml-score-dial" style="--fill:{{ $dialValue !== null ? round(min(100, $dialValue), 1) : 0 }}">
-                        <span><b>{{ $dialValue !== null ? (int) round($dialValue).'%' : '–' }}</b><small>{{ $dialCaption }}</small></span>
+                    <div class="ml-score-figure">
+                        <b>{{ $dialValue !== null ? (int) round($dialValue).'%' : '–' }}</b>
+                        <small>{{ $dialCaption }}</small>
+                        @if($dialValue !== null)<span class="ml-score-meter"><i style="width:{{ round(min(100, $dialValue), 1) }}%"></i></span>@endif
                     </div>
                     <div>
                         <h2>{{ $resultSummary['headline'] }}</h2>

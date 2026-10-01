@@ -69,7 +69,7 @@
     .page-status{color:var(--muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
 
     .flash{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem}
+      background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem}
 
     @media(max-width:900px){.content{padding:24px 20px 40px}}
     @media(max-width:640px){
@@ -116,6 +116,7 @@
           @php
             $category = $notification->category;
             $iconPath = match($category) {
+              // 'assignment' stays for notification rows stored before assignments merged into assessments.
               'assignment' => '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
               'assessment' => '<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>',
               'achievement' => '<path d="M8 21h8M12 17v4"/><path d="M7 4h10v4a5 5 0 01-10 0V4z"/>',

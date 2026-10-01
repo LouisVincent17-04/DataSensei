@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class Challenge extends Model
 {
@@ -70,7 +72,60 @@ class Challenge extends Model
             } else {
                 $challenge->content_code = strtoupper(trim((string) $challenge->content_code));
             }
+
+            // DataSensei Updates 12: core_module_key is never mass-assigned.
+            // A new version of a built-in core challenge (same content code,
+            // platform content) keeps the core identity; instructor-built
+            // challenges and everything else are never core.
+            if (\App\Support\SchemaInspector::hasColumn('challenges', 'core_module_key')) {
+                $challenge->setAttribute('core_module_key', $challenge->isInstructorOwned() || $challenge->created_by
+                    ? null
+                    : DB::table('challenges')
+                        ->where('content_code', $challenge->content_code)
+                        ->whereNotNull('core_module_key')
+                        ->value('core_module_key'));
+            }
         });
+
+        // The identity of a built-in core challenge (its content code, level
+        // and type) stays fixed; its questions are changed through versions.
+        static::updating(function (Challenge $challenge): void {
+            if (blank($challenge->getOriginal('core_module_key'))) {
+                return;
+            }
+
+            foreach (['content_code', 'challenge_category_id', 'is_coding_challenge', 'core_module_key', 'visibility', 'created_by'] as $field) {
+                if ($challenge->isDirty($field) && (string) $challenge->getOriginal($field) !== (string) $challenge->getAttribute($field)) {
+                    throw ValidationException::withMessages([
+                        $field => 'This is a built-in Core Module challenge used by the core certificates; its content code, level and type cannot be changed. Create a new version to change its questions.',
+                    ]);
+                }
+            }
+        });
+
+        // The last version of a core challenge cannot be removed, or the core
+        // certificates would require something that no longer exists.
+        static::deleting(function (Challenge $challenge): void {
+            if (blank($challenge->getOriginal('core_module_key'))) {
+                return;
+            }
+
+            $others = DB::table('challenges')
+                ->where('content_code', $challenge->content_code)
+                ->where('id', '!=', $challenge->id)
+                ->exists();
+
+            if (! $others) {
+                throw ValidationException::withMessages([
+                    'challenge' => 'This is the only version of a built-in Core Module challenge, so it cannot be deleted. Deactivate it instead.',
+                ]);
+            }
+        });
+    }
+
+    public function isCoreChallenge(): bool
+    {
+        return filled($this->getAttribute('core_module_key'));
     }
 
     public function category(): BelongsTo

@@ -118,7 +118,7 @@
       </section>
 
       <section class="card">
-        <div class="label">Streak</div>
+        <div class="label">{!! \App\Support\Glossary::help('streak') !!}</div>
         <div class="metric">{{ number_format($analytics['summary']['streak']) }}</div>
         <p class="small">active learning streak</p>
       </section>
@@ -154,21 +154,15 @@
       </section>
 
       <section class="card">
-        <div class="label">Assignments</div>
-        <div class="metric">{{ $analytics['assignments']['average_score'] }}%</div>
-        <p class="small">{{ $analytics['assignments']['submitted'] }} submitted, {{ $analytics['assignments']['late'] }} late</p>
-      </section>
-
-      <section class="card">
         <div class="label">Assessments</div>
         <div class="metric">{{ $analytics['assessments']['average_score'] }}%</div>
         <p class="small">
-          {{ $analytics['assessments']['submitted'] }} submitted{{ $analytics['assessments']['pending_review'] > 0 ? ', '.$analytics['assessments']['pending_review'].' awaiting review' : '' }}
+          {{ $analytics['assessments']['submitted'] }} submitted{{ $analytics['assessments']['late'] > 0 ? ', '.$analytics['assessments']['late'].' late' : '' }}{{ $analytics['assessments']['pending_review'] > 0 ? ', '.$analytics['assessments']['pending_review'].' awaiting review' : '' }}
         </p>
       </section>
 
       <section class="card">
-        <div class="label">Achievements</div>
+        <div class="label">{!! \App\Support\Glossary::help('achievement', 'Achievements') !!}</div>
         <div class="metric">{{ $analytics['achievements']['percent'] }}%</div>
         <p class="small">{{ $analytics['achievements']['unlocked'] }} of {{ $analytics['achievements']['total'] }} unlocked</p>
       </section>

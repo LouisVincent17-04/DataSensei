@@ -192,10 +192,9 @@ final class AssignmentToAssessmentMerge
             ->get();
         foreach ($submissions as $submission) {
             $archive('assignment_submissions', $submission);
-            $answers = DB::table('assignment_submission_answers')
-                ->where('assignment_submission_id', $submission->id)
-                ->orderBy('id')
-                ->get();
+            $answers = Schema::hasTable('assignment_submission_answers')
+                ? DB::table('assignment_submission_answers')->where('assignment_submission_id', $submission->id)->orderBy('id')->get()
+                : collect();
             foreach ($answers as $answer) {
                 $archive('assignment_submission_answers', $answer);
             }
@@ -331,9 +330,12 @@ final class AssignmentToAssessmentMerge
             ]);
             $this->summary['submissions_converted']++;
 
-            $answers = DB::table('assignment_submission_answers')
-                ->where('assignment_submission_id', $submission->id)
-                ->get();
+            // A run that stopped part-way through the table drops may have
+            // removed this table already; the submissions it held were all
+            // converted before any table was dropped.
+            $answers = Schema::hasTable('assignment_submission_answers')
+                ? DB::table('assignment_submission_answers')->where('assignment_submission_id', $submission->id)->get()
+                : collect();
             foreach ($answers as $answer) {
                 $newQuestionId = $questionMap[(int) $answer->assignment_question_id] ?? null;
                 if ($newQuestionId === null) {
@@ -423,8 +425,12 @@ final class AssignmentToAssessmentMerge
      */
     private function seedSharedQuestionBank(): void
     {
-        if (! Schema::hasTable('question_bank_items') || ! Schema::hasTable('assignment_questions')) {
-            return;
+        // Every source table must still be there: a run that stopped part-way
+        // through the drops can have removed some of them.
+        foreach (['question_bank_items', 'question_bank_options', 'assignment_library_items', 'assignment_questions', 'assignment_question_options', 'assignment_blank_answers'] as $table) {
+            if (! Schema::hasTable($table)) {
+                return;
+            }
         }
         if (DB::table('question_bank_items')->whereNull('instructor_id')->exists()) {
             return; // already seeded; rerunning must not duplicate

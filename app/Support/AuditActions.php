@@ -5,9 +5,8 @@ namespace App\Support;
 use App\Models\AchievementDefinition;
 use App\Models\AntiCheatSetting;
 use App\Models\Assessment;
-use App\Models\AssignmentLibraryItem;
+use App\Models\CertificateDefinition;
 use App\Models\Challenge;
-use App\Models\ClassAssignment;
 use App\Models\ClassRoom;
 use App\Models\Institution;
 use App\Models\Module;
@@ -80,13 +79,22 @@ final class AuditActions
                 'admin.modules.status' => ['type' => 'DataSensei Module', 'param' => 'module', 'toggle' => $publishToggle],
                 'admin.modules.destroy' => ['action' => 'deleted', 'type' => 'DataSensei Module', 'param' => 'module'],
                 'admin.modules.reorder' => ['action' => 'reordered', 'type' => 'DataSensei Module', 'label' => fn () => 'Curriculum order'],
+                // DataSensei Updates 12: a custom module in use is archived instead of deleted.
+                'admin.modules.archive' => ['action' => 'archived', 'type' => 'DataSensei Module', 'param' => 'module'],
+                'admin.modules.restore' => ['action' => 'restored', 'type' => 'DataSensei Module', 'param' => 'module'],
+
+                // ── Admin: certificates (DataSensei Updates 13) ────────
+                'admin.certificates.settings' => ['action' => 'configured', 'type' => 'Certificate Settings', 'label' => fn () => 'Issuer, signatory, layout and requirement set'],
+                'admin.certificates.definitions.status' => ['type' => 'Core Certificate', 'param' => 'definition', 'toggle' => ['is_active', 'activated', 'deactivated', true]],
+                'admin.certificates.layouts.status' => ['action' => 'configured', 'type' => 'Certificate Layout', 'label' => fn (Request $r) => \App\Support\Certificates\CertificateLayouts::name((string) $r->route()?->parameter('layout')), 'details' => fn (Request $r) => app(\App\Services\CertificateSettings::class)->layoutEnabled((string) $r->route()?->parameter('layout')) ? 'Turned on' : 'Turned off'],
+                'admin.certificates.revoke' => ['action' => 'revoked', 'type' => 'Certificate', 'param' => 'certificate', 'details' => fn (Request $r) => 'Reason: '.trim((string) $r->input('reason'))],
+                'admin.certificates.reissue' => ['action' => 'reissued', 'type' => 'Certificate', 'param' => 'certificate', 'details' => fn (Request $r) => 'Reason: '.trim((string) $r->input('reason'))],
                 'admin.module-library.store' => ['action' => 'created', 'type' => 'Class Module', 'creates' => ModuleLibraryItem::class, 'intent' => true],
                 'admin.module-library.update' => ['action' => 'edited', 'type' => 'Class Module', 'param' => 'module', 'intent' => true],
                 'admin.module-library.status' => ['type' => 'Class Module', 'param' => 'module', 'toggle' => $activeToggle],
                 'admin.module-library.destroy' => ['action' => 'deleted', 'type' => 'Class Module', 'param' => 'module'],
                 'admin.module-library.duplicate' => ['action' => 'duplicated', 'type' => 'Class Module', 'param' => 'module', 'creates' => ModuleLibraryItem::class],
             ],
-            $crud('admin.assessments', 'Assessment Content', 'assessment', AssignmentLibraryItem::class, ['status', 'duplicate']),
             $crud('admin.challenges', 'MCQ Challenge', 'challenge', Challenge::class, ['status', 'duplicate']),
             $crud('admin.coding-challenges', 'Coding Challenge', 'challenge', Challenge::class, ['status']),
             [
@@ -139,15 +147,7 @@ final class AuditActions
                     'details' => fn (Request $r) => 'Class: '.$className($r),
                 ],
 
-                // ── Instructor: assignments and assessments ────────────
-                'instructor.assignments.store' => ['action' => 'created', 'type' => 'Assignment', 'creates' => ClassAssignment::class],
-                'instructor.assignments.update' => ['action' => 'edited', 'type' => 'Assignment', 'param' => 'assignment'],
-                'instructor.assignments.publish' => ['action' => 'published', 'type' => 'Assignment', 'param' => 'assignment'],
-                'instructor.assignments.close' => ['action' => 'closed', 'type' => 'Assignment', 'param' => 'assignment'],
-                'instructor.assignments.archive' => ['action' => 'archived', 'type' => 'Assignment', 'param' => 'assignment'],
-                'instructor.assignments.destroy' => ['action' => 'deleted', 'type' => 'Assignment', 'param' => 'assignment'],
-                'instructor.assignments.submissions.release' => ['action' => 'graded', 'type' => 'Assignment', 'param' => 'assignment', 'details' => fn (Request $r) => 'Released a held submission. '.self::studentNote($r->route()?->parameter('submission')?->student ?? null)],
-                'instructor.assignments.submissions.keep-blocked' => ['action' => 'graded', 'type' => 'Assignment', 'param' => 'assignment', 'details' => fn (Request $r) => 'Kept a submission blocked. '.self::studentNote($r->route()?->parameter('submission')?->student ?? null)],
+                // ── Instructor: assessments and question bank ──────────
                 'instructor.assessments.store' => ['action' => 'created', 'type' => 'Assessment', 'creates' => Assessment::class],
                 'instructor.assessments.publish' => ['action' => 'published', 'type' => 'Assessment', 'param' => 'assessment'],
                 'instructor.assessments.close' => ['action' => 'closed', 'type' => 'Assessment', 'param' => 'assessment'],
@@ -157,12 +157,25 @@ final class AuditActions
                 'instructor.assessments.questions.store' => ['action' => 'edited', 'type' => 'Assessment', 'param' => 'assessment', 'details' => fn () => 'Added a question'],
                 'instructor.assessments.questions.destroy' => ['action' => 'edited', 'type' => 'Assessment', 'param' => 'assessment', 'details' => fn () => 'Removed a question'],
                 'instructor.assessments.submissions.grade' => ['action' => 'graded', 'type' => 'Assessment', 'param' => 'assessment', 'details' => fn (Request $r) => self::studentNote($r->route()?->parameter('submission')?->student ?? null)],
+                'instructor.assessments.submissions.integrity.release' => ['action' => 'graded', 'type' => 'Assessment', 'param' => 'assessment', 'details' => fn () => 'Released a held attempt'],
+                'instructor.assessments.submissions.integrity.block' => ['action' => 'graded', 'type' => 'Assessment', 'param' => 'assessment', 'details' => fn () => 'Kept a held attempt blocked'],
+                'instructor.assessments.bank.add' => ['action' => 'edited', 'type' => 'Assessment', 'param' => 'assessment', 'details' => fn () => 'Added questions from the Question Bank'],
+                'instructor.question-bank.store' => ['action' => 'created', 'type' => 'Question Bank question', 'creates' => \App\Models\QuestionBankItem::class],
+                'instructor.question-bank.update' => ['action' => 'edited', 'type' => 'Question Bank question', 'param' => 'item'],
+                'instructor.question-bank.archive' => ['action' => 'edited', 'type' => 'Question Bank question', 'param' => 'item', 'details' => fn () => 'Archived or restored'],
 
                 // ── Instructor: challenges ─────────────────────────────
                 'instructor.challenge-builder.store' => ['action' => 'created', 'type' => 'Challenge', 'creates' => Challenge::class],
                 'instructor.challenge-builder.update' => ['action' => 'edited', 'type' => 'Challenge', 'param' => 'challenge'],
                 'instructor.challenge-builder.destroy' => ['action' => 'deleted', 'type' => 'Challenge', 'param' => 'challenge'],
                 'instructor.challenges.classes.update' => ['action' => 'assigned', 'type' => 'Challenge', 'param' => 'challenge', 'details' => fn () => 'Changed the classes that can practice it'],
+
+                // ── Instructor: Certificate Builder (DataSensei Updates 13)
+                'instructor.certificates.store' => ['action' => 'created', 'type' => 'Certificate Configuration', 'creates' => CertificateDefinition::class],
+                'instructor.certificates.update' => ['action' => 'edited', 'type' => 'Certificate Configuration', 'param' => 'certificate'],
+                'instructor.certificates.activate' => ['action' => 'activated', 'type' => 'Certificate Configuration', 'param' => 'certificate'],
+                'instructor.certificates.deactivate' => ['action' => 'deactivated', 'type' => 'Certificate Configuration', 'param' => 'certificate'],
+                'instructor.certificates.destroy' => ['action' => 'deleted', 'type' => 'Certificate Configuration', 'param' => 'certificate'],
 
                 // ── Instructor: settings and planning ──────────────────
                 'instructor.anti-cheat.store' => ['action' => 'configured', 'type' => 'Anti-Cheat Setting', 'creates' => AntiCheatSetting::class],
@@ -198,6 +211,16 @@ final class AuditActions
 
         if ($model instanceof AntiCheatSetting) {
             return 'Anti-cheat for '.str_replace('_', ' ', (string) ($model->assessment_type ?? 'class work'));
+        }
+
+        if ($model instanceof \App\Models\UserCertificate) {
+            $snapshot = $model->snapshotData();
+
+            return trim($model->certificate_number.', '.($snapshot['name'] ?? 'Certificate').' for '.($snapshot['holder']['name'] ?? ''));
+        }
+
+        if ($model instanceof \App\Models\QuestionBankItem) {
+            return \Illuminate\Support\Str::limit(trim((string) $model->question_text), 80);
         }
 
         foreach (['title', 'name', 'rank_name'] as $attribute) {

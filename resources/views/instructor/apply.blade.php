@@ -48,8 +48,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--
 .btn.secondary { background: var(--surface2); border-color: var(--ds-border-strong); color: var(--text); }
 .btn.secondary:hover { background: var(--ds-surface-hover); }
 
-.alert { max-width: 720px; margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm); background: var(--ds-success-soft); color: #d1fae5; font-size: 0.875rem; line-height: 1.5; }
-.alert.error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+.alert { max-width: 720px; margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm); background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5); font-size: 0.875rem; line-height: 1.5; }
+.alert.error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink, #fee2e2); }
 
 @media (max-width: 900px) { .main { padding: 24px 20px 40px; } }
 @media (max-width: 640px) {

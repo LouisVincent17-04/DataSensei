@@ -46,17 +46,17 @@
     .actions form{margin:0}
 
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.55}
-    .alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
-    .alert.pending{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:#fef3c7}
+      background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem;line-height:1.55}
+    .alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
+    .alert.pending{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-ink, #fef3c7)}
     .card.feedback{border-color:var(--ds-accent-border);background:var(--ds-accent-soft)}
-    .card.feedback > p{color:#dbeafe}
+    .card.feedback > p{color:var(--ds-accent-ink, #dbeafe)}
     .card > p strong{color:var(--text);font-weight:600}
     .explanation{margin-top:12px;padding:12px 16px;border-radius:var(--radius-sm);background:var(--surface3);font-size:.875rem;line-height:1.6}
     .explanation strong{display:block;color:var(--text);font-size:.8125rem;font-weight:600}
     .explanation p{margin:4px 0 0;color:var(--ds-text-secondary);overflow-wrap:anywhere}
     .explanation.feedback{border:1px solid var(--ds-accent-border);background:var(--ds-accent-soft)}
-    .explanation.feedback p{color:#dbeafe}
+    .explanation.feedback p{color:var(--ds-accent-ink, #dbeafe)}
 
     @media(max-width:900px){.main{padding:24px 20px 40px}}
     @media(max-width:640px){
@@ -90,10 +90,20 @@
       <div class="grid grid-3">
         <div class="metric"><strong>{{ $submission->score }}/{{ $submission->total_points }}</strong><span class="muted">Score</span></div>
         <div class="metric"><strong>{{ $submission->percentage }}%</strong><span class="muted">Percentage</span></div>
+        @if($assessment->passing_score_percent && $submission->graded_at)
+          <div class="metric"><strong>{{ $submission->percentage >= $assessment->passing_score_percent ? 'Passed' : 'Not passed' }}</strong><span class="muted">{!! \App\Support\Glossary::help('passing_score') !!} {{ $assessment->passing_score_percent }}%</span></div>
+        @endif
         <div class="metric"><strong>{{ ucfirst($submission->status) }}</strong><span class="muted">Status</span></div>
       </div>
 
-      @if(!$submission->graded_at)
+      @if($submission->isHeldForIntegrityReview())
+        <div class="alert error pending">
+          This attempt is {!! \App\Support\Glossary::help('held_for_review', 'held for instructor review') !!}{{ $submission->integrity_reason ? ': '.$submission->integrity_reason : '' }}
+          Your saved answers are kept, but the attempt has no credit unless your instructor releases it.
+        </div>
+      @elseif($submission->status === 'graded' && $submission->integrity_status === \App\Models\AssessmentSubmission::INTEGRITY_BLOCKED && $submission->integrity_reviewed_at)
+        <div class="alert error pending">Your instructor reviewed this attempt and kept it blocked, so it has no credit.</div>
+      @elseif(!$submission->graded_at)
         <div class="alert error pending">Essay responses are waiting for instructor grading. The displayed score is preliminary.</div>
       @endif
 

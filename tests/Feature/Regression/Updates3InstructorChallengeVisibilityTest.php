@@ -18,10 +18,12 @@ use Tests\TestCase;
 
 /**
  * Updates 3, D3 and D4: what students see of instructor-built challenges. An
- * instructor challenge appears on the University Student map and on the
- * assignments page only for students whose class has a published, open
+ * instructor challenge appears on the University Student map and the
+ * challenges page only for students whose class has a published, open
  * entry for it; a direct URL is refused otherwise; and it never counts
- * toward completing the level.
+ * toward completing the level. Graded class work lives on the assessments
+ * pages (assignments were merged into assessments in DataSensei Updates 11),
+ * which never list challenges.
  */
 class Updates3InstructorChallengeVisibilityTest extends TestCase
 {
@@ -133,7 +135,11 @@ class Updates3InstructorChallengeVisibilityTest extends TestCase
                 ->get(route('challenges.quiz', ['slug' => self::SLUG, 'challenge' => $mine->id]))
                 ->assertNotFound();
             $this->actingAsUser($student)
-                ->get(route('student.assignments.index'))
+                ->get(route('challenges'))
+                ->assertOk()
+                ->assertDontSee('Instructor Week 3 Quiz');
+            $this->actingAsUser($student)
+                ->get(route('student.assessments.index'))
                 ->assertOk()
                 ->assertDontSee('Instructor Week 3 Quiz');
         }
@@ -153,29 +159,39 @@ class Updates3InstructorChallengeVisibilityTest extends TestCase
             ->assertOk()
             ->assertDontSee('Instructor Week 3 Quiz');
         $this->actingAsUser($student)
-            ->get(route('student.assignments.index'))
+            ->get(route('challenges'))
+            ->assertOk()
+            ->assertDontSee('Instructor Week 3 Quiz');
+        $this->actingAsUser($student)
+            ->get(route('student.assessments.index'))
             ->assertOk()
             ->assertDontSee('Instructor Week 3 Quiz');
     }
 
-    public function test_assignments_page_no_longer_mixes_in_class_challenges(): void
+    public function test_assessment_pages_never_mix_in_class_challenges(): void
     {
-        // DataSensei Updates 9: assignments are graded class work, challenges
-        // are practice. Shared challenges are on the challenge pages only.
+        // DataSensei Updates 9: graded class work and challenges are apart;
+        // challenges are practice. Updates 11 merged assignments into
+        // assessments, so the graded side is the student's assessments pages
+        // (My Classes and one class's work). Shared challenges are on the
+        // challenge pages only.
         [$university, $instructor, $class, $student] = $this->scenario();
         $quiz = $this->makeChallenge($university, 'Instructor Week 3 Quiz', false, true, $instructor);
         $this->give($class, $quiz, $instructor, ['title' => 'Week 3 quiz', 'due_at' => now()->addDays(2)]);
 
         $this->actingAsUser($student)
-            ->get(route('student.assignments.index'))
+            ->get(route('student.assessments.index'))
             ->assertOk()
+            ->assertSee('Data Science 101')
             ->assertDontSee('Challenges from your instructor')
             ->assertDontSee('Week 3 quiz')
             ->assertDontSee('Instructor Week 3 Quiz');
 
         $this->actingAsUser($student)
-            ->get(route('student.assignments.class', $class))
+            ->get(route('student.assessments.class', $class))
             ->assertOk()
+            ->assertSee('No assessments yet')
+            ->assertDontSee('Week 3 quiz')
             ->assertDontSee('Instructor Week 3 Quiz');
 
         $this->actingAsUser($student)

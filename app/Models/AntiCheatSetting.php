@@ -49,8 +49,9 @@ class AntiCheatSetting extends Model
     protected static function booted(): void
     {
         static::saving(function (AntiCheatSetting $setting) {
-            // Instructor anti-cheat settings are intentionally scoped to instructor assignments only.
-            $setting->assessment_type = 'assignment';
+            // Instructor anti-cheat settings govern class assessments
+            // (homework, quizzes, examinations; DataSensei Updates 11).
+            $setting->assessment_type = 'assessment';
         });
     }
 

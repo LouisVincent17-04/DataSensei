@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Assessment;
 use App\Models\AssessmentSubmission;
-use App\Models\AssignmentSubmission;
 use App\Models\Challenge;
 use App\Models\ChallengeAttempt;
-use App\Models\ClassAssignment;
 use App\Models\ClassChallengeAssignment;
 use App\Models\IdeExecutionLog;
 use App\Models\Module;
@@ -196,15 +194,6 @@ class StudentController extends Controller
 
     private function scorePercentages(int $userId): Collection
     {
-        $assignmentScores = AssignmentSubmission::query()
-            ->where('student_id', $userId)
-            ->whereIn('status', ['submitted', 'late', 'graded'])
-            ->where('total_points', '>', 0)
-            ->get(['score', 'total_points'])
-            ->map(fn (AssignmentSubmission $submission): float =>
-                ((float) $submission->score / (float) $submission->total_points) * 100
-            );
-
         $assessmentScores = AssessmentSubmission::query()
             ->where('student_id', $userId)
             ->whereIn('status', ['submitted', 'late', 'graded'])
@@ -224,25 +213,11 @@ class StudentController extends Controller
                 ((float) $attempt->score / (float) $attempt->total_questions) * 100
             );
 
-        return $assignmentScores->concat($assessmentScores)->concat($challengeScores);
+        return $assessmentScores->concat($challengeScores);
     }
 
     private function recentActivity(int $userId): Collection
     {
-        $assignments = AssignmentSubmission::query()
-            ->with('classAssignment:id,title')
-            ->where('student_id', $userId)
-            ->whereIn('status', ['submitted', 'late', 'graded'])
-            ->latest('submitted_at')
-            ->limit(5)
-            ->get()
-            ->map(fn (AssignmentSubmission $submission): array => [
-                'type' => 'Assignment',
-                'title' => $submission->classAssignment?->title ?? 'Assignment',
-                'detail' => "Score {$submission->score}/{$submission->total_points}",
-                'at' => $submission->submitted_at ?? $submission->updated_at,
-            ]);
-
         $assessments = AssessmentSubmission::query()
             ->with('assessment:id,title')
             ->where('student_id', $userId)
@@ -271,8 +246,7 @@ class StudentController extends Controller
                 'at' => $attempt->submitted_at ?? $attempt->updated_at,
             ]);
 
-        return $assignments
-            ->concat($assessments)
+        return $assessments
             ->concat($challenges)
             ->filter(fn (array $item): bool => $item['at'] !== null)
             ->sortByDesc('at')
@@ -288,24 +262,6 @@ class StudentController extends Controller
             return collect();
         }
 
-        $assignments = ClassAssignment::query()
-            ->with('classRoom:id,name')
-            ->whereIn('class_id', $classIds)
-            ->where('status', 'published')
-            ->whereNotNull('due_at')
-            ->where('due_at', '>=', now())
-            ->where(fn ($query) => $query->whereNull('available_at')->orWhere('available_at', '<=', now()))
-            ->orderBy('due_at')
-            ->limit(10)
-            ->get()
-            ->map(fn (ClassAssignment $assignment): array => [
-                'type' => 'Assignment',
-                'title' => $assignment->title,
-                'class_name' => $assignment->classRoom?->name,
-                'due_at' => $assignment->due_at,
-                'url' => route('student.assignments.show', $assignment),
-            ]);
-
         $assessments = Assessment::query()
             ->with('classRoom:id,name')
             ->whereIn('class_id', $classIds)
@@ -317,7 +273,7 @@ class StudentController extends Controller
             ->limit(10)
             ->get()
             ->map(fn (Assessment $assessment): array => [
-                'type' => 'Assessment',
+                'type' => $assessment->purposeLabel() ?? 'Assessment',
                 'title' => $assessment->title,
                 'class_name' => $assessment->classRoom?->name,
                 'due_at' => $assessment->due_at,
@@ -325,9 +281,9 @@ class StudentController extends Controller
             ]);
 
         // Challenges shared with a class are practice and have no due date
-        // (DataSensei Updates 9), so only assignments and assessments are here.
-        return $assignments
-            ->concat($assessments)
+        // (DataSensei Updates 9); assessments carry every deadline now that
+        // they also serve as homework (DataSensei Updates 11).
+        return $assessments
             ->sortBy('due_at')
             ->take(6)
             ->values();

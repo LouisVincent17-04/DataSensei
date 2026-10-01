@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assignment Anti-Cheat Settings — DataSensei</title>
+  <title>Assessment Anti-Cheat Settings — DataSensei</title>
 <style>
-    /* Assignment anti-cheat settings. Colours, type and radius come from partials.design-system. */
+    /* Assessment anti-cheat settings. Colours, type and radius come from partials.design-system. */
     *{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
     .shell{display:flex;min-height:100vh}
@@ -19,10 +19,10 @@
 
     /* messages */
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);
-      background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.5}
-    .alert.success{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:#d1fae5}
+      background:var(--ds-accent-soft);color:var(--ds-accent-ink, #dbeafe);font-size:.875rem;line-height:1.5}
+    .alert.success{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5)}
     .note{margin-bottom:24px;padding:12px 16px;border:1px solid var(--ds-warning-border);border-radius:var(--radius-sm);
-      background:var(--ds-warning-soft);color:#fef3c7;font-size:.875rem;line-height:1.55}
+      background:var(--ds-warning-soft);color:var(--ds-warning-ink, #fef3c7);font-size:.875rem;line-height:1.55}
 
     /* summary figures: label above value */
     .grid{display:grid;gap:12px}
@@ -57,7 +57,7 @@
     .toggle input{width:16px;height:16px;flex-shrink:0;margin-top:2px}
     .toggle > div{min-width:0}
     .toggle strong{display:block;color:var(--text);font-size:.875rem;font-weight:500;line-height:1.4}
-    .toggle span{display:block;margin-top:2px;color:var(--muted);font-size:.75rem;line-height:1.45}
+    .toggle > div > span{display:block;margin-top:2px;color:var(--muted);font-size:.75rem;line-height:1.45}
 
     /* buttons */
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
@@ -81,14 +81,14 @@
     .table tbody tr:last-child td{border-bottom:0}
     .table tbody tr:hover td{background:rgba(255,255,255,.02)}
     .table strong{color:var(--text);font-weight:600}
-    .table td > span:not(.pill){color:var(--muted);font-size:.8125rem;overflow-wrap:anywhere}
+    .table td > span:not(.state){color:var(--muted);font-size:.8125rem;overflow-wrap:anywhere}
     .table .btn{min-height:32px;padding:0 12px;font-size:.8125rem}
 
-    .pill{display:inline-flex;align-items:center;margin:2px 4px 2px 0;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
-      background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
-    .pill.good{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-text)}
-    .pill.warn{border-color:var(--ds-warning-border);background:var(--ds-warning-soft);color:var(--ds-warning-text)}
-    .pill.danger{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-text)}
+    .rules{margin:0;padding:0;list-style:none;display:grid;gap:2px;font-size:.8125rem;color:var(--ds-text-secondary)}
+    .state{font-weight:600;color:var(--ds-text-secondary)}
+    .state.good{color:var(--ds-success-text)}
+    .state.warn{color:var(--ds-warning-text)}
+    .state.danger{color:var(--ds-danger-text)}
     .empty{padding:32px 20px;color:var(--muted);font-size:.875rem;line-height:1.5;text-align:center}
 
     @media(max-width:1100px){.toggles{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -106,7 +106,7 @@
     @media(max-width:560px){.stats{grid-template-columns:minmax(0,1fr)}}
     @media(prefers-reduced-motion:reduce){.btn,.input,.select,.toggle{transition:none}}
   </style>
-    @include('partials.page-head', ['pageTitle' => 'Assignment Anti-Cheat Settings', 'pageDescription' => 'Anti-cheat settings and the events recorded during assessments.'])
+    @include('partials.page-head', ['pageTitle' => 'Assessment Anti-Cheat Settings', 'pageDescription' => 'Anti-cheat settings and the events recorded during assessments.'])
 </head>
 <body>
   <div class="shell">
@@ -115,15 +115,15 @@
       <div class="wrap">
         <div class="top">
           <div>
-            <h1 class="title ds-page-title">Assignment Anti-Cheat Settings</h1>
-            <p class="subtitle">Configure anti-cheat safeguards for assignments you give to your classes. These settings do not affect public MCQ Challenges or public Coding Challenges.</p>
+            <h1 class="title ds-page-title">Assessment Anti-Cheat Settings</h1>
+            <p class="subtitle">Configure {!! \App\Support\Glossary::help('anti_cheat', 'anti-cheat') !!} safeguards for assessments you give to your classes. These settings do not affect public MCQ Challenges or public Coding Challenges.</p>
           </div>
         </div>
 
         @if(session('success')) <div class="alert success">{{ session('success') }}</div> @endif
 
         <div class="note">
-          These controls apply only when a student takes an instructor-assigned assignment. Public practice challenges and public coding challenges remain unaffected. Browser-based proctoring can reduce cheating, but it cannot perfectly prove intent.
+          These controls apply only when a student takes one of your class assessments. Public practice challenges and public coding challenges remain unaffected. Browser-based proctoring can reduce cheating, but it cannot perfectly prove intent.
         </div>
 
         <div class="grid stats">
@@ -165,7 +165,7 @@
                 @if($editingSetting)
                   Editing the rules saved for {{ $editingSetting->classRoom?->name ?? 'all classes' }}. Every rule below shows what is stored right now.
                 @else
-                  Use “All classes” as your default assignment anti-cheat policy, or choose a specific class for a class-level override.
+                  Use “All classes” as your default assessment anti-cheat policy, or choose a specific class for a class-level override.
                 @endif
               </div>
             </div>
@@ -188,7 +188,7 @@
                   </select>
                 </div>
                 <div class="field">
-                  <label>Allowed Tab Switches</label>
+                  <label>Allowed Tab Switches {!! \App\Support\Glossary::mark('focus_loss') !!}</label>
                   <input class="input" type="number" min="0" max="20" name="max_tab_switches" value="{{ $editingSetting ? (int) $editingSetting->max_tab_switches : 2 }}">
                 </div>
               </div>
@@ -198,7 +198,7 @@
                 <label class="toggle"><input type="checkbox" name="allow_tab_switch" value="1" @checked($acValue('allow_tab_switch'))><div><strong>Allow tab switching</strong><span>If off, switching tabs/focus is counted as a violation.</span></div></label>
                 <label class="toggle"><input type="checkbox" name="block_on_tab_limit" value="1" @checked($acValue('block_on_tab_limit'))><div><strong>Lock after tab limit</strong><span>Blocks attempt after the allowed count is exceeded.</span></div></label>
                 <label class="toggle"><input type="checkbox" name="require_fullscreen" value="1" @checked($acValue('require_fullscreen'))><div><strong>Require fullscreen</strong><span>Student must enter fullscreen before continuing.</span></div></label>
-                <label class="toggle"><input type="checkbox" name="detect_dual_monitor" value="1" @checked($acValue('detect_dual_monitor'))><div><strong>Detect dual monitor</strong><span>Logs multiple screens when browser support permits.</span></div></label>
+                <label class="toggle"><input type="checkbox" name="detect_dual_monitor" value="1" @checked($acValue('detect_dual_monitor'))><div><strong>Detect dual monitor {!! \App\Support\Glossary::mark('dual_monitor') !!}</strong><span>Logs multiple screens when browser support permits.</span></div></label>
                 <label class="toggle"><input type="checkbox" name="block_dual_monitor" value="1" @checked($acValue('block_dual_monitor'))><div><strong>Block dual monitor</strong><span>Locks attempt when multiple screens are detected.</span></div></label>
                 <label class="toggle"><input type="checkbox" name="allow_copy" value="1" @checked($acValue('allow_copy'))><div><strong>Allow copying</strong><span>Permit copying text/code inside the attempt.</span></div></label>
                 <label class="toggle"><input type="checkbox" name="allow_paste" value="1" @checked($acValue('allow_paste'))><div><strong>Allow paste</strong><span>If off, all paste actions are blocked.</span></div></label>
@@ -210,13 +210,13 @@
                 <label class="toggle"><input type="checkbox" name="lock_screen_on_violation" value="1" @checked($acValue('lock_screen_on_violation'))><div><strong>Lock screen on critical violation</strong><span>Disables inputs after a critical event.</span></div></label>
               </div>
 
-              <div class="actions"><button class="btn primary" type="submit">Save Assignment Anti-Cheat</button></div>
+              <div class="actions"><button class="btn primary" type="submit">Save Assessment Anti-Cheat</button></div>
             </form>
           </div>
         </section>
 
         <section class="card">
-          <div class="card-head"><div><div class="card-title">Saved Configurations</div><div class="card-sub">Class-specific settings override your all-classes assignment default.</div></div></div>
+          <div class="card-head"><div><div class="card-title">Saved Configurations</div><div class="card-sub">Class-specific settings override your all-classes assessment default.</div></div></div>
           @if($settings->count())
             <table class="table">
               <thead><tr><th>Scope</th><th>Rules</th><th>Actions</th></tr></thead>
@@ -225,11 +225,13 @@
                   <tr>
                     <td><strong>{{ $setting->classRoom?->name ?? 'All Classes' }}</strong><br><span>{{ $setting->classRoom?->section ?? 'Instructor default' }}</span></td>
                     <td>
-                      <span class="pill {{ $setting->enabled ? 'good' : 'danger' }}">{{ $setting->enabled ? 'Enabled' : 'Disabled' }}</span>
-                      <span class="pill {{ $setting->allow_tab_switch ? 'warn' : 'danger' }}">Tabs: {{ $setting->allow_tab_switch ? 'Allowed' : 'Blocked after '.$setting->max_tab_switches }}</span>
-                      <span class="pill {{ $setting->allow_paste ? 'warn' : 'danger' }}">Paste: {{ $setting->allow_paste ? 'Allowed' : 'Blocked' }}</span>
-                      <span class="pill {{ $setting->require_fullscreen ? 'danger' : '' }}">Fullscreen: {{ $setting->require_fullscreen ? 'Required' : 'Optional' }}</span>
-                      <span class="pill {{ $setting->block_dual_monitor ? 'danger' : 'warn' }}">Dual monitor: {{ $setting->block_dual_monitor ? 'Blocked' : ($setting->detect_dual_monitor ? 'Logged' : 'Ignored') }}</span>
+                      <ul class="rules">
+                        <li><span class="state {{ $setting->enabled ? 'good' : 'danger' }}">{{ $setting->enabled ? 'Enabled' : 'Disabled' }}</span></li>
+                        <li>Tabs: <span class="state {{ $setting->allow_tab_switch ? '' : 'danger' }}">{{ $setting->allow_tab_switch ? 'Allowed' : 'Blocked after '.$setting->max_tab_switches }}</span></li>
+                        <li>Paste: <span class="state {{ $setting->allow_paste ? '' : 'danger' }}">{{ $setting->allow_paste ? 'Allowed' : 'Blocked' }}</span></li>
+                        <li>Fullscreen: <span class="state {{ $setting->require_fullscreen ? 'danger' : '' }}">{{ $setting->require_fullscreen ? 'Required' : 'Optional' }}</span></li>
+                        <li>Dual monitor: <span class="state {{ $setting->block_dual_monitor ? 'danger' : '' }}">{{ $setting->block_dual_monitor ? 'Blocked' : ($setting->detect_dual_monitor ? 'Logged' : 'Ignored') }}</span></li>
+                      </ul>
                     </td>
                     <td>
                       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -245,12 +247,12 @@
               </tbody>
             </table>
           @else
-            <div class="empty">No assignment anti-cheat configuration yet. Assignments will run without anti-cheat until you save a configuration.</div>
+            <div class="empty">No assessment anti-cheat configuration yet. Assessments will run without anti-cheat until you save a configuration.</div>
           @endif
         </section>
 
         <section class="card">
-          <div class="card-head"><div><div class="card-title">Recent Anti-Cheat Events</div><div class="card-sub">Review assignment anti-cheat warnings and critical events from students in your classes.</div></div></div>
+          <div class="card-head"><div><div class="card-title">Recent Anti-Cheat Events</div><div class="card-sub">Review assessment anti-cheat warnings and critical events from students in your classes.</div></div></div>
           @if($recentEvents->count())
             <table class="table">
               <thead><tr><th>Student</th><th>Class</th><th>Assessment</th><th>Event</th><th>Severity</th><th>Time</th></tr></thead>
@@ -259,9 +261,9 @@
                   <tr>
                     <td><strong>{{ $event->user?->name ?? 'Student' }}</strong><br><span>{{ $event->user?->email }}</span></td>
                     <td>{{ $event->classRoom?->name ?? '—' }}</td>
-                    <td>Assignment<br><span>{{ $event->classAssignment?->title ?? '—' }}</span></td>
+                    <td>Assessment<br><span>{{ $event->assessment?->title ?? '—' }}</span></td>
                     <td><strong>{{ str_replace('_', ' ', ucwords($event->event_type, '_')) }}</strong></td>
-                    <td><span class="pill {{ $event->severity === 'critical' ? 'danger' : ($event->severity === 'warning' ? 'warn' : '') }}">{{ ucfirst($event->severity) }}</span></td>
+                    <td><span class="state {{ $event->severity === 'critical' ? 'danger' : ($event->severity === 'warning' ? 'warn' : '') }}">{{ ucfirst($event->severity) }}</span></td>
                     <td>{{ $event->created_at?->format('M d, Y h:i A') }}</td>
                   </tr>
                 @endforeach

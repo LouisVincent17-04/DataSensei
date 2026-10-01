@@ -182,7 +182,7 @@ class ClassStudentController extends Controller
             $student,
             'class_enrollment',
             'Added to a class',
-            'You were added to “' . $class->name . '”. New modules, assignments, and assessments for this class will appear in your account.',
+            'You were added to “' . $class->name . '”. New modules and assessments for this class will appear in your account.',
             route('studentDashboard'),
             ['class_id' => $class->id],
             'class-enrollment:' . $class->id . ':' . now()->format('YmdHis')
@@ -227,7 +227,7 @@ class ClassStudentController extends Controller
         }
 
         if ($result === 'in_progress') {
-            return back()->with('error', 'This student has an in-progress assignment or assessment attempt. Resolve it before removing them.');
+            return back()->with('error', 'This student has an in-progress assessment attempt. Resolve it before removing them.');
         }
 
         $notifications->send(
@@ -302,7 +302,7 @@ class ClassStudentController extends Controller
         }
 
         if ($result['status'] === 'in_progress') {
-            return back()->with('error', 'One or more selected students have in-progress assignment or assessment attempts. Resolve those attempts before removing the group.');
+            return back()->with('error', 'One or more selected students have in-progress assessment attempts. Resolve those attempts before removing the group.');
         }
 
         $notifications->sendToUsers(
@@ -320,17 +320,6 @@ class ClassStudentController extends Controller
 
     private function hasInProgressWork(int $classId, array $studentIds): bool
     {
-        $hasAssignment = DB::table('assignment_submissions')
-            ->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
-            ->where('class_assignments.class_id', $classId)
-            ->whereIn('assignment_submissions.student_id', $studentIds)
-            ->where('assignment_submissions.status', 'in_progress')
-            ->exists();
-
-        if ($hasAssignment) {
-            return true;
-        }
-
         return DB::table('assessment_submissions')
             ->join('assessments', 'assessments.id', '=', 'assessment_submissions.assessment_id')
             ->where('assessments.class_id', $classId)

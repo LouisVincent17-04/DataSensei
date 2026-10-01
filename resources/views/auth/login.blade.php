@@ -51,16 +51,16 @@
 
   .brand-row { margin-bottom: 40px; }
 
-  .hero-title {
+  .auth-title {
     max-width: 24ch;
     color: var(--ds-text);
-    font-size: 1.625rem;
+    font-size: 1.375rem;
     font-weight: 700;
     line-height: 1.25;
     letter-spacing: -0.02em;
   }
 
-  .hero-sub {
+  .auth-sub {
     max-width: 52ch;
     margin-top: 10px;
     color: var(--ds-text-muted);
@@ -417,7 +417,7 @@
     border: 1px solid var(--ds-accent-border);
     border-radius: var(--ds-radius-sm);
     background: var(--ds-accent-soft);
-    color: #dbeafe;
+    color: var(--ds-accent-ink, #dbeafe);
     font-size: 0.875rem;
     line-height: 1.5;
     overflow-wrap: anywhere;
@@ -426,13 +426,13 @@
   .alert-success {
     border-color: var(--ds-success-border);
     background: var(--ds-success-soft);
-    color: #d1fae5;
+    color: var(--ds-success-ink, #d1fae5);
   }
 
   .alert-danger {
     border-color: var(--ds-danger-border);
     background: var(--ds-danger-soft);
-    color: #fee2e2;
+    color: var(--ds-danger-ink, #fee2e2);
   }
 
   /* ── form ───────────────────────────────────────────── */
@@ -708,7 +708,7 @@
     .left { padding: 28px 16px 24px; }
     .right { padding: 28px 16px 40px; }
     .brand-row { margin-bottom: 24px; }
-    .hero-title { font-size: 1.375rem; }
+    .auth-title { font-size: 1.25rem; }
   }
 </style>
     @include('partials.page-head', ['pageDescription' => 'Sign in to DataSensei to continue your data science coursework.'])
@@ -734,9 +734,9 @@
         ])
       </div>
 
-      <h1 class="hero-title">Data Science, learned by doing.</h1>
+      <h1 class="auth-title">Data Science, learned by doing.</h1>
 
-      <p class="hero-sub">
+      <p class="auth-sub">
         Write code, work with real datasets, complete lessons and assessments,
         and review feedback as you learn.
       </p>

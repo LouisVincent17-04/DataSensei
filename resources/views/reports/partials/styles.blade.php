@@ -25,7 +25,7 @@
   .rp-field { display: grid; gap: 6px; flex: 0 1 180px; min-width: 150px; }
   .rp-field-wide { flex: 1 1 240px; }
   .rp-field label { color: var(--ds-text-secondary); font-size: .8125rem; font-weight: 500; }
-  .rp-input { width: 100%; min-height: var(--ds-control-h, 38px); padding: 0 12px; border: 1px solid var(--ds-input-border); border-radius: var(--radius-sm); background: var(--surface3); color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); color-scheme: dark; }
+  .rp-input { width: 100%; min-height: var(--ds-control-h, 38px); padding: 0 12px; border: 1px solid var(--ds-input-border); border-radius: var(--radius-sm); background: var(--surface3); color: var(--text); font: 400 .875rem/1.4 var(--ds-font-sans); color-scheme: var(--ds-color-scheme, dark); }
   .rp-input:focus { outline: none; border-color: var(--accent); box-shadow: var(--ds-focus-ring); }
   .rp-filter-actions { display: flex; gap: 8px; }
   .rp-error { margin: 0; color: var(--ds-danger-text); font-size: .875rem; }

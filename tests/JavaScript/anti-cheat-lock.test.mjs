@@ -185,9 +185,10 @@ function guardScript(config) {
   const values = {
     '$antiCheatSettings': config.settings,
     '$antiCheatEventContract': config.contract,
-    '$classAssignmentId': 7,
-    '$assignmentSubmissionId': 9,
-    '$assignmentQuestionId': null,
+    // Assignments were merged into assessments (DataSensei Updates 11).
+    '$assessmentId': 7,
+    '$assessmentSubmissionId': 9,
+    '$assessmentQuestionId': null,
     '$antiCheatSessionId': 'attempt-identity',
     "route('anti-cheat.events.store')": '/anti-cheat/events',
     'csrf_token()': 'csrf-token-value',
@@ -207,7 +208,7 @@ function bootGuard({ settings = {}, state = null, fetchImpl } = {}) {
   const lockMsg = new FakeElement('div');
   const finalizeBtn = new FakeElement('button', { type: 'button', className: 'ds-ac-lock-btn' });
   const byId = {
-    assignmentForm: form,
+    'assessment-form': form,
     'ds-ac-lock': lock,
     'ds-ac-lock-msg': lockMsg,
     'ds-ac-finalize-btn': finalizeBtn,
@@ -239,7 +240,7 @@ function bootGuard({ settings = {}, state = null, fetchImpl } = {}) {
     document,
     console: { error() {}, log() {} },
     screen: {},
-    location: { pathname: '/student/assignments/7/attempt/9' },
+    location: { pathname: '/student/assessments/7/attempt/9' },
     getSelection: () => '',
     addEventListener() {},
     setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; },
@@ -322,13 +323,18 @@ test('auto-submit after a violation sends _token, identity, latest answers and t
     'answers[12]': 'pandas',
     _anti_cheat_finalize: '1',
   });
-  assert.ok(page.requests.some(request => request.event_type === 'blocked_paste'), 'the violation event was posted first');
+  const violation = page.requests.find(request => request.event_type === 'blocked_paste');
+  assert.ok(violation, 'the violation event was posted first');
+  assert.equal(violation.assessment_type, 'assessment');
+  assert.equal(violation.assessment_id, 7);
+  assert.equal(violation.assessment_submission_id, 9);
+  assert.equal(violation.attempt_session_id, 'attempt-identity');
 });
 
 test('a reload of a blocked attempt is locked immediately, keeps its count and offers finalization', async () => {
   const page = bootGuard({
     settings: { auto_submit_mcq_on_violation: false },
-    state: { blocked: true, reason: 'Your assignment attempt was locked because it exceeded the allowed tab-switch/focus-loss limit.', focus_loss_count: 3, max_tab_switches: 2, remaining_allowance: 0 },
+    state: { blocked: true, reason: 'Your attempt was locked because it exceeded the allowed tab-switch/focus-loss limit.', focus_loss_count: 3, max_tab_switches: 2, remaining_allowance: 0 },
     fetchImpl: async () => okResponse({ ok: true }),
   });
   page.radioRight.checked = true; // restored from the saved draft by the server

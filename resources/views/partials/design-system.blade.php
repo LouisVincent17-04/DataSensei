@@ -18,6 +18,17 @@
     already use (--bg, --surface, --muted, --accent, --radius ...) are defined
     here too, so every page reads the same values.
 --}}
+{{-- Dark and light mode (DataSensei Updates 13). The choice is applied before
+     the page paints, so a page never flashes the other theme. Dark stays the
+     default; partials.theme-toggle switches and remembers it on this device. --}}
+<script>
+  (function () {
+    try {
+      var theme = localStorage.getItem('datasensei.theme');
+      if (theme === 'light' || theme === 'dark') { document.documentElement.setAttribute('data-theme', theme); }
+    } catch (e) {}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 {{-- One request for the whole product: Inter for the interface, JetBrains Mono for code. --}}
@@ -142,7 +153,100 @@
     --font-display: var(--ds-font-sans);
     --font-mono: var(--ds-font-mono);
     --num: var(--ds-font-sans);
+
+    /* Text on the soft status backgrounds, and the tooltip surface. */
+    --ds-color-scheme: dark;
+    --ds-accent-ink: #dbeafe;
+    --ds-success-ink: #d1fae5;
+    --ds-warning-ink: #fef3c7;
+    --ds-danger-ink: #fee2e2;
+    --ds-tip-bg: #0b1526;
   }
+
+  /* ── Light mode (DataSensei Updates 13) ───────────────────────────────
+     The same tokens with light values, so every page that uses them follows.
+     Status colours keep their meaning; only their shade changes for contrast. */
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --ds-color-scheme: light;
+    --ds-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --ds-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+    --ds-shadow-md: 0 10px 24px -12px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.06);
+    --ds-shadow-lg: 0 24px 48px -20px rgba(15, 23, 42, 0.25), 0 4px 12px rgba(15, 23, 42, 0.08);
+    --ds-bg: #f4f6fa;
+    --ds-surface: #ffffff;
+    --ds-surface-2: #f1f4f8;
+    --ds-surface-3: #f8fafc;
+    --ds-surface-hover: #e8edf4;
+    --ds-border: #dde3eb;
+    --ds-border-strong: #c2ccd9;
+    --ds-input-border: #c9d2de;
+    --ds-text: #0f172a;
+    --ds-text-secondary: #334155;
+    --ds-text-muted: #556479;
+    --ds-text-dim: #6f7f94;
+    --ds-accent: #2563eb;
+    --ds-accent-strong: #1d4ed8;
+    --ds-accent-text: #1d4ed8;
+    --ds-accent-soft: rgba(37, 99, 235, 0.08);
+    --ds-accent-border: rgba(37, 99, 235, 0.35);
+    --ds-success: #059669;
+    --ds-success-text: #047857;
+    --ds-success-soft: rgba(5, 150, 105, 0.08);
+    --ds-success-border: rgba(5, 150, 105, 0.32);
+    --ds-warning: #d97706;
+    --ds-warning-text: #b45309;
+    --ds-warning-soft: rgba(217, 119, 6, 0.09);
+    --ds-warning-border: rgba(217, 119, 6, 0.35);
+    --ds-danger: #dc2626;
+    --ds-danger-strong: #b91c1c;
+    --ds-danger-text: #b91c1c;
+    --ds-danger-soft: rgba(220, 38, 38, 0.07);
+    --ds-danger-border: rgba(220, 38, 38, 0.32);
+    --ds-overlay: rgba(15, 23, 42, 0.45);
+    --ds-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    --ds-gradient-brand: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    --ds-accent-ink: #1e3a8a;
+    --ds-success-ink: #065f46;
+    --ds-warning-ink: #92400e;
+    --ds-danger-ink: #991b1b;
+    --ds-tip-bg: #ffffff;
+  }
+
+  /* Code stays dark in light mode: lesson code windows, code cards, outputs
+     and editors keep the dark palette they were written for. */
+  :root[data-theme="light"] :is(.code-window, .code-card, .code-output, pre, .ds-keep-dark, .CodeMirror, .cm-editor, .monaco-editor) {
+    color-scheme: dark;
+    --ds-bg: #0d1320;
+    --ds-surface: #111c2d;
+    --ds-surface-2: #1a2638;
+    --ds-surface-3: #0f1928;
+    --ds-surface-hover: #1f2d44;
+    --ds-border: #1e2f47;
+    --ds-border-strong: #2c4168;
+    --ds-text: #f8fafc;
+    --ds-text-secondary: #c8d5e8;
+    --ds-text-muted: #8aa0bd;
+    --ds-text-dim: #68809f;
+    --ds-accent-text: #93c5fd;
+    --bg: #0d1320;
+    --surface: #111c2d;
+    --surface2: #1a2638;
+    --surface3: #0f1928;
+    --border: #1e2f47;
+    --border-hover: #2c4168;
+    --text: #f8fafc;
+    --muted: #8aa0bd;
+    --dim: #68809f;
+  }
+  :root[data-theme="light"] .code-window.lesson-table { color-scheme: light; --surface2: #ffffff; --surface3: #f8fafc; --border: #dde3eb; --text: #0f172a; --muted: #556479; --ds-text: #0f172a; --ds-text-secondary: #334155; --ds-surface-2: #ffffff; --ds-border: #dde3eb; }
+
+  /* The theme switch (partials.theme-toggle). Plain text button, no pill. */
+  .ds-theme-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 10px; border: 1px solid var(--ds-border-strong); border-radius: var(--ds-radius-sm); background: transparent; color: var(--ds-text-secondary); font: 500 .8125rem/1 var(--ds-font-sans); cursor: pointer; }
+  .ds-theme-toggle:hover { background: var(--ds-surface-hover); color: var(--ds-text); }
+  .ds-theme-toggle:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
+  .ds-theme-toggle svg { width: 14px; height: 14px; }
+  :root[data-theme="light"] .ds-theme-toggle .ds-theme-icon-light, :root:not([data-theme="light"]) .ds-theme-toggle .ds-theme-icon-dark { display: none; }
 
   @media (max-width: 900px) {
     :root { --ds-sticky-top: 0px; }
@@ -388,14 +492,14 @@
     border: 1px solid var(--ds-accent-border);
     border-radius: var(--ds-radius-sm);
     background: var(--ds-accent-soft);
-    color: #dbeafe;
+    color: var(--ds-accent-ink);
     font-size: var(--ds-text-base);
     line-height: var(--ds-leading-normal);
   }
 
-  .ds-alert--success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
-  .ds-alert--warning { border-color: var(--ds-warning-border); background: var(--ds-warning-soft); color: #fef3c7; }
-  .ds-alert--danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+  .ds-alert--success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-ink); }
+  .ds-alert--warning { border-color: var(--ds-warning-border); background: var(--ds-warning-soft); color: var(--ds-warning-ink); }
+  .ds-alert--danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink); }
 
   /* ── Tables ───────────────────────────────────────────────────────── */
   .ds-table-scroll {

@@ -90,7 +90,7 @@
               <td data-label="User"><strong>{{ $user->name }}</strong><br><span class="dim">{{ $user->email }}</span></td>
               <td data-label="Role / State">{{ $user->role_name }}<br><span class="badge info">{{ $user->learner_state }}</span></td>
               <td data-label="Institution">{{ $user->institution?->name ?? 'None' }}</td>
-              <td data-label="Activity"><span class="dim">Classes:</span> {{ $user->classes_as_student_count }}<br><span class="dim">Submissions:</span> {{ $user->assignment_submissions_count }}<br><span class="dim">Achievements:</span> {{ $user->user_achievements_count }}</td>
+              <td data-label="Activity"><span class="dim">Classes:</span> {{ $user->classes_as_student_count }}<br><span class="dim">Submissions:</span> {{ $user->assessment_submissions_count }}<br><span class="dim">Achievements:</span> {{ $user->user_achievements_count }}</td>
               <td class="form-cell" data-label="Edit Account">
                 <form method="POST" action="{{ route('admin.users.update', $user) }}">
                   @csrf

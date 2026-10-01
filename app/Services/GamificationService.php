@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Support\SchemaInspector;
 use App\Models\AchievementDefinition;
-use App\Models\AssignmentSubmission;
 use App\Models\Challenge;
 use App\Models\ChallengeAttempt;
 use App\Models\CodingQuestion;
@@ -171,16 +170,11 @@ class GamificationService
     }
 
     /**
-     * Assignments are class work: submitting one gives no XP, mission progress,
-     * achievement or streak (DataSensei Updates 5). Kept so callers keep
-     * working; it always returns no rewards.
+     * Assessments (homework, quizzes, examinations) are class work:
+     * submitting one gives no XP, mission progress, achievement or streak
+     * (DataSensei Updates 5). Kept so callers keep working; it always
+     * returns no rewards.
      */
-    public function awardForAssignmentSubmission(User $user, AssignmentSubmission $submission): array
-    {
-        return [];
-    }
-
-    /** Assessments are class work and give no rewards either. */
     public function recordAssessmentSubmission(User $user, int $submissionId): array
     {
         return [];

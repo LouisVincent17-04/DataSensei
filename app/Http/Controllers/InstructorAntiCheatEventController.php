@@ -14,7 +14,7 @@ class InstructorAntiCheatEventController extends Controller
         $classes = ClassRoom::where('instructor_id', Auth::id())->orderBy('name')->get();
         $classIds = $classes->pluck('id');
 
-        $query = AntiCheatEvent::with(['user', 'classRoom', 'classAssignment'])
+        $query = AntiCheatEvent::with(['user', 'classRoom', 'assessment'])
             ->whereIn('class_id', $classIds)
             ->latest('occurred_at')
             ->latest();

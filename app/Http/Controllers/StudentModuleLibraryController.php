@@ -99,6 +99,10 @@ class StudentModuleLibraryController extends Controller
             $progress->forceFill(['completed_at' => now()])->save();
         }
 
+        // Completing a class module may complete a class certificate's
+        // requirement (DataSensei Updates 13).
+        app(\App\Services\CertificateService::class)->afterProgress($student);
+
         return redirect()
             ->to(route('student.modules.show', array_filter(['module' => $module->id, 'class' => $classId])).'#module-completion')
             ->with('success', 'Module marked as complete.');

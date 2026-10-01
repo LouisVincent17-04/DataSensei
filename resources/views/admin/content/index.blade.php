@@ -26,15 +26,6 @@
       <div class="stat-bar"><span></span></div>
     </a>
 
-    <a class="stat tone-green" href="{{ route('admin.assessments.index') }}">
-      <div class="stat-header">
-        <span class="label">Assessment Content</span>
-        <span class="stat-icon" aria-hidden="true">A</span>
-      </div>
-      <div class="value">{{ number_format($summary['assessments']) }}</div>
-      <div class="sub">{{ number_format($summary['active_assessments']) }} published versions</div>
-      <div class="stat-bar"><span></span></div>
-    </a>
   </section>
 
   <section class="panel">
@@ -53,10 +44,6 @@
       <a class="quick-action" href="{{ route('admin.challenges.create') }}">
         <strong>Create MCQ Challenge</strong>
         <span>Create versioned MCQ content, questions, choices, scoring, and publishing status.</span>
-      </a>
-      <a class="quick-action" href="{{ route('admin.assessments.create') }}">
-        <strong>Create Assessment Content</strong>
-        <span>Create MCQ, fill-in-the-blank, or mixed assessment templates for instructors.</span>
       </a>
       <a class="quick-action" href="#challenge-categories">
         <strong>Manage Difficulty Categories</strong>

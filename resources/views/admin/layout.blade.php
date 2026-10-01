@@ -83,11 +83,11 @@
       border:1px solid var(--ds-success-border);
       border-radius:var(--radius-sm);
       background:var(--ds-success-soft);
-      color:#d1fae5;
+      color:var(--ds-success-ink, #d1fae5);
       font-size:.875rem;
       line-height:1.55;
     }
-    .notice.error { border-color:var(--ds-danger-border); background:var(--ds-danger-soft); color:#fee2e2; }
+    .notice.error { border-color:var(--ds-danger-border); background:var(--ds-danger-soft); color:var(--ds-danger-ink, #fee2e2); }
     .notice ul { margin:8px 0 0 18px; }
 
     /* ── Dashboard lead-in: plain text and actions, no banner ── */
@@ -225,25 +225,20 @@
     .dim { color:var(--dim); }
     .empty-cell { padding:32px 20px; text-align:center; color:var(--muted); }
 
+    /* Status words are plain text; colour alone carries the state (DataSensei Updates 10). */
     .badge {
       display:inline-flex;
       align-items:center;
       gap:4px;
-      padding:2px 8px;
-      border:1px solid var(--ds-border-strong);
-      border-radius:var(--radius-xs);
-      background:var(--surface2);
       color:var(--ds-text-secondary);
-      font-size:.75rem;
-      font-weight:600;
+      font-size:.8125rem;
+      font-weight:500;
       line-height:1.4;
       white-space:nowrap;
     }
-    .badge.info { color:var(--ds-accent-text); border-color:var(--ds-accent-border); background:var(--ds-accent-soft); }
-    .badge.active { color:var(--ds-success-text); border-color:var(--ds-success-border); background:var(--ds-success-soft); }
-    .badge.disabled { color:var(--ds-danger-text); border-color:var(--ds-danger-border); background:var(--ds-danger-soft); }
-    /* Counts and notes beside a panel title read as plain text, not as a status. */
-    .panel-head .badge.info, .panel-header .badge.info { padding:0; border:0; background:none; color:var(--muted); font-size:.8125rem; font-weight:500; }
+    .badge.info { color:var(--ds-text-muted); }
+    .badge.active { color:var(--ds-success-text); font-weight:600; }
+    .badge.disabled { color:var(--ds-danger-text); font-weight:600; }
 
     .pagination { padding:12px 16px; border-top:1px solid var(--border); }
 

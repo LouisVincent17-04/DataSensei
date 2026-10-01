@@ -19,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Feature\Regression\Concerns\BuildsClassAssessmentWorkflow;
 use Tests\Feature\Regression\Concerns\FakePythonSandbox;
 use Tests\TestCase;
 
@@ -29,6 +30,7 @@ use Tests\TestCase;
  */
 class Updates5ClassWorkXpTest extends TestCase
 {
+    use BuildsClassAssessmentWorkflow;
     use RefreshDatabase;
 
     private array $categories = [];
@@ -125,10 +127,61 @@ class Updates5ClassWorkXpTest extends TestCase
         $this->attempt($student, $platformQuiz, 10, 10);
         $this->assertSame([], $service->evaluateAchievements($student), 'Only one platform challenge passed so far.');
 
-        // Assignments and assessments give nothing at all.
-        $this->assertSame([], $service->awardForAssignmentSubmission($student, new \App\Models\AssignmentSubmission()));
+        // Assessments (which absorbed assignments in Updates 11) give nothing
+        // at all, even against a rule written for assignment submissions.
         $this->assertSame([], $service->recordAssessmentSubmission($student, 1));
+        $this->assertSame([], $service->evaluateAchievements($student));
         $this->assertSame(0, (int) $student->fresh()->xp);
+    }
+
+    public function test_submitting_an_assessment_awards_no_xp_achievements_or_missions(): void
+    {
+        $this->paths();
+        $this->seedAssessmentActors();
+        $this->seedAssessmentRewards();
+        $this->rewards();
+        $student = $this->student;
+        $classMission = (int) DB::table('mission_definitions')->where('mission_key', 'submit_three_assessments')->value('id');
+
+        // Homework, quiz and examination are all the same class work.
+        foreach (['homework', 'quiz', 'examination'] as $purpose) {
+            $ids = $this->makeAssessment(null, ['purpose' => $purpose, 'due_at' => now()->addDay()]);
+            $attempt = $this->makeAttempt($ids['assessment'], $student);
+
+            $this->actAs($student)
+                ->post(route('student.assessments.submit', [$ids['assessment'], $attempt->id]), [
+                    'answers' => [$ids['mcq'] => (string) $ids['correct'], $ids['blank'] => 'pandas'],
+                    '_anti_cheat_session_id' => $attempt->anti_cheat_session_id,
+                ])
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('student.assessments.result', [$ids['assessment'], $attempt->id]));
+
+            $attempt->refresh();
+            $this->assertSame('graded', $attempt->status, "{$purpose} attempt is graded");
+            $this->assertSame(10.0, (float) $attempt->score, "{$purpose} attempt earns full marks");
+        }
+
+        $student->refresh();
+        $this->assertSame(0, (int) $student->xp, 'Three full-mark assessments give no XP.');
+        $this->assertSame(0, UserAchievement::where('user_id', $student->id)->count());
+        $this->assertSame(0, $this->missionProgress($student));
+        $this->assertSame(0, (int) $student->streak);
+        $this->assertSame(3, DB::table('notifications')->where('user_id', $student->id)->where('type', 'assessment_graded')->count());
+
+        // The positive control: a DataSensei (platform) challenge still pays out.
+        [$platform, $platformOptions] = $this->quiz('newbie', 'Platform Quiz');
+        $this->finishQuiz($student, 'newbie', $platform, $platformOptions);
+
+        $student->refresh();
+        $attempt = ChallengeAttempt::where('user_id', $student->id)->where('challenge_id', $platform->id)->firstOrFail();
+        $this->assertGreaterThan(0, (int) $attempt->xp_awarded);
+        $this->assertSame((int) $attempt->xp_awarded + 50 + 35, (int) $student->xp, 'Challenge XP + achievement (50) + daily mission (35).');
+        $this->assertSame(1, UserAchievement::where('user_id', $student->id)->count());
+        $this->assertGreaterThan(0, $this->missionProgress($student));
+        $this->assertSame(0, (int) DB::table('student_mission_progress')
+            ->where('user_id', $student->id)
+            ->where('mission_definition_id', $classMission)
+            ->sum('progress_count'), 'The assessment mission never moves.');
     }
 
     public function test_the_migration_switches_off_class_work_rewards(): void

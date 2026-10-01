@@ -1,9 +1,14 @@
+@php
+  // A learner enrolled in a class is a Student; everyone else is a Public
+  // User (DataSensei Updates 10, task 5).
+  $dashboardTitle = auth()->user()?->classesAsStudent()->exists() ? 'Student Dashboard' : 'Public User Dashboard';
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Student Dashboard — DataSensei</title>
+  <title>{{ $dashboardTitle }} — DataSensei</title>
   <style>
     /* Layout and components for the student dashboard. Colours, type and
        radius come from partials.design-system. */
@@ -25,7 +30,7 @@
     .link:hover{text-decoration:underline}
 
     .flash{margin-bottom:20px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem}
+      background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem}
 
     /* ── lead-in ───────────────────────────────────────────────── */
     .greet{display:flex;align-items:flex-end;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;margin-bottom:24px}
@@ -70,10 +75,10 @@
     .split{display:flex;justify-content:space-between;align-items:center;gap:16px}
     .split > :first-child{min-width:0;flex:1 1 auto}
 
-    .tag{flex-shrink:0;color:var(--muted);font-size:.8125rem;font-weight:500;white-space:nowrap}
-    .tag.green{color:var(--ds-success-text)}
-    .tag.amber{color:var(--ds-warning-text)}
-    .tag .num{font-variant-numeric:tabular-nums}
+    .state{flex-shrink:0;color:var(--muted);font-size:.8125rem;font-weight:500;white-space:nowrap}
+    .state.green{color:var(--ds-success-text)}
+    .state.amber{color:var(--ds-warning-text)}
+    .state .num{font-variant-numeric:tabular-nums}
 
     .module{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
     .progress{height:6px;width:180px;max-width:100%;margin-top:8px;overflow:hidden;border-radius:999px;background:var(--surface2)}
@@ -119,7 +124,7 @@
       .actions .btn{flex:1 1 auto}
       .module{grid-template-columns:minmax(0,1fr)}
       .progress{width:100%}
-      .module .btn,.module .tag{justify-self:start}
+      .module .btn,.module .state{justify-self:start}
       .split{align-items:flex-start;flex-direction:column;gap:6px}
       .row,.rank,.current-rank{padding-left:16px;padding-right:16px}
       .card-head{padding:12px 16px}
@@ -127,13 +132,13 @@
     @media(max-width:420px){.readout{grid-template-columns:minmax(0,1fr)}}
     @media(prefers-reduced-motion:reduce){.btn,a.row{transition:none}}
   </style>
-    @include('partials.page-head', ['pageTitle' => 'Student Dashboard', 'pageDescription' => 'Your learning dashboard: current modules, assignments, and progress.'])
+    @include('partials.page-head', ['pageTitle' => $dashboardTitle, 'pageDescription' => 'Your learning dashboard: current modules, assessments, and progress.'])
 </head>
 <body>
   @include('partials.sidebar')
   <div class="main">
     <header class="topbar">
-      <h1 class="ds-page-title">Dashboard</h1>
+      <h1 class="ds-page-title">{{ $dashboardTitle }}</h1>
       <a class="whoami" href="{{ route('profile') }}"><i>{{ strtoupper(mb_substr($user->name, 0, 1)) }}</i>{{ $user->name }}</a>
     </header>
 
@@ -207,7 +212,7 @@
                   @if ($module['is_unlocked'])
                     <a class="btn small" href="{{ route('lesson.show', ['module' => $module['id']]) }}">Open</a>
                   @else
-                    <span class="tag">Locked</span>
+                    <span class="state">Locked</span>
                   @endif
                 </div>
               @empty
@@ -231,7 +236,7 @@
                     <div class="item-title">{{ $challenge->title }}</div>
                     <div class="meta">{{ $challenge->is_coding_challenge ? 'Coding' : 'Multiple choice' }} challenge in {{ $challenge->category->name }}, {{ $questionCount }} {{ Str::plural('question', $questionCount) }}</div>
                   </div>
-                  <span class="tag {{ $challenge->is_coding_challenge ? 'amber' : 'green' }}">@if($challenge->awardsXp())<span class="num">{{ $challenge->base_xp }}</span> XP @else No XP @endif</span>
+                  <span class="state {{ $challenge->is_coding_challenge ? 'amber' : 'green' }}">@if($challenge->awardsXp())<span class="num">{{ $challenge->base_xp }}</span> XP @else No XP @endif</span>
                 </a>
               @empty
                 <div class="empty">No unlocked challenges are pending.</div>
@@ -283,12 +288,12 @@
           </article>
 
           <article class="card">
-            <div class="card-head"><h3>Upcoming deadlines</h3><a class="link" href="{{ route('student.assignments.index') }}">Coursework</a></div>
+            <div class="card-head"><h3>Upcoming deadlines</h3><a class="link" href="{{ route('student.assessments.index') }}">Coursework</a></div>
             <div class="card-body">
               @forelse ($upcomingDeadlines as $deadline)
                 <a class="row split" href="{{ $deadline['url'] }}">
                   <div><div class="item-title">{{ $deadline['title'] }}</div><div class="meta">{{ $deadline['type'] }}{{ $deadline['class_name'] ? ' for '.$deadline['class_name'] : '' }}</div></div>
-                  <span class="tag amber">{{ $deadline['due_at']->format('M j, g:i A') }}</span>
+                  <span class="state amber">{{ $deadline['due_at']->format('M j, g:i A') }}</span>
                 </a>
               @empty
                 <div class="empty">No published deadlines are upcoming.</div>

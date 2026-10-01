@@ -2,28 +2,29 @@
 
 namespace Tests\Feature\Regression;
 
-use App\Models\AssignmentSubmission;
-use App\Models\ClassAssignment;
+use App\Models\Assessment;
+use App\Models\AssessmentSubmission;
 use App\Services\AntiCheatPolicyService;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Tests\Feature\Regression\Concerns\BuildsAssignmentWorkflow;
+use Tests\Feature\Regression\Concerns\BuildsClassAssessmentWorkflow;
 use Tests\TestCase;
 
 /**
- * DS-03: server enforcement matches the configured policy.
+ * DS-03: server enforcement matches the configured policy. Assessments carry
+ * the anti-cheat duty since assignments merged into them (Updates 11).
  */
 class Ds03AntiCheatPolicyMatrixTest extends TestCase
 {
-    use BuildsAssignmentWorkflow;
+    use BuildsClassAssessmentWorkflow;
     use RefreshDatabase;
 
-    private int $assignmentId;
-    private AssignmentSubmission $attempt;
-    /** @var array{item: int, mcq: int, correct: int, wrong: int, blank: int} */
+    private int $assessmentId;
+    private AssessmentSubmission $attempt;
+    /** @var array{assessment: int, mcq: int, correct: int, wrong: int, blank: int} */
     private array $q;
 
     protected function setUp(): void
@@ -31,10 +32,10 @@ class Ds03AntiCheatPolicyMatrixTest extends TestCase
         parent::setUp();
         $this->withoutMiddleware([ValidateCsrfToken::class]);
         Carbon::setTestNow(Carbon::parse('2026-09-20 09:00:00'));
-        $this->seedAssignmentActors();
-        $this->q = $this->makeLibraryItem(30);
-        $this->assignmentId = $this->makeClassAssignment($this->q['item']);
-        $this->attempt = $this->makeAttempt($this->assignmentId);
+        $this->seedAssessmentActors();
+        $this->q = $this->makeAssessment(30);
+        $this->assessmentId = $this->q['assessment'];
+        $this->attempt = $this->makeAttempt($this->assessmentId);
     }
 
     protected function tearDown(): void
@@ -45,9 +46,9 @@ class Ds03AntiCheatPolicyMatrixTest extends TestCase
 
     private function blockedReason(): ?string
     {
-        return app(AntiCheatPolicyService::class)->assignmentSubmissionBlocked(
+        return app(AntiCheatPolicyService::class)->assessmentSubmissionBlocked(
             $this->student,
-            ClassAssignment::findOrFail($this->assignmentId),
+            Assessment::findOrFail($this->assessmentId),
             $this->attempt->fresh(),
             $this->attempt->anti_cheat_session_id
         );
@@ -90,17 +91,17 @@ class Ds03AntiCheatPolicyMatrixTest extends TestCase
         $this->setPolicy(['detect_dual_monitor' => true, 'block_dual_monitor' => false, 'lock_screen_on_violation' => true]);
 
         $this->actAs($this->student)->postJson(route('anti-cheat.events.store'), [
-            'assessment_type' => 'assignment',
+            'assessment_type' => 'assessment',
             'event_type' => 'dual_monitor_detected',
             'attempt_session_id' => $this->attempt->anti_cheat_session_id,
-            'class_assignment_id' => $this->assignmentId,
-            'assignment_submission_id' => $this->attempt->id,
+            'assessment_id' => $this->assessmentId,
+            'assessment_submission_id' => $this->attempt->id,
             'details' => ['screens' => 2],
         ])->assertOk()->assertJsonPath('integrity.blocked', false);
 
         $this->assertSame(1, DB::table('anti_cheat_events')->where('event_type', 'dual_monitor_detected')->count());
 
-        $this->actAs($this->student)->post(route('student.assignments.submit', [$this->assignmentId, $this->attempt->id]), [
+        $this->actAs($this->student)->post(route('student.assessments.submit', [$this->assessmentId, $this->attempt->id]), [
             '_anti_cheat_session_id' => $this->attempt->anti_cheat_session_id,
             'answers' => [$this->q['mcq'] => (string) $this->q['correct'], $this->q['blank'] => 'pandas'],
         ])->assertSessionHasNoErrors()->assertRedirect();
@@ -108,7 +109,7 @@ class Ds03AntiCheatPolicyMatrixTest extends TestCase
         $attempt = $this->attempt->fresh();
         $this->assertSame('graded', $attempt->status);
         $this->assertSame('clear', $attempt->integrity_status);
-        $this->assertSame(10, $attempt->score);
+        $this->assertSame('10.00', $attempt->score);
     }
 
     public static function eventPolicyMatrix(): array
@@ -172,7 +173,7 @@ class Ds03AntiCheatPolicyMatrixTest extends TestCase
 
         $this->setPolicy();
         DB::table('anti_cheat_events')->delete();
-        $otherAttempt = $this->makeAttempt($this->assignmentId, $this->otherStudent);
+        $otherAttempt = $this->makeAttempt($this->assessmentId, $this->otherStudent);
         $this->recordEvent($otherAttempt, 'devtools_shortcut');
         $this->assertNull($this->blockedReason());
     }
@@ -182,9 +183,9 @@ class Ds03AntiCheatPolicyMatrixTest extends TestCase
         $this->setPolicy();
         $service = app(AntiCheatPolicyService::class);
 
-        foreach (['mcq', 'coding', 'assessment', 'tos_assessment'] as $type) {
+        foreach (['mcq', 'coding', 'assignment', 'tos_assessment'] as $type) {
             $this->assertFalse($service->settingsForUser($this->student, $type)['enabled'], $type);
         }
-        $this->assertTrue($service->settingsForUser($this->student, 'assignment')['enabled']);
+        $this->assertTrue($service->settingsForUser($this->student, 'assessment')['enabled']);
     }
 }

@@ -3,8 +3,11 @@
 namespace App\Services\Reports;
 
 use App\Models\ClassRoom;
+use App\Support\Reports\Columns;
+use App\Support\Reports\PerformanceBands;
 use App\Support\Reports\ReportFilters;
 use App\Support\Reports\ReportFormat as F;
+use App\Support\Reports\SubmissionOutcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -13,36 +16,64 @@ use Illuminate\Support\Facades\DB;
  * How a class is doing, read from the saved records (DataSensei Updates 8).
  *
  * One place computes class progress for the instructor's Class Analytics and
- * Reports (and the admin assessment and assignment figures), so they always
- * agree. Everything is rule based and uses only what students did: modules
- * opened and completed, assignments and assessments submitted, and attempts on
- * the challenges given to the class. No ILO mastery, no rankings.
+ * Reports (and the admin assessment figures), so they always agree.
+ * Everything is rule based and uses only what students did: modules opened
+ * and completed, assessments submitted, and attempts on the challenges given
+ * to the class. No ILO mastery, no rankings. Assignments were merged into
+ * assessments (DataSensei Updates 11); converted rows are already counted
+ * with the assessments here.
  *
  * Rules used throughout:
- *   - an assessment, assignment or MCQ challenge is passed at 70% or more
+ *   - an assessment or MCQ challenge is passed at 70% or more
  *     (ReportFormat::PASS_PERCENT), using the student's best attempt;
- *   - an assignment is missing when it was not submitted after its due date
- *     (or after it was closed); it is late when submitted after the due date;
+ *   - an assessment is missing when it was not completed after its due date
+ *     (or after it was closed); a submission is late when made after the due
+ *     date;
  *   - a coding challenge is completed when every problem in it is solved;
  *   - a student is active with any class activity in the last 14 days.
+ *
+ * DataSensei Updates 12 (Class Analytics & At-Risk in one place): every
+ * student is put in a Low, Moderate or High performance group by their
+ * assessment average, and the at-risk rules take their numbers from
+ * config/class_analytics.php (App\Support\Reports\PerformanceBands) instead
+ * of fixed values. The "low assessment scores" rule is the Low group, so the
+ * bar graph and the at-risk list always agree.
  */
 class ClassProgress
 {
     public const ACTIVE_DAYS = 14;
 
-    /** Students are flagged for attention by these rules, nothing else. */
-    public const ATTENTION_RULES = [
-        'missing' => 'Missing 2 or more assignments',
-        'assessments' => 'Assessment average below 70%',
-        'challenges' => 'Challenge average below 70%',
-        'coding' => '3 or more failed attempts on an unsolved coding problem',
-        'modules' => 'Completed under 25% of modules assigned a week or more ago',
-    ];
+    /**
+     * The at-risk rules, worded with the configured numbers. A student is
+     * flagged by these rules and nothing else; each rule that is true for
+     * them is shown as a reason.
+     *
+     * @return array<string, string>
+     */
+    public static function attentionRules(): array
+    {
+        $missing = PerformanceBands::atRisk('missing_assessments');
+        $failed = PerformanceBands::atRisk('failed_attempts');
+        $graceDays = PerformanceBands::atRisk('module_grace_days');
+
+        return [
+            'missing' => 'Missing '.$missing.' or more past-due assessments',
+            'assessments' => 'Low performance group: assessment average below '.self::plain(PerformanceBands::lowBelow()).'%',
+            'challenges' => 'Challenge average below '.PerformanceBands::atRisk('challenge_average_below').'%',
+            'coding' => $failed.' or more failed attempts on an unsolved coding problem',
+            'attempts' => $failed.' or more failed attempts on a challenge or assessment not yet passed',
+            'modules' => 'Completed under '.PerformanceBands::atRisk('module_completion_below').'% of the modules assigned '
+                .($graceDays === 1 ? '1 day' : $graceDays.' days').' or more ago',
+        ];
+    }
 
     private const DONE = ['submitted', 'late', 'graded'];
 
     /** @var array<int, array<string, mixed>> */
     private array $cache = [];
+
+    /** The request the cached snapshots were read for. */
+    private ?object $readFor = null;
 
     // ── Shared figures (admin report too) ────────────────────────────
 
@@ -51,19 +82,14 @@ class ClassProgress
         return ['attempts' => 0, 'average' => null, 'passed' => 0, 'failed' => 0, 'students_completed' => 0];
     }
 
-    public static function emptyAssignmentStats(): array
-    {
-        return ['submitted' => 0, 'late' => 0, 'on_time' => 0, 'average' => null];
-    }
-
     /** Past its due date, or closed or archived. */
-    public static function isPastDue(object|array $assignment): bool
+    public static function isPastDue(object|array $assessment): bool
     {
-        $assignment = (object) $assignment;
-        $status = (string) ($assignment->status ?? '');
+        $assessment = (object) $assessment;
+        $status = (string) ($assessment->status ?? '');
 
         return in_array($status, ['closed', 'archived'], true)
-            || (! empty($assignment->due_at) && CarbonImmutable::parse($assignment->due_at)->isPast());
+            || (! empty($assessment->due_at) && CarbonImmutable::parse($assessment->due_at)->isPast());
     }
 
     /**
@@ -102,43 +128,6 @@ class ClassProgress
         return $stats;
     }
 
-    /**
-     * Submitted, late, on-time counts and the average grade per assignment,
-     * from each student's latest submission.
-     *
-     * @param  Collection<int, object>  $assignments  rows with id and due_at
-     * @return array<int, array<string, mixed>>
-     */
-    public function assignmentStats(Collection $assignments): array
-    {
-        if ($assignments->isEmpty()) {
-            return [];
-        }
-
-        $dueDates = $assignments->pluck('due_at', 'id');
-        $rows = DB::table('assignment_submissions')
-            ->whereIn('class_assignment_id', $assignments->pluck('id')->all())
-            ->whereIn('status', self::DONE)
-            ->orderBy('attempt_no')
-            ->get(['class_assignment_id', 'student_id', 'status', 'score', 'total_points', 'submitted_at']);
-
-        $stats = [];
-        foreach ($rows->groupBy('class_assignment_id') as $assignmentId => $submissions) {
-            $latest = $submissions->groupBy('student_id')->map(fn ($own) => $own->last());
-            $late = $latest->filter(fn ($s) => self::isLate($s, $dueDates[$assignmentId] ?? null))->count();
-            $grades = $latest->map(fn ($s) => self::scorePercent($s->score, $s->total_points))->filter(fn ($p) => $p !== null);
-
-            $stats[(int) $assignmentId] = [
-                'submitted' => $latest->count(),
-                'late' => $late,
-                'on_time' => $latest->count() - $late,
-                'average' => $grades->isEmpty() ? null : round($grades->avg(), 1),
-            ];
-        }
-
-        return $stats;
-    }
-
     /** @param  array<int, array<string, mixed>>  $stats */
     public function weightedAverage(array $stats): ?float
     {
@@ -159,13 +148,23 @@ class ClassProgress
     /**
      * Everything the analytics and reports show about one class. With a
      * window, only the class work due (or created, when it has no due date)
-     * in that range is included.
+     * in that range is included. With $onlyStudents, only those enrolled
+     * students are read (a student's own gradebook reads just their own row).
      *
      * @return array<string, mixed>
      */
-    public function forClass(ClassRoom $class, ?ReportFilters $window = null): array
+    public function forClass(ClassRoom $class, ?ReportFilters $window = null, ?array $onlyStudents = null): array
     {
-        $cacheKey = $class->id.'|'.($window?->from?->toDateTimeString() ?? '').'|'.($window?->to?->toDateTimeString() ?? '');
+        $onlyStudents = $onlyStudents === null ? null : array_values(array_map('intval', $onlyStudents));
+        $cacheKey = $class->id.'|'.($window?->from?->toDateTimeString() ?? '').'|'.($window?->to?->toDateTimeString() ?? '')
+            .'|'.($onlyStudents === null ? '*' : implode(',', $onlyStudents));
+        // Snapshots are reused within one request only; an instance kept
+        // between requests (a controller, a queue worker) reads again.
+        $request = app()->bound('request') ? app('request') : null;
+        if ($request !== $this->readFor) {
+            $this->cache = [];
+            $this->readFor = $request;
+        }
         if (isset($this->cache[$cacheKey])) {
             return $this->cache[$cacheKey];
         }
@@ -176,6 +175,7 @@ class ClassProgress
         $students = DB::table('class_student')
             ->join('users', 'users.id', '=', 'class_student.student_id')
             ->where('class_student.class_id', $class->id)
+            ->when($onlyStudents !== null, fn ($q) => $q->whereIn('class_student.student_id', $onlyStudents ?: [0]))
             ->orderBy('users.name')
             ->get(['users.id', 'users.name', 'users.email', 'class_student.enrolled_at'])
             ->keyBy('id');
@@ -192,36 +192,28 @@ class ClassProgress
         $moduleProgress = DB::table('module_library_progress')
             ->whereIn('user_id', $ids)
             ->whereIn('module_library_item_id', $moduleAssignments->pluck('id')->all() ?: [0])
-            ->get(['user_id', 'module_library_item_id', 'opened_at', 'last_opened_at', 'completed_at'])
+            ->get(Columns::pick('module_library_progress', ['user_id', 'module_library_item_id'], ['opened_at', 'last_opened_at', 'completed_at']))
             ->groupBy('user_id')
             ->map(fn ($rows) => $rows->keyBy('module_library_item_id'));
 
-        // Assignments and assessments students can see.
-        $assignments = DB::table('class_assignments')
-            ->where('class_id', $class->id)
-            ->whereIn('status', ['published', 'closed'])
-            ->orderBy('due_at')->orderBy('id')
-            ->get(['id', 'title', 'status', 'due_at', 'available_at', 'created_at'])
-            ->filter($inWindow)->keyBy('id');
-        $assignmentSubs = DB::table('assignment_submissions')
-            ->whereIn('class_assignment_id', $assignments->keys()->all() ?: [0])
-            ->whereIn('student_id', $ids)
-            ->orderBy('attempt_no')
-            ->get(['id', 'class_assignment_id', 'student_id', 'attempt_no', 'status', 'score', 'total_points', 'submitted_at', 'started_at'])
-            ->groupBy('student_id');
-
+        // Assessments students can see (assignments were merged into
+        // assessments; converted rows are already counted here).
         $assessments = DB::table('assessments')
             ->where('class_id', $class->id)
             ->whereIn('status', ['published', 'closed'])
             ->orderBy('due_at')->orderBy('id')
-            ->get(['id', 'title', 'status', 'due_at', 'created_at', 'max_attempts'])
+            ->get(['id', 'title', 'status', 'purpose', 'due_at', 'created_at', 'max_attempts'])
             ->filter($inWindow)->keyBy('id');
         $assessmentSubs = DB::table('assessment_submissions')
             ->whereIn('assessment_id', $assessments->keys()->all() ?: [0])
             ->whereIn('student_id', $ids)
             ->orderBy('attempt_no')
-            ->get(['id', 'assessment_id', 'student_id', 'attempt_no', 'status', 'score', 'total_points', 'submitted_at', 'started_at'])
-            ->groupBy('student_id');
+            ->get(Columns::pick('assessment_submissions', ['id', 'assessment_id', 'student_id', 'attempt_no', 'status', 'score', 'total_points'], ['submitted_at', 'started_at', 'graded_at', 'integrity_status']));
+        // Only graded scores count (DataSensei Updates 12): an attempt held for
+        // an integrity review or still waiting for the instructor's grade is
+        // completed, but its provisional score is not a grade yet.
+        $unscored = SubmissionOutcome::unscoredSubmissionIds($assessmentSubs->whereIn('status', ['late', 'submitted'])->pluck('id'));
+        $assessmentSubs = $assessmentSubs->groupBy('student_id');
 
         // Challenges given to the class.
         $given = DB::table('class_challenge_assignments as a')
@@ -257,8 +249,9 @@ class ClassProgress
         $problemChallenge = $problems->pluck('challenge_id', 'id');
 
         $now = CarbonImmutable::now();
-        $weekAgo = $now->subDays(7);
+        $weekAgo = $now->subDays(PerformanceBands::atRisk('module_grace_days'));
         $activeSince = $now->subDays(self::ACTIVE_DAYS);
+        $failLimit = PerformanceBands::atRisk('failed_attempts');
 
         $perStudent = [];
         foreach ($students as $studentId => $student) {
@@ -287,58 +280,38 @@ class ClassProgress
             $olderModules = $modules->filter(fn ($m) => CarbonImmutable::parse($m->assigned_at ?? $m->created_at ?? $now)->lessThanOrEqualTo($weekAgo));
             $olderDone = $olderModules->keys()->filter(fn ($id) => ($moduleRows[$id]['state'] ?? '') === 'completed')->count();
 
-            // Assignments.
-            $own = $assignmentSubs->get($studentId, collect())->groupBy('class_assignment_id');
-            $assignmentRows = [];
-            foreach ($assignments as $assignmentId => $assignment) {
-                $subs = $own->get($assignmentId, collect());
-                $done = $subs->whereIn('status', self::DONE);
-                $latest = $done->last();
-                $late = $latest ? self::isLate($latest, $assignment->due_at) : false;
-                $state = match (true) {
-                    $latest !== null => $late ? 'late' : 'submitted',
-                    self::isPastDue($assignment) => 'missing',
-                    $subs->isNotEmpty() => 'in_progress',
-                    default => 'pending',
-                };
-                $assignmentRows[$assignmentId] = [
-                    'state' => $state,
-                    'submitted_at' => $latest?->submitted_at,
-                    'late' => $late,
-                    'score' => $latest ? self::scorePercent($latest->score, $latest->total_points) : null,
-                    'score_text' => $latest ? self::scoreText($latest->score, $latest->total_points, $latest->status) : F::NONE,
-                    'attempts' => $done->count(),
-                    'graded' => $latest?->status === 'graded',
-                ];
-                foreach ($subs as $sub) {
-                    $touch($sub->submitted_at);
-                }
-            }
-            $assignmentStates = collect($assignmentRows)->pluck('state');
-
             // Assessments.
             $own = $assessmentSubs->get($studentId, collect())->groupBy('assessment_id');
             $assessmentRows = [];
             foreach ($assessments as $assessmentId => $assessment) {
                 $subs = $own->get($assessmentId, collect());
                 $done = $subs->whereIn('status', self::DONE);
-                $scores = $done->map(fn ($s) => self::scorePercent($s->score, $s->total_points))->filter(fn ($p) => $p !== null);
+                $graded = $done->filter(fn ($s) => SubmissionOutcome::isFinal($s, isset($unscored[(int) $s->id])));
+                $scores = $graded->map(fn ($s) => self::scorePercent($s->score, $s->total_points))->filter(fn ($p) => $p !== null);
                 $best = $scores->isEmpty() ? null : round($scores->max(), 1);
-                $bestSub = $done->sortByDesc(fn ($s) => self::scorePercent($s->score, $s->total_points) ?? -1)->first();
+                $bestSub = $graded->sortByDesc(fn ($s) => self::scorePercent($s->score, $s->total_points) ?? -1)->first()
+                    ?? $done->sortByDesc('attempt_no')->first();
                 $assessmentRows[$assessmentId] = [
                     'state' => $done->isNotEmpty() ? 'completed' : ($subs->isNotEmpty() ? 'in_progress' : 'not_started'),
                     'attempts' => $done->count(),
+                    'failed_attempts' => $scores->filter(fn ($p) => $p < F::PASS_PERCENT)->count(),
                     'best' => $best,
-                    'score_text' => $bestSub ? self::scoreText($bestSub->score, $bestSub->total_points, $bestSub->status) : F::NONE,
+                    'score_text' => match (true) {
+                        $bestSub === null => F::NONE,
+                        $graded->isEmpty() => SubmissionOutcome::isHeld($bestSub) ? 'Held for integrity review' : 'Awaiting grade',
+                        default => self::scoreText($bestSub->score, $bestSub->total_points, $bestSub->status),
+                    },
                     'passed' => $best !== null ? $best >= F::PASS_PERCENT : null,
                     'submitted_at' => $done->max('submitted_at'),
-                    'awaiting_review' => $done->isNotEmpty() && $done->every(fn ($s) => $s->status === 'submitted' && $s->score === null),
+                    'awaiting_review' => $done->isNotEmpty() && $graded->isEmpty(),
                 ];
                 foreach ($subs as $sub) {
                     $touch($sub->submitted_at);
                 }
             }
             $assessmentBests = collect($assessmentRows)->pluck('best')->filter(fn ($p) => $p !== null);
+            $repeatedAttemptFailures = collect($assessmentRows)->filter(fn (array $row) => $row['passed'] === false && $row['failed_attempts'] >= $failLimit)->count();
+            $assessmentsMissing = $assessments->filter(fn ($a, $id) => ($assessmentRows[$id]['state'] ?? '') !== 'completed' && self::isPastDue($a))->count();
 
             // MCQ challenges.
             $own = $attempts->get($studentId, collect())->groupBy('challenge_id');
@@ -351,6 +324,7 @@ class ClassProgress
                 $challengeRows[$challengeId] = [
                     'state' => $best === null ? 'not_started' : ($best >= F::PASS_PERCENT ? 'passed' : 'attempted'),
                     'attempts' => $tries->count(),
+                    'failed_attempts' => $scores->filter(fn ($p) => $p < F::PASS_PERCENT)->count(),
                     'best' => $best,
                     'score_text' => $bestTry ? $bestTry->score.' / '.$bestTry->total_questions : F::NONE,
                     'last_at' => $tries->max('submitted_at'),
@@ -358,6 +332,7 @@ class ClassProgress
                 $touch($tries->max('submitted_at'));
             }
             $challengeBests = collect($challengeRows)->pluck('best')->filter(fn ($p) => $p !== null);
+            $repeatedAttemptFailures += collect($challengeRows)->filter(fn (array $row) => $row['state'] === 'attempted' && $row['failed_attempts'] >= $failLimit)->count();
 
             // Coding challenges.
             $own = $codingSubs->get($studentId, collect())->groupBy(fn ($s) => (int) ($problemChallenge[$s->coding_question_id] ?? 0));
@@ -377,7 +352,7 @@ class ClassProgress
                     if ($pass) {
                         $solved++;
                         $time += (int) $pass->time_taken_seconds;
-                    } elseif ($problemSubs->whereIn('status', ['failed', 'error'])->count() >= 3) {
+                    } elseif ($problemSubs->whereIn('status', ['failed', 'error'])->count() >= $failLimit) {
                         $repeatedFailures++;
                     }
                     $best = $problemSubs->sortByDesc(fn ($s) => self::scorePercent($s->tests_passed, $s->tests_total) ?? -1)->first();
@@ -403,7 +378,6 @@ class ClassProgress
 
             $components = array_filter([
                 $modules->isNotEmpty() ? F::percent($modulesDone, $modules->count()) : null,
-                $assignments->isNotEmpty() ? F::percent($assignmentStates->filter(fn ($s) => in_array($s, ['submitted', 'late'], true))->count(), $assignments->count()) : null,
                 $assessments->isNotEmpty() ? F::percent(collect($assessmentRows)->where('state', 'completed')->count(), $assessments->count()) : null,
                 $mcq->isNotEmpty() ? F::percent(collect($challengeRows)->where('state', 'passed')->count(), $mcq->count()) : null,
                 $coding->isNotEmpty() ? F::percent(collect($codingRows)->where('state', 'completed')->count(), $coding->count()) : null,
@@ -414,12 +388,9 @@ class ClassProgress
                 'modules_completed' => $modulesDone,
                 'modules_started' => collect($moduleRows)->whereIn('state', ['started', 'completed'])->count(),
                 'module_percent' => $modules->isNotEmpty() ? F::percent($modulesDone, $modules->count()) : null,
-                'assignments_total' => $assignments->count(),
-                'assignments_submitted' => $assignmentStates->filter(fn ($s) => in_array($s, ['submitted', 'late'], true))->count(),
-                'assignments_missing' => $assignmentStates->filter(fn ($s) => $s === 'missing')->count(),
-                'assignments_late' => $assignmentStates->filter(fn ($s) => $s === 'late')->count(),
                 'assessments_total' => $assessments->count(),
                 'assessments_completed' => collect($assessmentRows)->where('state', 'completed')->count(),
+                'assessments_missing' => $assessmentsMissing,
                 'assessment_average' => $assessmentBests->isEmpty() ? null : round($assessmentBests->avg(), 1),
                 'challenges_total' => $mcq->count(),
                 'challenges_attempted' => collect($challengeRows)->where('state', '!=', 'not_started')->count(),
@@ -432,26 +403,33 @@ class ClassProgress
                 'coding_submissions' => (int) collect($codingRows)->sum('submissions'),
                 'coding_score' => collect($codingRows)->pluck('score')->filter(fn ($p) => $p !== null)->avg(),
                 'repeated_failures' => $repeatedFailures,
+                'repeated_attempt_failures' => $repeatedAttemptFailures,
                 'overall' => $components === [] ? null : round(array_sum($components) / count($components), 1),
                 'last_activity' => $lastActivity,
                 'active' => $lastActivity !== null && CarbonImmutable::parse($lastActivity)->greaterThanOrEqualTo($activeSince),
             ];
             $summary['coding_score'] = $summary['coding_score'] === null ? null : round((float) $summary['coding_score'], 1);
 
+            $summary['performance_group'] = PerformanceBands::groupOf($summary['assessment_average']);
+
             $attention = [];
-            if ($summary['assignments_missing'] >= 2) {
-                $attention['missing'] = 'Missing '.$summary['assignments_missing'].' assignments';
+            if ($summary['assessments_missing'] >= PerformanceBands::atRisk('missing_assessments')) {
+                $attention['missing'] = 'Missing '.$summary['assessments_missing'].' assessments';
             }
-            if ($summary['assessment_average'] !== null && $summary['assessment_average'] < F::PASS_PERCENT) {
-                $attention['assessments'] = 'Assessment average '.F::pct($summary['assessment_average']);
+            if ($summary['performance_group'] === PerformanceBands::LOW) {
+                $attention['assessments'] = 'Assessment average '.F::pct($summary['assessment_average']).' (Low performance group)';
             }
-            if ($summary['challenge_average'] !== null && $summary['challenge_average'] < F::PASS_PERCENT) {
+            if ($summary['challenge_average'] !== null && $summary['challenge_average'] < PerformanceBands::atRisk('challenge_average_below')) {
                 $attention['challenges'] = 'Challenge average '.F::pct($summary['challenge_average']);
             }
             if ($repeatedFailures > 0) {
                 $attention['coding'] = 'Repeated failures on '.$repeatedFailures.' coding '.($repeatedFailures === 1 ? 'problem' : 'problems');
             }
-            if ($olderModules->isNotEmpty() && F::percent($olderDone, $olderModules->count()) < 25) {
+            if ($repeatedAttemptFailures > 0) {
+                $attention['attempts'] = $failLimit.' or more failed attempts on '.$repeatedAttemptFailures.' '
+                    .($repeatedAttemptFailures === 1 ? 'challenge or assessment' : 'challenges or assessments').' not yet passed';
+            }
+            if ($olderModules->isNotEmpty() && F::percent($olderDone, $olderModules->count()) < PerformanceBands::atRisk('module_completion_below')) {
                 $attention['modules'] = 'Completed '.$olderDone.' of '.$olderModules->count().' modules';
             }
             $summary['attention'] = $attention;
@@ -460,7 +438,6 @@ class ClassProgress
                 'student' => $student,
                 'summary' => $summary,
                 'modules' => $moduleRows,
-                'assignments' => $assignmentRows,
                 'assessments' => $assessmentRows,
                 'challenges' => $challengeRows,
                 'coding' => $codingRows,
@@ -472,13 +449,12 @@ class ClassProgress
             'students' => $students,
             'moduleAssignments' => $moduleAssignments,
             'modules' => $modules,
-            'assignments' => $assignments,
             'assessments' => $assessments,
             'challenges' => $mcq,
             'coding' => $coding,
             'problems' => $problems,
             'perStudent' => $perStudent,
-            'overview' => $this->overview($students->count(), $modules->count(), $assignments->count(), $assessments->count(), $mcq->count(), $coding->count(), $perStudent),
+            'overview' => $this->overview($students->count(), $modules->count(), $assessments->count(), $mcq->count(), $coding->count(), $perStudent),
         ];
 
         return $this->cache[$cacheKey] = $snapshot;
@@ -505,11 +481,6 @@ class ClassProgress
             }
             if ($module['opened_at']) {
                 $items->push(['when' => $module['opened_at'], 'type' => 'module', 'title' => $title, 'detail' => 'First opened']);
-            }
-        }
-        foreach ($row['assignments'] as $id => $a) {
-            if ($a['submitted_at']) {
-                $items->push(['when' => $a['submitted_at'], 'type' => 'assignment', 'title' => $snapshot['assignments'][$id]->title, 'detail' => ($a['late'] ? 'Submitted late' : 'Submitted').($a['score'] !== null ? ', '.F::pct($a['score']) : '')]);
             }
         }
         foreach ($row['assessments'] as $id => $a) {
@@ -543,7 +514,7 @@ class ClassProgress
      * @param  array<int, array<string, mixed>>  $perStudent
      * @return array<string, mixed>
      */
-    private function overview(int $students, int $modules, int $assignments, int $assessments, int $challenges, int $coding, array $perStudent): array
+    private function overview(int $students, int $modules, int $assessments, int $challenges, int $coding, array $perStudent): array
     {
         $summaries = collect($perStudent)->pluck('summary');
         $sum = fn (string $key) => (int) $summaries->sum($key);
@@ -558,12 +529,9 @@ class ClassProgress
             'active' => $summaries->where('active', true)->count(),
             'modules' => $modules,
             'module_completion' => F::percent($sum('modules_completed'), $students * $modules),
-            'assignments' => $assignments,
-            'assignment_rate' => F::percent($sum('assignments_submitted'), $students * $assignments),
-            'assignments_missing' => $sum('assignments_missing'),
-            'assignments_late' => $sum('assignments_late'),
             'assessments' => $assessments,
             'assessment_completion' => F::percent($sum('assessments_completed'), $students * $assessments),
+            'assessments_missing' => $sum('assessments_missing'),
             'assessment_average' => $avg('assessment_average'),
             'challenges' => $challenges,
             'challenge_completion' => F::percent($sum('challenges_passed'), $students * $challenges),
@@ -572,7 +540,18 @@ class ClassProgress
             'coding_completion' => F::percent($sum('coding_completed'), $students * $coding),
             'coding_score' => $avg('coding_score'),
             'attention' => $summaries->filter(fn ($s) => $s['attention'] !== [])->count(),
+            'performance' => [
+                PerformanceBands::LOW => $summaries->where('performance_group', PerformanceBands::LOW)->count(),
+                PerformanceBands::MODERATE => $summaries->where('performance_group', PerformanceBands::MODERATE)->count(),
+                PerformanceBands::HIGH => $summaries->where('performance_group', PerformanceBands::HIGH)->count(),
+                PerformanceBands::NOT_GRADED => $summaries->where('performance_group', PerformanceBands::NOT_GRADED)->count(),
+            ],
         ];
+    }
+
+    private static function plain(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.');
     }
 
     public static function scorePercent(mixed $score, mixed $total): ?float

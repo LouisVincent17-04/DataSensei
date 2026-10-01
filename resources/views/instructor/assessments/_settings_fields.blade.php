@@ -11,6 +11,17 @@
     @error('title')<span class="error">{{ $message }}</span>@enderror
   </div>
   <div class="field">
+    <label for="purpose">{!! \App\Support\Glossary::help('summative', 'Purpose') !!}</label>
+    <select class="select" id="purpose" name="purpose">
+      <option value="">No label</option>
+      @foreach(\App\Models\Assessment::PURPOSES as $value => $label)
+        <option value="{{ $value }}" @selected(old('purpose', $current?->purpose) === $value)>{{ $label }}</option>
+      @endforeach
+    </select>
+    <span class="hint">A label only: homework, quizzes, and examinations all work the same way.</span>
+    @error('purpose')<span class="error">{{ $message }}</span>@enderror
+  </div>
+  <div class="field">
     <label for="class_id">Class</label>
     <select class="select" id="class_id" name="class_id" required>
       <option value="">Choose a class</option>
@@ -26,10 +37,22 @@
     @error('max_attempts')<span class="error">{{ $message }}</span>@enderror
   </div>
   <div class="field">
-    <label for="time_limit_minutes">Duration in minutes</label>
+    <label for="time_limit_minutes">{!! \App\Support\Glossary::help('time_limit', 'Duration') !!} in minutes</label>
     <input class="input" id="time_limit_minutes" type="number" min="1" max="1440" name="time_limit_minutes" value="{{ old('time_limit_minutes', $current ? $current->time_limit_minutes : 60) }}" placeholder="No time limit">
-    <span class="hint">Leave empty for no time limit.</span>
+    <span class="hint">Leave empty for untimed work such as homework. With both a duration and a due date, the attempt ends at whichever comes first.</span>
     @error('time_limit_minutes')<span class="error">{{ $message }}</span>@enderror
+  </div>
+  <div class="field">
+    <label for="topic_title">Topic covered</label>
+    <input class="input" id="topic_title" name="topic_title" maxlength="191" value="{{ old('topic_title', $current?->topic_title) }}" placeholder="Example: Module 3, Descriptive Statistics">
+    <span class="hint">Optional.</span>
+    @error('topic_title')<span class="error">{{ $message }}</span>@enderror
+  </div>
+  <div class="field">
+    <label for="passing_score_percent">{!! \App\Support\Glossary::help('passing_score') !!} (%)</label>
+    <input class="input" id="passing_score_percent" type="number" min="1" max="100" name="passing_score_percent" value="{{ old('passing_score_percent', $current?->passing_score_percent) }}" placeholder="No passing mark">
+    <span class="hint">Optional. Results then say passed or not passed.</span>
+    @error('passing_score_percent')<span class="error">{{ $message }}</span>@enderror
   </div>
   <div class="field">
     <label for="available_at">Available from</label>

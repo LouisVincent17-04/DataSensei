@@ -370,19 +370,19 @@
         .panel-success {
             background: var(--ds-success-soft);
             border-color: var(--ds-success-border);
-            color: #d1fae5;
+            color: var(--ds-success-ink, #d1fae5);
         }
 
         .panel-warning {
             background: var(--ds-warning-soft);
             border-color: var(--ds-warning-border);
-            color: #fef3c7;
+            color: var(--ds-warning-ink, #fef3c7);
         }
 
         .activity {
             background: var(--ds-accent-soft);
             border-color: var(--ds-accent-border);
-            color: #dbeafe;
+            color: var(--ds-accent-ink, #dbeafe);
         }
 
         .activity p {
@@ -538,7 +538,7 @@
         .choices .choice.is-correct {
             border-color: var(--ds-success-border);
             background: var(--ds-success-soft);
-            color: #d1fae5;
+            color: var(--ds-success-ink, #d1fae5);
             font-weight: 500;
         }
 
@@ -551,7 +551,7 @@
         .choices .choice.is-wrong {
             border-color: var(--ds-danger-border);
             background: var(--ds-danger-soft);
-            color: #fee2e2;
+            color: var(--ds-danger-ink, #fee2e2);
         }
 
         .choices .choice.is-wrong .choice-letter {
@@ -594,26 +594,26 @@
             display: block;
             background: var(--ds-success-soft);
             border-color: var(--ds-success-border);
-            color: #d1fae5;
+            color: var(--ds-success-ink, #d1fae5);
         }
 
         .result-box.wrong {
             display: block;
             background: var(--ds-warning-soft);
             border-color: var(--ds-warning-border);
-            color: #fef3c7;
+            color: var(--ds-warning-ink, #fef3c7);
         }
 
         .explanation {
             background: var(--ds-accent-soft);
             border-color: var(--ds-accent-border);
-            color: #dbeafe;
+            color: var(--ds-accent-ink, #dbeafe);
         }
 
         .tip {
             background: var(--ds-success-soft);
             border-color: var(--ds-success-border);
-            color: #d1fae5;
+            color: var(--ds-success-ink, #d1fae5);
         }
 
         .muted-note {

@@ -10,9 +10,9 @@ class AntiCheatEvent extends Model
     protected $fillable = [
         'user_id',
         'class_id',
-        'class_assignment_id',
-        'assignment_submission_id',
-        'assignment_question_id',
+        'assessment_id',
+        'assessment_submission_id',
+        'assessment_question_id',
         'assessment_type',
         'event_type',
         'severity',
@@ -37,18 +37,18 @@ class AntiCheatEvent extends Model
         return $this->belongsTo(ClassRoom::class, 'class_id');
     }
 
-    public function classAssignment(): BelongsTo
+    public function assessment(): BelongsTo
     {
-        return $this->belongsTo(ClassAssignment::class, 'class_assignment_id');
+        return $this->belongsTo(Assessment::class, 'assessment_id');
     }
 
-    public function assignmentSubmission(): BelongsTo
+    public function assessmentSubmission(): BelongsTo
     {
-        return $this->belongsTo(AssignmentSubmission::class, 'assignment_submission_id');
+        return $this->belongsTo(AssessmentSubmission::class, 'assessment_submission_id');
     }
 
-    public function assignmentQuestion(): BelongsTo
+    public function assessmentQuestion(): BelongsTo
     {
-        return $this->belongsTo(AssignmentQuestion::class, 'assignment_question_id');
+        return $this->belongsTo(AssessmentQuestion::class, 'assessment_question_id');
     }
 }

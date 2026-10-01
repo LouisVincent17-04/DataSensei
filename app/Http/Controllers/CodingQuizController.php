@@ -674,6 +674,12 @@ class CodingQuizController extends Controller
             $xpBefore
         );
 
+        // A fully solved core coding challenge may finish the "Core Coding
+        // Challenge Completion" certificate (DataSensei Updates 12).
+        if ($challengeComplete) {
+            app(\App\Services\CertificateService::class)->afterProgress(Auth::user());
+        }
+
         return response()->json([
             'submission_id'      => $submission->id,
             'status'             => $status,

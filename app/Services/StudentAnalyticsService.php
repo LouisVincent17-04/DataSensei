@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Support\SchemaInspector;
-use App\Models\AssignmentSubmission;
 use App\Models\AssessmentSubmission;
 use App\Models\Challenge;
 use App\Models\ChallengeAttempt;
@@ -37,7 +36,6 @@ class StudentAnalyticsService
             'lessons' => $this->lessonAnalytics($student),
             'challenges' => $this->challengeAnalytics($student),
             'coding' => $this->codingAnalytics($student),
-            'assignments' => $this->assignmentAnalytics($student),
             'assessments' => $this->assessmentAnalytics($student),
             'achievements' => $this->achievementAnalytics($student),
             'data_toolkit' => $this->dataToolkitAnalytics($student),
@@ -154,34 +152,14 @@ class StudentAnalyticsService
         ];
     }
 
-    private function assignmentAnalytics(User $student): array
-    {
-        if (! SchemaInspector::hasTable('assignment_submissions')) {
-            return ['submitted' => 0, 'graded' => 0, 'late' => 0, 'average_score' => 0];
-        }
-
-        $submissions = AssignmentSubmission::where('student_id', $student->id)->get();
-        $graded = $submissions->filter(fn ($submission) => $submission->graded_at !== null);
-        $scored = $submissions
-            ->filter(fn ($submission) => $submission->graded_at !== null)
-            ->filter(fn ($submission) => (float) $submission->total_points > 0);
-
-        return [
-            'submitted' => $submissions->whereIn('status', ['submitted', 'late', 'graded'])->count(),
-            'graded' => $graded->count(),
-            'late' => $submissions->where('status', 'late')->count(),
-            'average_score' => $scored->count() > 0
-                ? round($scored->avg(fn ($submission) => ((float) $submission->score / max(1, (float) $submission->total_points)) * 100), 1)
-                : 0,
-        ];
-    }
-
     private function assessmentAnalytics(User $student): array
     {
         if (! SchemaInspector::hasTable('assessment_submissions')) {
-            return ['submitted' => 0, 'graded' => 0, 'pending_review' => 0, 'average_score' => 0];
+            return ['submitted' => 0, 'graded' => 0, 'late' => 0, 'pending_review' => 0, 'average_score' => 0];
         }
 
+        // Since assignments were merged into assessments, converted assignment
+        // submissions are counted here too, including their late flag.
         $submissions = AssessmentSubmission::where('student_id', $student->id)->get();
         $graded = $submissions->filter(fn ($submission) => $submission->graded_at !== null);
         $scored = $graded->filter(fn ($submission) => (float) $submission->total_points > 0);
@@ -189,6 +167,7 @@ class StudentAnalyticsService
         return [
             'submitted' => $submissions->whereIn('status', ['submitted', 'late', 'graded'])->count(),
             'graded' => $graded->count(),
+            'late' => $submissions->where('status', 'late')->count(),
             'pending_review' => $submissions
                 ->whereIn('status', ['submitted', 'late'])
                 ->filter(fn ($submission) => $submission->graded_at === null)
@@ -257,14 +236,8 @@ class StudentAnalyticsService
                 ->pluck('total', 'day')
             : collect();
 
-        $assignments = SchemaInspector::hasTable('assignment_submissions')
-            ? AssignmentSubmission::selectRaw('DATE(created_at) as day, COUNT(*) as total')
-                ->where('student_id', $student->id)
-                ->where('created_at', '>=', now()->subDays(14))
-                ->groupBy('day')
-                ->pluck('total', 'day')
-            : collect();
-
+        // Assessment submissions cover former assignment activity as well,
+        // since assignments were merged into assessments.
         $assessments = SchemaInspector::hasTable('assessment_submissions')
             ? AssessmentSubmission::selectRaw('DATE(created_at) as day, COUNT(*) as total')
                 ->where('student_id', $student->id)
@@ -284,7 +257,6 @@ class StudentAnalyticsService
         return $days->map(fn (string $day) => [
             'day' => $day,
             'total' => (int) ($coding[$day] ?? 0)
-                + (int) ($assignments[$day] ?? 0)
                 + (int) ($assessments[$day] ?? 0)
                 + (int) ($toolkit[$day] ?? 0),
         ])->values()->all();
@@ -311,7 +283,7 @@ class StudentAnalyticsService
     {
         $items = [];
         $coding = $this->codingAnalytics($student);
-        $assignments = $this->assignmentAnalytics($student);
+        $assessments = $this->assessmentAnalytics($student);
         $lessons = $this->lessonAnalytics($student);
         $toolkit = $this->dataToolkitAnalytics($student);
 
@@ -329,8 +301,8 @@ class StudentAnalyticsService
             $items[] = 'Practice debugging using visible and hidden test-case patterns.';
         }
 
-        if ($assignments['late'] > 0) {
-            $items[] = 'Prioritize pending assignments to protect your class performance.';
+        if ($assessments['late'] > 0) {
+            $items[] = 'Prioritize pending assessments to protect your class performance.';
         }
 
         if ($items === []) {

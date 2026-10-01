@@ -1,11 +1,12 @@
 @extends('instructor.layout')
 
 @use('App\Services\Reports\ClassProgress')
+@use('App\Support\Reports\PerformanceBands')
 @use('App\Support\Reports\ReportFormat', 'F')
 
 @section('title', $student->name.' in '.$class->name)
 @section('page_title', $student->name)
-@section('page_subtitle', 'Progress in '.$class->name.($class->section ? ', '.$class->section : '').': the modules, assignments, assessments and challenges given to this class.')
+@section('page_subtitle', 'Progress in '.$class->name.($class->section ? ', '.$class->section : '').': the modules, assessments and challenges given to this class.')
 
 @section('content')
   @include('reports.partials.styles')
@@ -19,18 +20,20 @@
     <section class="rp-summary rp-summary-3" aria-label="Student summary">
       <div class="rp-tile"><span class="rp-tile-label">Overall class progress</span><strong class="rp-tile-value">{{ F::pct($summary['overall']) }}</strong></div>
       <div class="rp-tile"><span class="rp-tile-label">Modules</span><strong class="rp-tile-value">{{ $summary['modules_completed'] }} of {{ $summary['modules_total'] }}</strong><span class="rp-tile-note">Completed; {{ $summary['modules_started'] }} started</span></div>
-      <div class="rp-tile"><span class="rp-tile-label">Assignments</span><strong class="rp-tile-value">{{ $summary['assignments_submitted'] }} of {{ $summary['assignments_total'] }}</strong><span class="rp-tile-note">Submitted; {{ $summary['assignments_missing'] }} missing, {{ $summary['assignments_late'] }} late</span></div>
-      <div class="rp-tile"><span class="rp-tile-label">Assessment average</span><strong class="rp-tile-value">{{ F::pct($summary['assessment_average']) }}</strong><span class="rp-tile-note">{{ $summary['assessments_completed'] }} of {{ $summary['assessments_total'] }} completed</span></div>
+      {{-- Assignments were merged into assessments; converted rows are already counted here. --}}
+      <div class="rp-tile"><span class="rp-tile-label">Assessment average</span><strong class="rp-tile-value">{{ F::pct($summary['assessment_average']) }}</strong><span class="rp-tile-note">{{ $summary['assessments_completed'] }} of {{ $summary['assessments_total'] }} completed{{ $summary['assessments_missing'] > 0 ? ', '.$summary['assessments_missing'].' missing' : '' }}</span></div>
+      <div class="rp-tile"><span class="rp-tile-label">Performance group</span><strong class="rp-tile-value {{ ($t = PerformanceBands::TONES[$summary['performance_group']] ?? null) ? 'rp-'.$t : '' }}">{{ PerformanceBands::label($summary['performance_group']) }}</strong><span class="rp-tile-note">{{ PerformanceBands::rangeText($summary['performance_group']) }}; by assessment average</span></div>
       <div class="rp-tile"><span class="rp-tile-label">Challenge average</span><strong class="rp-tile-value">{{ F::pct($summary['challenge_average']) }}</strong><span class="rp-tile-note">{{ $summary['challenges_passed'] }} of {{ $summary['challenges_total'] }} completed</span></div>
       <div class="rp-tile"><span class="rp-tile-label">Coding challenges</span><strong class="rp-tile-value">{{ $summary['coding_completed'] }} of {{ $summary['coding_total'] }}</strong><span class="rp-tile-note">Completed; {{ $summary['coding_submissions'] }} {{ $summary['coding_submissions'] === 1 ? 'submission' : 'submissions' }}</span></div>
     </section>
 
     @if($summary['attention'] !== [])
       <section class="rp-panel">
-        <h3 class="rp-panel-title">May need attention</h3>
+        <h3 class="rp-panel-title">May need attention (at risk)</h3>
+        @php $rules = ClassProgress::attentionRules(); @endphp
         <ul class="rp-attention">
           @foreach($summary['attention'] as $key => $reason)
-            <li><span>{{ $reason }}</span><span class="rp-meta">{{ ClassProgress::ATTENTION_RULES[$key] ?? '' }}</span></li>
+            <li><span>{{ $reason }}</span><span class="rp-meta">{{ $rules[$key] ?? '' }}</span></li>
           @endforeach
         </ul>
       </section>
@@ -75,7 +78,7 @@
             @forelse($activity as $item)
               <tr>
                 <td>{{ F::dateTime($item['when']) }}</td>
-                <td>{{ ['module' => 'Module', 'assignment' => 'Assignment', 'assessment' => 'Assessment', 'challenge' => 'Challenge', 'coding' => 'Coding challenge'][$item['type']] ?? ucfirst($item['type']) }}</td>
+                <td>{{ ['module' => 'Module', 'assessment' => 'Assessment', 'challenge' => 'Challenge', 'coding' => 'Coding challenge'][$item['type']] ?? ucfirst($item['type']) }}</td>
                 <td>{{ $item['title'] }}</td>
                 <td>{{ $item['detail'] }}</td>
               </tr>

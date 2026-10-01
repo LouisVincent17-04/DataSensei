@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Regression;
 
+use App\Models\Assessment;
 use App\Models\ClassModuleAssignment;
 use App\Models\ClassRoom;
 use App\Models\Institution;
@@ -102,12 +103,24 @@ class Updates5LearningOutcomesTest extends TestCase
             ->assertDontSee('ILO mastery')
             ->assertDontSee('No ILO mastery records yet.');
 
-        // Admins write assessment questions without ILO links or weights.
-        $this->authenticateAs($this->roleUser(User::ROLE_ADMIN))
-            ->get(route('admin.assessments.create'))
-            ->assertOk()
-            ->assertDontSee('ilo_ids', false)
-            ->assertDontSee('ILO');
+        // Assessment questions are written without ILO links or weights. The
+        // admin assessment library that carried this check was removed when
+        // assignments were merged into assessments (DataSensei Updates 11);
+        // instructors write assessment questions in the assessment builder.
+        $this->assertFalse(Route::has('admin.assessments.create'));
+        $class = ClassRoom::create(['instructor_id' => $instructor->id, 'name' => 'Outcome Check Class', 'is_archived' => false]);
+        $draft = Assessment::create([
+            'class_id' => $class->id, 'created_by' => $instructor->id, 'title' => 'Outcome Check', 'status' => 'draft',
+            'total_items' => 0, 'total_points' => 0, 'max_attempts' => 1,
+        ]);
+        foreach ([route('instructor.assessments.new'), route('instructor.assessments.builder', $draft)] as $url) {
+            $this->authenticateAs($instructor)
+                ->get($url)
+                ->assertOk()
+                ->assertDontSee('ilo_ids', false)
+                ->assertDontSee('name="ilo_id"', false)
+                ->assertDontSee('ILO');
+        }
     }
 
     public function test_a_table_of_specification_is_built_from_topics_not_ilos(): void

@@ -463,7 +463,7 @@
       border: 1px solid var(--ds-accent-border);
       border-radius: var(--radius-sm);
       background: var(--ds-accent-soft);
-      color: #dbeafe;
+      color: var(--ds-accent-ink, #dbeafe);
       font-size: .875rem;
       line-height: 1.55;
     }
@@ -471,13 +471,13 @@
     .alert.success {
       background: var(--ds-success-soft);
       border-color: var(--ds-success-border);
-      color: #d1fae5;
+      color: var(--ds-success-ink, #d1fae5);
     }
 
     .alert.danger {
       background: var(--ds-danger-soft);
       border-color: var(--ds-danger-border);
-      color: #fee2e2;
+      color: var(--ds-danger-ink, #fee2e2);
     }
 
     @media (max-width: 1280px) {
@@ -630,12 +630,12 @@
           <div>
             <h1 class="page-title ds-page-title">My Submissions</h1>
             <p class="page-subtitle">
-              Review your assignment attempts, challenge results, scores, and instructor feedback.
+              Review your assessment attempts, challenge results, scores, and instructor feedback.
             </p>
           </div>
 
-          <a href="{{ route('student.assignments.index') }}" class="header-action">
-            View Assignments
+          <a href="{{ route('student.assessments.index') }}" class="header-action">
+            View Assessments
           </a>
         </div>
 
@@ -653,7 +653,7 @@
               <span class="stat-label">All Attempts</span>
             </div>
             <div class="stat-value">{{ $submissionStats['all_attempts'] ?? 0 }}</div>
-            <div class="stat-note">Every saved assignment attempt</div>
+            <div class="stat-note">Every saved assessment attempt</div>
           </article>
 
           <article class="stat-card">
@@ -699,7 +699,7 @@
                 type="search"
                 name="search"
                 value="{{ request('search') }}"
-                placeholder="Assignment, class, topic, or code..."
+                placeholder="Assessment, class, or topic..."
               >
             </div>
 
@@ -729,7 +729,7 @@
               <table class="table">
                 <thead>
                   <tr>
-                    <th scope="col">Assignment</th>
+                    <th scope="col">Assessment</th>
                     <th scope="col">Class</th>
                     <th scope="col">Attempt</th>
                     <th scope="col">Activity Time</th>
@@ -742,7 +742,7 @@
                 <tbody>
                   @foreach($submissions as $submission)
                     @php
-                      $assignment = $submission->classAssignment;
+                      $assessment = $submission->assessment;
                       $statusClass = match($submission->status) {
                         'graded' => 'good',
                         'late' => 'danger',
@@ -758,13 +758,13 @@
                       };
                     @endphp
                     <tr>
-                      <td data-label="Assignment">
-                        <span class="submission-title">{{ $assignment?->title ?? 'Deleted Assignment' }}</span>
-                        <span class="subtext">{{ $assignment?->libraryItem?->topic_title ?? 'No topic' }}</span>
+                      <td data-label="Assessment">
+                        <span class="submission-title">{{ $assessment?->title ?? 'Deleted Assessment' }}</span>
+                        <span class="subtext">{{ collect([$assessment?->purposeLabel(), $assessment?->topic_title])->filter()->join(', ') ?: 'No topic' }}</span>
                       </td>
 
                       <td data-label="Class">
-                        {{ $assignment?->classRoom?->name ?? '—' }}
+                        {{ $assessment?->classRoom?->name ?? '—' }}
                       </td>
 
                       <td data-label="Attempt">
@@ -803,11 +803,11 @@
                       </td>
 
                       <td data-label="Action">
-                        @if($assignment && $submission->status === 'in_progress')
-                          <a class="btn primary" href="{{ route('student.assignments.take', [$assignment, $submission]) }}">
+                        @if($assessment && $submission->status === 'in_progress')
+                          <a class="btn primary" href="{{ route('student.assessments.take', [$assessment, $submission]) }}">
                             Continue
                           </a>
-                        @elseif($assignment)
+                        @elseif($assessment)
                           <a class="btn secondary" href="{{ route('student.submissions.show', $submission) }}">
                             View Result
                           </a>
@@ -836,7 +836,7 @@
                 @if(request()->filled('search') || request()->filled('status'))
                   No saved attempts match the selected filters. Clear the filters or search using a different term.
                 @else
-                  Assignment attempts will appear here after you start or submit work from the Assignments page.
+                  Assessment attempts will appear here after you start or submit work from the Assessments page.
                 @endif
               </p>
 
@@ -844,7 +844,7 @@
                 @if(request()->filled('search') || request()->filled('status'))
                   <a class="btn secondary" href="{{ route('student.submissions.index') }}">Clear Filters</a>
                 @endif
-                <a class="btn primary" href="{{ route('student.assignments.index') }}">View Assignments</a>
+                <a class="btn primary" href="{{ route('student.assessments.index') }}">View Assessments</a>
               </div>
             </div>
           @endif

@@ -2,10 +2,11 @@
 
 namespace Tests\Feature\Regression;
 
-use App\Models\AssignmentLibraryItem;
+use App\Models\Assessment;
 use App\Models\ClassRoom;
 use App\Models\Institution;
 use App\Models\ModuleLibraryItem;
+use App\Models\QuestionBankItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,12 @@ use Tests\TestCase;
  * DataSensei Updates 9, tasks 1, 5, 10, 11 and 13: removed instructor pages
  * stay removed, internal code names never reach the screen, and the
  * profile, class and roster pages use plain text instead of pills.
+ *
+ * DataSensei Updates 11 merged assignments into assessments: the admin
+ * assessment (assignment) library and the assignment pages are gone. The
+ * library lives on as the shared Question Bank pool, and instructors build
+ * assessments themselves, so the code-name and plain-text checks follow the
+ * work to those pages.
  */
 class Updates9CleanupTest extends TestCase
 {
@@ -57,75 +64,85 @@ class Updates9CleanupTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_admin_assessment_pages_never_show_code_names(): void
+    public function test_the_admin_assessment_library_is_removed_and_its_successors_never_show_code_names(): void
     {
-        $item = $this->libraryItem('ASN-001-PYTHON-FIB', 'PYTHON-FIB-V1');
-        $admin = $this->roleUser(User::ROLE_ADMIN);
+        foreach (['index', 'show', 'edit', 'create', 'store', 'update', 'destroy', 'duplicate', 'status'] as $name) {
+            $this->assertFalse(Route::has('admin.assessments.'.$name), $name);
+        }
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/AdminAssessmentContentController.php'));
+        $this->assertDirectoryDoesNotExist(resource_path('views/admin/assessments'));
+        $this->authenticateAs($this->roleUser(User::ROLE_ADMIN))->get('/admin/assessments')->assertNotFound();
+
+        // The old library became the shared Question Bank pool; instructors
+        // build assessments from it. None of those pages carries a code.
+        $shared = $this->sharedBankItem();
+        $instructor = $this->instructor();
+        $class = ClassRoom::create(['instructor_id' => $instructor->id, 'name' => 'Code Name Class', 'is_archived' => false]);
+        $draft = Assessment::create([
+            'class_id' => $class->id, 'created_by' => $instructor->id, 'title' => 'Draft Check', 'status' => 'draft',
+            'total_items' => 0, 'total_points' => 0, 'max_attempts' => 1,
+        ]);
 
         foreach ([
-            route('admin.assessments.index'),
-            route('admin.assessments.show', $item),
-            route('admin.assessments.edit', $item),
-            route('admin.assessments.create'),
+            route('instructor.question-bank.index'),
+            route('instructor.assessments.new'),
+            route('instructor.assessments.builder', $draft),
+            route('instructor.assessments.bank', $draft),
         ] as $url) {
-            $html = $this->authenticateAs($admin)->get($url)->assertOk()->getContent();
-            $this->assertStringNotContainsString('ASN-001-PYTHON-FIB', $html, $url);
-            $this->assertStringNotContainsString('PYTHON-FIB-V1', $html, $url);
+            $html = $this->authenticateAs($instructor)->get($url)->assertOk()->getContent();
             $this->assertStringNotContainsString('name="assignment_code"', $html, $url);
             $this->assertStringNotContainsString('name="version_code"', $html, $url);
+            $this->assertStringNotContainsString('name="module_code"', $html, $url);
             $this->assertDoesNotMatchRegularExpression('/>\s*V\d+\s*</', $html, $url);
         }
 
-        // Instructors choosing an assessment see titles only.
-        $html = $this->authenticateAs($this->instructor())
-            ->get(route('instructor.assignments.create'))
+        // Instructors choosing shared questions see the topic and the question.
+        $this->authenticateAs($instructor)
+            ->get(route('instructor.assessments.bank', $draft))
             ->assertOk()
             ->assertSee('Python Fill In The Blanks')
-            ->getContent();
-        $this->assertStringNotContainsString('ASN-001-PYTHON-FIB', $html);
-        $this->assertStringNotContainsString('PYTHON-FIB-V1', $html);
+            ->assertSee($shared->question_text)
+            ->assertSee('Shared pool');
     }
 
-    public function test_admin_creates_and_copies_assessments_without_typing_codes(): void
+    public function test_instructors_create_assessments_and_copy_shared_questions_without_typing_codes(): void
     {
-        $admin = $this->roleUser(User::ROLE_ADMIN);
+        $instructor = $this->instructor();
+        $class = ClassRoom::create(['instructor_id' => $instructor->id, 'name' => 'Statistics', 'is_archived' => false]);
+        $shared = $this->sharedBankItem();
 
-        $this->authenticateAs($admin)
-            ->post(route('admin.assessments.store'), [
-                'module_no' => 3,
+        $this->authenticateAs($instructor)
+            ->post(route('instructor.assessments.save'), [
+                'class_id' => $class->id,
                 'title' => 'Descriptive Statistics Check',
                 'topic_title' => 'Descriptive Statistics',
-                'year_level' => 'First Year',
-                'assignment_type' => 'mcq',
+                'purpose' => 'quiz',
                 'time_limit_minutes' => 20,
-                'questions' => [[
-                    'question_type' => 'mcq',
-                    'question_text' => 'Which value is the middle one?',
-                    'points' => 2,
-                    'correct_option' => 1,
-                    'options' => [['option_text' => 'Mean'], ['option_text' => 'Median']],
-                ]],
+                'max_attempts' => 1,
             ])
             ->assertSessionHasNoErrors()
             ->assertRedirect()
-            ->assertSessionHas('success', 'Assessment created.');
+            ->assertSessionHas('success', 'Assessment saved as a draft. Add your questions below.');
 
-        $created = AssignmentLibraryItem::where('title', 'Descriptive Statistics Check')->firstOrFail();
-        $this->assertMatchesRegularExpression('/^ASN-003-[A-Z0-9]{6}$/', $created->assignment_code);
-        $this->assertSame(1, (int) $created->version_no);
-        $this->assertSame('V1', $created->version_code);
+        $created = Assessment::where('title', 'Descriptive Statistics Check')->firstOrFail();
+        $this->assertSame('draft', $created->status);
+        $this->assertSame('quiz', $created->purpose);
+        foreach (['assignment_code', 'version_code', 'version_no'] as $code) {
+            $this->assertArrayNotHasKey($code, $created->getAttributes(), $code);
+        }
 
-        $this->authenticateAs($admin)
-            ->post(route('admin.assessments.duplicate', $created))
+        // Copying from the shared pool (the former library) needs no code either.
+        $this->authenticateAs($instructor)
+            ->post(route('instructor.assessments.bank.add', $created), ['question_ids' => [$shared->id]])
             ->assertSessionHasNoErrors()
             ->assertRedirect()
-            ->assertSessionHas('success', 'A copy was made. It is inactive until you publish it.');
+            ->assertSessionHas('success', '1 question added.');
 
-        $copy = AssignmentLibraryItem::where('title', 'Descriptive Statistics Check (copy)')->firstOrFail();
-        $this->assertNotSame($created->assignment_code, $copy->assignment_code);
-        $this->assertSame(2, (int) $copy->version_no);
-        $this->assertFalse((bool) $copy->is_active);
-        $this->assertSame(1, $copy->questions()->count());
+        $copy = $created->questions()->firstOrFail();
+        $this->assertSame($shared->question_text, $copy->question_text);
+        $this->assertSame('fill_blank', $copy->question_type);
+        $this->assertSame('pandas', $copy->correct_answer);
+        $this->assertSame(1, QuestionBankItem::whereNull('instructor_id')->count(), 'The shared question is copied, not moved.');
     }
 
     public function test_admin_module_library_shows_titles_and_versions_not_code_names(): void
@@ -206,16 +223,28 @@ class Updates9CleanupTest extends TestCase
 
     public function test_pages_changed_in_this_update_use_plain_text_labels(): void
     {
+        // The assignment and admin assessment views were removed in DataSensei
+        // Updates 11; their successors are the assessment, Question Bank and
+        // submission pages listed below.
+        foreach ([
+            'instructor/assignments/index', 'instructor/assignments/show', 'instructor/assignments/preview', 'instructor/assignments/create',
+            'student/assignments/index', 'student/assignments/class', 'student/assignments/show', 'student/assignments/take',
+            'student/assignments/result', 'admin/assessments/index', 'admin/assessments/show',
+        ] as $removed) {
+            $this->assertFileDoesNotExist(resource_path('views/'.$removed.'.blade.php'), $removed);
+        }
+
         $views = [
             'instructor/dashboard', 'instructor/assessments/index', 'instructor/assessments/builder', 'instructor/assessments/create',
-            'instructor/assessments/preview', 'instructor/assessments/submissions', 'instructor/assessments/analytics',
-            'instructor/assignments/index', 'instructor/assignments/show', 'instructor/assignments/preview', 'instructor/assignments/create',
+            'instructor/assessments/preview', 'instructor/assessments/submissions', 'instructor/assessments/submission-show',
+            'instructor/assessments/analytics', 'instructor/assessments/bank', 'instructor/question-bank/index',
+            'instructor/question-bank/_item_row', 'instructor/question-bank/_item_form',
             'instructor/tos/index', 'instructor/tos/show', 'instructor/tos/review', 'instructor/submissions/index',
             'instructor/classes/classes', 'instructor/classes/students', 'instructor/challenges/index', 'instructor/challenges/show',
-            'instructor/modules/module_list', 'student/assessments/index', 'student/assessments/take', 'student/assignments/index',
-            'student/assignments/class', 'student/assignments/show', 'student/assignments/take', 'student/assignments/result',
+            'instructor/modules/module_list', 'student/assessments/index', 'student/assessments/class', 'student/assessments/show',
+            'student/assessments/take', 'student/assessments/result',
             'student/submissions/index', 'student/profile', 'student/challenges', 'student/coding-challenges',
-            'admin/assessments/index', 'admin/assessments/show', 'admin/challenges/index', 'admin/challenges/show',
+            'admin/challenges/index', 'admin/challenges/show',
             'admin/gamification/index', 'superadmin/dashboard',
         ];
 
@@ -237,30 +266,18 @@ class Updates9CleanupTest extends TestCase
         return $this->roleUser(User::ROLE_INSTRUCTOR, ['institution_id' => $institution->id]);
     }
 
-    private function libraryItem(string $code, string $versionCode): AssignmentLibraryItem
+    /** A question in the shared pool (seeded from the old assignment library). */
+    private function sharedBankItem(): QuestionBankItem
     {
-        $item = AssignmentLibraryItem::create([
+        return QuestionBankItem::create([
+            'instructor_id' => null,
             'module_no' => 1,
-            'assignment_code' => $code,
-            'title' => 'Python Fill In The Blanks',
-            'topic_title' => 'Python Basics',
-            'year_level' => 'First Year',
-            'assignment_type' => 'fill_blank',
-            'version_no' => 1,
-            'version_name' => 'Version 1',
-            'version_code' => $versionCode,
-            'time_limit_minutes' => 15,
-            'total_points' => 1,
-            'is_active' => true,
-        ]);
-        $question = $item->questions()->create([
+            'topic_title' => 'Python Fill In The Blanks',
             'question_type' => 'fill_blank',
             'question_text' => 'The library for data frames is ____.',
+            'correct_answer' => 'pandas',
             'points' => 1,
-            'order_index' => 1,
+            'is_archived' => false,
         ]);
-        $question->blankAnswers()->create(['answer_text' => 'pandas', 'is_case_sensitive' => false]);
-
-        return $item;
     }
 }

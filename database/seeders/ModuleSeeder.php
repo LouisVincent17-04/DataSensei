@@ -223,5 +223,8 @@ class ModuleSeeder extends Seeder
                 $module
             );
         }
+
+        // DataSensei Updates 12: these are the 24 Core Modules.
+        \App\Support\CoreCurriculum::sync();
     }
 }

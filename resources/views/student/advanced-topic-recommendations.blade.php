@@ -75,8 +75,8 @@ body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--t
 
 /* flash */
 .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-  background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem}
-.alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+  background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem}
+.alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
 
 /* pagination sits under the table */
 .pagination{position:sticky;left:0}

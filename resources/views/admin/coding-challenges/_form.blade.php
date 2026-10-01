@@ -269,7 +269,8 @@
   .cc-code.cc-short { min-height:72px; }
   .cc-cases-head { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:20px 0 10px; color:var(--text); }
   .cc-case-list { display:grid; gap:10px; }
-  .cc-case { padding:12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface2); }
+  .cc-case { padding:12px 0; border:0; border-top:1px solid var(--border); background:none; }
+  .cc-case:first-child { border-top:0; padding-top:0; }
   .cc-case-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; color:var(--text); }
   .cc-case-head .action-row { margin-left:auto; }
   .cc-check { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:.8125rem; cursor:pointer; }

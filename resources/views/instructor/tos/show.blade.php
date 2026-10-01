@@ -88,14 +88,6 @@
             </div>
           </form>
 
-          <details class="help" style="margin-top:16px">
-            <summary>What do these cognitive levels mean?</summary>
-            <div class="definition-grid">
-              @foreach($cognitiveLevels as $definition)
-                <div class="definition"><strong>{{ $definition['label'] }}</strong><span>{{ $definition['explanation'] }}</span></div>
-              @endforeach
-            </div>
-          </details>
         </div>
 
         <form method="POST" action="{{ route('instructor.tos.distribution.update', $tos) }}" class="card" id="tos-matrix">
@@ -115,7 +107,7 @@
                 <tr>
                   <th>Learning Competency</th>
                   <th>Weight</th>
-                  @foreach($cognitiveLevels as $definition)<th>{{ $definition['label'] }}</th>@endforeach
+                  @foreach($cognitiveLevels as $slug => $definition)<th>{!! \App\Support\Glossary::help('thinking_'.$slug, $definition['label']) !!}</th>@endforeach
                   <th>Total</th>
                 </tr>
               </thead>

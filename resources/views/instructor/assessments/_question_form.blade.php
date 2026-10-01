@@ -96,6 +96,9 @@
   </div>
 
   <div class="form-foot">
+    @unless($q)
+      <label class="q-inline" style="margin-right:auto"><input type="checkbox" name="save_to_bank" value="1" @checked($isOld && old('save_to_bank'))> Also save it to my Question Bank for reuse</label>
+    @endunless
     @isset($cancelHref)<a class="btn" href="{{ $cancelHref }}" data-cancel-edit>Cancel</a>@endisset
     <button class="btn primary" type="submit">{{ $submitLabel }}</button>
   </div>

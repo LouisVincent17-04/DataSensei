@@ -16,9 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class CompetencyMonitoringService
 {
+    // Assignments were merged into assessments, so former assignment work now
+    // arrives as assessment evidence and carries the assessment weight.
     private const SOURCE_WEIGHTS = [
         'assessment' => 30,
-        'assignment' => 20,
         'coding' => 20,
         'challenge' => 15,
         'toolkit' => 10,
@@ -228,7 +229,6 @@ class CompetencyMonitoringService
 
         /** @var array<int, array<string, array<int, array<string, mixed>>>> $evidence */
         $evidence = [];
-        $this->collectAssignmentEvidence($studentIds, (int) $class->id, $evidence);
         $this->collectAssessmentEvidence($studentIds, (int) $class->id, $evidence);
         $this->collectChallengeEvidence($studentIds, $evidence);
         $this->collectCodingEvidence($studentIds, $evidence);
@@ -287,65 +287,9 @@ class CompetencyMonitoringService
     }
 
     /**
-     * @param Collection<int, int> $studentIds
-     * @param array<int, array<string, array<int, array<string, mixed>>>> $evidence
-     */
-    private function collectAssignmentEvidence(Collection $studentIds, int $classId, array &$evidence): void
-    {
-        if (! SchemaInspector::hasTable('assignment_submissions')) {
-            return;
-        }
-
-        $rows = DB::table('assignment_submissions as submission')
-            ->join('class_assignments as class_assignment', 'class_assignment.id', '=', 'submission.class_assignment_id')
-            ->join('assignment_library_items as item', 'item.id', '=', 'class_assignment.assignment_library_item_id')
-            ->whereIn('submission.student_id', $studentIds)
-            ->where('class_assignment.class_id', $classId)
-            ->whereIn('submission.status', ['submitted', 'late', 'graded'])
-            ->where('submission.total_points', '>', 0)
-            ->get([
-                'submission.student_id',
-                'submission.id',
-                'submission.class_assignment_id',
-                'submission.attempt_no',
-                'submission.score',
-                'submission.total_points',
-                'submission.submitted_at',
-                'submission.updated_at',
-                'class_assignment.title as assigned_title',
-                'item.module_no',
-                'item.title as library_title',
-                'item.topic_title',
-                'item.description',
-            ])
-            ->groupBy(fn ($row): string => $row->student_id . ':' . $row->class_assignment_id)
-            ->map(fn (Collection $attempts) => $attempts
-                ->sortByDesc(fn ($row): string => $this->attemptSortKey($row))
-                ->first());
-
-        foreach ($rows as $row) {
-            $score = $this->percent((float) $row->score, (float) $row->total_points);
-            $text = implode(' ', array_filter([
-                $row->assigned_title,
-                $row->library_title,
-                $row->topic_title,
-                $row->description,
-            ]));
-
-            foreach ($this->matchingCompetencies($text, (int) $row->module_no) as $key) {
-                $this->addEvidence($evidence, (int) $row->student_id, $key, [
-                    'source' => 'assignment',
-                    'score' => $score,
-                    'weight' => 1.0,
-                    'count' => 1,
-                    'label' => (string) ($row->assigned_title ?: $row->library_title),
-                    'at' => $row->submitted_at ?: $row->updated_at,
-                ]);
-            }
-        }
-    }
-
-    /**
+     * Covers converted assignments too: since the merge they are assessments
+     * (purpose 'homework') and their submissions live in assessment_submissions.
+     *
      * @param Collection<int, int> $studentIds
      * @param array<int, array<string, array<int, array<string, mixed>>>> $evidence
      */

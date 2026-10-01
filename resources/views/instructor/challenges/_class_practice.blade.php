@@ -16,7 +16,7 @@
 @endonce
 <section class="cp-panel" id="classes" aria-labelledby="classes-title">
   <h2 class="cp-title" id="classes-title">Classes that can practice this</h2>
-  <p class="cp-note">Students in the ticked classes see this challenge under "From your classes" on their challenge page and can take it for practice. Nothing is due and nothing is graded here; for graded class work with a due date, create an Assignment.</p>
+  <p class="cp-note">Students in the ticked classes see this challenge under "From your classes" on their challenge page and can take it for practice. Nothing is due and nothing is graded here; for graded class work with a due date, create an assessment.</p>
 
   @if($practiceClasses->isEmpty())
     <p class="cp-note">You have no active classes yet.</p>

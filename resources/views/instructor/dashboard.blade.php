@@ -124,17 +124,17 @@
     <header class="topbar"><h1 class="ds-page-title">Instructor Dashboard</h1><a class="link" href="{{ route('profile') }}">{{ $instructor->name }}</a></header>
     <main class="content">
       <section class="welcome">
-        <div><h2>Welcome back, {{ $instructor->name }}.</h2><p>Review live class, coursework, and risk data from the classes assigned to you.</p></div>
-        <div class="actions"><a class="btn primary" href="{{ route('instructor.classes.create') }}">Create class</a><a class="btn" href="{{ route('instructor.assignments.create') }}">Create assignment</a><a class="btn" href="{{ route('instructor.analytics.index') }}">Open analytics</a></div>
+        <div><h2>Welcome back, {{ $instructor->name }}.</h2><p>Review live class, coursework, and at-risk data from the classes assigned to you.</p></div>
+        <div class="actions"><a class="btn primary" href="{{ route('instructor.classes.create') }}">Create class</a><a class="btn" href="{{ route('instructor.assessments.new') }}">Create assessment</a><a class="btn" href="{{ route('instructor.analytics.index') }}">Open analytics</a></div>
       </section>
 
       <section class="stats" aria-label="Instructor summary">
         <div class="stat"><span class="label">Active classes</span><strong>{{ $stats['active_classes'] }}</strong><small>owned by you</small></div>
         <div class="stat"><span class="label">Unique learners</span><strong>{{ $stats['total_students'] }}</strong><small>across active classes</small></div>
-        <div class="stat"><span class="label">Published work</span><strong>{{ $stats['published_work'] }}</strong><small>assignments and assessments</small></div>
-        <div class="stat"><span class="label">Average score</span><strong>{{ $stats['average_score'] }}%</strong><small>latest performance snapshots</small></div>
+        <div class="stat"><span class="label">Published work</span><strong>{{ $stats['published_work'] }}</strong><small>published assessments</small></div>
+        <div class="stat"><span class="label">Average score</span><strong>{{ $stats['average_score'] === null ? '—' : $stats['average_score'].'%' }}</strong><small>assessment average of graded work</small></div>
         <div class="stat"><span class="label">Class modules</span><strong>{{ $stats['assigned_modules'] }}</strong><small>assigned to your classes</small></div>
-        <div class="stat"><span class="label">High risk</span><strong>{{ $stats['at_risk'] }}</strong><small>unique flagged learners</small></div>
+        <div class="stat"><span class="label">At risk</span><strong>{{ $stats['at_risk'] }}</strong><small>unique learners flagged by the at-risk rules</small></div>
       </section>
 
       <section class="grid">
@@ -146,16 +146,16 @@
                 <div class="empty">No active classes. Create a class to begin.</div>
               @else
                 <table>
-                  <thead><tr><th>Class</th><th>Learners</th><th>Avg. score</th><th>Engagement</th><th>High risk</th><th></th></tr></thead>
+                  <thead><tr><th>Class</th><th>Learners</th><th>Avg. score</th><th>Low / Moderate / High</th><th>At risk</th><th></th></tr></thead>
                   <tbody>
                     @foreach ($classMetrics as $metric)
                       <tr>
                         <td><strong>{{ $metric['class']->name }}</strong><div class="meta">{{ $metric['class']->section ?: 'No section' }}</div></td>
                         <td>{{ $metric['class']->students_count }}</td>
                         <td>{{ $metric['average_score'] === null ? '—' : $metric['average_score'].'%' }}</td>
-                        <td>{{ $metric['engagement'] === null ? '—' : $metric['engagement'].'%' }}</td>
+                        <td>{{ $metric['performance']['low'] }} / {{ $metric['performance']['moderate'] }} / {{ $metric['performance']['high'] }}@if($metric['performance']['not_graded'] > 0)<div class="meta">{{ $metric['performance']['not_graded'] }} not yet graded</div>@endif</td>
                         <td>{{ $metric['at_risk'] }}</td>
-                        <td><a class="link" href="{{ route('instructor.classes.show', $metric['class']) }}">Open</a></td>
+                        <td><a class="link" href="{{ route('instructor.analytics.index', ['class_id' => $metric['class']->id]) }}">Analytics</a></td>
                       </tr>
                     @endforeach
                   </tbody>
@@ -165,12 +165,12 @@
           </article>
 
           <article class="card">
-            <div class="card-head"><h3>Recently updated work</h3><a class="link" href="{{ route('instructor.assignments.index') }}">Manage work →</a></div>
+            <div class="card-head"><h3>Recently updated work</h3><a class="link" href="{{ route('instructor.assessments.index') }}">Manage work →</a></div>
             <div class="card-body work-list">
               @forelse ($recentWork as $work)
                 <a class="item" href="{{ $work['url'] }}"><div><div class="item-title">{{ $work['title'] }}</div><div class="meta">{{ $work['type'] }}{{ $work['class_name'] ? ', '.$work['class_name'] : '' }}, {{ $work['at']->diffForHumans() }}</div></div><span class="state status {{ $work['status'] === 'published' ? 'green' : '' }}">{{ $work['status'] }}</span></a>
               @empty
-                <div class="empty">No assignments or assessments have been created.</div>
+                <div class="empty">No assessments have been created yet.</div>
               @endforelse
             </div>
           </article>
@@ -189,12 +189,12 @@
 
         <div class="stack">
           <article class="card">
-            <div class="card-head"><h3>High-risk learners</h3><a class="link" href="{{ route('instructor.risk.index') }}">Risk report →</a></div>
+            <div class="card-head"><h3>At-risk learners</h3><a class="link" href="{{ route('instructor.analytics.index') }}">Class Analytics &amp; At-Risk →</a></div>
             <div class="card-body risk-list">
-              @forelse ($atRiskStudents->take(6) as $snapshot)
-                <div class="item"><div><div class="item-title">{{ $snapshot->student?->name ?? 'Deleted learner' }}</div><div class="meta">{{ $snapshot->classRoom?->name ?? 'Class removed' }}, score {{ number_format((float) $snapshot->average_score_percent, 1) }}%, engagement {{ number_format((float) $snapshot->engagement_score, 1) }}%</div></div><span class="state red">High risk</span></div>
+              @forelse ($atRiskStudents->take(6) as $row)
+                <a class="item" href="{{ $row['url'] }}"><div><div class="item-title">{{ $row['name'] }}</div><div class="meta">{{ $row['class'] }}, {{ $row['group'] === 'Not yet graded' ? 'not yet graded' : $row['group'].' performance' }}. {{ implode('; ', $row['reasons']) }}</div></div><span class="state red">At risk</span></a>
               @empty
-                <div class="empty">No learners are currently marked high risk.</div>
+                <div class="empty">No learners match the at-risk rules right now.</div>
               @endforelse
             </div>
           </article>

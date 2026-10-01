@@ -1,7 +1,7 @@
 @extends('admin.layout')
 
 @section('title', 'Admin Dashboard')
-@section('page_title', 'Overview')
+@section('page_title', 'Admin Dashboard')
 @section('page_subtitle', 'Monitor DataSensei usage, support users, manage learning content, and review operational issues.')
 
 @section('content')
@@ -33,7 +33,7 @@
       <div class="panel-head">
         <div class="panel-heading">
           <h2 class="panel-title">14-Day Platform Activity</h2>
-          <p class="panel-subtitle">Combined account, challenge, coding, assignment, assessment, and Data Toolkit activity.</p>
+          <p class="panel-subtitle">Combined account, challenge, coding, assessment, and Data Toolkit activity.</p>
         </div>
         <span class="badge info">Last 14 days</span>
       </div>
@@ -123,7 +123,7 @@
       <div class="panel-head">
         <div class="panel-heading">
           <h2 class="panel-title">Recent Security Flags</h2>
-          <p class="panel-subtitle">Recent assignment and challenge events requiring review.</p>
+          <p class="panel-subtitle">Recent assessment and challenge events requiring review.</p>
         </div>
       </div>
       <div class="table-wrap">

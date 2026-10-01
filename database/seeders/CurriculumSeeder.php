@@ -61,6 +61,9 @@ class CurriculumSeeder extends Seeder
             ]);
         }
 
+        // DataSensei Updates 12: these are the 24 Core Modules.
+        \App\Support\CoreCurriculum::sync();
+
         $pythonModule = $createdModules[0]; 
 
 //         // ---------------------------------------------------------

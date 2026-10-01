@@ -266,32 +266,27 @@
     .page-modules-card-body { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 20px; }
     .page-modules-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 22px; margin-bottom: 4px; }
 
-    .page-modules-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 8px;
-      border: 1px solid var(--ds-border-strong);
-      border-radius: var(--radius-xs);
-      background: var(--surface2);
+    /* Plain status text (DataSensei Updates 10). */
+    .page-modules-status {
       color: var(--ds-text-secondary);
-      font-size: .75rem;
+      font-size: .8125rem;
       font-weight: 600;
       line-height: 1.4;
       white-space: nowrap;
     }
 
-    .page-modules-badge.is-completed { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-text); }
-    .page-modules-badge.is-inprogress { border-color: var(--ds-accent-border); background: var(--ds-accent-soft); color: var(--ds-accent-text); }
-    .page-modules-badge.is-unlocked { border-color: var(--ds-accent-border); background: transparent; color: var(--ds-accent-text); }
-    .page-modules-badge.is-locked { border-color: var(--border); background: transparent; color: var(--muted); }
+    .page-modules-status.is-completed { color: var(--ds-success-text); }
+    .page-modules-status.is-inprogress { color: var(--ds-accent-text); }
+    .page-modules-status.is-unlocked { color: var(--ds-accent-text); }
+    .page-modules-status.is-locked { color: var(--muted); }
 
     .page-modules-title { padding-right: 20px; color: var(--text); font-size: .9375rem; font-weight: 600; line-height: 1.4; overflow-wrap: break-word; }
     .page-modules-card.locked .page-modules-title { color: var(--ds-text-secondary); }
     .page-modules-desc { flex: 1; color: var(--muted); font-size: .8125rem; line-height: 1.55; overflow-wrap: break-word; }
 
     .page-modules-meta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-    .page-modules-meta-chip { color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
-    .page-modules-meta-chip:not(:last-child)::after { content: ","; }
+    .page-modules-meta-item { color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+    .page-modules-meta-item:not(:last-child)::after { content: ","; }
 
     .page-modules-card-footer {
       display: flex;
@@ -570,13 +565,13 @@
                   <div class="page-modules-card-body">
                     <div class="page-modules-card-top">
                       @if($isCompleted)
-                        <span class="page-modules-badge is-completed">Completed</span>
+                        <span class="page-modules-status is-completed">Completed</span>
                       @elseif($isInProgress)
-                        <span class="page-modules-badge is-inprogress">In Progress</span>
+                        <span class="page-modules-status is-inprogress">In Progress</span>
                       @elseif($isUnlocked)
-                        <span class="page-modules-badge is-unlocked">Unlocked</span>
+                        <span class="page-modules-status is-unlocked">Unlocked</span>
                       @else
-                        <span class="page-modules-badge is-locked">Locked</span>
+                        <span class="page-modules-status is-locked">Locked</span>
                       @endif
                     </div>
 
@@ -588,8 +583,8 @@
                     @endif
                     
                     <div class="page-modules-meta-row">
-                      <span class="page-modules-meta-chip">{{ $tLessons }} lessons</span>
-                      <span class="page-modules-meta-chip">~{{ max(1, round($tLessons / 2)) }} hrs</span>
+                      <span class="page-modules-meta-item">{{ $tLessons }} lessons</span>
+                      <span class="page-modules-meta-item">~{{ max(1, round($tLessons / 2)) }} hrs</span>
                     </div>
                   </div>
 

@@ -1,46 +1,119 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Assessments — DataSensei</title><style>
-/* Student assessment list. Colours, type and radius come from partials.design-system. */
-:root{--good:var(--ds-success);--warn:var(--ds-warning);--bad:var(--ds-danger)}
-*{box-sizing:border-box}
-body{margin:0;font-family:var(--ds-font-sans);background:var(--bg);color:var(--text)}
-.layout{display:flex;min-height:100vh}
-.main{flex:1;min-width:0;padding:28px 32px 48px}
-.wrap{max-width:1480px;margin:0 auto}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assessments — DataSensei</title>
+  @include('student.assessments._list_styles')
+  @include('partials.admin-inspired-page-style')
+  @include('partials.page-head', ['pageTitle' => 'Assessments', 'pageDescription' => 'Choose a class to see its homework, quizzes, and examinations.'])
+</head>
+<body class="ds-admin-inspired">
+  <header class="mobile-header" aria-label="Mobile navigation">
+    <button class="hamburger" id="js-menu-btn" aria-label="Open menu" aria-expanded="false">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <span class="mobile-title">Assessments</span>
+  </header>
+  <div class="sidebar-overlay" id="js-overlay" aria-hidden="true"></div>
 
-/* page header */
-.top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px}
-.top > div{min-width:0;flex:1 1 320px}
-.subtitle{margin:4px 0 0;max-width:72ch;color:var(--muted);font-size:.875rem;line-height:1.55}
+  <div class="ds-shell">
+    @include('partials.sidebar')
 
-/* assessment cards */
-.grid{display:grid;gap:16px}
-.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.card{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:20px;
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
-.card h3{margin:4px 0 0;font-size:.9375rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
-.card p{margin:0 0 8px;font-size:.8125rem;line-height:1.5}
-.card .btn{margin-top:auto}
-.card.empty{grid-column:1/-1;align-items:center;padding:32px 20px;text-align:center}
-.card.empty p{margin:0;font-size:.875rem}
-.muted{color:var(--muted)}
+    <main class="ds-main">
+      <div class="wrap">
+        <div class="top-row">
+          <div>
+            <h1 class="page-title ds-page-title">Assessments</h1>
+            <p class="page-subtitle">Your classes. Open a class to see its available, upcoming, submitted, missing and late homework, quizzes, and examinations.</p>
+          </div>
+        </div>
 
-.card .state{color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.4;white-space:nowrap}
+        @if(session('success'))
+          <div class="alert success" role="alert">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+          <div class="alert danger" role="alert">{{ session('error') }}</div>
+        @endif
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;
-  border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--accent);color:#fff;
-  font-size:.875rem;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer;
-  transition:background .12s ease,border-color .12s ease}
-.btn:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+        @php
+          $describe = function (array $counts): string {
+            $labels = ['available' => 'available', 'upcoming' => 'upcoming', 'missing' => 'missing', 'late' => 'late', 'submitted' => 'submitted'];
+            $parts = [];
+            foreach ($labels as $key => $label) {
+              if (($counts[$key] ?? 0) > 0) {
+                $parts[] = $counts[$key].' '.$label;
+              }
+            }
+            return $parts === [] ? 'No assessments yet' : implode(', ', $parts);
+          };
+          $active = $classes->where('is_archived', false);
+          $archived = $classes->where('is_archived', true);
+        @endphp
 
-.wrap > .admin-pagination{margin-top:20px}
+        <section class="card" aria-labelledby="my-classes">
+          <div class="card-head">
+            <h2 id="my-classes">My Classes</h2>
+            <span>{{ $active->count() }} {{ $active->count() === 1 ? 'class' : 'classes' }}</span>
+          </div>
 
-@media(max-width:1100px){.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:900px){.main{padding:24px 20px 40px}}
-@media(max-width:640px){
-  .main{padding:20px 16px 32px}
-  .grid-3{grid-template-columns:minmax(0,1fr)}
-  .card{padding:16px}
-}
-@media(prefers-reduced-motion:reduce){.btn{transition:none}}
-</style>    @include('partials.page-head', ['pageTitle' => 'Assessments', 'pageDescription' => 'Take assessments set by your instructor and review your results.'])
-</head><body><div class="layout">@include('partials.sidebar')<main class="main"><div class="wrap"><div class="top"><div><h1 class="title ds-page-title">Assessments</h1><p class="subtitle">Quizzes and exams your instructors give your classes.</p></div></div><div class="grid grid-3">@forelse($assessments as $assessment)<div class="card"><span class="state">{{ ucfirst($assessment->status) }}</span><h3>{{ $assessment->title }}</h3><p class="muted">{{ $assessment->classRoom->name ?? 'Class' }}, {{ $assessment->total_items }} items, {{ $assessment->total_points }} points</p><a class="btn" href="{{ route('student.assessments.show',$assessment) }}">Open</a></div>@empty<div class="card empty"><p class="muted">No assessments are available.</p></div>@endforelse</div>{{ $assessments->links() }}</div></main></div></body></html>
+          @if($active->isEmpty())
+            <p class="card-empty">You are not enrolled in any class yet. When your instructor adds you to a class, it appears here with its assessments.</p>
+          @else
+            <table class="table">
+              <thead>
+                <tr><th scope="col">Class</th><th scope="col">Instructor</th><th scope="col">Assessments</th><th scope="col"></th></tr>
+              </thead>
+              <tbody>
+                @foreach($active as $class)
+                  @php $counts = $summaries[$class->id] ?? []; @endphp
+                  <tr>
+                    <td>
+                      <a class="row-link" href="{{ route('student.assessments.class', $class) }}"><strong>{{ $class->name }}</strong></a>
+                      @if($class->section)<span class="sub">{{ $class->section }}</span>@endif
+                    </td>
+                    <td data-label="Instructor">{{ $class->instructor?->name ?? '—' }}</td>
+                    <td data-label="Assessments">
+                      <span class="{{ ($counts['missing'] ?? 0) > 0 ? 'state-bad' : '' }}">{{ $describe($counts) }}</span>
+                    </td>
+                    <td class="action"><a class="btn primary" href="{{ route('student.assessments.class', $class) }}">Open class</a></td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          @endif
+        </section>
+
+        @if($archived->isNotEmpty())
+          <section class="card" aria-labelledby="past-classes">
+            <div class="card-head">
+              <h2 id="past-classes">Archived classes</h2>
+              <span>Finished classes you can still look back on</span>
+            </div>
+            <table class="table">
+              <thead>
+                <tr><th scope="col">Class</th><th scope="col">Instructor</th><th scope="col">Assessments</th><th scope="col"></th></tr>
+              </thead>
+              <tbody>
+                @foreach($archived as $class)
+                  <tr>
+                    <td>
+                      <a class="row-link" href="{{ route('student.assessments.class', $class) }}"><strong>{{ $class->name }}</strong></a>
+                      @if($class->section)<span class="sub">{{ $class->section }}</span>@endif
+                    </td>
+                    <td data-label="Instructor">{{ $class->instructor?->name ?? '—' }}</td>
+                    <td data-label="Assessments">{{ $describe($summaries[$class->id] ?? []) }}</td>
+                    <td class="action"><a class="btn" href="{{ route('student.assessments.class', $class) }}">Open class</a></td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </section>
+        @endif
+      </div>
+    </main>
+  </div>
+
+  @include('student.assessments._menu_script')
+</body>
+</html>

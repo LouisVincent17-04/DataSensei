@@ -33,16 +33,10 @@
     .page-profile-text h2 { margin-bottom: 2px; color: var(--text); font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; overflow-wrap: anywhere; }
     .page-profile-text p { color: var(--muted); font-size: 0.875rem; line-height: 1.5; overflow-wrap: anywhere; }
 
-    .page-profile-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; }
-    .page-profile-badge { display: inline-flex; align-items: center; padding: 2px 8px; border: 1px solid var(--ds-border-strong); border-radius: var(--radius-xs); background: var(--surface2); color: var(--ds-text-secondary); font-size: 0.75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+    .page-profile-status { margin: 0 0 12px; color: var(--ds-success-text); font-size: 0.8125rem; }
     /* The role is plain text, not a capsule. */
-    .page-profile-badge-ds { padding: 0; border: 0; background: none; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
 
     /* Summary tiles */
-    .page-profile-stats-row { flex: 2 1 420px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-    .page-profile-stat { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-    .page-profile-stat .lbl { order: -1; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
-    .page-profile-stat .val { margin-top: 2px; color: var(--text); font-size: 1.5rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
 
     /* Section tabs (underline) */
     .page-profile-tabs { display: flex; gap: 24px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: none; }
@@ -105,8 +99,8 @@
 
     /* ── messages ── */
     .page-profile-alert { margin-bottom: 16px; padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.5; }
-    .page-profile-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
-    .page-profile-alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+    .page-profile-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5); }
+    .page-profile-alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink, #fee2e2); }
 
     /* ── requirement list ── */
     .page-profile-req-list { display: flex; flex-direction: column; gap: 10px; list-style: none; }
@@ -129,10 +123,6 @@
     }
     /* Phones: the summary figures become rows of one panel instead of tall tiles. */
     @media (max-width: 560px) {
-      .page-profile-stats-row { grid-template-columns: minmax(0, 1fr); gap: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-      .page-profile-stat { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; background: none; border: 0; border-top: 1px solid var(--border); border-radius: 0; }
-      .page-profile-stat:first-child { border-top: 0; }
-      .page-profile-stat .val { margin: 0; font-size: 1.125rem; text-align: right; }
     }
   </style>
     @include('partials.page-head', ['pageTitle' => 'Security & Passwords', 'pageDescription' => 'Update the password for your DataSensei account.'])
@@ -168,33 +158,8 @@
               </div>
               
               <div class="page-profile-text">
-                <h2>
-                  @if (auth()->check())
-                    {{ auth()->user()->name }}
-                  @else
-                    Louis Santos
-                  @endif
-                </h2>
-                <p>student@datasensei.ph</p>
-                <div class="page-profile-badges">
-                  <span class="page-profile-badge page-profile-badge-ds">Data Science Track</span>
-                  <span class="page-profile-badge page-profile-badge-rank">Top 10% Overall</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="page-profile-stats-row">
-              <div class="page-profile-stat">
-                <div class="val">2,485</div>
-                <div class="lbl">Total XP</div>
-              </div>
-              <div class="page-profile-stat">
-                <div class="val">142</div>
-                <div class="lbl">Solved</div>
-              </div>
-              <div class="page-profile-stat">
-                <div class="val">12</div>
-                <div class="lbl">Day Streak</div>
+                <h2>{{ auth()->user()->name ?? 'Account' }}</h2>
+                <p>{{ auth()->user()->email ?? '' }}</p>
               </div>
             </div>
 
@@ -217,21 +182,27 @@
                 </div>
               </div>
               <div class="page-profile-card-body">
-                <form action="#" method="POST">
+                @if (session('status'))
+                  <p class="page-profile-status" role="status">{{ session('status') }}</p>
+                @endif
+                <form action="{{ route('profile.password.update') }}" method="POST">
                   @csrf
+                  @method('PATCH')
                   <div class="page-profile-form-group">
                     <label>Current Password</label>
-                    <input type="password" name="current_password" placeholder="Enter your current password" required />
+                    <input type="password" name="current_password" placeholder="Enter your current password" autocomplete="current-password" required />
+                    @error('current_password')<div class="page-profile-field-error">{{ $message }}</div>@enderror
                   </div>
 
                   <div class="page-profile-form-group">
                     <label>New Password</label>
-                    <input type="password" name="password" placeholder="Create a new password" required />
+                    <input type="password" name="password" placeholder="Create a new password" autocomplete="new-password" required />
+                    @error('password')<div class="page-profile-field-error">{{ $message }}</div>@enderror
                   </div>
 
                   <div class="page-profile-form-group">
                     <label>Confirm New Password</label>
-                    <input type="password" name="password_confirmation" placeholder="Re-type your new password" required />
+                    <input type="password" name="password_confirmation" placeholder="Re-type your new password" autocomplete="new-password" required />
                   </div>
 
                   <div class="page-profile-form-actions">

@@ -273,7 +273,7 @@
   .me-filter { width:220px; min-height:var(--ds-control-h-sm); }
   .me-filter-status { margin:0; padding:12px 20px 0; color:var(--muted); font-size:.8125rem; }
 
-  .me-card { min-width:0; border:1px solid var(--border); border-radius:12px; background:var(--surface3); }
+  .me-card { min-width:0; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface3); }
   .me-card.is-open { border-color:var(--ds-accent-border); background:var(--surface); }
   .me-card.is-dragging { opacity:.5; }
   .me-card.drop-before { box-shadow:0 -2px 0 0 var(--accent); }
@@ -307,9 +307,9 @@
   .me-choice-letter { color:var(--text); font-size:.875rem; font-weight:600; text-align:center; }
   .me-choice.is-correct .me-choice-correct { color:var(--ds-success-text); }
   .me-choice.is-correct .input { border-color:var(--ds-success-border); }
-  .me-legacy-note { margin:0; padding:10px 14px; border:1px solid var(--border); border-radius:12px; background:var(--surface2); color:var(--ds-text-secondary); font-size:.8125rem; line-height:1.55; }
+  .me-legacy-note { margin:0; padding:10px 14px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface2); color:var(--ds-text-secondary); font-size:.8125rem; line-height:1.55; }
   .me-section-preview { margin-top:4px; }
-  .me-section-preview iframe { width:100%; min-height:240px; border:1px solid var(--border); border-radius:12px; background:var(--bg); }
+  .me-section-preview iframe { width:100%; min-height:240px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg); }
 
   .me [hidden] { display:none !important; }
 
@@ -317,7 +317,7 @@
   .me-block-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:4px; }
   .me-blocks { display:grid; grid-template-columns:minmax(0,1fr); gap:8px; }
   .me-blocks:empty { display:none; }
-  .me-block { min-width:0; border:1px solid var(--border); border-left:3px solid var(--ds-border-strong); border-radius:12px; background:var(--surface2); }
+  .me-block { min-width:0; border:1px solid var(--border); border-left:3px solid var(--ds-border-strong); border-radius:var(--radius); background:var(--surface2); }
   .me-block.is-open { border-color:var(--ds-accent-border); border-left-color:var(--accent); background:var(--surface3); }
   .me-block.is-dragging { opacity:.5; }
   .me-block.drop-before { box-shadow:0 -2px 0 0 var(--accent); }
@@ -329,7 +329,7 @@
   .me-block .me-card-body { padding:14px; }
   .me-section-footer { display:flex; align-items:flex-start; gap:8px; flex-wrap:wrap; }
   .me-add-content { position:relative; }
-  .me-add-menu { position:absolute; left:0; top:calc(100% + 6px); z-index:30; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; width:min(560px, 86vw); max-height:420px; overflow:auto; padding:8px; border:1px solid var(--ds-border-strong); border-radius:12px; background:var(--surface); box-shadow:0 18px 40px rgba(0,0,0,.45); }
+  .me-add-menu { position:absolute; left:0; top:calc(100% + 6px); z-index:30; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; width:min(560px, 86vw); max-height:420px; overflow:auto; padding:8px; border:1px solid var(--ds-border-strong); border-radius:var(--radius); background:var(--surface); box-shadow:0 18px 40px rgba(0,0,0,.45); }
   .me-fields > .btn, .me-fields > .action-row, .me-quiz-question > .btn, .me-quiz-question > .action-row { justify-self:start; }
   .me-format { display:flex; gap:4px; margin:0 0 6px; }
   .me-format button { min-width:32px; min-height:28px; padding:0 8px; border:1px solid var(--ds-border-strong); border-radius:6px; background:var(--surface2); color:var(--ds-text-secondary); font:600 .75rem/1 var(--ds-font-sans); cursor:pointer; }
@@ -350,7 +350,7 @@
   .me-table-grid .me-table-head { font-weight:600; }
   .me-table-remove { margin-top:4px; }
   .me-quiz { display:grid; gap:12px; }
-  .me-quiz-question { display:grid; gap:10px; min-width:0; margin:0; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--surface2); }
+  .me-quiz-question { display:grid; gap:10px; min-width:0; margin:0; padding:12px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface2); }
   .me-quiz-question legend { padding:0 4px; color:var(--ds-text-secondary); font-size:.8125rem; font-weight:600; }
   .me-quiz-question .me-choice { grid-template-columns:auto 24px minmax(0,1fr) auto; }
 
@@ -360,7 +360,7 @@
   .me-summary dd { margin:0; color:var(--text); font-size:.875rem; }
   .me-warning { color:var(--ds-danger-text); }
 
-  .me-actionbar { position:sticky; bottom:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:8px; padding:12px 16px; border:1px solid var(--border); border-radius:12px; background:var(--surface); box-shadow:0 -8px 24px rgba(0,0,0,.25); }
+  .me-actionbar { position:sticky; bottom:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:8px; padding:12px 16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); box-shadow:0 -8px 24px rgba(0,0,0,.25); }
   .me-state { margin:0; color:var(--muted); font-size:.875rem; }
   .me-state.is-dirty { color:var(--ds-warning-text, var(--text)); }
   .me-state.is-saving { color:var(--text); }
@@ -370,7 +370,7 @@
   .me-field-error { margin:6px 0 0; color:var(--ds-danger-text); font-size:.8125rem; line-height:1.4; }
   .me .is-invalid { border-color:var(--ds-danger-border) !important; }
   .me-card > .me-card-error { margin:0 16px 12px; }
-  .me-card-error { margin:0 0 12px; padding:10px 12px; border:1px solid var(--ds-danger-border); border-radius:6px; background:var(--ds-danger-soft); color:#fee2e2; font-size:.8125rem; line-height:1.45; }
+  .me-card-error { margin:0 0 12px; padding:10px 12px; border:1px solid var(--ds-danger-border); border-radius:6px; background:var(--ds-danger-soft); color:var(--ds-danger-ink, #fee2e2); font-size:.8125rem; line-height:1.45; }
 
   @media (max-width: 900px) {
     .me-card-head { flex-wrap:wrap; }

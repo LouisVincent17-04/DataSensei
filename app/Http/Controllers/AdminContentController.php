@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AssignmentLibraryItem;
 use App\Models\Challenge;
 use App\Models\ChallengeCategory;
 use App\Models\ModuleLibraryItem;
@@ -28,8 +27,6 @@ class AdminContentController extends Controller
             'active_modules' => ModuleLibraryItem::where('is_active', true)->count(),
             'mcq_challenges' => Challenge::mcq()->count(),
             'active_mcq_challenges' => Challenge::mcq()->active()->count(),
-            'assessments' => AssignmentLibraryItem::count(),
-            'active_assessments' => AssignmentLibraryItem::active()->count(),
         ];
 
         return view('admin.content.index', compact('categories', 'summary'));

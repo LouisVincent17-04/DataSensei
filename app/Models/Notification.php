@@ -40,6 +40,8 @@ class Notification extends Model
         return match (true) {
             Str::startsWith($this->type, 'achievement_') => 'Achievement unlocked',
             Str::startsWith($this->type, 'mission_') => 'Mission completed',
+            // Historical rows: assignment_* notifications stored before
+            // assignments were merged into assessments (Updates 11).
             Str::contains($this->type, 'assignment') => 'Assignment update',
             Str::contains($this->type, 'assessment') => 'Assessment update',
             Str::contains($this->type, 'class_') => 'Class update',

@@ -39,7 +39,7 @@
     .result-notice {
       margin-bottom: 16px; padding: 12px 16px;
       border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm); background: var(--ds-success-soft);
-      color: #d1fae5; font-size: .875rem; line-height: 1.55;
+      color: var(--ds-success-ink, #d1fae5); font-size: .875rem; line-height: 1.55;
     }
 
     /* ── summary figures ──────────────────────────────────────────── */

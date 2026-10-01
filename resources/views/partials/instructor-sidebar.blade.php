@@ -43,7 +43,7 @@
   </nav>
 
   <nav class="nav-group">
-    <div class="nav-label">Assignments</div>
+    <div class="nav-label">Class Work</div>
 
     <a href="{{ $safeRoute('modules.module-library.index', '/modules/module-library') }}"
        class="nav-item {{ request()->routeIs('modules.*') ? 'active' : '' }}">
@@ -77,14 +77,22 @@
       Assessments
     </a>
 
-    <a href="{{ $safeRoute('instructor.assignments.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.assignments.*') ? 'active' : '' }}">
+    <a href="{{ $safeRoute('instructor.certificates.index', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.certificates.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M9 11l3 3L22 4"/>
-        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        <path d="M4 4h16v12H4z"/><path d="M8 8h8M8 12h5"/><path d="M14 16l-1 5 3-2 3 2-1-5"/>
       </svg>
-      Assignments
+      Certificate Builder
     </a>
+
+    <a href="{{ $safeRoute('instructor.question-bank.index', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.question-bank.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+      </svg>
+      Question Bank
+    </a>
+
 
 
 
@@ -131,21 +139,22 @@
   <nav class="nav-group">
     <div class="nav-label">Analytics</div>
 
+    {{-- Class Analytics and the former At-Risk Alerts are one area (DataSensei Updates 12). --}}
     <a href="{{ $safeRoute('instructor.analytics.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.analytics.*') ? 'active' : '' }}">
+       class="nav-item {{ request()->routeIs('instructor.analytics.*') || request()->routeIs('instructor.risk.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
-      Class Analytics
+      Class Analytics &amp; At-Risk
     </a>
 
-    <a href="{{ $safeRoute('instructor.risk.index', '#') }}"
-       class="nav-item {{ request()->routeIs('instructor.risk.*') ? 'active' : '' }}">
+    <a href="{{ $safeRoute('instructor.gradebook.index', '#') }}"
+       class="nav-item {{ request()->routeIs('instructor.gradebook.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M12 9v4m0 4h.01"/>
-        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <path d="M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/>
+        <path d="M4 9h16M4 15h16M10 3v18"/>
       </svg>
-      At-Risk Alerts
+      Gradebook
     </a>
 
     <a href="{{ $safeRoute('instructor.reports.index', '#') }}"
@@ -171,6 +180,7 @@
   </nav>
 
   <div class="sidebar-footer">
+    @include('partials.theme-toggle', ['block' => true])
     <div class="user-card">
       <div class="avatar">
         @if(auth()->check() && auth()->user()->name)

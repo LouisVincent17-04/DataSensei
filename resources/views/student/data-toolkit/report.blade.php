@@ -17,7 +17,7 @@
       color-scheme:light;margin:0;background:var(--rp-bg);color:var(--rp-text);font-family:var(--ds-font-sans);
       font-size:.875rem;line-height:1.5}
     body ::selection{color:var(--rp-text)}
-    .page{max-width:1120px;margin:0 auto;padding:28px 32px 48px}
+    .page{max-width:1400px;margin:0 auto;padding:28px 32px 48px}
 
     .toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px}
     .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 16px;
@@ -32,8 +32,8 @@
     .report .ds-page-title{color:var(--rp-text);overflow-wrap:anywhere}
     .muted{color:var(--rp-muted);line-height:1.6}
     .header .muted{max-width:72ch;margin:4px 0 12px}
-    .chips{display:flex;flex-wrap:wrap;gap:4px 20px}
-    .chip{color:var(--rp-muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
+    .facts{display:flex;flex-wrap:wrap;gap:4px 20px}
+    .facts span{color:var(--rp-muted);font-size:.8125rem;font-variant-numeric:tabular-nums}
 
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
     .card{min-width:0;padding:14px 16px;border:1px solid var(--rp-border);border-radius:var(--ds-radius-md);background:var(--rp-surface)}
@@ -103,10 +103,10 @@
     <header class="header">
       <h1 class="ds-page-title">{{ $report['dataset']['title'] }}</h1>
       <p class="muted">{{ $report['dataset']['description'] }}</p>
-      <div class="chips">
-        <span class="chip">Student: {{ $student->name ?? 'Student' }}</span>
-        <span class="chip">Generated: {{ $report['generated_at']->format('M d, Y h:i A') }}</span>
-        <span class="chip">Dataset: Built-in</span>
+      <div class="facts">
+        <span>Student: {{ $student->name ?? 'Student' }}</span>
+        <span>Generated: {{ $report['generated_at']->format('M d, Y h:i A') }}</span>
+        <span>Dataset: Built-in</span>
       </div>
     </header>
 

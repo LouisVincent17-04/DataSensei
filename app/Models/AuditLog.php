@@ -39,6 +39,12 @@ class AuditLog extends Model
         'reordered' => 'Reordered',
         'configured' => 'Changed configuration',
         'synced' => 'Synced',
+        // Certificates (DataSensei Updates 13)
+        'activated' => 'Activated',
+        'deactivated' => 'Deactivated',
+        'issued' => 'Issued certificate',
+        'revoked' => 'Revoked certificate',
+        'reissued' => 'Reissued certificate',
     ];
 
     protected $fillable = [

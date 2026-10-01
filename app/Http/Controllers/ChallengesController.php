@@ -960,6 +960,13 @@ class ChallengesController extends Controller
                 $xpBefore
             );
 
+        // A passed core Newbie challenge may finish the "Core 24 Challenge
+        // Completion" certificate (DataSensei Updates 12). Checked on the
+        // server once this attempt is committed; it never blocks the result.
+        if ($status !== 'disqualified' && $passed) {
+            app(\App\Services\CertificateService::class)->afterProgress($user);
+        }
+
         return [
             'message' => $this->finishedAttemptMessage($attempt, $correctCount, $totalQuestions, $earnedXp, $leaderboardEligible, $achievements, $status),
             'attempt_id' => $attempt->id,

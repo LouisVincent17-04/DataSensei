@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AssessmentSubmission;
-use App\Models\AssignmentSubmission;
 use App\Models\User;
 use App\Services\AssessmentDiagnosticService;
 use App\Services\GamificationService;
@@ -16,6 +15,11 @@ use Illuminate\Support\Facades\Schema;
 use Mockery;
 use Tests\TestCase;
 
+/**
+ * Autosaved draft answers survive the timer (DS-01). Assignments were merged
+ * into assessments (DataSensei Updates 11), so every scenario runs against
+ * the assessment routes and tables.
+ */
 class TimedSubmissionAnswerPreservationTest extends TestCase
 {
     private User $student;
@@ -53,13 +57,6 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         Carbon::setTestNow();
         foreach ([
             'anti_cheat_settings',
-            'assignment_submission_answers',
-            'assignment_submissions',
-            'assignment_blank_answers',
-            'assignment_question_options',
-            'assignment_questions',
-            'class_assignments',
-            'assignment_library_items',
             'assessment_answers',
             'assessment_submissions',
             'assessment_question_options',
@@ -223,92 +220,97 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
     }
 
     /**
-     * DS-01 (assignment): rewritten. The previous version,
-     * test_timed_out_assignment_grades_received_answers_instead_of_emptying_them,
-     * posted the correct answer AFTER the server deadline with no saved draft
-     * and expected full marks, which encoded the bug. Answers now freeze at the
-     * deadline: the draft saved before expiry is graded and keeps its score.
+     * DS-01, formerly the assignment variant of the frozen-draft scenario.
+     * Assignments are assessments now (Updates 11): the draft saved before
+     * expiry is graded, keeps its score, and the reward pipeline is invoked
+     * exactly once (it is a no-op for class work either way).
      */
-    public function test_timed_out_assignment_grades_the_draft_saved_before_the_deadline_and_ignores_late_answers(): void
+    public function test_timed_out_attempt_grades_the_saved_correct_draft_and_reports_rewards_exactly_once(): void
     {
         $deadline = Carbon::parse('2026-08-30 13:00:00');
         Carbon::setTestNow($deadline->copy()->subMinute());
-        [$assignmentId, $questionId, $correctOptionId, $submissionId] =
-            $this->createAssignmentAttempt($deadline->copy()->subMinutes(5));
-        $wrongOptionId = (int) DB::table('assignment_question_options')
-            ->where('assignment_question_id', $questionId)
+        [$assessmentId, $questionId, $correctOptionId, $submissionId] =
+            $this->createAssessmentAttempt($deadline->copy()->subMinutes(5));
+        $wrongOptionId = (int) DB::table('assessment_question_options')
+            ->where('assessment_question_id', $questionId)
             ->where('is_correct', false)
             ->value('id');
+        $diagnostics = Mockery::mock(AssessmentDiagnosticService::class);
+        $diagnostics->shouldReceive('refresh')->once();
         $gamification = Mockery::mock(GamificationService::class);
-        $gamification->shouldReceive('awardForAssignmentSubmission')->once()->andReturn([]);
+        $gamification->shouldReceive('recordAssessmentSubmission')->once()->andReturn([]);
         $notifications = Mockery::mock(StudentNotificationService::class);
         $notifications->shouldReceive('send')->once()->andReturnNull();
+        $this->app->instance(AssessmentDiagnosticService::class, $diagnostics);
         $this->app->instance(GamificationService::class, $gamification);
         $this->app->instance(StudentNotificationService::class, $notifications);
 
         // The correct answer reaches the server one minute before the deadline.
         $this->studentClient()->post(
-            route('student.assignments.autosave', [$assignmentId, $submissionId]),
+            route('student.assessments.autosave', [$assessmentId, $submissionId]),
             ['answers' => [$questionId => (string) $correctOptionId], 'client_version' => 1]
         )->assertOk()->assertJson(['saved' => true]);
 
         // After the deadline a replacement arrives; it must change nothing.
         Carbon::setTestNow($deadline->copy()->addSeconds(30));
         $this->studentClient()->post(
-            route('student.assignments.submit', [$assignmentId, $submissionId]),
+            route('student.assessments.submit', [$assessmentId, $submissionId]),
             ['answers' => [$questionId => (string) $wrongOptionId]]
-        )->assertRedirect(route('student.assignments.result', [$assignmentId, $submissionId]));
+        )->assertRedirect(route('student.assessments.result', [$assessmentId, $submissionId]));
 
-        $this->assertDatabaseHas('assignment_submission_answers', [
-            'assignment_submission_id' => $submissionId,
-            'assignment_question_id' => $questionId,
+        $this->assertDatabaseHas('assessment_answers', [
+            'assessment_submission_id' => $submissionId,
+            'assessment_question_id' => $questionId,
             'selected_option_id' => $correctOptionId,
             'is_correct' => 1,
             'points_awarded' => 5,
         ]);
-        $submission = AssignmentSubmission::findOrFail($submissionId);
-        $this->assertSame(5, $submission->score);
+        $submission = AssessmentSubmission::findOrFail($submissionId);
+        $this->assertSame('5.00', $submission->score);
         $this->assertSame('graded', $submission->status);
         $this->assertNotNull($submission->timed_out_at);
         $this->assertSame((string) $correctOptionId, $submission->draft_answers[(string) $questionId]);
 
         // Repeating the request is inert: the mocks above allow exactly one
-        // reward call and notification.
+        // reward call, diagnostics refresh and notification.
         $this->studentClient()->post(
-            route('student.assignments.submit', [$assignmentId, $submissionId]),
+            route('student.assessments.submit', [$assessmentId, $submissionId]),
             ['answers' => [$questionId => (string) $wrongOptionId]]
         );
-        $this->assertSame(1, DB::table('assignment_submission_answers')->count());
-        $this->assertSame(5, AssignmentSubmission::findOrFail($submissionId)->score);
+        $this->assertSame(1, DB::table('assessment_answers')->count());
+        $this->assertSame('5.00', AssessmentSubmission::findOrFail($submissionId)->score);
     }
 
-    public function test_timed_out_assignment_with_late_answers_and_no_draft_is_unanswered_not_an_error(): void
+    public function test_timed_out_attempt_with_late_answers_and_no_draft_is_unanswered_not_an_error(): void
     {
         $now = Carbon::parse('2026-08-30 13:00:00');
         Carbon::setTestNow($now);
-        [$assignmentId, $questionId, $correctOptionId, $submissionId] =
-            $this->createAssignmentAttempt($now->copy()->subMinutes(5));
+        [$assessmentId, $questionId, $correctOptionId, $submissionId] =
+            $this->createAssessmentAttempt($now->copy()->subMinutes(5));
+        $diagnostics = Mockery::mock(AssessmentDiagnosticService::class);
+        $diagnostics->shouldReceive('refresh')->once();
         $gamification = Mockery::mock(GamificationService::class);
-        $gamification->shouldReceive('awardForAssignmentSubmission')->once()->andReturn([]);
+        $gamification->shouldReceive('recordAssessmentSubmission')->once()->andReturn([]);
         $notifications = Mockery::mock(StudentNotificationService::class);
         $notifications->shouldReceive('send')->once()->andReturnNull();
+        $this->app->instance(AssessmentDiagnosticService::class, $diagnostics);
         $this->app->instance(GamificationService::class, $gamification);
         $this->app->instance(StudentNotificationService::class, $notifications);
 
         $this->studentClient()->post(
-            route('student.assignments.submit', [$assignmentId, $submissionId]),
+            route('student.assessments.submit', [$assessmentId, $submissionId]),
             ['answers' => [$questionId => (string) $correctOptionId]]
-        )->assertRedirect(route('student.assignments.result', [$assignmentId, $submissionId]));
+        )->assertRedirect(route('student.assessments.result', [$assessmentId, $submissionId]));
 
-        $this->assertDatabaseHas('assignment_submission_answers', [
-            'assignment_submission_id' => $submissionId,
-            'assignment_question_id' => $questionId,
+        $this->assertDatabaseHas('assessment_answers', [
+            'assessment_submission_id' => $submissionId,
+            'assessment_question_id' => $questionId,
             'selected_option_id' => null,
             'is_correct' => 0,
             'points_awarded' => 0,
         ]);
-        $submission = AssignmentSubmission::findOrFail($submissionId);
-        $this->assertSame(0, $submission->score);
+        $submission = AssessmentSubmission::findOrFail($submissionId);
+        $this->assertSame('0.00', $submission->score);
         $this->assertSame('graded', $submission->status);
         $this->assertNotNull($submission->timed_out_at);
     }
@@ -420,65 +422,6 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
         return [$assessmentId, $questionId, $correctOptionId, $submissionId];
     }
 
-    private function createAssignmentAttempt(Carbon $startedAt): array
-    {
-        $libraryItemId = DB::table('assignment_library_items')->insertGetId([
-            'title' => 'Timed Assignment',
-            'time_limit_minutes' => 5,
-            'total_points' => 5,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        $assignmentId = DB::table('class_assignments')->insertGetId([
-            'class_id' => $this->classId,
-            'assignment_library_item_id' => $libraryItemId,
-            'title' => 'Timed Assignment',
-            'status' => 'published',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        $questionId = DB::table('assignment_questions')->insertGetId([
-            'assignment_library_item_id' => $libraryItemId,
-            'question_type' => 'mcq',
-            'question_text' => 'Which answer is correct?',
-            'points' => 5,
-            'order_index' => 1,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        $correctOptionId = DB::table('assignment_question_options')->insertGetId([
-            'assignment_question_id' => $questionId,
-            'option_text' => 'Correct',
-            'is_correct' => true,
-            'order_index' => 1,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        DB::table('assignment_question_options')->insert([
-            'assignment_question_id' => $questionId,
-            'option_text' => 'Incorrect',
-            'is_correct' => false,
-            'order_index' => 2,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        $submissionId = DB::table('assignment_submissions')->insertGetId([
-            'class_assignment_id' => $assignmentId,
-            'student_id' => $this->student->id,
-            'attempt_no' => 1,
-            'status' => 'in_progress',
-            'score' => 0,
-            'total_points' => 5,
-            'started_at' => $startedAt,
-            'anti_cheat_session_id' => 'test-session',
-            'draft_version' => 0,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return [$assignmentId, $questionId, $correctOptionId, $submissionId];
-    }
-
     private function createTables(): void
     {
         Schema::create('users', function (Blueprint $table): void {
@@ -555,6 +498,14 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
             $table->unsignedBigInteger('draft_version')->default(0);
             $table->dateTime('draft_saved_at')->nullable();
             $table->dateTime('timed_out_at')->nullable();
+            // DataSensei Updates 11: the protected attempt identity and the
+            // integrity outcome moved onto assessment attempts.
+            $table->string('anti_cheat_session_id', 120)->nullable();
+            $table->string('integrity_status', 30)->nullable();
+            $table->string('integrity_reason', 255)->nullable();
+            $table->decimal('provisional_score', 8, 2)->nullable();
+            $table->unsignedBigInteger('integrity_reviewed_by')->nullable();
+            $table->dateTime('integrity_reviewed_at')->nullable();
             $table->timestamps();
         });
         Schema::create('assessment_answers', function (Blueprint $table): void {
@@ -569,94 +520,16 @@ class TimedSubmissionAnswerPreservationTest extends TestCase
             $table->timestamps();
             $table->unique(['assessment_submission_id', 'assessment_question_id']);
         });
-        Schema::create('assignment_library_items', function (Blueprint $table): void {
-            $table->id();
-            $table->string('title');
-            $table->unsignedInteger('time_limit_minutes')->nullable();
-            $table->unsignedInteger('total_points')->default(0);
-            $table->timestamps();
-        });
-        Schema::create('class_assignments', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('class_id');
-            $table->unsignedBigInteger('assignment_library_item_id');
-            $table->string('title');
-            $table->string('status', 30);
-            $table->dateTime('available_at')->nullable();
-            $table->dateTime('due_at')->nullable();
-            $table->timestamps();
-        });
-        Schema::create('assignment_questions', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('assignment_library_item_id');
-            $table->string('question_type', 40);
-            $table->longText('question_text');
-            $table->unsignedInteger('points');
-            $table->unsignedInteger('order_index')->default(0);
-            $table->timestamps();
-        });
-        Schema::create('assignment_question_options', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('assignment_question_id');
-            $table->text('option_text');
-            $table->boolean('is_correct');
-            $table->unsignedInteger('order_index')->default(0);
-            $table->timestamps();
-        });
-        Schema::create('assignment_blank_answers', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('assignment_question_id');
-            $table->text('answer_text');
-            $table->boolean('is_case_sensitive')->default(false);
-            $table->timestamps();
-        });
-        Schema::create('assignment_submissions', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('class_assignment_id');
-            $table->unsignedBigInteger('student_id');
-            $table->unsignedInteger('attempt_no');
-            $table->string('status', 30);
-            $table->unsignedInteger('score')->default(0);
-            $table->unsignedInteger('total_points')->default(0);
-            $table->dateTime('started_at')->nullable();
-            $table->dateTime('submitted_at')->nullable();
-            $table->dateTime('graded_at')->nullable();
-            $table->text('feedback')->nullable();
-            $table->string('anti_cheat_session_id', 120)->nullable();
-            $table->longText('draft_answers')->nullable();
-            $table->unsignedBigInteger('draft_version')->default(0);
-            $table->dateTime('draft_saved_at')->nullable();
-            $table->dateTime('timed_out_at')->nullable();
-            // 2026_09_20_000001: integrity outcome + one-time reward marker.
-            $table->string('integrity_status', 30)->nullable();
-            $table->string('integrity_reason', 255)->nullable();
-            $table->unsignedInteger('provisional_score')->nullable();
-            $table->unsignedBigInteger('integrity_reviewed_by')->nullable();
-            $table->dateTime('integrity_reviewed_at')->nullable();
-            $table->dateTime('rewards_awarded_at')->nullable();
-            $table->timestamps();
-        });
-        // The integrity decision is evaluated on every assignment submit, also
+        // The integrity decision is evaluated on every assessment submit, also
         // after expiry (DS-02), so the policy table must exist. It stays empty:
         // no instructor policy protects these attempts.
         Schema::create('anti_cheat_settings', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('instructor_id');
             $table->unsignedBigInteger('class_id')->nullable();
-            $table->string('assessment_type')->default('assignment');
+            $table->string('assessment_type')->default('assessment');
             $table->boolean('enabled')->default(true);
             $table->timestamps();
-        });
-        Schema::create('assignment_submission_answers', function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedBigInteger('assignment_submission_id');
-            $table->unsignedBigInteger('assignment_question_id');
-            $table->unsignedBigInteger('selected_option_id')->nullable();
-            $table->longText('answer_text')->nullable();
-            $table->boolean('is_correct')->nullable();
-            $table->unsignedInteger('points_awarded')->default(0);
-            $table->timestamps();
-            $table->unique(['assignment_submission_id', 'assignment_question_id']);
         });
     }
 }

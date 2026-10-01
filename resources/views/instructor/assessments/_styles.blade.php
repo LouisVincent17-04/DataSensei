@@ -26,9 +26,9 @@
   .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .actions form{margin:0}
 
-  .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.5}
-  .alert.success{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:#d1fae5}
-  .alert.danger{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+  .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);background:var(--ds-accent-soft);color:var(--ds-accent-ink, #dbeafe);font-size:.875rem;line-height:1.5}
+  .alert.success{border-color:var(--ds-success-border);background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5)}
+  .alert.danger{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
   .alert ul{margin:6px 0 0;padding-left:18px}
 
   .section{margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);scroll-margin-top:80px}
@@ -43,7 +43,7 @@
   .field label,.field .label{display:block;margin-bottom:6px;color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500}
   .field .hint{display:block;margin-top:5px;color:var(--muted);font-size:.8125rem;line-height:1.45}
   .field .error{display:block;margin-top:5px;color:var(--ds-danger-text);font-size:.8125rem}
-  .input,.select,.textarea{width:100%;min-height:38px;padding:8px 12px;border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);background:var(--surface3);color:var(--text);font:400 .875rem/1.45 var(--ds-font-sans);color-scheme:dark}
+  .input,.select,.textarea{width:100%;min-height:38px;padding:8px 12px;border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);background:var(--surface3);color:var(--text);font:400 .875rem/1.45 var(--ds-font-sans);color-scheme:var(--ds-color-scheme,dark)}
   .textarea{min-height:90px;resize:vertical}
   .input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--accent);box-shadow:var(--ds-focus-ring)}
   .form-foot{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:16px}
@@ -70,6 +70,8 @@
     .section-body{padding:14px}
     .section-head{padding:12px 14px}
     .top{flex-direction:column;align-items:stretch}
+    /* In a column the 320px basis would become a 320px-tall empty block. */
+    .top > div:first-child{flex:0 0 auto}
     .facts{grid-template-columns:minmax(0,1fr)}
   }
 </style>

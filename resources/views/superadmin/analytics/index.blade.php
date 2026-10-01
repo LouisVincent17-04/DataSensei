@@ -40,7 +40,7 @@
     .field{display:flex;flex-direction:column;gap:6px;min-width:0}
     .field label{color:var(--ds-text-secondary);font-size:.8125rem;font-weight:500;line-height:1.35}
     .input{min-height:38px;padding:8px 12px;background:var(--surface3);border:1px solid var(--ds-input-border);border-radius:var(--radius-sm);
-      color:var(--text);font:400 .875rem/1.4 var(--ds-font-sans);outline:none;color-scheme:dark;transition:border-color .12s ease,box-shadow .12s ease}
+      color:var(--text);font:400 .875rem/1.4 var(--ds-font-sans);outline:none;color-scheme:var(--ds-color-scheme,dark);transition:border-color .12s ease,box-shadow .12s ease}
     .input:focus{border-color:var(--accent);box-shadow:var(--ds-focus-ring)}
 
     /* Buttons */
@@ -244,7 +244,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><div><div class="card-title">Daily Learning Activity</div><div class="card-sub">MCQ attempts, coding submissions, assignment submissions, and anti-cheat logs.</div></div></div>
+          <div class="card-header"><div><div class="card-title">Daily Learning Activity</div><div class="card-sub">MCQ attempts, coding submissions, assessment submissions, and anti-cheat logs.</div></div></div>
           <div class="card-body">
             @php $maxActivity = max(1, collect($activityTrend)->max('total') ?? 1); @endphp
             <div class="bar-list">
@@ -265,7 +265,7 @@
 
     <section id="students" class="section">
       <div class="section-head">
-        <div><div class="section-title">Student Analytics</div><div class="section-sub">XP, challenge performance, coding performance, assignment performance, and at-risk signals.</div></div>
+        <div><div class="section-title">Student Analytics</div><div class="section-sub">XP, challenge performance, coding performance, assessment performance, and at-risk signals.</div></div>
         <a class="btn btn-small" href="{{ route('superadmin.analytics.export', ['section' => 'students', 'from' => $range['from_date'], 'to' => $range['to_date']]) }}">Export Students</a>
       </div>
       <div class="grid-2">
@@ -274,7 +274,7 @@
       </div>
       <div class="grid-2">
         <x-superadmin.analytics-table title="Top Coding Performers" subtitle="Based on coding submissions and test case success." :rows="$students['topCoding']" :columns="['name'=>'Student','submissions_count'=>'Submissions','passed_count'=>'Passed','avg_test_score'=>'Avg Tests','total_xp'=>'XP']" />
-        <x-superadmin.analytics-table title="At-Risk Students" subtitle="Low XP, inactivity, or low assignment average." :rows="$students['atRisk']" :columns="['name'=>'Student','email'=>'Email','xp'=>'XP','assignment_avg'=>'Assignment Avg','risk_reasons'=>'Reasons']" danger />
+        <x-superadmin.analytics-table title="At-Risk Students" subtitle="Low XP, inactivity, or low assessment average." :rows="$students['atRisk']" :columns="['name'=>'Student','email'=>'Email','xp'=>'XP','assessment_avg'=>'Assessment Avg','risk_reasons'=>'Reasons']" danger />
       </div>
     </section>
 
@@ -283,14 +283,14 @@
         <div><div class="section-title">Instructor and Institution Analytics</div><div class="section-sub">Super Admin can monitor which institutions and instructors are actually using the platform.</div></div>
       </div>
       <div class="grid-2">
-        <x-superadmin.analytics-table title="Most Active Instructors" subtitle="Classes, students, assignments, and submissions connected to instructors." :rows="$instructors['topInstructors']" :columns="['name'=>'Instructor','email'=>'Email','classes_count'=>'Classes','students_count'=>'Students','assignments_count'=>'Assignments','submissions_count'=>'Submissions']" />
-        <x-superadmin.analytics-table title="Top Institutions" subtitle="Ranked by student and class activity." :rows="$institutions['topInstitutions']" :columns="['name'=>'Institution','status'=>'Status','users_count'=>'Users','classes_count'=>'Classes','students_count'=>'Students','assignments_count'=>'Assignments']" />
+        <x-superadmin.analytics-table title="Most Active Instructors" subtitle="Classes, students, assessments, and submissions connected to instructors." :rows="$instructors['topInstructors']" :columns="['name'=>'Instructor','email'=>'Email','classes_count'=>'Classes','students_count'=>'Students','assessments_count'=>'Assessments','submissions_count'=>'Submissions']" />
+        <x-superadmin.analytics-table title="Top Institutions" subtitle="Ranked by student and class activity." :rows="$institutions['topInstitutions']" :columns="['name'=>'Institution','status'=>'Status','users_count'=>'Users','classes_count'=>'Classes','students_count'=>'Students','assessments_count'=>'Assessments']" />
       </div>
     </section>
 
     <section id="learning" class="section">
       <div class="section-head">
-        <div><div class="section-title">Learning Analytics</div><div class="section-sub">Most attempted content, hardest content, coding challenge quality, and assignment performance.</div></div>
+        <div><div class="section-title">Learning Analytics</div><div class="section-sub">Most attempted content, hardest content, coding challenge quality, and assessment performance.</div></div>
         <a class="btn btn-small" href="{{ route('superadmin.analytics.export', ['section' => 'learning', 'from' => $range['from_date'], 'to' => $range['to_date']]) }}">Export Learning</a>
       </div>
       <div class="grid-2">
@@ -302,32 +302,32 @@
         <x-superadmin.analytics-table title="Hardest Coding Questions" subtitle="Lowest average test-case performance." :rows="$learning['hardestCoding']" :columns="['challenge_title'=>'Challenge','problem_preview'=>'Question Preview','submissions_count'=>'Submissions','passed_count'=>'Passed','avg_test_score'=>'Avg Tests']" danger />
       </div>
       <div class="grid-2">
-        <x-superadmin.analytics-table title="Assignment Performance" subtitle="Class-assigned academic work." :rows="$learning['assignmentPerformance']" :columns="['title'=>'Assignment','class_name'=>'Class','status'=>'Status','submissions_count'=>'Submissions','late_count'=>'Late','avg_score'=>'Avg Score']" />
+        <x-superadmin.analytics-table title="Assessment Performance" subtitle="Class-assigned academic work." :rows="$learning['assessmentPerformance']" :columns="['title'=>'Assessment','class_name'=>'Class','status'=>'Status','submissions_count'=>'Submissions','late_count'=>'Late','avg_score'=>'Avg Score']" />
         <x-superadmin.analytics-table title="Challenge Category Breakdown" subtitle="Your five difficulty levels as the assessment ladder." :rows="$learning['categoryBreakdown']" :columns="['level'=>'Level','mcq_count'=>'MCQ','coding_count'=>'Coding']" />
       </div>
     </section>
 
     <section class="section">
       <div class="section-head">
-        <div><div class="section-title">Content Analytics</div><div class="section-sub">Library usage and class assignment status.</div></div>
+        <div><div class="section-title">Content Analytics</div><div class="section-sub">Library usage and assessment status.</div></div>
       </div>
       <div class="grid-3">
         <x-superadmin.group-card title="Modules by Year Level" :rows="$content['moduleLibraryByYear']" />
-        <x-superadmin.group-card title="Assignment Library Types" :rows="$content['assignmentLibraryTypes']" />
-        <x-superadmin.group-card title="Class Assignment Status" :rows="$content['classAssignmentStatus']" />
+        <x-superadmin.group-card title="Question Bank Types" :rows="$content['questionBankTypes']" />
+        <x-superadmin.group-card title="Assessment Status" :rows="$content['assessmentStatus']" />
       </div>
     </section>
 
     <section id="integrity" class="section">
       <div class="section-head">
-        <div><div class="section-title">Integrity and Anti-Cheat Analytics</div><div class="section-sub">Instructor assignment anti-cheat logs summarized for Super Admin oversight.</div></div>
+        <div><div class="section-title">Integrity and Anti-Cheat Analytics</div><div class="section-sub">Instructor assessment anti-cheat logs summarized for Super Admin oversight.</div></div>
         <a class="btn btn-small" href="{{ route('superadmin.analytics.export', ['section' => 'anticheat', 'from' => $range['from_date'], 'to' => $range['to_date']]) }}">Export Events</a>
       </div>
       <div class="grid-2">
         <x-superadmin.group-card title="Event Types" :rows="$antiCheat['eventTypes']" />
         <x-superadmin.group-card title="Severity" :rows="$antiCheat['severity']" />
       </div>
-      <x-superadmin.analytics-table title="Recent Anti-Cheat Events" subtitle="Latest assignment integrity events in the selected range." :rows="$antiCheat['recentEvents']" :columns="['student_name'=>'Student','student_email'=>'Email','assignment_title'=>'Assignment','event_type'=>'Event','severity'=>'Severity','occurred_at'=>'Occurred']" danger />
+      <x-superadmin.analytics-table title="Recent Anti-Cheat Events" subtitle="Latest assessment integrity events in the selected range." :rows="$antiCheat['recentEvents']" :columns="['student_name'=>'Student','student_email'=>'Email','assessment_title'=>'Assessment','event_type'=>'Event','severity'=>'Severity','occurred_at'=>'Occurred']" danger />
     </section>
   </main>
 </div>

@@ -120,6 +120,11 @@ class LessonController extends Controller
                     $nextModule->id => ['is_unlocked' => true]
                 ]);
             }
+
+            // A completed Core Module may finish the "Core 24 Module
+            // Completion" certificate (DataSensei Updates 12). Checked on the
+            // server; it never blocks the lesson flow.
+            app(\App\Services\CertificateService::class)->afterProgress($user);
         }
         // ───────────────────────────────────────────────────────────
 

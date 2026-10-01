@@ -156,16 +156,16 @@ class User extends Authenticatable
         return $this->hasMany(PasswordResetOtp::class);
     }
 
+    public function assessmentSubmissions(): HasMany
+    {
+        return $this->hasMany(AssessmentSubmission::class, 'student_id');
+    }
+
     public function classesAsStudent(): BelongsToMany
     {
         return $this->belongsToMany(ClassRoom::class, 'class_student', 'student_id', 'class_id')
             ->withPivot('enrolled_at')
             ->withTimestamps();
-    }
-
-    public function assignmentSubmissions(): HasMany
-    {
-        return $this->hasMany(AssignmentSubmission::class, 'student_id');
     }
 
     public function studentNotifications(): HasMany

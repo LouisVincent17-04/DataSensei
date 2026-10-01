@@ -26,8 +26,8 @@
     .metric strong{display:block;font-size:1.375rem;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.55}
-    .alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+      background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem;line-height:1.55}
+    .alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
 
     /* one panel per question */
     .question-card{margin-bottom:16px;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
@@ -86,7 +86,22 @@
         <div class="top">
           <div>
             <h1 class="title ds-page-title">{{ $assessment->title }}</h1>
-            <p class="subtitle">Answer all required items before the server-enforced deadline. Refreshing this page does not reset the timer.</p>
+            @if(($attemptEndsAt ?? null) !== null)
+              <p class="subtitle">
+                Your attempt ends at {{ $attemptEndsAt->format('M d, Y, g:i A') }},
+                {{ ($attemptEndReason ?? null) === 'due_date'
+                    ? 'because the due date arrives before your full time limit.'
+                    : 'when your time limit runs out.' }}
+                The server enforces this; refreshing the page does not reset it.
+              </p>
+            @else
+              <p class="subtitle">
+                This work has no timer.
+                @if($assessment->due_at)
+                  It is due {{ $assessment->due_at->format('M d, Y, g:i A') }}; turning it in later marks it late.
+                @endif
+              </p>
+            @endif
           </div>
           @if($remainingSeconds !== null)
             <div class="metric" role="timer" aria-live="polite">
@@ -102,9 +117,12 @@
 
         <form id="assessment-form" method="POST" action="{{ route('student.assessments.submit', [$assessment, $submission]) }}">
           @csrf
+          @if(!empty($antiCheatSettings['enabled']))
+            <input type="hidden" name="_anti_cheat_session_id" value="{{ $antiCheatSessionId }}">
+          @endif
           @foreach($assessment->questions as $question)
             @php($savedAnswer = old('answers.'.$question->id, $draftAnswers[(string) $question->id] ?? ''))
-            <div class="question-card">
+            <div class="question-card" data-assessment-question-id="{{ $question->id }}">
               <div class="question-head">
                 <strong>{{ $question->item_number }}. {{ $question->question_text }}</strong>
                 <span class="points">{{ $question->points }} {{ (int) $question->points === 1 ? 'point' : 'points' }}</span>
@@ -171,6 +189,15 @@
       'formId' => 'assessment-form',
       'autosaveUrl' => route('student.assessments.autosave', [$assessment, $submission]),
       'draftVersion' => $draftVersion,
+  ])
+
+  @include('student.partials.anti-cheat-guard', [
+      'formId' => 'assessment-form',
+      'assessmentId' => $assessment->id,
+      'assessmentSubmissionId' => $submission->id,
+      'antiCheatSettings' => $antiCheatSettings ?? [],
+      'antiCheatSessionId' => $antiCheatSessionId ?? null,
+      'antiCheatState' => $antiCheatState ?? null,
   ])
 
   @if($remainingSeconds !== null)

@@ -27,7 +27,7 @@ class InstructorAntiCheatController extends Controller
 
         $settings = AntiCheatSetting::with('classRoom')
             ->where('instructor_id', $instructorId)
-            ->where('assessment_type', 'assignment')
+            ->where('assessment_type', 'assessment')
             ->orderByRaw('class_id IS NOT NULL')
             ->orderBy('class_id')
             ->get();
@@ -47,8 +47,8 @@ class InstructorAntiCheatController extends Controller
             $classes = $classes->push($editingSetting->classRoom)->sortBy('name')->values();
         }
 
-        $recentEvents = AntiCheatEvent::with(['user', 'classRoom', 'classAssignment', 'assignmentSubmission', 'assignmentQuestion'])
-            ->where('assessment_type', 'assignment')
+        $recentEvents = AntiCheatEvent::with(['user', 'classRoom', 'assessment', 'assessmentSubmission', 'assessmentQuestion'])
+            ->where('assessment_type', 'assessment')
             ->whereIn('class_id', $classIds)
             ->latest()
             ->limit(40)
@@ -56,11 +56,11 @@ class InstructorAntiCheatController extends Controller
 
         $stats = [
             'settings' => $settings->count(),
-            'events_today' => AntiCheatEvent::where('assessment_type', 'assignment')
+            'events_today' => AntiCheatEvent::where('assessment_type', 'assessment')
                 ->whereIn('class_id', $classIds)
                 ->whereDate('created_at', today())
                 ->count(),
-            'critical_today' => AntiCheatEvent::where('assessment_type', 'assignment')
+            'critical_today' => AntiCheatEvent::where('assessment_type', 'assessment')
                 ->whereIn('class_id', $classIds)
                 ->where('severity', 'critical')
                 ->whereDate('created_at', today())
@@ -75,14 +75,14 @@ class InstructorAntiCheatController extends Controller
         $data = $this->validated($request);
         $data['instructor_id'] = Auth::id();
         $data['class_id'] = $data['class_id'] ?: null;
-        $data['assessment_type'] = 'assignment';
+        $data['assessment_type'] = 'assessment';
 
         DB::transaction(function () use ($data): void {
             User::query()->whereKey($data['instructor_id'])->lockForUpdate()->firstOrFail();
 
             $query = AntiCheatSetting::query()
                 ->where('instructor_id', $data['instructor_id'])
-                ->where('assessment_type', 'assignment');
+                ->where('assessment_type', 'assessment');
 
             is_null($data['class_id'])
                 ? $query->whereNull('class_id')
@@ -97,7 +97,7 @@ class InstructorAntiCheatController extends Controller
             }
         }, 3);
 
-        return back()->with('success', 'Assignment anti-cheat configuration saved.');
+        return back()->with('success', 'Assessment anti-cheat configuration saved.');
     }
 
     public function update(Request $request, AntiCheatSetting $setting): RedirectResponse
@@ -106,7 +106,7 @@ class InstructorAntiCheatController extends Controller
 
         $data = $this->validated($request);
         $data['class_id'] = $data['class_id'] ?: null;
-        $data['assessment_type'] = 'assignment';
+        $data['assessment_type'] = 'assessment';
 
         DB::transaction(function () use ($setting, $data): void {
             User::query()->whereKey($setting->instructor_id)->lockForUpdate()->firstOrFail();
@@ -115,7 +115,7 @@ class InstructorAntiCheatController extends Controller
 
             $conflict = AntiCheatSetting::query()
                 ->where('instructor_id', $lockedSetting->instructor_id)
-                ->where('assessment_type', 'assignment')
+                ->where('assessment_type', 'assessment')
                 ->where('id', '<>', $lockedSetting->id)
                 ->when(
                     is_null($data['class_id']),
@@ -133,7 +133,7 @@ class InstructorAntiCheatController extends Controller
             $lockedSetting->update($data);
         }, 3);
 
-        return back()->with('success', 'Assignment anti-cheat configuration updated.');
+        return back()->with('success', 'Assessment anti-cheat configuration updated.');
     }
 
     public function destroy(AntiCheatSetting $setting): RedirectResponse
@@ -150,7 +150,7 @@ class InstructorAntiCheatController extends Controller
             $lockedSetting->delete();
         }, 3);
 
-        return back()->with('success', 'Assignment anti-cheat configuration removed.');
+        return back()->with('success', 'Assessment anti-cheat configuration removed.');
     }
 
     private function validated(Request $request): array

@@ -32,8 +32,8 @@
       font-size: .875rem; line-height: 1.5;
     }
     .page-challenges-alert svg { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 2px; }
-    .page-challenges-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
-    .page-challenges-alert-error   { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+    .page-challenges-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5); }
+    .page-challenges-alert-error   { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink, #fee2e2); }
 
     /* ── Class challenges ── */
     .page-challenges-class-block { margin-bottom: 28px; }

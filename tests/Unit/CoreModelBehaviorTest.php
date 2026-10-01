@@ -2,10 +2,10 @@
 
 namespace Tests\Unit;
 
+use App\Models\Assessment;
+use App\Models\AssessmentQuestion;
 use App\Models\AssessmentSubmission;
-use App\Models\AssignmentSubmission;
 use App\Models\ChallengeAttempt;
-use App\Models\ClassAssignment;
 use App\Models\CodingChallengeRetake;
 use App\Models\CodingSubmission;
 use App\Models\IdeExecutionLog;
@@ -17,6 +17,7 @@ use App\Models\ModelDevelopmentRun;
 use App\Models\ModuleLibraryItem;
 use App\Models\Notification;
 use App\Models\QualityReport;
+use App\Models\QuestionBankItem;
 use App\Models\TableOfSpecification;
 use App\Models\TrainingJob;
 use App\Models\User;
@@ -66,16 +67,18 @@ class CoreModelBehaviorTest extends TestCase
     public function test_submission_percentage_and_coding_score_accessors_handle_zero_totals(): void
     {
         $assessment = new AssessmentSubmission(['score' => 7.5, 'total_points' => 10]);
-        $assignment = new AssignmentSubmission(['score' => 7, 'total_points' => 8]);
+        // Former assignment submissions are assessment submissions since
+        // Updates 11; the same rounding applies (7 of 8 is 87.5%, shown 88).
+        $converted = new AssessmentSubmission(['score' => 7, 'total_points' => 8]);
         $coding = new CodingSubmission(['tests_passed' => 3, 'tests_total' => 4]);
 
         $this->assertSame(75, $assessment->percentage);
-        $this->assertSame(88, $assignment->percentage);
+        $this->assertSame(88, $converted->percentage);
         $this->assertSame(75.0, $coding->score_percent);
         $this->assertFalse($coding->isPerfect());
 
         $this->assertSame(0, (new AssessmentSubmission(['score' => 1, 'total_points' => 0]))->percentage);
-        $this->assertSame(0, (new AssignmentSubmission(['score' => 1, 'total_points' => 0]))->percentage);
+        $this->assertSame(0, (new AssessmentSubmission(['score' => 0, 'total_points' => null]))->percentage);
         $this->assertSame(0.0, (new CodingSubmission(['tests_passed' => 0, 'tests_total' => 0]))->score_percent);
         $this->assertSame(0.0, (new CodingSubmission(['tests_passed' => '0', 'tests_total' => '0']))->score_percent);
         $this->assertTrue((new CodingSubmission(['tests_passed' => 4, 'tests_total' => 4]))->isPerfect());
@@ -129,18 +132,63 @@ class CoreModelBehaviorTest extends TestCase
         $this->assertFalse($classSpecific->canBeUsedForClass(13));
     }
 
-    public function test_assignment_status_and_due_accessors_return_real_booleans(): void
+    public function test_assessment_purposes_are_labels_of_one_feature(): void
     {
-        Carbon::setTestNow('2026-09-09 12:00:00');
+        $this->assertSame(
+            ['homework' => 'Homework', 'quiz' => 'Quiz', 'examination' => 'Examination'],
+            Assessment::PURPOSES
+        );
 
-        $overdue = new ClassAssignment(['status' => 'published', 'due_at' => '2026-09-09 11:59:59']);
-        $upcoming = new ClassAssignment(['status' => 'draft', 'due_at' => '2026-09-09 12:00:01']);
-        $openEnded = new ClassAssignment(['status' => 'published', 'due_at' => null]);
+        foreach (Assessment::PURPOSES as $purpose => $label) {
+            $this->assertSame($label, (new Assessment(['purpose' => $purpose]))->purposeLabel());
+        }
 
-        $this->assertSame('Published', $overdue->status_label);
-        $this->assertTrue($overdue->is_due);
-        $this->assertFalse($upcoming->is_due);
-        $this->assertFalse($openEnded->is_due);
+        $this->assertNull((new Assessment(['purpose' => null]))->purposeLabel());
+        $this->assertNull((new Assessment(['purpose' => 'assignment']))->purposeLabel());
+        $this->assertNull((new Assessment())->purposeLabel());
+    }
+
+    #[DataProvider('integrityHoldProvider')]
+    public function test_only_a_submitted_attempt_with_a_blocking_decision_is_held_for_review(
+        string $status,
+        ?string $integrity,
+        bool $held
+    ): void {
+        $submission = new AssessmentSubmission(['status' => $status, 'integrity_status' => $integrity]);
+
+        $this->assertSame($held, $submission->isHeldForIntegrityReview());
+    }
+
+    public function test_question_bank_types_are_exactly_the_assessment_question_types(): void
+    {
+        $this->assertSame(AssessmentQuestion::TYPES, QuestionBankItem::TYPES);
+        $this->assertSame(
+            ['multiple_choice', 'true_false', 'fill_blank', 'short_answer', 'essay'],
+            array_keys(QuestionBankItem::TYPES)
+        );
+
+        $this->assertSame('Fill in the Blank', (new QuestionBankItem(['question_type' => 'fill_blank']))->typeLabel());
+        $this->assertSame('Legacy type', (new QuestionBankItem(['question_type' => 'legacy_type']))->typeLabel());
+    }
+
+    public function test_question_bank_ownership_helpers_separate_shared_and_own_questions(): void
+    {
+        $shared = new QuestionBankItem(['instructor_id' => null]);
+        $own = new QuestionBankItem(['instructor_id' => 7]);
+        $foreign = new QuestionBankItem(['instructor_id' => 8]);
+
+        $this->assertTrue($shared->isShared());
+        $this->assertFalse($own->isShared());
+        $this->assertFalse($shared->isEditableBy(7), 'Nobody edits the shared pool from an instructor account.');
+        $this->assertTrue($own->isEditableBy(7));
+        $this->assertFalse($foreign->isEditableBy(7));
+
+        $query = QuestionBankItem::query()->visibleTo(7);
+        $sql = strtolower($query->toSql());
+        $this->assertStringContainsString('"instructor_id" = ?', $sql);
+        $this->assertStringContainsString('"instructor_id" is null', $sql);
+        $this->assertStringContainsString(' or ', $sql);
+        $this->assertSame([7], $query->getBindings());
     }
 
     public function test_ide_state_helpers_and_tree_conversion_keep_nested_children(): void
@@ -247,13 +295,28 @@ class CoreModelBehaviorTest extends TestCase
         yield 'poor' => [54.99, 'Poor'];
     }
 
+    /** @return iterable<string, array{string, string, bool}> */
+    public static function integrityHoldProvider(): iterable
+    {
+        yield 'submitted and blocked' => ['submitted', AssessmentSubmission::INTEGRITY_BLOCKED, true];
+        yield 'submitted and needs review' => ['submitted', AssessmentSubmission::INTEGRITY_REVIEW_REQUIRED, true];
+        yield 'submitted and clear' => ['submitted', AssessmentSubmission::INTEGRITY_CLEAR, false];
+        yield 'submitted with no decision' => ['submitted', null, false];
+        yield 'kept blocked after review (graded)' => ['graded', AssessmentSubmission::INTEGRITY_BLOCKED, false];
+        yield 'late and needs review' => ['late', AssessmentSubmission::INTEGRITY_REVIEW_REQUIRED, false];
+        yield 'still in progress' => ['in_progress', AssessmentSubmission::INTEGRITY_BLOCKED, false];
+    }
+
     /** @return iterable<string, array{string, string, string}> */
     public static function notificationProvider(): iterable
     {
         yield 'achievement' => ['achievement_unlocked', 'Achievement unlocked', 'achievement'];
         yield 'mission' => ['mission_completed', 'Mission completed', 'achievement'];
-        yield 'assignment' => ['assignment_published', 'Assignment update', 'assignment'];
+        // Historical assignment_* rows stored before Updates 11 keep their label.
+        yield 'historical assignment' => ['assignment_published', 'Assignment update', 'assignment'];
         yield 'assessment' => ['assessment_closed', 'Assessment update', 'assessment'];
+        yield 'assessment graded' => ['assessment_graded', 'Assessment update', 'assessment'];
+        yield 'assessment held for review' => ['assessment_held_for_review', 'Assessment update', 'assessment'];
         yield 'challenge' => ['exceptional_unlock', 'Notification', 'challenge'];
         yield 'class' => ['class_enrollment', 'Class update', 'class'];
         yield 'module' => ['module_assigned', 'Module update', 'module'];

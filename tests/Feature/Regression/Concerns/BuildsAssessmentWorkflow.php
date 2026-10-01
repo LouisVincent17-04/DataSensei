@@ -26,6 +26,8 @@ trait BuildsAssessmentWorkflow
 
     /** @var array<int, string> */
     private array $assessmentWorkflowTables = [
+        'anti_cheat_events',
+        'anti_cheat_settings',
         'notifications',
         'student_assessment_diagnostics',
         'assessment_answers',
@@ -260,17 +262,22 @@ trait BuildsAssessmentWorkflow
             $table->string('title');
             $table->text('description')->nullable();
             $table->text('instructions')->nullable();
+            $table->string('topic_title')->nullable();
             $table->string('status', 30)->default('draft');
+            // DataSensei Updates 11: homework / quiz / examination label.
+            $table->string('purpose', 20)->nullable();
             $table->unsignedInteger('draft_last_item')->nullable();
             $table->timestamp('draft_saved_at')->nullable();
             $table->unsignedInteger('total_items')->default(0);
             $table->unsignedInteger('total_points')->default(0);
+            $table->unsignedTinyInteger('passing_score_percent')->nullable();
             $table->unsignedInteger('time_limit_minutes')->nullable();
             $table->unsignedInteger('max_attempts')->default(1);
             $table->timestamp('available_at')->nullable();
             $table->timestamp('due_at')->nullable();
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
+            $table->unsignedBigInteger('legacy_class_assignment_id')->nullable()->unique();
         });
         Schema::create('assessment_questions', function (Blueprint $table): void {
             $table->id();
@@ -319,6 +326,15 @@ trait BuildsAssessmentWorkflow
             $table->unsignedBigInteger('draft_version')->default(0);
             $table->dateTime('draft_saved_at')->nullable();
             $table->dateTime('timed_out_at')->nullable();
+            // DataSensei Updates 11: protected attempt identity and the
+            // integrity outcome moved onto assessment attempts.
+            $table->string('anti_cheat_session_id', 120)->nullable()->unique();
+            $table->string('integrity_status', 30)->nullable();
+            $table->string('integrity_reason', 255)->nullable();
+            $table->decimal('provisional_score', 8, 2)->nullable();
+            $table->unsignedBigInteger('integrity_reviewed_by')->nullable();
+            $table->dateTime('integrity_reviewed_at')->nullable();
+            $table->unsignedBigInteger('legacy_assignment_submission_id')->nullable()->unique();
             $table->timestamps();
         });
         Schema::create('assessment_answers', function (Blueprint $table): void {
@@ -374,6 +390,47 @@ trait BuildsAssessmentWorkflow
             $table->longText('data')->nullable();
             $table->boolean('is_read')->default(false);
             $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+        });
+        // Assessment attempts carry the anti-cheat contract (DataSensei
+        // Updates 11): taking and submitting read the instructor policy and
+        // the attempt's events. Both stay empty unless a test adds rows.
+        Schema::create('anti_cheat_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('instructor_id');
+            $table->unsignedBigInteger('class_id')->nullable();
+            $table->string('assessment_type', 30)->default('assessment');
+            $table->boolean('enabled')->default(true);
+            $table->boolean('allow_tab_switch')->default(true);
+            $table->unsignedInteger('max_tab_switches')->nullable();
+            $table->boolean('block_on_tab_limit')->default(false);
+            $table->boolean('require_fullscreen')->default(false);
+            $table->boolean('detect_dual_monitor')->default(false);
+            $table->boolean('block_dual_monitor')->default(false);
+            $table->boolean('allow_copy')->default(true);
+            $table->boolean('allow_paste')->default(true);
+            $table->boolean('block_external_paste')->default(false);
+            $table->boolean('allow_right_click')->default(true);
+            $table->boolean('allow_devtools_shortcuts')->default(true);
+            $table->boolean('show_warnings')->default(true);
+            $table->boolean('auto_submit_mcq_on_violation')->default(false);
+            $table->boolean('lock_screen_on_violation')->default(false);
+            $table->timestamps();
+        });
+        Schema::create('anti_cheat_events', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('class_id')->nullable();
+            $table->unsignedBigInteger('assessment_id')->nullable();
+            $table->unsignedBigInteger('assessment_submission_id')->nullable();
+            $table->unsignedBigInteger('assessment_question_id')->nullable();
+            $table->string('assessment_type', 30)->default('assessment');
+            $table->string('event_type', 80);
+            $table->string('severity', 30)->default('info');
+            $table->string('attempt_session_id', 120)->nullable();
+            $table->longText('details')->nullable();
+            $table->string('event_uuid', 36)->nullable()->unique();
+            $table->timestamp('occurred_at')->nullable();
             $table->timestamps();
         });
     }

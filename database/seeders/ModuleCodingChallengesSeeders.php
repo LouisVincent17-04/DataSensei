@@ -100,5 +100,9 @@ class ModuleCodingChallengesSeeders extends Seeder
             Module23CodingChallengeSeederAdvanced::class,
             Module23CodingChallengeSeederProfessional::class,
         ]);
+
+        // DataSensei Updates 12: mark the Core Modules and their built-in
+        // challenges again (the rows above were re-created).
+        \App\Support\CoreCurriculum::sync();
     }
 }

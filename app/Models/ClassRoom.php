@@ -101,11 +101,6 @@ class ClassRoom extends Model
         return $this->hasMany(ClassModuleAssignment::class, 'class_id');
     }
 
-    public function assignmentPosts(): HasMany
-    {
-        return $this->hasMany(ClassAssignment::class, 'class_id');
-    }
-
     public function competencySnapshots(): HasMany
     {
         return $this->hasMany(StudentCompetencySnapshot::class, 'class_id');

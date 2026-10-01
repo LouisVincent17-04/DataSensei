@@ -77,7 +77,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-s
     <div class="top">
       <div>
         <h1 class="title ds-page-title">Anti-Cheat Events</h1>
-        <p class="subtitle">Review violations recorded during instructor-given assignments only.</p>
+        <p class="subtitle">Review violations recorded during your class assessments (homework, quizzes, and examinations).</p>
       </div>
     </div>
 
@@ -101,14 +101,14 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-s
 
     <div class="card table-wrap">
       <table class="table">
-        <thead><tr><th>Student</th><th>Class</th><th>Assignment</th><th>Event</th><th>Severity</th><th>Time</th><th>Details</th></tr></thead>
+        <thead><tr><th>Student</th><th>Class</th><th>Assessment</th><th>Event</th><th>Severity</th><th>Time</th><th>Details</th></tr></thead>
         <tbody>
         @forelse($events as $event)
           @php $severityClass = $event->severity === 'critical' ? 'bad' : ($event->severity === 'warning' ? 'warn' : 'good'); @endphp
           <tr>
             <td>{{ $event->user->name ?? 'Student' }}</td>
             <td>{{ $event->classRoom->name ?? '—' }}</td>
-            <td>{{ $event->classAssignment->title ?? '—' }}</td>
+            <td>{{ $event->assessment->title ?? '—' }}</td>
             <td>{{ ucwords(str_replace('_', ' ', $event->event_type)) }}</td>
             <td><span class="badge {{ $severityClass }}">{{ ucfirst($event->severity) }}</span></td>
             <td>{{ optional($event->occurred_at)->format('M d, Y h:i A') ?? optional($event->created_at)->format('M d, Y h:i A') }}</td>

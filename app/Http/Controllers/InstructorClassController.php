@@ -181,8 +181,6 @@ class InstructorClassController extends Controller
 
             // Archiving stops new starts but keeps current attempts reviewable
             // and submittable through their existing closed records.
-            $lockedClass->assignmentPosts()->where('status', 'published')->update(['status' => 'closed']);
-
             if (SchemaInspector::hasTable('assessments')) {
                 DB::table('assessments')
                     ->where('class_id', $lockedClass->id)
@@ -223,16 +221,12 @@ class InstructorClassController extends Controller
             if ($lockedClass->assignedModules()->exists()) {
                 $blockingReasons[] = 'it still has assigned modules';
             }
-            if ($lockedClass->assignmentPosts()->exists()) {
-                $blockingReasons[] = 'it still has class assignments';
-            }
-
-            $hasAssignmentSubmissions = DB::table('assignment_submissions')
-                ->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
-                ->where('class_assignments.class_id', $lockedClass->id)
+            $hasAssessmentSubmissions = DB::table('assessment_submissions')
+                ->join('assessments', 'assessments.id', '=', 'assessment_submissions.assessment_id')
+                ->where('assessments.class_id', $lockedClass->id)
                 ->exists();
-            if ($hasAssignmentSubmissions) {
-                $blockingReasons[] = 'students already have assignment submissions';
+            if ($hasAssessmentSubmissions) {
+                $blockingReasons[] = 'students already have assessment submissions';
             }
 
             if (DB::table('anti_cheat_events')->where('class_id', $lockedClass->id)->exists()) {

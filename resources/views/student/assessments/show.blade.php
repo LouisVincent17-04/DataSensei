@@ -46,8 +46,8 @@
     .actions form{margin:0}
 
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.55}
-    .alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+      background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem;line-height:1.55}
+    .alert.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
     .btn.good{background:var(--accent);border-color:var(--accent)}
     .btn.good:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
     .availability-note{margin:16px 0 0;padding:12px 16px;border-radius:var(--radius-sm);background:var(--surface3);color:var(--muted);font-size:.875rem;line-height:1.55}
@@ -74,7 +74,7 @@
           <h1 class="title ds-page-title">{{ $assessment->title }}</h1>
           <p class="subtitle">{{ $assessment->instructions }}</p>
         </div>
-        <a class="btn secondary" href="{{ route('student.assessments.index') }}">Back</a>
+        <a class="btn secondary" href="{{ $assessment->classRoom ? route('student.assessments.class', $assessment->classRoom) : route('student.assessments.index') }}">Back</a>
       </div>
 
       @if($errors->any())
@@ -88,6 +88,15 @@
       </div>
 
       <div class="card">
+        @if($assessment->purposeLabel() || $assessment->topic_title || $assessment->passing_score_percent)
+          <p class="muted">
+            {{ $assessment->purposeLabel() ?? 'Assessment' }}@if($assessment->topic_title), covering {{ $assessment->topic_title }}@endif.
+            @if($assessment->passing_score_percent) Passing score: {{ $assessment->passing_score_percent }}%.@endif
+            @if($assessment->time_limit_minutes && $assessment->due_at)
+              Your attempt ends when the {{ $assessment->time_limit_minutes }}-minute limit runs out, or at the due date if that comes first.
+            @endif
+          </p>
+        @endif
         <p>{{ $assessment->description }}</p>
         <p class="muted">Attempts used: {{ $completedAttempts }} of {{ $maxAttempts }}</p>
 

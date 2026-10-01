@@ -10,10 +10,10 @@ use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Admin Reports (DataSensei Updates 8): Users, Modules, Classes, Assessments
- * & Assignments, Challenges & Coding Challenges, Gamification and Audit Logs,
- * each with its own filters, print, PDF and CSV. System-wide; the admin
- * middleware on the route group keeps everyone else out.
+ * Admin Reports (DataSensei Updates 8): Users, Modules, Classes, Assessments,
+ * Challenges & Coding Challenges, Gamification and Audit Logs, each with its
+ * own filters, print, PDF and CSV. System-wide; the admin middleware on the
+ * route group keeps everyone else out.
  */
 class AdminReportController extends Controller
 {
@@ -82,7 +82,7 @@ class AdminReportController extends Controller
             'users' => 'Name or email',
             'modules' => 'Module title',
             'classes' => 'Class or instructor',
-            'assessments' => 'Assessment or assignment title',
+            'assessments' => 'Assessment title',
             'challenges' => 'Challenge title',
             'audit' => 'User, record or details',
             default => 'Search',

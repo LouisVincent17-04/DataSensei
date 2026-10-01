@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Regression;
 
+use App\Http\Controllers\InstructorAnalyticsController;
 use App\Models\ModuleLibraryProgress;
+use App\Services\Reports\InstructorReports;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +15,11 @@ use Tests\TestCase;
  * DataSensei Updates 8: the instructor's six reports and the redesigned
  * Class Analytics (the Skills Competency Matrix is gone). An instructor only
  * ever sees their own classes and students; all figures are rule based.
+ *
+ * DataSensei Updates 11 merged assignments into assessments: the report kept
+ * its "assignments" URL key but is titled "Assessments", the worksheets in
+ * the fixture are homework-purpose assessments, and Class Analytics lost its
+ * separate Assignments tab.
  */
 class Updates8InstructorReportsAndAnalyticsTest extends TestCase
 {
@@ -29,10 +36,13 @@ class Updates8InstructorReportsAndAnalyticsTest extends TestCase
     {
         $html = $this->authenticateAs($this->ana)->get(route('instructor.reports.index'))->assertOk()->getContent();
 
-        foreach (['Class Performance', 'Student Progress', 'Assignments &amp; Assessments', 'Challenges &amp; Coding Challenges', 'Module Assignments', 'Submissions'] as $title) {
+        foreach (['Class Performance', 'Student Progress', 'Assessments', 'Challenges &amp; Coding Challenges', 'Module Assignments', 'Submissions'] as $title) {
             $this->assertStringContainsString('>'.$title.'</a>', $html);
         }
         $this->assertSame(6, substr_count($html, 'class="rp-nav-link'));
+        $this->assertStringNotContainsString('Assignments &amp; Assessments', $html);
+        // The report keeps its URL key.
+        $this->assertStringContainsString(route('instructor.reports.show', ['report' => 'assignments']), $html);
         $this->assertStringContainsString('Data Science, DS 4A', $html);
         $this->assertStringNotContainsString('Statistics', strip_tags(substr($html, strpos($html, '<div class="rp">'))));
     }
@@ -41,37 +51,51 @@ class Updates8InstructorReportsAndAnalyticsTest extends TestCase
     {
         $html = $this->authenticateAs($this->ana)->get(route('instructor.reports.show', ['report' => 'students']))->assertOk()->getContent();
 
+        // Four assessments: Loops (8/10), Functions (8/10), Midterm (9/10) done, Upcoming not due.
         $sam = $this->row($html, 'Sam Student');
         $this->assertStringContainsString('2 of 2 completed, 2 started', $sam);
-        $this->assertStringContainsString('2 of 3 submitted', $sam);
-        $this->assertStringContainsString('1 of 1 completed, average 90%', $sam);
+        $this->assertStringContainsString('3 of 4 completed, average 83.3%', $sam);
         $this->assertStringContainsString('1 attempt, 1 of 1 passed', $sam);
         $this->assertStringContainsString('2 submissions, 1 of 1 completed', $sam);
 
+        // Lia: Loops late (60%) and Midterm best 50%; Functions missing.
+        $this->assertStringContainsString('2 of 4 completed, 1 missing, average 55%', $this->row($html, 'Lia Student'));
+
         $tom = $this->row($html, 'Tom Student');
         $this->assertStringContainsString('0 of 2 completed, 0 started', $tom);
-        $this->assertStringContainsString('0 of 3 submitted, 2 missing', $tom);
+        $this->assertStringContainsString('0 of 4 completed, 3 missing', $tom);
         $this->assertStringNotContainsString('Zoe Student', $html);
         $this->assertStringContainsString(route('instructor.analytics.student', ['class' => $this->dataScience->id, 'student' => $this->sam->id]), $sam);
     }
 
-    public function test_assignment_and_assessment_report_per_student(): void
+    public function test_assessment_report_per_student(): void
     {
         $this->authenticateAs($this->ana);
         $html = $this->get(route('instructor.reports.show', ['report' => 'assignments']))->assertOk()->getContent();
 
-        $this->assertMatchesRegularExpression('#Lia Student.*?Loops Worksheet.*?Submitted late.*?Late.*?6 / 10 \(60%\)#s', $html);
-        $this->assertMatchesRegularExpression('#Tom Student.*?Functions Worksheet.*?Missing#s', $html);
-        $this->assertMatchesRegularExpression('#Sam Student.*?Midterm Quiz.*?1.*?9 / 10 \(90%\).*?90%.*?Passed.*?Completed#s', $html);
+        $this->assertMatchesRegularExpression('#Lia Student.*?Loops Worksheet.*?Homework.*?1.*?6 / 10 \(60%\).*?60%.*?Failed.*?Completed#s', $html);
+        $this->assertMatchesRegularExpression('#Tom Student.*?Functions Worksheet.*?Homework.*?Not started#s', $html);
+        $this->assertMatchesRegularExpression('#Sam Student.*?Midterm Quiz.*?Assessment.*?1.*?9 / 10 \(90%\).*?90%.*?Passed.*?Completed#s', $html);
         $this->assertMatchesRegularExpression('#Lia Student.*?Midterm Quiz.*?2.*?5 / 10 \(50%\).*?50%.*?Failed#s', $html);
+        $this->assertSame('4', $this->tiles($html)['Missing assessments'], 'Tom misses Loops, Functions and the Midterm; Lia misses Functions.');
 
         $missing = $this->get(route('instructor.reports.show', ['report' => 'assignments', 'status' => 'missing']))->getContent();
-        $this->assertSame(3, preg_match_all('#<td[^>]*>\s*Missing\s*</td>#', $missing), 'Tom misses two, Lia one; only past-due work can be missing.');
-        $this->assertStringNotContainsString('Upcoming Worksheet', $missing);
+        $table = $this->tablePanel($missing, 'assessments');
+        $this->assertSame(4, preg_match_all('#<td[^>]*>\s*Not started\s*</td>#', $table), 'Only past-due work that was not completed is missing.');
+        $this->assertStringNotContainsString('Upcoming Worksheet', $table);
+        $this->assertStringNotContainsString('Sam Student', strip_tags($table));
 
-        $late = $this->get(route('instructor.reports.show', ['report' => 'assignments', 'status' => 'late']))->getContent();
-        $this->assertStringContainsString('Submitted late', $late);
-        $this->assertStringNotContainsString('Sam Student', strip_tags(substr($late, strpos($late, 'id="assignments"'), 3000)));
+        $passed = $this->tablePanel($this->get(route('instructor.reports.show', ['report' => 'assignments', 'status' => 'passed']))->getContent(), 'assessments');
+        $this->assertSame(3, preg_match_all('#<td[^>]*>\s*Passed\s*</td>#', $passed), "Sam's Loops, Functions and Midterm.");
+        $this->assertStringNotContainsString('Lia Student', strip_tags($passed));
+
+        // Lateness moved to the Submissions report: the assessment report no
+        // longer offers a "late" status.
+        $this->assertArrayNotHasKey('late', InstructorReports::STATUSES['assignments']);
+        $late = $this->get(route('instructor.reports.show', ['report' => 'submissions', 'status' => 'late']))->assertOk()->getContent();
+        $lateTable = $this->tablePanel($late, 'submissions');
+        $this->assertMatchesRegularExpression('#Lia Student.*?Homework.*?Loops Worksheet.*?Submitted late.*?6 / 10 \(60%\).*?Late#s', $lateTable);
+        $this->assertStringNotContainsString('Sam Student', strip_tags($lateTable));
     }
 
     public function test_challenge_report_and_module_assignments_and_submissions(): void
@@ -91,10 +115,21 @@ class Updates8InstructorReportsAndAnalyticsTest extends TestCase
         $this->assertStringContainsString('33.3%', $row);
 
         $submissions = $this->get(route('instructor.reports.show', ['report' => 'submissions']))->assertOk()->getContent();
-        foreach (['Assignment', 'Assessment', 'Challenge', 'Coding challenge'] as $type) {
-            $this->assertStringContainsString('>'.$type.'<', str_replace(["\n", '  '], '', $submissions));
+        $rows = $this->tablePanel($submissions, 'submissions');
+        // Former assignments show under their assessment purpose (Updates 11).
+        foreach (['Homework', 'Assessment', 'Challenge', 'Coding challenge'] as $type) {
+            $this->assertMatchesRegularExpression('#<td[^>]*>\s*'.preg_quote($type, '#').'\s*</td>#', $rows, $type);
         }
+        $this->assertDoesNotMatchRegularExpression('#<td[^>]*>\s*Assignment\s*</td>#', $rows);
         $this->assertStringNotContainsString('Other Class Worksheet', $submissions);
+
+        $homework = $this->tablePanel($this->get(route('instructor.reports.show', ['report' => 'submissions', 'type' => 'homework']))->getContent(), 'submissions');
+        $this->assertStringContainsString('Loops Worksheet', $homework);
+        $this->assertStringContainsString('Functions Worksheet', $homework);
+        $this->assertStringNotContainsString('Midterm Quiz', $homework);
+        $assessment = $this->tablePanel($this->get(route('instructor.reports.show', ['report' => 'submissions', 'type' => 'assessment']))->getContent(), 'submissions');
+        $this->assertStringContainsString('Midterm Quiz', $assessment);
+        $this->assertStringNotContainsString('Loops Worksheet', $assessment);
         $coding = $this->get(route('instructor.reports.show', ['report' => 'submissions', 'type' => 'coding', 'status' => 'failed']))->getContent();
         $this->assertSame(3, substr_count($coding, 'Loops Coding Challenge: Sum a list'));
     }
@@ -130,23 +165,28 @@ class Updates8InstructorReportsAndAnalyticsTest extends TestCase
         $this->get(route('instructor.analytics.index'))->assertOk()->assertSee('Choose a class')->assertSee('Data Science');
 
         $html = $this->get(route('instructor.analytics.index', ['class_id' => $this->dataScience->id]))->assertOk()->getContent();
-        foreach (['Overview', 'Students', 'Modules', 'Assignments', 'Assessments', 'Challenges', 'Coding Challenges'] as $tab) {
+        foreach (['Overview', 'Students', 'Modules', 'Assessments', 'Challenges', 'Coding Challenges'] as $tab) {
             $this->assertStringContainsString('>'.$tab.'</a>', $html);
         }
+        // The separate Assignments tab went with the merge (Updates 11).
+        $this->assertStringNotContainsString('>Assignments</a>', $html);
+        $this->assertArrayNotHasKey('assignments', InstructorAnalyticsController::TABS);
         $tiles = $this->tiles($html);
         $this->assertSame('3', $tiles['Enrolled students']);
         $this->assertSame('2', $tiles['Active students']);
         $this->assertSame('2', $tiles['Assigned modules']);
         $this->assertSame('33.3%', $tiles['Module completion']);
-        $this->assertSame('70%', $tiles['Assessment performance']);
+        // Average of the students' averages: Sam 83.3%, Lia 55%; Tom has none.
+        $this->assertSame('69.2%', $tiles['Assessment performance']);
+        $this->assertStringContainsString('Average best score, 41.7% completed, 4 missing', $html);
 
         // Rule-based attention list: Lia (scores, coding) and Tom (missing work, modules); not Sam.
         $attention = substr($html, strpos($html, 'id="attention"'));
         $this->assertStringContainsString('Tom Student', $attention);
-        $this->assertStringContainsString('Missing 2 assignments', $attention);
+        $this->assertStringContainsString('Missing 3 assessments', $attention);
         $this->assertStringContainsString('Completed 0 of 2 modules', $attention);
         $this->assertStringContainsString('Lia Student', $attention);
-        $this->assertStringContainsString('Assessment average 50%', $attention);
+        $this->assertStringContainsString('Assessment average 55%', $attention);
         $this->assertStringContainsString('Challenge average 50%', $attention);
         $this->assertStringContainsString('Repeated failures on 1 coding problem', $attention);
         $this->assertStringNotContainsString('Sam Student', $attention);
@@ -169,18 +209,27 @@ class Updates8InstructorReportsAndAnalyticsTest extends TestCase
         $this->assertStringContainsString('Python Basics: students', $modules);
         $this->assertMatchesRegularExpression('#Lia Student\s*</td>\s*<td[^>]*>\s*Started#', $modules);
 
-        $assignments = $this->get(route('instructor.analytics.index', $class + ['tab' => 'assignments']))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression('#Loops Worksheet.*?2 of 3 \(66.7%\).*?>\s*1\s*<.*?>\s*1\s*<.*?>\s*1\s*<.*?70%#s', $assignments);
-        $this->get(route('instructor.analytics.index', $class + ['tab' => 'assignments', 'from' => now()->addDays(1)->toDateString(), 'to' => now()->addDays(10)->toDateString()]))
+        // The worksheets (former assignments) are on the Assessments tab now.
+        $assessments = $this->tablePanel($this->get(route('instructor.analytics.index', $class + ['tab' => 'assessments']))->assertOk()->getContent(), 'assessments');
+        // Attempts, completed, average of best scores, passed and failed. A
+        // student who never attempted is neither passed nor failed, so each
+        // row has 1 failed (Lia), not 2 (Lia plus the student with no attempt).
+        $this->assertMatchesRegularExpression('#Loops Worksheet.*?Homework.*?Open.*?>\s*2\s*</td>\s*<td[^>]*>\s*2 of 3 \(66.7%\)\s*</td>\s*<td[^>]*>\s*70%\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*1\s*</td>#s', $assessments);
+        $this->assertMatchesRegularExpression('#Midterm Quiz.*?Assessment.*?Open.*?>\s*3\s*</td>\s*<td[^>]*>\s*2 of 3 \(66.7%\)\s*</td>\s*<td[^>]*>\s*70%\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*1\s*</td>#s', $assessments);
+        $this->get(route('instructor.analytics.index', $class + ['tab' => 'assessments', 'from' => now()->addDays(1)->toDateString(), 'to' => now()->addDays(10)->toDateString()]))
             ->assertSee('Upcoming Worksheet')->assertDontSee('Loops Worksheet');
-
-        $this->get(route('instructor.analytics.index', $class + ['tab' => 'assessments']))->assertOk()->assertSee('Midterm Quiz');
+        // The old tab key falls back to the overview.
+        $this->get(route('instructor.analytics.index', $class + ['tab' => 'assignments']))->assertOk()->assertSee('id="attention"', false);
         $this->get(route('instructor.analytics.index', $class + ['tab' => 'challenges']))->assertOk()->assertSee('1 of 3 (33.3%)');
         $this->get(route('instructor.analytics.index', $class + ['tab' => 'coding']))->assertOk()->assertSee('Loops Coding Challenge');
 
         $detail = $this->get(route('instructor.analytics.student', ['class' => $this->dataScience->id, 'student' => $this->lia->id]))->assertOk();
-        $detail->assertSee('Lia Student')->assertSee('May need attention')->assertSee('Submitted late')->assertSee('Recent learning activity');
+        $detail->assertSee('Lia Student')->assertSee('May need attention')->assertSee('Recent learning activity');
         $detail->assertSee('1 passed, 3 failed');
+        $detail->assertSee('2 of 4 completed, 1 missing');
+        $lia = $this->tablePanel($detail->getContent(), 'assessments');
+        $this->assertMatchesRegularExpression('#Loops Worksheet.*?Homework.*?6 / 10 \(60%\).*?Failed.*?Completed#s', $lia);
+        $this->assertMatchesRegularExpression('#Functions Worksheet.*?Homework.*?Not started#s', $lia);
 
         $onlyCoding = $this->get(route('instructor.analytics.student', ['class' => $this->dataScience->id, 'student' => $this->lia->id, 'type' => 'coding']))->getContent();
         $activity = substr($onlyCoding, strpos($onlyCoding, 'id="activity"'));
@@ -240,9 +289,17 @@ class Updates8InstructorReportsAndAnalyticsTest extends TestCase
     /** @return array<string, string> */
     private function tiles(string $html): array
     {
-        preg_match_all('#<span class="rp-tile-label">(.*?)</span><strong class="rp-tile-value">(.*?)</strong>#s', $html, $matches, PREG_SET_ORDER);
+        preg_match_all('#<span class="rp-tile-label">(.*?)</span>\s*<strong class="rp-tile-value">(.*?)</strong>#s', $html, $matches, PREG_SET_ORDER);
 
         return collect($matches)->mapWithKeys(fn ($m) => [html_entity_decode(trim($m[1])) => html_entity_decode(trim($m[2]))])->all();
+    }
+
+    /** One report table panel (<section id="$key">), so page chrome never matches. */
+    private function tablePanel(string $html, string $key): string
+    {
+        $this->assertSame(1, preg_match('#<section class="rp-panel rp-table-panel" id="'.preg_quote($key, '#').'">(.*?)</section>#s', $html, $match), 'Table not found: '.$key);
+
+        return $match[1];
     }
 
     private function row(string $html, string $first): string

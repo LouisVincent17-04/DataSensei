@@ -11,14 +11,16 @@ use Illuminate\Support\Str;
 /**
  * One small school for the Updates 8 report and Class Analytics tests.
  *
- * Instructor "Ana" teaches "Data Science" with three students:
- *   Sam     finished both class modules, submitted both past-due assignments
- *           on time (8/10), assessment 9/10, challenge 8/10, solved both
+ * Instructor "Ana" teaches "Data Science" with three students. The
+ * "worksheets" are homework-purpose assessments (assignments were merged into
+ * assessments in DataSensei Updates 11); "Midterm Quiz" has no purpose.
+ *   Sam     finished both class modules, submitted both past-due worksheets
+ *           on time (8/10), Midterm 9/10, challenge 8/10, solved both
  *           coding problems (60s + 90s)
- *   Lia     opened one module, one assignment late (6/10) and one missing,
- *           assessment 4/10 then 5/10, challenge 5/10, failed a coding
+ *   Lia     opened one module, one worksheet late (6/10) and one missing,
+ *           Midterm 4/10 then 5/10, challenge 5/10, failed a coding
  *           problem three times
- *   Tom     nothing at all: both past-due assignments missing
+ *   Tom     nothing at all: both past-due worksheets and the Midterm missing
  * Instructor "Ben" teaches "Statistics" with "Zoe", who must never appear in
  * Ana's reports.
  */
@@ -105,18 +107,21 @@ trait BuildsReportData
 
     private function buildClassWork(): void
     {
-        $library = DB::table('assignment_library_items')->insertGetId(['module_no' => 1, 'assignment_code' => 'ASG-'.Str::upper(Str::random(5)), 'title' => 'Library item', 'topic_title' => 'Python', 'year_level' => 'Year 1', 'version_code' => 'V1', 'created_at' => now(), 'updated_at' => now()]);
-        $assignment = fn (string $title, $due, string $class = 'dataScience') => DB::table('class_assignments')->insertGetId([
-            'class_id' => $this->{$class}->id, 'assignment_library_item_id' => $library, 'assigned_by' => $this->ana->id, 'title' => $title,
-            'available_at' => now()->subDays(15), 'due_at' => $due, 'max_attempts' => 2, 'status' => 'published', 'assigned_at' => now()->subDays(15), 'created_at' => now()->subDays(15), 'updated_at' => now(),
+        // The worksheets were class assignments before DataSensei Updates 11
+        // merged assignments into assessments; they are now homework-purpose
+        // assessments, exactly what the merge converts an assignment into.
+        $homework = fn (string $title, $due, string $class = 'dataScience') => DB::table('assessments')->insertGetId([
+            'class_id' => $this->{$class}->id, 'created_by' => $this->{$class === 'dataScience' ? 'ana' : 'ben'}->id, 'title' => $title, 'topic_title' => 'Python',
+            'purpose' => 'homework', 'status' => 'published', 'total_items' => 1, 'total_points' => 10, 'max_attempts' => 2,
+            'available_at' => now()->subDays(15), 'due_at' => $due, 'published_at' => now()->subDays(15), 'created_at' => now()->subDays(15), 'updated_at' => now(),
         ]);
-        $this->ids['a1'] = $assignment('Loops Worksheet', now()->subDays(3));
-        $this->ids['a2'] = $assignment('Functions Worksheet', now()->subDays(2));
-        $this->ids['a3'] = $assignment('Upcoming Worksheet', now()->addDays(5));
-        $this->ids['a_other'] = $assignment('Other Class Worksheet', now()->subDay(), 'statistics');
+        $this->ids['a1'] = $homework('Loops Worksheet', now()->subDays(3));
+        $this->ids['a2'] = $homework('Functions Worksheet', now()->subDays(2));
+        $this->ids['a3'] = $homework('Upcoming Worksheet', now()->addDays(5));
+        $this->ids['a_other'] = $homework('Other Class Worksheet', now()->subDay(), 'statistics');
 
-        $submit = fn (int $assignmentId, User $student, string $status, int $score, $submittedAt, int $attempt = 1) => DB::table('assignment_submissions')->insert([
-            'class_assignment_id' => $assignmentId, 'student_id' => $student->id, 'attempt_no' => $attempt, 'status' => $status, 'score' => $score, 'total_points' => 10,
+        $submit = fn (int $assessmentId, User $student, string $status, int $score, $submittedAt, int $attempt = 1) => DB::table('assessment_submissions')->insert([
+            'assessment_id' => $assessmentId, 'student_id' => $student->id, 'attempt_no' => $attempt, 'status' => $status, 'score' => $score, 'total_points' => 10,
             'started_at' => $submittedAt, 'submitted_at' => $submittedAt, 'graded_at' => $submittedAt, 'created_at' => $submittedAt, 'updated_at' => $submittedAt,
         ]);
         $submit($this->ids['a1'], $this->sam, 'graded', 8, now()->subDays(4));

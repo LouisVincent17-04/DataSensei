@@ -2,15 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Models\AssignmentLibraryItem;
-use App\Models\AssignmentSubmission;
-use App\Models\AssignmentSubmissionAnswer;
+use App\Models\Assessment;
+use App\Models\AssessmentAnswer;
+use App\Models\AssessmentSubmission;
 use App\Models\Challenge;
 use App\Models\ChallengeCategory;
-use App\Models\ClassAssignment;
 use App\Models\ClassRoom;
 use App\Models\Institution;
 use App\Models\Module;
+use App\Models\QuestionBankItem;
 use App\Models\User;
 use App\Services\CompetencyMonitoringService;
 use App\Services\StudentPerformanceClusteringService;
@@ -41,10 +41,9 @@ class DefenseDemoSeeder extends Seeder
             'users',
             'classes',
             'class_student',
-            'assignment_library_items',
-            'class_assignments',
-            'assignment_submissions',
+            'assessments',
             'assessment_submissions',
+            'question_bank_items',
             'challenge_attempts',
             'coding_submissions',
             'training_jobs',
@@ -161,22 +160,24 @@ class DefenseDemoSeeder extends Seeder
                 }
             }
 
-            $libraryItem = AssignmentLibraryItem::create([
-                'module_no' => 1,
-                'assignment_code' => 'DEMO-M01-TIMED',
+            // Demo timed assessment (DataSensei Updates 11: assessments carry
+            // homework, quizzes and examinations; the assignment feature is gone).
+            $assessment = Assessment::create([
+                'class_id' => $class->id,
+                'created_by' => $instructor->id,
                 'title' => 'Python Foundations — Timed Demo',
                 'topic_title' => 'Python Foundations',
-                'year_level' => 'Year 1',
-                'assignment_type' => 'mcq',
-                'version_no' => 1,
-                'version_name' => 'Defense Version',
-                'version_code' => 'V1',
-                'description' => 'Three specific questions for demonstrating timed assessment and grading.',
                 'instructions' => 'Answer all three items before the five-minute server timer expires.',
-                'time_limit_minutes' => 5,
+                'status' => 'published',
+                'purpose' => 'quiz',
+                'total_items' => 3,
                 'total_points' => 3,
-                'sort_order' => 1,
-                'is_active' => true,
+                'time_limit_minutes' => 5,
+                'max_attempts' => 2,
+                'passing_score_percent' => 60,
+                'available_at' => now()->subMinute(),
+                'due_at' => now()->addDays(7),
+                'published_at' => now(),
             ]);
 
             $questionDefinitions = [
@@ -200,39 +201,53 @@ class DefenseDemoSeeder extends Seeder
             ];
 
             $questions = collect();
+            $bankIndex = 0;
             foreach ($questionDefinitions as $index => $definition) {
-                $question = $libraryItem->questions()->create([
-                    'question_type' => 'mcq',
+                $question = $assessment->questions()->create([
+                    'item_number' => $index + 1,
+                    'question_type' => 'multiple_choice',
                     'question_text' => $definition['text'],
                     'points' => 1,
-                    'order_index' => $index + 1,
-                    'explanation' => 'Defense demo item.',
+                    'is_required' => true,
+                    'authoring_touched' => true,
+                    'answer_explanation' => 'Defense demo item.',
+                    'topic_title' => 'Python Foundations',
                 ]);
+                $optionIndex = 0;
                 foreach ($definition['options'] as $text => $correct) {
                     $question->options()->create([
+                        'option_label' => chr(65 + $optionIndex),
                         'option_text' => $text,
                         'is_correct' => $correct,
-                        'order_index' => $question->options()->count() + 1,
+                        'order_index' => ++$optionIndex,
                     ]);
                 }
                 $questions->push($question->fresh('options'));
+
+                // The same questions demonstrate the instructor's Question Bank.
+                $bankItem = QuestionBankItem::create([
+                    'instructor_id' => $instructor->id,
+                    'module_no' => 1,
+                    'topic_title' => 'Python Foundations',
+                    'question_type' => 'multiple_choice',
+                    'question_text' => $definition['text'],
+                    'points' => 1,
+                    'answer_explanation' => 'Defense demo item.',
+                    'is_archived' => false,
+                ]);
+                $optionIndex = 0;
+                foreach ($definition['options'] as $text => $correct) {
+                    $bankItem->options()->create([
+                        'option_text' => $text,
+                        'is_correct' => $correct,
+                        'order_index' => ++$optionIndex,
+                    ]);
+                }
+                $bankIndex++;
             }
 
-            $classAssignment = ClassAssignment::create([
-                'class_id' => $class->id,
-                'assignment_library_item_id' => $libraryItem->id,
-                'assigned_by' => $instructor->id,
-                'title' => 'Python Foundations — Timed Demo',
-                'instructions' => 'Use this to demonstrate server-side timing.',
-                'available_at' => now()->subMinute(),
-                'due_at' => now()->addDays(7),
-                'max_attempts' => 2,
-                'status' => 'published',
-                'assigned_at' => now(),
-            ]);
-
-            $sampleSubmission = AssignmentSubmission::create([
-                'class_assignment_id' => $classAssignment->id,
+            $sampleSubmission = AssessmentSubmission::create([
+                'assessment_id' => $assessment->id,
                 'student_id' => $sampleLearner->id,
                 'attempt_no' => 1,
                 'status' => 'graded',
@@ -249,9 +264,9 @@ class DefenseDemoSeeder extends Seeder
                 $selected = $index < 2
                     ? $correct
                     : $question->options->first(fn ($option) => ! $option->is_correct);
-                AssignmentSubmissionAnswer::create([
-                    'assignment_submission_id' => $sampleSubmission->id,
-                    'assignment_question_id' => $question->id,
+                AssessmentAnswer::create([
+                    'assessment_submission_id' => $sampleSubmission->id,
+                    'assessment_question_id' => $question->id,
                     'selected_option_id' => $selected?->id,
                     'answer_text' => null,
                     'is_correct' => (bool) ($selected?->is_correct),

@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminContentController;
-use App\Http\Controllers\AdminAssessmentContentController;
 use App\Http\Controllers\AdminMcqChallengeController;
 use App\Http\Controllers\AdminCodingChallengeController;
 use App\Http\Controllers\AdminChallengeMapController;
@@ -10,13 +9,16 @@ use App\Http\Controllers\AdminLessonController;
 use App\Http\Controllers\AdminPublicModuleController;
 use App\Http\Controllers\InstructorChallengeBuilderController;
 use App\Http\Controllers\InstructorChallengeClassController;
+use App\Http\Controllers\InstructorQuestionBankController;
 use App\Http\Controllers\AdminModuleContentController;
 use App\Http\Controllers\AdminGamificationController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AdvancedTopicRecommendationController;
 use App\Http\Controllers\AntiCheatEventController;
+use App\Http\Controllers\AdminCertificateController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CertificateVerificationController;
 use App\Http\Controllers\ChallengesController;
 use App\Http\Controllers\ClassStudentController;
 use App\Http\Controllers\CodeReviewController;
@@ -29,12 +31,13 @@ use App\Http\Controllers\InstructorAnalyticsController;
 use App\Http\Controllers\InstructorAntiCheatController;
 use App\Http\Controllers\InstructorAntiCheatEventController;
 use App\Http\Controllers\InstructorApplicationController;
-use App\Http\Controllers\InstructorAssignmentController;
 use App\Http\Controllers\InstructorAssessmentController;
 use App\Http\Controllers\InstructorAtRiskController;
 use App\Http\Controllers\InstructorChallengePoolController;
 use App\Http\Controllers\InstructorClassController;
+use App\Http\Controllers\InstructorCertificateController;
 use App\Http\Controllers\InstructorController;
+use App\Http\Controllers\InstructorGradebookController;
 use App\Http\Controllers\InstructorReportController;
 use App\Http\Controllers\InstructorSubmissionController;
 use App\Http\Controllers\InstructorTosController;
@@ -46,7 +49,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PasswordResetOtpController;
 use App\Http\Controllers\SqlSandboxController;
 use App\Http\Controllers\StudentAnalyticsController;
-use App\Http\Controllers\StudentAssignmentController;
+use App\Http\Controllers\StudentCertificateController;
+use App\Http\Controllers\StudentGradebookController;
+use App\Http\Controllers\StudentSubmissionController;
 use App\Http\Controllers\StudentAssessmentController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentCompetencyController;
@@ -61,6 +66,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [AuthController::class, 'home'])->name('home');
+
+// Public certificate verification (DataSensei Updates 13): anyone with a
+// certificate ID can confirm it. Only the minimum is shown; rate limited.
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/certificates/verify', [CertificateVerificationController::class, 'form'])->name('certificates.verify.form');
+    Route::get('/certificates/verify/{number}', [CertificateVerificationController::class, 'show'])
+        ->where('number', '[A-Za-z0-9-]{1,60}')
+        ->name('certificates.verify.show');
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -173,7 +187,10 @@ Route::middleware(['auth', 'active', 'student'])->group(function () {
 
 
     Route::prefix('student/assessments')->name('student.assessments.')->group(function () {
+        // My Classes first, then one class's homework, quizzes and
+        // examinations (DataSensei Updates 11).
         Route::get('/', [StudentAssessmentController::class, 'index'])->name('index');
+        Route::get('/classes/{class}', [StudentAssessmentController::class, 'classAssessments'])->name('class');
         Route::get('/{assessment}', [StudentAssessmentController::class, 'show'])->name('show');
         Route::post('/{assessment}/start', [StudentAssessmentController::class, 'start'])->name('start');
         Route::get('/{assessment}/attempt/{submission}', [StudentAssessmentController::class, 'take'])->name('take');
@@ -184,24 +201,23 @@ Route::middleware(['auth', 'active', 'student'])->group(function () {
         Route::get('/{assessment}/attempt/{submission}/result', [StudentAssessmentController::class, 'result'])->name('result');
     });
 
-    Route::prefix('student/assignments')->name('student.assignments.')->group(function () {
-        // My Classes first, then one class's assignments (DataSensei Updates 9).
-        Route::get('/', [StudentAssignmentController::class, 'index'])->name('index');
-        Route::get('/classes/{class}', [StudentAssignmentController::class, 'classAssignments'])->name('class');
-        Route::get('/{assignment}', [StudentAssignmentController::class, 'show'])->name('show');
-        Route::post('/{assignment}/start', [StudentAssignmentController::class, 'start'])->name('start');
-        Route::get('/{assignment}/attempt/{submission}', [StudentAssignmentController::class, 'take'])->name('take');
-        Route::post('/{assignment}/attempt/{submission}/autosave', [StudentAssignmentController::class, 'autosave'])
-            ->middleware('throttle:120,1')
-            ->name('autosave');
-        Route::post('/{assignment}/attempt/{submission}/submit', [StudentAssignmentController::class, 'submit'])->name('submit');
-        Route::get('/{assignment}/attempt/{submission}/result', [StudentAssignmentController::class, 'result'])->name('result');
-    });
 
     Route::prefix('student/submissions')->name('student.submissions.')->group(function () {
-        Route::get('/', [StudentAssignmentController::class, 'submissions'])->name('index');
-        Route::get('/{submission}', [StudentAssignmentController::class, 'submissionResult'])->name('show');
+        Route::get('/', [StudentSubmissionController::class, 'index'])->name('index');
+        Route::get('/{submission}', [StudentSubmissionController::class, 'show'])->name('show');
     });
+
+    // DataSensei Updates 12. My Gradebook: the signed-in student's own grades
+    // only (no student id is ever taken from the request). Certificates: the
+    // three core certificates, issued after a server-side eligibility check.
+    Route::get('/student/gradebook', [StudentGradebookController::class, 'index'])->name('student.gradebook.index');
+    Route::get('/student/certificates', [StudentCertificateController::class, 'index'])->name('student.certificates.index');
+    Route::get('/student/certificates/{certificate}', [StudentCertificateController::class, 'show'])
+        ->whereNumber('certificate')
+        ->name('student.certificates.show');
+    Route::get('/student/certificates/{certificate}/pdf', [StudentCertificateController::class, 'pdf'])
+        ->whereNumber('certificate')
+        ->name('student.certificates.pdf');
 
     Route::post('/anti-cheat/events', [AntiCheatEventController::class, 'store'])
         ->middleware('throttle:anti-cheat-event')
@@ -307,6 +323,19 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
 
     // DataSensei Modules: the public curriculum at /module, open to everyone
     // by year level. Written with the visual module editor.
+    // Certificates (DataSensei Updates 13): issued certificates with revoke
+    // and reissue, the core certificates, issuer settings and layouts.
+    Route::prefix('certificates')->name('certificates.')->group(function () {
+        Route::get('/', [AdminCertificateController::class, 'index'])->name('index');
+        Route::put('/settings', [AdminCertificateController::class, 'updateSettings'])->name('settings');
+        Route::patch('/definitions/{definition}/status', [AdminCertificateController::class, 'toggleDefinition'])->whereNumber('definition')->name('definitions.status');
+        Route::get('/layouts/{layout}/preview', [AdminCertificateController::class, 'layoutPreview'])->where('layout', '[a-z_]+')->name('layouts.preview');
+        Route::patch('/layouts/{layout}/status', [AdminCertificateController::class, 'toggleLayout'])->where('layout', '[a-z_]+')->name('layouts.status');
+        Route::get('/issued/{certificate}', [AdminCertificateController::class, 'show'])->whereNumber('certificate')->name('show');
+        Route::patch('/issued/{certificate}/revoke', [AdminCertificateController::class, 'revoke'])->whereNumber('certificate')->name('revoke');
+        Route::post('/issued/{certificate}/reissue', [AdminCertificateController::class, 'reissue'])->whereNumber('certificate')->name('reissue');
+    });
+
     Route::prefix('modules')->name('modules.')->group(function () {
         Route::get('/', [AdminPublicModuleController::class, 'index'])->name('index');
         Route::get('/create', [AdminPublicModuleController::class, 'create'])->name('create');
@@ -317,6 +346,10 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
         Route::get('/{module}/edit', [AdminPublicModuleController::class, 'edit'])->name('edit');
         Route::put('/{module}', [AdminPublicModuleController::class, 'update'])->name('update');
         Route::patch('/{module}/status', [AdminPublicModuleController::class, 'toggleStatus'])->name('status');
+        // Core modules are never deleted; a custom module in use is archived
+        // instead (DataSensei Updates 12).
+        Route::patch('/{module}/archive', [AdminPublicModuleController::class, 'archive'])->name('archive');
+        Route::patch('/{module}/restore', [AdminPublicModuleController::class, 'restore'])->name('restore');
         Route::delete('/{module}', [AdminPublicModuleController::class, 'destroy'])->name('destroy');
 
         // The lessons are the module's sections, edited in the module editor
@@ -350,17 +383,6 @@ Route::middleware(['auth', 'active', 'admin'])->prefix('admin')->name('admin.')-
         Route::put('/{challenge}', [AdminCodingChallengeController::class, 'update'])->name('update');
         Route::patch('/{challenge}/status', [AdminCodingChallengeController::class, 'toggleStatus'])->name('status');
         Route::delete('/{challenge}', [AdminCodingChallengeController::class, 'destroy'])->name('destroy');
-    });
-    Route::prefix('assessments')->name('assessments.')->group(function () {
-        Route::get('/', [AdminAssessmentContentController::class, 'index'])->name('index');
-        Route::get('/create', [AdminAssessmentContentController::class, 'create'])->name('create');
-        Route::post('/', [AdminAssessmentContentController::class, 'store'])->name('store');
-        Route::get('/{assessment}', [AdminAssessmentContentController::class, 'show'])->name('show');
-        Route::get('/{assessment}/edit', [AdminAssessmentContentController::class, 'edit'])->name('edit');
-        Route::put('/{assessment}', [AdminAssessmentContentController::class, 'update'])->name('update');
-        Route::post('/{assessment}/duplicate', [AdminAssessmentContentController::class, 'duplicate'])->name('duplicate');
-        Route::patch('/{assessment}/status', [AdminAssessmentContentController::class, 'toggleStatus'])->name('status');
-        Route::delete('/{assessment}', [AdminAssessmentContentController::class, 'destroy'])->name('destroy');
     });
 
     Route::get('/gamification', [AdminGamificationController::class, 'index'])
@@ -425,6 +447,8 @@ Route::middleware(['auth', 'active', 'instructor'])->prefix('instructor')->name(
     // with a page per student. Read live from the class's saved work.
     Route::get('/analytics', [InstructorAnalyticsController::class, 'index'])->name('analytics.index');
     Route::get('/analytics/{class}/students/{student}', [InstructorAnalyticsController::class, 'student'])->name('analytics.student');
+    // At-Risk Alerts were merged into Class Analytics (DataSensei Updates 12);
+    // /risk opens the at-risk list there.
     Route::get('/risk', [InstructorAtRiskController::class, 'index'])->name('risk.index');
     Route::post('/risk/refresh', [InstructorAtRiskController::class, 'refresh'])->name('risk.refresh');
     // Reports (DataSensei Updates 8): six reports on the instructor's own
@@ -438,11 +462,30 @@ Route::middleware(['auth', 'active', 'instructor'])->prefix('instructor')->name(
         ->whereIn('format', ['csv', 'pdf', 'print'])
         ->name('reports.export');
     Route::get('/submissions', [InstructorSubmissionController::class, 'index'])->name('submissions.index');
+    // Gradebook (DataSensei Updates 12): only the instructor's own classes.
+    Route::get('/gradebook', [InstructorGradebookController::class, 'index'])->name('gradebook.index');
+    // Certificate Builder: the class Certificate of Completion. The
+    // instructor chooses a layout (live preview), activates it, and at the
+    // end of the semester issues it to the students who completed the class.
+    Route::prefix('certificates')->name('certificates.')->group(function () {
+        Route::get('/', [InstructorCertificateController::class, 'index'])->name('index');
+        Route::get('/create', [InstructorCertificateController::class, 'create'])->name('create');
+        Route::post('/', [InstructorCertificateController::class, 'store'])->name('store');
+        Route::post('/live-preview', [InstructorCertificateController::class, 'livePreview'])->middleware('throttle:120,1')->name('live-preview');
+        Route::get('/{certificate}', [InstructorCertificateController::class, 'show'])->whereNumber('certificate')->name('show');
+        Route::get('/{certificate}/edit', [InstructorCertificateController::class, 'edit'])->whereNumber('certificate')->name('edit');
+        Route::put('/{certificate}', [InstructorCertificateController::class, 'update'])->whereNumber('certificate')->name('update');
+        Route::get('/{certificate}/preview.pdf', [InstructorCertificateController::class, 'previewPdf'])->whereNumber('certificate')->name('preview-pdf');
+        Route::patch('/{certificate}/activate', [InstructorCertificateController::class, 'activate'])->whereNumber('certificate')->name('activate');
+        Route::patch('/{certificate}/deactivate', [InstructorCertificateController::class, 'deactivate'])->whereNumber('certificate')->name('deactivate');
+        Route::post('/{certificate}/issue', [InstructorCertificateController::class, 'issue'])->whereNumber('certificate')->name('issue');
+        Route::delete('/{certificate}', [InstructorCertificateController::class, 'destroy'])->whereNumber('certificate')->name('destroy');
+    });
     Route::get('/challenges', [InstructorChallengePoolController::class, 'index'])->name('challenges.index');
     Route::get('/challenges/{challenge}', [InstructorChallengePoolController::class, 'show'])->name('challenges.show');
     // Challenges are practice (DataSensei Updates 9): an instructor shares one
     // of their own, or a platform one, with classes. Graded class work with a
-    // due date is an Assignment.
+    // due date is an Assessment.
     Route::put('/challenges/{challenge}/classes', [InstructorChallengeClassController::class, 'update'])->name('challenges.classes.update');
     // Instructors build their own MCQ and coding challenges (with test cases).
     Route::prefix('challenge-builder')->name('challenge-builder.')->group(function () {
@@ -477,6 +520,14 @@ Route::middleware(['auth', 'active', 'instructor'])->prefix('instructor')->name(
 
 
 
+    // Question Bank (DataSensei Updates 11): reusable questions, instructor-private.
+    Route::prefix('question-bank')->name('question-bank.')->group(function () {
+        Route::get('/', [InstructorQuestionBankController::class, 'index'])->name('index');
+        Route::post('/', [InstructorQuestionBankController::class, 'store'])->name('store');
+        Route::patch('/{item}', [InstructorQuestionBankController::class, 'update'])->name('update');
+        Route::patch('/{item}/archive', [InstructorQuestionBankController::class, 'toggleArchive'])->name('archive');
+    });
+
     Route::prefix('assessments')->name('assessments.')->group(function () {
         Route::get('/', [InstructorAssessmentController::class, 'index'])->name('index');
         // One short form, then every question on one page (DataSensei Updates 9).
@@ -486,6 +537,8 @@ Route::middleware(['auth', 'active', 'instructor'])->prefix('instructor')->name(
         Route::get('/from-tos/{tos}/create', [InstructorAssessmentController::class, 'create'])->name('create');
         Route::post('/from-tos/{tos}', [InstructorAssessmentController::class, 'store'])->name('store');
         Route::get('/{assessment}/builder', [InstructorAssessmentController::class, 'builder'])->name('builder');
+        Route::get('/{assessment}/bank', [InstructorQuestionBankController::class, 'pickForAssessment'])->name('bank');
+        Route::post('/{assessment}/bank', [InstructorQuestionBankController::class, 'addToAssessment'])->name('bank.add');
         Route::get('/{assessment}/preview', [InstructorAssessmentController::class, 'preview'])->name('preview');
         Route::patch('/{assessment}/settings', [InstructorAssessmentController::class, 'updateSettings'])->name('settings.update');
         Route::post('/{assessment}/questions', [InstructorAssessmentController::class, 'storeQuestion'])->name('questions.store');
@@ -496,25 +549,12 @@ Route::middleware(['auth', 'active', 'instructor'])->prefix('instructor')->name(
         Route::get('/{assessment}/submissions', [InstructorAssessmentController::class, 'submissions'])->name('submissions');
         Route::get('/{assessment}/submissions/{submission}', [InstructorAssessmentController::class, 'showSubmission'])->name('submissions.show');
         Route::patch('/{assessment}/submissions/{submission}/grade', [InstructorAssessmentController::class, 'gradeSubmission'])->name('submissions.grade');
+        // Anti-cheat integrity review (DataSensei Updates 11).
+        Route::patch('/{assessment}/submissions/{submission}/integrity/release', [InstructorAssessmentController::class, 'releaseHeldSubmission'])->name('submissions.integrity.release');
+        Route::patch('/{assessment}/submissions/{submission}/integrity/block', [InstructorAssessmentController::class, 'keepSubmissionBlocked'])->name('submissions.integrity.block');
         Route::get('/{assessment}/analytics', [InstructorAssessmentController::class, 'analytics'])->name('analytics');
     });
 
-    Route::prefix('assignments')->name('assignments.')->group(function () {
-        Route::get('/', [InstructorAssignmentController::class, 'index'])->name('index');
-        Route::get('/create', [InstructorAssignmentController::class, 'create'])->name('create');
-        // Full content of a library assignment before giving it to a class.
-        Route::get('/library/{item}/preview', [InstructorAssignmentController::class, 'previewLibraryItem'])->name('library-preview');
-        Route::post('/', [InstructorAssignmentController::class, 'store'])->name('store');
-        Route::get('/{assignment}', [InstructorAssignmentController::class, 'show'])->name('show');
-        Route::get('/{assignment}/edit', [InstructorAssignmentController::class, 'edit'])->name('edit');
-        Route::put('/{assignment}', [InstructorAssignmentController::class, 'update'])->name('update');
-        Route::delete('/{assignment}', [InstructorAssignmentController::class, 'destroy'])->name('destroy');
-        Route::patch('/{assignment}/publish', [InstructorAssignmentController::class, 'publish'])->name('publish');
-        Route::patch('/{assignment}/close', [InstructorAssignmentController::class, 'close'])->name('close');
-        Route::patch('/{assignment}/archive', [InstructorAssignmentController::class, 'archive'])->name('archive');
-        Route::patch('/{assignment}/submissions/{submission}/release', [InstructorAssignmentController::class, 'releaseHeldSubmission'])->name('submissions.release');
-        Route::patch('/{assignment}/submissions/{submission}/keep-blocked', [InstructorAssignmentController::class, 'keepSubmissionBlocked'])->name('submissions.keep-blocked');
-    });
 
     Route::prefix('classes')->name('classes.')->group(function () {
         Route::get('/', [InstructorClassController::class, 'index'])->name('index');

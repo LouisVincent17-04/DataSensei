@@ -99,13 +99,12 @@ class AdminDashboardService
                 'label' => 'Anti-Cheat Events',
                 'value' => $this->count('anti_cheat_events')
                     + $this->count('challenge_attempt_events'),
-                'sub' => 'Assignment and challenge flags',
+                'sub' => 'Assessment and challenge flags',
                 'tone' => 'red',
             ],
             [
                 'label' => 'Submissions',
-                'value' => $this->count('assignment_submissions')
-                    + $this->count('coding_submissions')
+                'value' => $this->count('coding_submissions')
                     + ($this->tableExists('challenge_attempts')
                         ? $this->count('challenge_attempts')
                         : $this->count('challenge_user'))
@@ -166,7 +165,6 @@ class AdminDashboardService
                 'users' => 0,
                 'mcq' => 0,
                 'coding' => 0,
-                'assignments' => 0,
                 'assessments' => 0,
                 'toolkit' => 0,
                 'total' => 0,
@@ -176,7 +174,6 @@ class AdminDashboardService
         $activityTables = [
             'users' => 'users',
             'coding_submissions' => 'coding',
-            'assignment_submissions' => 'assignments',
             'assessment_submissions' => 'assessments',
             'student_data_toolkit_activities' => 'toolkit',
         ];
@@ -219,7 +216,6 @@ class AdminDashboardService
             $row['total'] = $row['users']
                 + $row['mcq']
                 + $row['coding']
-                + $row['assignments']
                 + $row['assessments']
                 + $row['toolkit'];
         }
@@ -280,7 +276,7 @@ class AdminDashboardService
     }
 
     /**
-     * Return recent assignment anti-cheat events.
+     * Return recent assessment anti-cheat events.
      */
     private function recentAntiCheatEvents(int $limit = 8): array
     {
@@ -316,26 +312,26 @@ class AdminDashboardService
         }
 
         if (
-            $this->tableExists('class_assignments')
+            $this->tableExists('assessments')
             && $this->columnExists(
                 'anti_cheat_events',
-                'class_assignment_id'
+                'assessment_id'
             )
-            && $this->columnExists('class_assignments', 'id')
+            && $this->columnExists('assessments', 'id')
         ) {
             $query
                 ->leftJoin(
-                    'class_assignments as a',
+                    'assessments as a',
                     'a.id',
                     '=',
-                    'e.class_assignment_id'
+                    'e.assessment_id'
                 )
                 ->addSelect(
-                    'a.title as assignment_title'
+                    'a.title as assessment_title'
                 );
         } else {
             $query->addSelect(
-                DB::raw('NULL as assignment_title')
+                DB::raw('NULL as assessment_title')
             );
         }
 

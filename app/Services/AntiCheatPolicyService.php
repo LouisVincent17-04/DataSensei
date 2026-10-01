@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\AntiCheatEvent;
 use App\Models\AntiCheatSetting;
-use App\Models\AssignmentSubmission;
+use App\Models\Assessment;
+use App\Models\AssessmentSubmission;
 use App\Models\Challenge;
-use App\Models\ClassAssignment;
 use App\Models\User;
 use App\Support\AntiCheatEventContract;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,23 +14,23 @@ use Illuminate\Support\Facades\DB;
 
 class AntiCheatPolicyService
 {
-    public const INVALID_IDENTITY_MESSAGE = 'The protected attempt identity is invalid. Reload the assignment and try again.';
+    public const INVALID_IDENTITY_MESSAGE = 'The protected attempt identity is invalid. Reload the assessment and try again.';
 
     /**
      * Backward-compatible entry point. Public MCQ and coding challenges intentionally return disabled settings.
      */
-    public function settingsForUser(?User $user, string $assessmentType = 'assignment', ?ClassAssignment $assignment = null): array
+    public function settingsForUser(?User $user, string $assessmentType = 'assessment', ?Assessment $assessment = null): array
     {
-        if (!$user || $assessmentType !== 'assignment') {
+        if (!$user || $assessmentType !== 'assessment') {
             return $this->disabledSettings();
         }
 
-        return $this->settingsForAssignment($user, $assignment);
+        return $this->settingsForAssessment($user, $assessment);
     }
 
-    public function settingsForAssignment(User $user, ?ClassAssignment $assignment = null): array
+    public function settingsForAssessment(User $user, ?Assessment $assessment = null): array
     {
-        $settings = $this->assignmentSettingsQuery($user, $assignment)->get();
+        $settings = $this->classworkSettingsQuery($user, $assessment)->get();
 
         if ($settings->isEmpty()) {
             return $this->disabledSettings();
@@ -42,9 +42,9 @@ class AntiCheatPolicyService
             $policy = $this->mergeOverride($policy, $setting->toArray());
         }
 
-        if ($assignment) {
-            $policy['class_assignment_id'] = (int) $assignment->id;
-            $policy['class_id'] = (int) $assignment->class_id;
+        if ($assessment) {
+            $policy['assessment_id'] = (int) $assessment->id;
+            $policy['class_id'] = (int) $assessment->class_id;
         }
 
         return $policy;
@@ -86,9 +86,9 @@ class AntiCheatPolicyService
         return null;
     }
 
-    public function assignmentSubmissionBlocked(User $user, ClassAssignment $assignment, AssignmentSubmission $submission, ?string $sessionId = null): ?string
+    public function assessmentSubmissionBlocked(User $user, Assessment $assessment, AssessmentSubmission $submission, ?string $sessionId = null): ?string
     {
-        $policy = $this->settingsForAssignment($user, $assignment);
+        $policy = $this->settingsForAssessment($user, $assessment);
 
         if (empty($policy['enabled'])) {
             return null;
@@ -98,14 +98,14 @@ class AntiCheatPolicyService
             return self::INVALID_IDENTITY_MESSAGE;
         }
 
-        return $this->blockedReason($this->attemptEventQuery($user, $assignment, $submission), $policy);
+        return $this->blockedReason($this->attemptEventQuery($user, $assessment, $submission), $policy);
     }
 
     /**
      * The protected-attempt identity is a per-attempt secret rendered into the
      * take page. It never becomes optional, including after the timer expires.
      */
-    public function attemptIdentityMatches(AssignmentSubmission $submission, ?string $sessionId): bool
+    public function attemptIdentityMatches(AssessmentSubmission $submission, ?string $sessionId): bool
     {
         $expectedSessionId = (string) ($submission->anti_cheat_session_id ?? '');
 
@@ -115,7 +115,7 @@ class AntiCheatPolicyService
     }
 
     /**
-     * Single authoritative integrity state of one assignment attempt. Used to
+     * Single authoritative integrity state of one assessment attempt. Used to
      * render the take page, to answer every recorded event and to decide the
      * submission outcome, so browser and server cannot drift apart.
      *
@@ -128,9 +128,9 @@ class AntiCheatPolicyService
      *     remaining_allowance: ?int
      * }
      */
-    public function attemptIntegrityState(User $user, ClassAssignment $assignment, AssignmentSubmission $submission, ?array $policy = null): array
+    public function attemptIntegrityState(User $user, Assessment $assessment, AssessmentSubmission $submission, ?array $policy = null): array
     {
-        $policy = $policy ?? $this->settingsForAssignment($user, $assignment);
+        $policy = $policy ?? $this->settingsForAssessment($user, $assessment);
         $maxTabSwitches = max(0, (int) ($policy['max_tab_switches'] ?? 0));
 
         if (empty($policy['enabled'])) {
@@ -144,7 +144,7 @@ class AntiCheatPolicyService
             ];
         }
 
-        $query = $this->attemptEventQuery($user, $assignment, $submission);
+        $query = $this->attemptEventQuery($user, $assessment, $submission);
         $focusLossCount = $this->logicalFocusLossCount(clone $query);
         $reason = $this->blockedReason($query, $policy, $focusLossCount);
         $focusLimitApplies = ! ($policy['allow_tab_switch'] ?? true) && ($policy['block_on_tab_limit'] ?? true);
@@ -163,24 +163,24 @@ class AntiCheatPolicyService
         ];
     }
 
-    private function attemptEventQuery(User $user, ClassAssignment $assignment, AssignmentSubmission $submission): Builder
+    private function attemptEventQuery(User $user, Assessment $assessment, AssessmentSubmission $submission): Builder
     {
         $query = AntiCheatEvent::where('user_id', $user->id)
-            ->where('assessment_type', 'assignment')
-            ->where('class_assignment_id', $assignment->id)
-            ->where('assignment_submission_id', $submission->id);
+            ->where('assessment_type', 'assessment')
+            ->where('assessment_id', $assessment->id)
+            ->where('assessment_submission_id', $submission->id);
 
         $this->applySessionScope($query, (string) ($submission->anti_cheat_session_id ?? ''));
 
         return $query;
     }
 
-    private function assignmentSettingsQuery(User $user, ?ClassAssignment $assignment): Builder
+    private function classworkSettingsQuery(User $user, ?Assessment $assessment): Builder
     {
-        $query = AntiCheatSetting::query()->where('assessment_type', 'assignment');
+        $query = AntiCheatSetting::query()->where('assessment_type', 'assessment');
 
-        if ($assignment) {
-            $classId = (int) $assignment->class_id;
+        if ($assessment) {
+            $classId = (int) $assessment->class_id;
             $instructorId = DB::table('classes')->where('id', $classId)->value('instructor_id');
 
             $query->where('instructor_id', $instructorId)
@@ -237,7 +237,7 @@ class AntiCheatPolicyService
             $tabEvents = $focusLossCount ?? $this->logicalFocusLossCount(clone $query);
 
             if ($tabEvents > (int) ($policy['max_tab_switches'] ?? 0)) {
-                return 'Your assignment attempt was locked because it exceeded the allowed tab-switch/focus-loss limit.';
+                return 'Your attempt was locked because it exceeded the allowed tab-switch/focus-loss limit.';
             }
         }
 
@@ -247,7 +247,7 @@ class AntiCheatPolicyService
                 ->exists();
 
             if ($dualMonitorDetected) {
-                return 'Your assignment attempt was locked because multiple screens were detected under the current anti-cheat settings.';
+                return 'Your attempt was locked because multiple screens were detected under the current anti-cheat settings.';
             }
         }
 
@@ -259,7 +259,7 @@ class AntiCheatPolicyService
                 ->exists();
 
             if ($critical) {
-                return 'Your assignment attempt was locked because a restricted action was detected.';
+                return 'Your attempt was locked because a restricted action was detected.';
             }
         }
 

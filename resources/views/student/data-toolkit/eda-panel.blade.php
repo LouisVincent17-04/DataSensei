@@ -2,14 +2,15 @@
   $datasetKey = $overview['dataset']['key'];
   $steps = [
       1 => ['Objective', 'Define what you want to learn'],
-      2 => ['Load Data', 'Review what was detected'],
-      3 => ['Clean Data', 'Handle common quality issues'],
+      2 => ['Dataset Overview', 'The rows and columns you loaded'],
+      3 => ['Missing Values', 'Fix blanks, duplicates, and typos'],
       4 => ['Outliers', 'Review unusual values'],
-      5 => ['Univariate', 'Understand one variable at a time'],
-      6 => ['Relationships', 'Compare variables'],
+      5 => ['Summary Statistics', 'One variable at a time'],
+      6 => ['Relationships', 'How variables move together'],
       7 => ['Features', 'Create a useful variable'],
       8 => ['Summary', 'Review what you discovered'],
   ];
+  $help = fn (string $key, ?string $text = null) => \App\Support\Glossary::help($key, $text);
   $eda = $overview['eda'];
   $source = $overview['dataset']['source'] ?? 'predefined';
 @endphp
@@ -38,8 +39,6 @@
 
 <section class="step-card">
   <header class="step-head">
-    @include('partials.page-head', ['pageDescription' => 'Clean, explore, and profile a dataset before you model it.'])
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <div class="step-number">{{ $step }}</div>
     <div>
       <h2>{{ $steps[$step][0] }}</h2>
@@ -98,8 +97,8 @@
       <div class="stats">
         <div class="stat"><strong>{{ number_format($overview['row_count']) }}</strong><span>Rows</span></div>
         <div class="stat"><strong>{{ number_format($overview['column_count']) }}</strong><span>Columns</span></div>
-        <div class="stat"><strong>{{ number_format(count($overview['numeric_columns'])) }}</strong><span>Numerical variables</span></div>
-        <div class="stat"><strong>{{ number_format(count($overview['categorical_columns'])) }}</strong><span>Categorical / other variables</span></div>
+        <div class="stat"><strong>{{ number_format(count($overview['numeric_columns'])) }}</strong><span>{!! $help('numeric_column', 'Numeric columns') !!}</span></div>
+        <div class="stat"><strong>{{ number_format(count($overview['categorical_columns'])) }}</strong><span>{!! $help('categorical_column', 'Categorical / other columns') !!}</span></div>
       </div>
       <div class="actions" style="margin-bottom:16px">
         <button class="btn secondary dataset-modal-trigger" type="button" data-dataset-modal-url="{{ route('student.data-toolkit.rows', $datasetKey) }}" data-dataset-title="{{ $overview['dataset']['title'] }}">Show Dataset</button>
@@ -115,10 +114,10 @@
           </tbody>
         </table>
       </div>
-      <div class="label" style="margin-top:20px">Detected variable types</div>
+      <div class="label" style="margin-top:20px">Columns</div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Variable</th><th>Detected type</th><th>Unique values</th><th>Missing</th><th>Example</th></tr></thead>
+          <thead><tr><th>Column</th><th>Detected type</th><th>Unique values</th><th>{!! $help('missing_value', 'Missing') !!}</th><th>Example</th></tr></thead>
           <tbody>
             @foreach($eda['data_types'] as $profile)
               <tr><td>{{ $profile['column'] }}</td><td>{{ $profile['type'] }}</td><td>{{ number_format($profile['unique_count']) }}</td><td>{{ number_format($profile['missing_count']) }}</td><td>{{ $profile['example'] ?? 'N/A' }}</td></tr>
@@ -185,7 +184,7 @@
             @if($missingCount > 0)
               <div class="feature-option" style="display:block">
                 <strong>Missing values</strong>
-                <label style="display:block;margin-top:8px"><input type="radio" name="missing_action" value="fill" {{ old('missing_action', 'fill') === 'fill' ? 'checked' : '' }}> Fill with median / most common category (recommended)</label>
+                <label style="display:block;margin-top:8px"><input type="radio" name="missing_action" value="fill" {{ old('missing_action', 'fill') === 'fill' ? 'checked' : '' }}> Fill with the {!! $help('median', 'median') !!} / most common category (recommended)</label>
                 <label style="display:block;margin-top:8px"><input type="radio" name="missing_action" value="keep" {{ old('missing_action') === 'keep' ? 'checked' : '' }}> Keep missing values</label>
               </div>
             @else
@@ -247,33 +246,80 @@
   @endif
 
   @if($step === 4)
-    @php $columnsWithOutliers = array_filter($eda['outliers']['columns'], fn ($item) => $item['outlier_count'] > 0); @endphp
+    @php
+      $out = $eda['outliers'];
+      $columnsWithOutliers = array_filter($out['columns'], fn ($item) => $item['outlier_count'] > 0);
+      $shownSamples = collect($columnsWithOutliers)->sum(fn ($item) => count($item['sample_outliers']));
+      $reason = fn (string $direction) => $direction === 'high' ? 'Much higher than most values' : 'Much lower than most values';
+    @endphp
     <div class="step-body">
       <div class="callout warn">
-        <h3>Outliers are not automatically errors</h3>
+        <h3>{!! $help('outlier', 'Outliers') !!} are not automatically errors</h3>
         <p>An unusual value may be a valid observation, a data-entry mistake, or a rare real-world case. Review the result before removing anything.</p>
       </div>
       @if($overview['numeric_columns'] === [])
-        <div class="empty" style="margin-top:16px">This dataset has no usable numerical variables, so an outlier check is not applicable.</div>
+        <div class="empty" style="margin-top:16px">This dataset has no usable {!! $help('numeric_column', 'numeric columns') !!}, so an outlier check is not applicable.</div>
       @elseif($columnsWithOutliers === [])
-        <div class="callout good" style="margin-top:16px"><h3>✓ No significant potential outliers detected</h3><p>The 1.5×IQR check did not flag unusual values in the numerical variables.</p></div>
+        <div class="callout good" style="margin-top:16px"><h3>✓ Outliers found: 0</h3><p>The {!! $help('iqr', 'IQR check') !!} found no values that are unusually far from the rest.</p></div>
       @else
-        <div class="outlier-grid" style="margin-top:16px">
-          @foreach(array_slice($eda['outliers']['columns'], 0, 10, true) as $column => $outlier)
-            <article class="outlier-card {{ $outlier['outlier_count'] > 0 ? 'has-outliers' : '' }}">
-              <h3>{{ $column }}</h3>
-              <p><strong style="color:{{ $outlier['outlier_count'] > 0 ? '#fcd34d' : '#6ee7b7' }}">{{ number_format($outlier['outlier_count']) }} potential outlier(s)</strong>, {{ $outlier['outlier_percent'] }}%</p>
-              <div class="box-line"><span class="box"><span class="median"></span></span></div>
-              <p>{{ $outlier['interpretation'] }}</p>
-              @if($outlier['sample_outliers'] !== [])
-                <details style="margin-top:12px">
-                  <summary class="small" style="cursor:pointer;color:var(--ds-accent-text)">Review flagged values</summary>
-                  <p style="margin-top:8px">@foreach($outlier['sample_outliers'] as $sample)Row {{ $sample['row_number'] }}: <strong>{{ $sample['value'] }}</strong>@if(!$loop->last), @endif @endforeach</p>
-                </details>
-              @endif
-            </article>
-          @endforeach
+        <p class="o-count">Outliers found: <strong>{{ number_format($out['total_outliers']) }}</strong></p>
+        <p class="o-note">
+          {{ number_format($out['rows_with_outliers']) }} of {{ number_format($overview['row_count']) }} rows
+          ({{ $out['rows_percent'] }}%) hold at least one unusual value, in
+          {{ $out['columns_with_outliers'] }} {{ $out['columns_with_outliers'] === 1 ? 'column' : 'columns' }}:
+          @foreach($columnsWithOutliers as $column => $outlier){{ $column }} ({{ number_format($outlier['outlier_count']) }}, {{ $outlier['outlier_percent'] }}% of its values)@if(!$loop->last), @endif @endforeach
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Column</th><th>Row</th><th>Unusual value</th><th>Reason</th></tr></thead>
+            <tbody>
+              @foreach($columnsWithOutliers as $column => $outlier)
+                @foreach($outlier['sample_outliers'] as $sample)
+                  <tr>
+                    <td>{{ $column }}</td>
+                    <td>{{ number_format($sample['row_number']) }}</td>
+                    <td><strong>{{ $sample['value'] }}</strong></td>
+                    <td>{{ $reason($sample['direction'] ?? 'high') }}</td>
+                  </tr>
+                @endforeach
+              @endforeach
+            </tbody>
+          </table>
         </div>
+        @if($out['total_outliers'] > $shownSamples)
+          <p class="o-columns">Showing the first {{ number_format($shownSamples) }} of {{ number_format($out['total_outliers']) }} flagged values, up to 12 per column.</p>
+        @endif
+        <p class="o-columns">A value is flagged when it falls unusually far below or above the middle half of its column ({!! $help('iqr', 'the IQR method') !!}).</p>
+
+        <details class="advanced">
+          <summary>Advanced view: box plots</summary>
+          <div class="advanced-body">
+            <p>A {!! $help('box_plot', 'box plot') !!} shows the same check visually: the box covers the middle half of the values ({!! $help('quartile', 'Q1 to Q3') !!}), the line inside it is the {!! $help('median', 'median') !!}, and each dot is a flagged value.</p>
+            @foreach($columnsWithOutliers as $column => $outlier)
+              @php
+                $bp = $outlier['box_plot'];
+                $lo = (float) ($bp['minimum'] ?? 0);
+                $hi = (float) ($bp['maximum'] ?? 1);
+                $span = max($hi - $lo, 1e-9);
+                $pos = fn ($value) => round((((float) $value) - $lo) / $span * 100, 2);
+              @endphp
+              <div class="bp">
+                <p class="bp-title">{{ $column }}</p>
+                <div class="bp-lane" role="img" aria-label="Box plot for {{ $column }}: median {{ $bp['median'] }}, box from {{ $bp['q1'] }} to {{ $bp['q3'] }}, {{ number_format($outlier['outlier_count']) }} flagged value(s)">
+                  <span class="bp-whisker" style="left:{{ $pos($bp['whisker_minimum']) }}%;width:{{ max(0, $pos($bp['q1']) - $pos($bp['whisker_minimum'])) }}%"></span>
+                  <span class="bp-whisker" style="left:{{ $pos($bp['q3']) }}%;width:{{ max(0, $pos($bp['whisker_maximum']) - $pos($bp['q3'])) }}%"></span>
+                  <span class="bp-box" style="left:{{ $pos($bp['q1']) }}%;width:{{ max(0.4, $pos($bp['q3']) - $pos($bp['q1'])) }}%"></span>
+                  <span class="bp-median" style="left:{{ $pos($bp['median']) }}%"></span>
+                  @foreach($bp['outliers'] as $value)
+                    <span class="bp-dot" style="left:{{ $pos($value) }}%" title="{{ $value }}"></span>
+                  @endforeach
+                </div>
+                <div class="bp-scale"><span>{{ $bp['minimum'] }}</span><span>{{ $bp['maximum'] }}</span></div>
+              </div>
+            @endforeach
+          </div>
+        </details>
+
         <form action="{{ route('student.data-toolkit.outliers', $datasetKey) }}" method="POST" style="margin-top:16px">
           @csrf
           <div class="label">Remove only if the values are not useful for your objective</div>
@@ -297,7 +343,7 @@
 
   @if($step === 5)
     <div class="step-body">
-      <div class="callout"><h3>What did we find?</h3><p>DataSensei automatically selected the correct summary and basic chart for each useful variable shown below.</p></div>
+      <div class="callout"><h3>What did we find?</h3><p>DataSensei looked at each useful variable on its own ({!! $help('univariate', 'univariate') !!} analysis) and picked the right summary and chart for it.</p></div>
       @if($displayNumeric === [] && $displayCategorical === [])
         <div class="empty" style="margin-top:16px">There are no suitable variables for a basic distribution chart.</div>
       @else
@@ -306,13 +352,15 @@
             @php $summary = $overview['descriptive'][$column]; @endphp
             <article class="variable-card">
               <div class="label">Numerical variable</div><h3>{{ $column }}</h3><p>{{ $summary['interpretation'] }}</p>
+              <div class="label" style="margin-top:12px">Summary statistics</div>
               <div class="metrics">
-                <div class="metric"><strong>{{ $summary['mean'] ?? 'N/A' }}</strong><span>Mean</span></div>
-                <div class="metric"><strong>{{ $summary['median'] ?? 'N/A' }}</strong><span>Median</span></div>
+                <div class="metric"><strong>{{ $summary['mean'] ?? 'N/A' }}</strong><span>{!! $help('mean') !!}</span></div>
+                <div class="metric"><strong>{{ $summary['median'] ?? 'N/A' }}</strong><span>{!! $help('median') !!}</span></div>
                 <div class="metric"><strong>{{ $summary['minimum'] ?? 'N/A' }}</strong><span>Minimum</span></div>
                 <div class="metric"><strong>{{ $summary['maximum'] ?? 'N/A' }}</strong><span>Maximum</span></div>
-                <div class="metric"><strong>{{ $summary['standard_deviation'] ?? 'N/A' }}</strong><span>Std. deviation</span></div>
+                <div class="metric"><strong>{{ $summary['standard_deviation'] ?? 'N/A' }}</strong><span>{!! $help('standard_deviation', 'Std. deviation') !!}</span></div>
               </div>
+              <div class="label" style="margin-top:12px">{!! $help('distribution', 'Distribution') !!}</div>
               <div class="chart-wrap"><canvas id="numericChart{{ $index }}"></canvas></div>
             </article>
           @endforeach
@@ -330,7 +378,7 @@
           @endforeach
         </div>
       @endif
-      <div class="recommendation"><strong>Meaning:</strong> A distribution shows what is typical, how values vary, and whether one category dominates. <strong>Next:</strong> Compare variables to look for useful relationships.</div>
+      <div class="recommendation"><strong>Meaning:</strong> A {!! $help('distribution', 'distribution') !!} shows what is typical, how values vary, and whether one category dominates. <strong>Next:</strong> Compare variables to look for useful relationships.</div>
     </div>
     <footer class="step-nav"><a class="btn secondary" href="{{ route('student.data-toolkit.show', ['dataset' => $datasetKey, 'step' => 4]) }}">← Previous</a><a class="btn" href="{{ route('student.data-toolkit.show', ['dataset' => $datasetKey, 'step' => 6]) }}">Continue to relationships →</a></footer>
   @endif
@@ -343,9 +391,9 @@
         <div class="relationship-grid">
           @foreach(array_slice($overview['relationships'], 0, 4) as $relationship)
             <article class="relationship-card">
-              <div class="label">{{ ucfirst($relationship['strength']) }} {{ $relationship['direction'] }} relationship</div>
+              <div class="label">{{ ucfirst($relationship['strength']) }} {{ $relationship['direction'] }} {!! $help('correlation', 'correlation') !!}</div>
               <h3>{{ $relationship['x'] }} and {{ $relationship['y'] }}</h3>
-              <div class="relationship-value">r = {{ $relationship['value'] }}</div>
+              <div class="relationship-value">{!! $help('correlation_coefficient', 'r') !!} = {{ $relationship['value'] }}</div>
               <p>{{ $relationship['finding'] }}</p>
             </article>
           @endforeach
@@ -357,7 +405,7 @@
       @if($overview['group_comparison'])
         <div class="relationship-card" style="margin-top:16px"><h3>Group comparison</h3><p>{{ $overview['group_comparison']['finding'] }}</p><div class="chart-wrap" style="height:260px"><canvas id="groupComparisonChart"></canvas></div></div>
       @endif
-      <div class="callout warn" style="margin-top:16px"><h3>Correlation does not prove causation</h3><p>Two variables can move together without one directly causing the other. Other variables or real-world conditions may explain the pattern.</p></div>
+      <div class="callout warn" style="margin-top:16px"><h3>{!! $help('correlation', 'Correlation') !!} does not prove {!! $help('causation', 'causation') !!}</h3><p>Two variables can move together without one directly causing the other. Other variables or real-world conditions may explain the pattern.</p></div>
       <div class="recommendation"><strong>Next:</strong> Use what you observed to consider a simple new feature.</div>
     </div>
     <footer class="step-nav"><a class="btn secondary" href="{{ route('student.data-toolkit.show', ['dataset' => $datasetKey, 'step' => 5]) }}">← Previous</a><a class="btn" href="{{ route('student.data-toolkit.show', ['dataset' => $datasetKey, 'step' => 7]) }}">Continue to features →</a></footer>
@@ -387,7 +435,7 @@
 
   @if($step === 8)
     <div class="step-body">
-      <div class="eyebrow">EDA complete</div>
+      <p class="done-note">✓ {!! $help('eda', 'EDA') !!} complete</p>
       <h2 class="summary-title">You followed the full exploratory data analysis process.</h2>
       <p class="small" style="font-size:.875rem;line-height:1.6;margin:0">Your current working dataset contains {{ number_format($overview['row_count']) }} records and {{ number_format($overview['column_count']) }} variables.</p>
       <div class="label" style="margin-top:20px">Original dataset compared with your final working data</div>

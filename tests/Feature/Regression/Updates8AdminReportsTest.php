@@ -11,10 +11,12 @@ use Tests\TestCase;
 
 /**
  * DataSensei Updates 8, task 1, admin side: the old "Reports & Moderation"
- * page is replaced by seven reports (Users, Modules, Classes, Assessments &
- * Assignments, Challenges & Coding Challenges, Gamification, Audit Logs),
- * each built from saved records, filterable, printable and exportable as PDF
- * and CSV, and open to admins only.
+ * page is replaced by seven reports (Users, Modules, Classes, Assessments,
+ * Challenges & Coding Challenges, Gamification, Audit Logs), each built from
+ * saved records, filterable, printable and exportable as PDF and CSV, and
+ * open to admins only. The Assessments report was "Assessments & Assignments"
+ * until DataSensei Updates 11 merged assignments into assessments; converted
+ * assignments are homework-purpose assessments in it now.
  */
 class Updates8AdminReportsTest extends TestCase
 {
@@ -31,11 +33,11 @@ class Updates8AdminReportsTest extends TestCase
     {
         $html = $this->authenticateAs($this->admin)->get(route('admin.reports.index'))->assertOk()->getContent();
 
-        foreach (['Users', 'Modules', 'Classes', 'Assessments &amp; Assignments', 'Challenges &amp; Coding Challenges', 'Gamification', 'Audit Logs'] as $title) {
+        foreach (['Users', 'Modules', 'Classes', 'Assessments', 'Challenges &amp; Coding Challenges', 'Gamification', 'Audit Logs'] as $title) {
             $this->assertStringContainsString('>'.$title.'</a>', $html);
         }
         $this->assertSame(7, substr_count($html, 'class="rp-nav-link'));
-        foreach (['Reports &amp; Moderation', 'System Health', 'Assignment Anti-Cheat Events', 'Challenge Attempt Flags', 'Mastery', 'Rank'] as $gone) {
+        foreach (['Reports &amp; Moderation', 'System Health', 'Assignment Anti-Cheat Events', 'Challenge Attempt Flags', 'Mastery', 'Rank', 'Assessments &amp; Assignments'] as $gone) {
             $this->assertStringNotContainsString($gone, $html);
         }
     }
@@ -92,18 +94,26 @@ class Updates8AdminReportsTest extends TestCase
         $this->assertStringContainsString('Statistics, ST 2B', $html);
     }
 
-    public function test_assessment_and_assignment_report_combines_both(): void
+    public function test_assessment_report_covers_quizzes_and_converted_homework(): void
     {
         $html = $this->authenticateAs($this->admin)->get(route('admin.reports.show', ['report' => 'assessments']))->assertOk()->getContent();
 
         $quiz = $this->row($html, 'Midterm Quiz');
+        $this->assertMatchesRegularExpression('#<td data-label="Type"[^>]*>\s*Assessment\s*</td>#', $quiz, 'An assessment without a purpose is labelled Assessment.');
         // Three attempts (9, 4, 5 of 10): average 60%; best attempts Sam 90% pass, Lia 50% fail; 2 of 3 students.
         $this->assertMatchesRegularExpression('#>\s*3\s*</td>\s*<td[^>]*>\s*60%\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*66.7% \(2 of 3\)#', $quiz);
 
+        // Former assignments are homework-purpose assessments since Updates 11.
         $loops = $this->row($html, 'Loops Worksheet');
-        // 3 assigned, 2 submitted, 1 missing, 1 late, 1 on time, average grade 70%.
-        $this->assertMatchesRegularExpression('#>\s*3\s*</td>\s*<td[^>]*>\s*2\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*70%#', $loops);
-        $this->assertStringContainsString('Not due yet', $this->row($html, 'Upcoming Worksheet'));
+        $this->assertMatchesRegularExpression('#<td data-label="Type"[^>]*>\s*Homework\s*</td>#', $loops);
+        // Two attempts (8 and 6 of 10): average 70%; Sam passes, Lia fails; 2 of 3 students completed it.
+        $this->assertMatchesRegularExpression('#>\s*2\s*</td>\s*<td[^>]*>\s*70%\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*1\s*</td>\s*<td[^>]*>\s*66.7% \(2 of 3\)#', $loops);
+        // Nobody has attempted the upcoming worksheet yet.
+        $this->assertMatchesRegularExpression('#>\s*0\s*</td>\s*<td[^>]*>\s*—\s*</td>\s*<td[^>]*>\s*0\s*</td>\s*<td[^>]*>\s*0\s*</td>\s*<td[^>]*>\s*0% \(0 of 3\)#', $this->row($html, 'Upcoming Worksheet'));
+
+        $summary = $this->summary($html);
+        $this->assertSame('5', $summary['Assessments'], 'Midterm Quiz and the four worksheets.');
+        $this->assertSame('1', $summary['Late submissions'], "Lia's Loops Worksheet, turned in after the due date.");
 
         $this->get(route('admin.reports.show', ['report' => 'assessments', 'class_id' => $this->statistics->id]))
             ->assertSee('Other Class Worksheet')->assertDontSee('Loops Worksheet');
@@ -162,7 +172,8 @@ class Updates8AdminReportsTest extends TestCase
 
         $this->get(route('admin.reports.export', ['report' => 'assessments', 'format' => 'print']))
             ->assertOk()
-            ->assertSee('Assessments &amp; Assignments Report', false)
+            ->assertSee('Assessments Report', false)
+            ->assertDontSee('Assignments Report', false)
             ->assertSee('window.print()', false)
             ->assertSee('Loops Worksheet');
 

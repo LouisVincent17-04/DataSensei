@@ -84,29 +84,9 @@ class StudentPerformanceClusteringService
     {
         $classId = $class?->id;
 
-        $assignmentRows = DB::table('assignment_submissions')
-            ->when($classId, function ($q) use ($classId) {
-                $q->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
-                  ->where('class_assignments.class_id', $classId);
-            })
-            ->where('assignment_submissions.student_id', $student->id)
-            ->whereIn('assignment_submissions.status', ['submitted', 'late', 'graded'])
-            ->where('assignment_submissions.total_points', '>', 0)
-            ->get([
-                'assignment_submissions.id',
-                'assignment_submissions.class_assignment_id',
-                'assignment_submissions.attempt_no',
-                'assignment_submissions.score',
-                'assignment_submissions.total_points',
-            ])
-            ->groupBy('class_assignment_id')
-            ->map(fn (Collection $attempts) => $attempts
-                ->sortByDesc(fn ($row): string => $this->attemptSortKey($row))
-                ->first());
-        $assignmentScores = $assignmentRows
-            ->map(fn ($row) => ((float) $row->score / max(1.0, (float) $row->total_points)) * 100)
-            ->map(fn ($v) => (float) $v);
-
+        // Assignments were merged into assessments, so assessment submissions
+        // are the single graded-work source here (counting both would have
+        // double-counted every converted assignment).
         $assessmentRows = DB::table('assessment_submissions')
             ->when($classId, function ($q) use ($classId) {
                 $q->join('assessments', 'assessments.id', '=', 'assessment_submissions.assessment_id')
@@ -155,29 +135,27 @@ class StudentPerformanceClusteringService
                 ->pluck('percent')
                 ->map(fn ($v) => (float) $v);
 
-        $scores = $assignmentScores
-            ->merge($assessmentScores)
+        $scores = $assessmentScores
             ->merge($mcqScores)
             ->merge($codingScores)
             ->filter(fn ($v) => is_numeric($v));
         $averageScore = $scores->isNotEmpty() ? round($scores->avg(), 2) : 0.0;
 
-        $completedActivities = $assignmentScores->count()
-            + $assessmentScores->count()
+        $completedActivities = $assessmentScores->count()
             + $mcqScores->count()
             + $codingScores->count();
-        $missingAssignments = $this->missingAssignments($student, $classId);
+        $missingAssessments = $this->missingAssessments($student, $classId);
         $lateSubmissions = $this->lateSubmissions($student, $classId);
         $antiCheatWarnings = $this->antiCheatWarnings($student, $classId);
-        $engagementScore = $this->engagementScore($averageScore, $completedActivities, $missingAssignments, $lateSubmissions, $antiCheatWarnings);
-        [$cluster, $risk, $description] = $this->classify($averageScore, $engagementScore, $missingAssignments, $lateSubmissions, $antiCheatWarnings, $completedActivities);
+        $engagementScore = $this->engagementScore($averageScore, $completedActivities, $missingAssessments, $lateSubmissions, $antiCheatWarnings);
+        [$cluster, $risk, $description] = $this->classify($averageScore, $engagementScore, $missingAssessments, $lateSubmissions, $antiCheatWarnings, $completedActivities);
 
         return DB::transaction(function () use (
             $student,
             $classId,
             $averageScore,
             $completedActivities,
-            $missingAssignments,
+            $missingAssessments,
             $lateSubmissions,
             $antiCheatWarnings,
             $engagementScore,
@@ -194,7 +172,9 @@ class StudentPerformanceClusteringService
                 'average_score_percent' => $averageScore,
                 'average_time_ratio' => null,
                 'completed_activities' => $completedActivities,
-                'missing_assignments' => $missingAssignments,
+                // missing_assignments is the snapshot table's historical
+                // column name; it holds missing assessments since the merge.
+                'missing_assignments' => $missingAssessments,
                 'late_submissions' => $lateSubmissions,
                 'anti_cheat_warnings' => $antiCheatWarnings,
                 'engagement_score' => $engagementScore,
@@ -219,13 +199,15 @@ class StudentPerformanceClusteringService
         }, 3);
     }
 
-    private function missingAssignments(User $student, ?int $classId): int
+    // "Missing work" now means overdue assessments (assignments were merged
+    // into assessments).
+    private function missingAssessments(User $student, ?int $classId): int
     {
         if (!$classId) {
             return 0;
         }
 
-        return DB::table('class_assignments')
+        return DB::table('assessments')
             ->where('class_id', $classId)
             ->whereIn('status', ['published', 'closed'])
             ->where(function ($query) {
@@ -236,30 +218,30 @@ class StudentPerformanceClusteringService
             })
             ->whereNotExists(function ($q) use ($student) {
                 $q->select(DB::raw(1))
-                  ->from('assignment_submissions')
-                  ->whereColumn('assignment_submissions.class_assignment_id', 'class_assignments.id')
-                  ->where('assignment_submissions.student_id', $student->id)
-                  ->whereIn('assignment_submissions.status', ['submitted', 'late', 'graded']);
+                  ->from('assessment_submissions')
+                  ->whereColumn('assessment_submissions.assessment_id', 'assessments.id')
+                  ->where('assessment_submissions.student_id', $student->id)
+                  ->whereIn('assessment_submissions.status', ['submitted', 'late', 'graded']);
             })
             ->count();
     }
 
     private function lateSubmissions(User $student, ?int $classId): int
     {
-        return DB::table('assignment_submissions')
+        return DB::table('assessment_submissions')
             ->when($classId, function ($q) use ($classId) {
-                $q->join('class_assignments', 'class_assignments.id', '=', 'assignment_submissions.class_assignment_id')
-                  ->where('class_assignments.class_id', $classId);
+                $q->join('assessments', 'assessments.id', '=', 'assessment_submissions.assessment_id')
+                  ->where('assessments.class_id', $classId);
             })
-            ->where('assignment_submissions.student_id', $student->id)
-            ->whereIn('assignment_submissions.status', ['submitted', 'late', 'graded'])
+            ->where('assessment_submissions.student_id', $student->id)
+            ->whereIn('assessment_submissions.status', ['submitted', 'late', 'graded'])
             ->get([
-                'assignment_submissions.id',
-                'assignment_submissions.class_assignment_id',
-                'assignment_submissions.attempt_no',
-                'assignment_submissions.status',
+                'assessment_submissions.id',
+                'assessment_submissions.assessment_id',
+                'assessment_submissions.attempt_no',
+                'assessment_submissions.status',
             ])
-            ->groupBy('class_assignment_id')
+            ->groupBy('assessment_id')
             ->map(fn (Collection $attempts) => $attempts
                 ->sortByDesc(fn ($row): string => $this->attemptSortKey($row))
                 ->first())

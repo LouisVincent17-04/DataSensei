@@ -9,7 +9,7 @@
     <div class="panel-head">
       <div class="panel-heading">
         <h2 class="panel-title">Modules</h2>
-        <p class="panel-subtitle">{{ $modules->count() }} {{ $modules->count() === 1 ? 'module' : 'modules' }} across {{ count(array_filter($groups)) }} {{ count(array_filter($groups)) === 1 ? 'year level' : 'year levels' }}. Students unlock published modules in the order shown here; drafts are skipped. A new module also gets one locked challenge on each of the {{ $levelCount }} challenge {{ $levelCount === 1 ? 'level' : 'levels' }}.</p>
+        <p class="panel-subtitle">{{ $modules->count() }} {{ $modules->count() === 1 ? 'module' : 'modules' }} ({{ $modules->filter->isCore()->count() }} core, {{ $modules->reject->isCore()->count() }} custom) across {{ count(array_filter($groups)) }} {{ count(array_filter($groups)) === 1 ? 'year level' : 'year levels' }}. Students unlock published modules in the order shown here; drafts are skipped. A new module also gets one locked challenge on each of the {{ $levelCount }} challenge {{ $levelCount === 1 ? 'level' : 'levels' }}. Core Modules keep their title and cannot be deleted; new modules are Custom modules.</p>
       </div>
       <div class="action-row">
         <a class="btn small" href="{{ route('admin.modules.create') }}">Add module</a>
@@ -34,6 +34,7 @@
                   <th>Status</th>
                   <th>XP</th>
                   <th>Type</th>
+                  <th>Module set</th>
                   <th style="width:330px">Actions</th>
                 </tr>
               </thead>
@@ -56,9 +57,20 @@
                       {{ $module->lessons_count }} {{ $module->lessons_count === 1 ? 'section' : 'sections' }}
                       <div class="dim">{{ count($module->learning_outcomes) }} learning {{ count($module->learning_outcomes) === 1 ? 'outcome' : 'outcomes' }}</div>
                     </td>
-                    <td>{{ ($module->is_published ?? true) ? 'Published' : 'Draft' }}</td>
+                    <td>
+                      @if($module->isArchived())
+                        Archived
+                        <div class="dim">Hidden; progress kept</div>
+                      @else
+                        {{ ($module->is_published ?? true) ? 'Published' : 'Draft' }}
+                      @endif
+                    </td>
                     <td>{{ $module->xp_reward }}</td>
                     <td>{{ $module->is_boss ? 'Boss module' : 'Standard' }}@if($module->has_coding_exercises)<div class="dim">Coding exercises</div>@endif</td>
+                    <td>
+                      {{ $module->typeLabel() }}
+                      @if($module->isCore())<div class="dim" title="Title locked; cannot be deleted">Protected</div>@endif
+                    </td>
                     <td>
                       <div class="action-row">
                         @if($prevId !== null)
@@ -87,11 +99,22 @@
                         @endif
                         <a class="btn small secondary" href="{{ route('admin.modules.preview', $module) }}" target="_blank" rel="noopener">Preview</a>
                         <a class="btn small" href="{{ route('admin.modules.edit', $module) }}">Edit</a>
-                        <form method="POST" action="{{ route('admin.modules.status', $module) }}">
-                          @csrf
-                          @method('PATCH')
-                          <button class="btn small {{ ($module->is_published ?? true) ? 'secondary' : 'green' }}" type="submit">{{ ($module->is_published ?? true) ? 'Unpublish' : 'Publish' }}</button>
-                        </form>
+                        @if($module->isArchived())
+                          <form method="POST" action="{{ route('admin.modules.restore', $module) }}">
+                            @csrf
+                            @method('PATCH')
+                            <button class="btn small secondary" type="submit">Restore</button>
+                          </form>
+                        @else
+                          <form method="POST" action="{{ route('admin.modules.status', $module) }}">
+                            @csrf
+                            @method('PATCH')
+                            <button class="btn small {{ ($module->is_published ?? true) ? 'secondary' : 'green' }}" type="submit">{{ ($module->is_published ?? true) ? 'Unpublish' : 'Publish' }}</button>
+                          </form>
+                        @endif
+                        @if($module->isCore())
+                          <button class="btn small danger" type="button" disabled title="Core Modules cannot be deleted" aria-label="{{ $module->title }} is a Core Module and cannot be deleted">Delete</button>
+                        @endif
                       </div>
                     </td>
                   </tr>
@@ -116,5 +139,6 @@
   .module-description { margin-top:2px; max-width:60ch; font-size:.8125rem; line-height:1.45; }
   .action-row form { display:inline; }
   .module-group td .action-row { flex-wrap:nowrap; }
+  .action-row .btn[disabled] { opacity:.45; cursor:not-allowed; }
 </style>
 @endpush

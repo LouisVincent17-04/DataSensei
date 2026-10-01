@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 /**
  * Unlocks, for every active student, each active achievement whose rule they
  * already meet from work saved earlier (challenges, coding problems, lessons,
- * assignments, runs, XP, streaks). Achievements are never unlocked twice, so
+ * assessments, runs, XP, streaks). Achievements are never unlocked twice, so
  * the command can be run again at any time. The same sync is available from
  * Admin > Gamification > Sync achievements.
  */

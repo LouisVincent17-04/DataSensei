@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\AntiCheatEvent;
-use App\Models\AssignmentSubmission;
-use App\Models\ClassAssignment;
+use App\Models\Assessment;
+use App\Models\AssessmentSubmission;
 use App\Services\AntiCheatPolicyService;
 use App\Support\AntiCheatEventContract;
 use Illuminate\Http\JsonResponse;
@@ -14,18 +14,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+/**
+ * Records anti-cheat events for protected assessment attempts (DataSensei
+ * Updates 11: assessments carry the anti-cheat duty that assignments held).
+ */
 class AntiCheatEventController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'assessment_type' => ['required', 'in:assignment'],
+            'assessment_type' => ['required', 'in:assessment'],
             'event_type' => ['required', 'string', Rule::in(AntiCheatEventContract::eventTypes())],
             'event_uuid' => ['nullable', 'uuid'],
             'attempt_session_id' => ['required', 'string', 'max:120'],
-            'class_assignment_id' => ['required', 'integer', 'exists:class_assignments,id'],
-            'assignment_submission_id' => ['required', 'integer', 'exists:assignment_submissions,id'],
-            'assignment_question_id' => ['nullable', 'integer', 'exists:assignment_questions,id'],
+            'assessment_id' => ['required', 'integer', 'exists:assessments,id'],
+            'assessment_submission_id' => ['required', 'integer', 'exists:assessment_submissions,id'],
+            'assessment_question_id' => ['nullable', 'integer', 'exists:assessment_questions,id'],
             'details' => ['nullable', 'array', 'max:20'],
         ]);
 
@@ -33,41 +37,41 @@ class AntiCheatEventController extends Controller
         $eventUuid = (string) ($data['event_uuid'] ?? Str::uuid());
 
         $result = DB::transaction(function () use ($data, $eventUuid, $userId): array {
-            $submission = DB::table('assignment_submissions')
-                ->where('id', $data['assignment_submission_id'])
+            $submission = DB::table('assessment_submissions')
+                ->where('id', $data['assessment_submission_id'])
                 ->lockForUpdate()
-                ->first(['id', 'class_assignment_id', 'student_id', 'status', 'anti_cheat_session_id']);
+                ->first(['id', 'assessment_id', 'student_id', 'status', 'anti_cheat_session_id']);
 
             abort_unless(
                 $submission
-                    && (int) $submission->class_assignment_id === (int) $data['class_assignment_id']
+                    && (int) $submission->assessment_id === (int) $data['assessment_id']
                     && (int) $submission->student_id === $userId
                     && $submission->status === 'in_progress'
                     && is_string($submission->anti_cheat_session_id)
                     && hash_equals($submission->anti_cheat_session_id, $data['attempt_session_id']),
                 403,
-                'Invalid protected assignment attempt.'
+                'Invalid protected assessment attempt.'
             );
 
-            $assignment = DB::table('class_assignments')
-                ->where('id', $data['class_assignment_id'])
+            $assessment = DB::table('assessments')
+                ->where('id', $data['assessment_id'])
                 ->lockForUpdate()
-                ->first(['id', 'class_id', 'assignment_library_item_id']);
-            abort_unless($assignment, 403, 'Invalid protected assignment attempt.');
+                ->first(['id', 'class_id']);
+            abort_unless($assessment, 403, 'Invalid protected assessment attempt.');
 
             $enrollment = DB::table('class_student')
-                ->where('class_id', $assignment->class_id)
+                ->where('class_id', $assessment->class_id)
                 ->where('student_id', $userId)
                 ->lockForUpdate()
                 ->first();
-            abort_unless($enrollment, 403, 'You are not enrolled in this assignment class.');
+            abort_unless($enrollment, 403, 'You are not enrolled in this assessment class.');
 
-            if (! empty($data['assignment_question_id'])) {
-                $questionBelongsToAssignment = DB::table('assignment_questions')
-                    ->where('id', $data['assignment_question_id'])
-                    ->where('assignment_library_item_id', $assignment->assignment_library_item_id)
+            if (! empty($data['assessment_question_id'])) {
+                $questionBelongsToAssessment = DB::table('assessment_questions')
+                    ->where('id', $data['assessment_question_id'])
+                    ->where('assessment_id', $assessment->id)
                     ->exists();
-                abort_unless($questionBelongsToAssignment, 403, 'Invalid assignment question context.');
+                abort_unless($questionBelongsToAssessment, 403, 'Invalid assessment question context.');
             }
 
             $duplicate = $this->duplicateEvent($data, $eventUuid, $userId);
@@ -84,11 +88,11 @@ class AntiCheatEventController extends Controller
 
             $event = AntiCheatEvent::create([
                 'user_id' => $userId,
-                'class_id' => (int) $assignment->class_id,
-                'class_assignment_id' => $data['class_assignment_id'],
-                'assignment_submission_id' => $data['assignment_submission_id'],
-                'assignment_question_id' => $data['assignment_question_id'] ?? null,
-                'assessment_type' => 'assignment',
+                'class_id' => (int) $assessment->class_id,
+                'assessment_id' => $data['assessment_id'],
+                'assessment_submission_id' => $data['assessment_submission_id'],
+                'assessment_question_id' => $data['assessment_question_id'] ?? null,
+                'assessment_type' => 'assessment',
                 'event_type' => $data['event_type'],
                 'severity' => AntiCheatEventContract::severityFor($data['event_type']),
                 'attempt_session_id' => $data['attempt_session_id'],
@@ -106,7 +110,7 @@ class AntiCheatEventController extends Controller
         return response()->json([
             // The browser locks exactly when the server considers the attempt
             // blocked and shows the server's deduplicated focus-loss count.
-            'integrity' => $this->integrityState((int) $data['class_assignment_id'], (int) $data['assignment_submission_id']),
+            'integrity' => $this->integrityState((int) $data['assessment_id'], (int) $data['assessment_submission_id']),
             'ok' => true,
             'event_id' => $event->id,
             'event_uuid' => $event->event_uuid,
@@ -119,17 +123,17 @@ class AntiCheatEventController extends Controller
     /**
      * @return array{blocked: bool, reason: ?string, focus_loss_count: int, max_tab_switches: int, remaining_allowance: ?int}|null
      */
-    private function integrityState(int $classAssignmentId, int $submissionId): ?array
+    private function integrityState(int $assessmentId, int $submissionId): ?array
     {
-        $assignment = ClassAssignment::find($classAssignmentId);
-        $submission = AssignmentSubmission::find($submissionId);
+        $assessment = Assessment::find($assessmentId);
+        $submission = AssessmentSubmission::find($submissionId);
         $user = Auth::user();
 
-        if (! $assignment || ! $submission || ! $user) {
+        if (! $assessment || ! $submission || ! $user) {
             return null;
         }
 
-        $state = app(AntiCheatPolicyService::class)->attemptIntegrityState($user, $assignment, $submission);
+        $state = app(AntiCheatPolicyService::class)->attemptIntegrityState($user, $assessment, $submission);
 
         return [
             'blocked' => $state['blocked'],
@@ -144,9 +148,9 @@ class AntiCheatEventController extends Controller
     {
         $attemptEvents = AntiCheatEvent::query()
             ->where('user_id', $userId)
-            ->where('assessment_type', 'assignment')
-            ->where('class_assignment_id', $data['class_assignment_id'])
-            ->where('assignment_submission_id', $data['assignment_submission_id'])
+            ->where('assessment_type', 'assessment')
+            ->where('assessment_id', $data['assessment_id'])
+            ->where('assessment_submission_id', $data['assessment_submission_id'])
             ->where('attempt_session_id', $data['attempt_session_id']);
 
         $uuidDuplicate = (clone $attemptEvents)

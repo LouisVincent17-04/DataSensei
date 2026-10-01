@@ -89,13 +89,27 @@ class AuditAdminPlatformAnalyticsMysqlTest extends TestCase
         $this->assertSame($existingLearners + 3, $summary['Total Students']['value']);
         $this->assertGreaterThan(0, $summary['Active Accounts']['value']);
         $this->assertNotEmpty($analytics['roleDistribution']);
+
+        // DataSensei Updates 11 merged assignments into assessments: one
+        // Assessments card, and the assignment panels became their assessment
+        // and Question Bank counterparts.
+        $this->assertArrayHasKey('Assessments', $summary->all());
+        $this->assertArrayNotHasKey('Assignments', $summary->all());
+        $this->assertArrayHasKey('topAssessments', $analytics['students']);
+        $this->assertArrayHasKey('questionBankTypes', $analytics['content']);
+        $this->assertArrayHasKey('assessmentPerformance', $analytics['learning']);
+        foreach ($analytics['students']['atRisk'] as $row) {
+            $this->assertArrayHasKey('assessment_avg', $row);
+            $this->assertArrayNotHasKey('assignment_avg', $row);
+        }
     }
 
     /**
-     * The at-risk list filtered on "assignment_avg", a SELECT alias, inside
-     * HAVING. MySQL rejects that under ONLY_FULL_GROUP_BY with
+     * The at-risk list filtered on a SELECT alias (now "assessment_avg" —
+     * assignments were merged into assessments in DataSensei Updates 11)
+     * inside HAVING. MySQL rejects that under ONLY_FULL_GROUP_BY with
      *
-     *   1463 Non-grouping field 'assignment_avg' is used in HAVING clause
+     *   1463 Non-grouping field 'assessment_avg' is used in HAVING clause
      *
      * and the whole Platform Analytics page died with a 500. The two sibling
      * conditions in the same HAVING were already written as aggregates, which
@@ -134,7 +148,7 @@ class AuditAdminPlatformAnalyticsMysqlTest extends TestCase
             // inspected: MySQL is the strict one and this is what it rejected.
             $having = '';
             foreach ($executed as $entry) {
-                if (str_contains($entry['query'], 'assignment_avg')) {
+                if (str_contains($entry['query'], 'assessment_avg')) {
                     $having = substr($entry['query'], (int) strpos($entry['query'], 'having'));
                     break;
                 }
@@ -142,7 +156,7 @@ class AuditAdminPlatformAnalyticsMysqlTest extends TestCase
 
             $this->assertNotSame('', $having, 'The at-risk query was not captured.');
             $this->assertStringNotContainsString(
-                'assignment_avg',
+                'assessment_avg',
                 $having,
                 'HAVING must repeat the aggregate, not reference the SELECT alias: MySQL rejects that with error 1463.'
             );

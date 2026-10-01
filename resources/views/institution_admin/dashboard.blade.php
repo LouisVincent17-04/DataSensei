@@ -32,8 +32,8 @@
 
     /* ── flash ── */
     .flash { padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.5; }
-    .flash-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
-    .flash-error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+    .flash-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5); }
+    .flash-error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink, #fee2e2); }
 
     /* ── lead-in with the institution code ── */
     .welcome-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }

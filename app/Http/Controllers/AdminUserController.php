@@ -32,7 +32,7 @@ class AdminUserController extends Controller
 
         $query = User::query()
             ->with('institution')
-            ->withCount(['classesAsStudent', 'assignmentSubmissions', 'userAchievements'])
+            ->withCount(['classesAsStudent', 'assessmentSubmissions', 'userAchievements'])
             ->whereIn('role', self::MANAGEABLE_ROLES)
             ->latest();
 

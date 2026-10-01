@@ -35,9 +35,9 @@
 
   /* messages */
   .notice{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-    background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.55}
-  .notice.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
-  .notice.info{border-color:var(--ds-accent-border);background:var(--ds-accent-soft);color:#dbeafe}
+    background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem;line-height:1.55}
+  .notice.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
+  .notice.info{border-color:var(--ds-accent-border);background:var(--ds-accent-soft);color:var(--ds-accent-ink, #dbeafe)}
   .notice ul{margin:8px 0 0 18px}
 
   /* panels */

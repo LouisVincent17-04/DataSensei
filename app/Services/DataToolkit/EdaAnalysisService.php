@@ -389,6 +389,7 @@ class EdaAnalysisService
         $columns = $selectedColumn ? array_values(array_intersect($numericColumns, [$selectedColumn])) : $numericColumns;
         $result = [];
         $totalOutliers = 0;
+        $flaggedRows = [];
 
         foreach ($columns as $column) {
             $indexedValues = [];
@@ -417,7 +418,10 @@ class EdaAnalysisService
                 $isOutlier = $iqr !== null && $iqr > 0 && ($item['value'] < $lowerFence || $item['value'] > $upperFence);
 
                 if ($isOutlier) {
+                    // Which side it falls on, so the page can say why in plain words.
+                    $item['direction'] = $item['value'] > $upperFence ? 'high' : 'low';
                     $outlierRows[] = $item;
+                    $flaggedRows[$item['row_number']] = true;
                 } else {
                     $nonOutliers[] = $item['value'];
                 }
@@ -444,6 +448,7 @@ class EdaAnalysisService
                 'sample_outliers' => array_slice(array_map(fn (array $item): array => [
                     'row_number' => $item['row_number'],
                     'value' => $this->statistics->roundNumber($item['value']),
+                    'direction' => $item['direction'],
                 ], $outlierRows), 0, 12),
                 'interpretation' => $this->outlierInterpretation($column, count($outlierRows), $count),
                 'box_plot' => [
@@ -462,9 +467,14 @@ class EdaAnalysisService
             ];
         }
 
+        $rowCount = count($rows);
+
         return [
             'total_outliers' => $totalOutliers,
             'columns_with_outliers' => count(array_filter($result, fn (array $item): bool => $item['outlier_count'] > 0)),
+            // How much of the dataset is affected, in beginner terms.
+            'rows_with_outliers' => count($flaggedRows),
+            'rows_percent' => $rowCount > 0 ? round((count($flaggedRows) / $rowCount) * 100, 1) : 0,
             'columns' => $result,
         ];
     }

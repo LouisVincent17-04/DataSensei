@@ -15,8 +15,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Instructor Reports (DataSensei Updates 8): Class Performance, Student
- * Progress, Assignments & Assessments, Challenges & Coding Challenges, Module
- * Assignments and Submissions.
+ * Progress, Assessments, Challenges & Coding Challenges, Module Assignments
+ * and Submissions.
  *
  * Only the instructor's own classes and the students enrolled in them are
  * ever read: the class list comes from classes.instructor_id, and asking for

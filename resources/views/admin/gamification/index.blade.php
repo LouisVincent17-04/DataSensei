@@ -33,7 +33,7 @@
   <section class="panel section-anchor" id="achievements">
     <div class="panel-head">
       <div class="panel-heading">
-        <h2 class="panel-title">Achievements</h2>
+        <h2 class="panel-title">{!! \App\Support\Glossary::help('achievement', 'Achievements') !!}</h2>
         <p class="panel-subtitle">Achievements are predefined by DataSensei, so their name, description, rule and EXP cannot be changed. An achievement can be removed only while no student has earned it.</p>
       </div>
       <div class="panel-actions gm-actions">
@@ -83,7 +83,7 @@
   <section class="panel section-anchor" id="missions">
     <div class="panel-head">
       <div class="panel-heading">
-        <h2 class="panel-title">Missions</h2>
+        <h2 class="panel-title">{!! \App\Support\Glossary::help('mission', 'Missions') !!}</h2>
         <p class="panel-subtitle">Daily and weekly tasks students complete for EXP. Open one to change its name, EXP, description or frequency.</p>
       </div>
       <span class="gm-note">{{ number_format($missions->total()) }} {{ $missions->total() === 1 ? 'mission' : 'missions' }}</span>

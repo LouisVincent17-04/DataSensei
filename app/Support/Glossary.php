@@ -102,6 +102,17 @@ final class Glossary
             'dual_monitor' => ['label' => 'Dual monitor', 'definition' => 'A second screen connected to the computer, which could show notes during an attempt.'],
             'question_bank' => ['label' => 'Question Bank', 'definition' => 'Your reusable questions. Adding one to an assessment copies it, so later edits in the bank never change that assessment.'],
             'performance_segment' => ['label' => 'Performance segment', 'definition' => 'A group of students with similar results, found automatically by comparing scores, activity and missing work.'],
+
+            // Certificates (DataSensei Updates 13)
+            'certificate_layout' => ['label' => 'Layout', 'definition' => 'One of five fixed certificate designs. You choose one and fill in the words; the design itself cannot be changed, so every certificate looks consistent.'],
+            'certificate_placeholder' => ['label' => 'Placeholder', 'definition' => 'A word in square brackets, such as [Learner Name], that is replaced with the real value when the certificate is issued.'],
+            'certificate_status' => ['label' => 'Status', 'definition' => 'Draft: being prepared. Active: ready to issue to the students who completed the class. Inactive: cannot be issued; certificates already issued stay valid.'],
+            'certificate_id' => ['label' => 'Certificate ID', 'definition' => 'The certificate\'s unique code. It is never reused, and anyone can check it on the verification page.'],
+            'certificate_verification' => ['label' => 'Verification', 'definition' => 'A public page where anyone can enter a certificate ID to confirm it is genuine. It shows only the name, certificate, issuer and date.'],
+            'certificate_requirement' => ['label' => 'Completion requirement', 'definition' => 'What a learner must finish to receive the certificate; for a class certificate, every module, activity and assessment assigned to the class. Checked on the server from saved progress.'],
+            'final_grade' => ['label' => 'Final grade', 'definition' => 'The class grade: the average of the student\'s graded assessments in this class, each assessment counting equally and using its best graded attempt. Practice and public challenges are not included.'],
+            'class_completion' => ['label' => 'Class completion', 'definition' => 'How much of the required class work is done: the modules, activities (challenges given to the class) and assessments the instructor assigned. An assessment counts once it is graded.'],
+            'certificate_revocation' => ['label' => 'Revoke', 'definition' => 'Withdraw a certificate. It stays on record as revoked and the verification page says so. Reissuing creates a new copy with a new certificate ID.'],
         ] + self::thinkingLevels();
     }
 

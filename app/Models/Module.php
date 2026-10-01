@@ -2,14 +2,25 @@
 
 namespace App\Models;
 
+use App\Support\CoreCurriculum;
+use App\Support\SchemaInspector;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 /**
  * A public DataSensei module: open to every user, with or without a class,
  * organised by year level. Class modules are a different library
  * (ModuleLibraryItem, assigned to classes by instructors).
+ *
+ * DataSensei Updates 12: the 24 Core Modules carry module_type 'core' and a
+ * permanent module_key (App\Support\CoreCurriculum); every other module is
+ * 'custom', which is also what a new module gets. Neither column can be
+ * mass-assigned. For a core module the title, module_key and module_type
+ * cannot be changed and the module can never be deleted; its content is still
+ * edited and it can still be published or unpublished, which keeps progress
+ * and certificates. These rules are enforced here, under every controller.
  */
 class Module extends Model
 {
@@ -34,7 +45,75 @@ class Module extends Model
         'is_boss' => 'boolean',
         'has_coding_exercises' => 'boolean',
         'is_published' => 'boolean',
+        'archived_at' => 'datetime',
     ];
+
+    /** Fields that make up a core module's identity. */
+    public const CORE_IDENTITY_FIELDS = ['title', 'module_key', 'module_type'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Module $module): void {
+            if (SchemaInspector::hasColumn('modules', 'module_type') && blank($module->getAttribute('module_type'))) {
+                $module->setAttribute('module_type', CoreCurriculum::TYPE_CUSTOM);
+            }
+        });
+
+        static::updating(function (Module $module): void {
+            if ($module->getOriginal('module_type') !== CoreCurriculum::TYPE_CORE) {
+                // A custom module cannot take a core identity through a save
+                // either; only CoreCurriculum::sync() marks core modules.
+                if ($module->isDirty('module_type') && $module->getAttribute('module_type') === CoreCurriculum::TYPE_CORE) {
+                    throw ValidationException::withMessages(['module_type' => 'Only the 24 Core Modules are core modules.']);
+                }
+
+                return;
+            }
+
+            foreach (self::CORE_IDENTITY_FIELDS as $field) {
+                if ($module->isDirty($field) && (string) $module->getOriginal($field) !== (string) $module->getAttribute($field)) {
+                    throw ValidationException::withMessages([
+                        $field => $field === 'title'
+                            ? 'The title of a Core Module cannot be changed. Edit its content instead.'
+                            : 'The identity of a Core Module cannot be changed.',
+                    ]);
+                }
+            }
+        });
+
+        static::deleting(function (Module $module): void {
+            if ($module->isCore() || $module->getOriginal('module_type') === CoreCurriculum::TYPE_CORE) {
+                throw ValidationException::withMessages([
+                    'module' => 'Core Modules cannot be deleted. Unpublish it to hide it from learners; their progress and certificates are kept.',
+                ]);
+            }
+        });
+    }
+
+    public function isCore(): bool
+    {
+        return $this->getAttribute('module_type') === CoreCurriculum::TYPE_CORE;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->getAttribute('archived_at') !== null;
+    }
+
+    public function typeLabel(): string
+    {
+        return $this->isCore() ? 'Core / System' : 'Custom';
+    }
+
+    public function scopeCore(Builder $query): Builder
+    {
+        return $query->where('modules.module_type', CoreCurriculum::TYPE_CORE);
+    }
+
+    public function scopeCustom(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q->whereNull('modules.module_type')->orWhere('modules.module_type', '!=', CoreCurriculum::TYPE_CORE));
+    }
 
     public function lessons(): HasMany
     {

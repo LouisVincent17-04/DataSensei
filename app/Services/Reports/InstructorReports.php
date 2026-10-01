@@ -2,7 +2,9 @@
 
 namespace App\Services\Reports;
 
+use App\Models\Assessment;
 use App\Models\ClassRoom;
+use App\Support\Reports\Columns;
 use App\Support\Reports\ReportExporter;
 use App\Support\Reports\ReportFilters;
 use App\Support\Reports\ReportFormat as F;
@@ -19,7 +21,8 @@ use Illuminate\Support\Facades\DB;
  *
  *   classes      Class Performance
  *   students     Student Progress
- *   assignments  Assignments & Assessments, per student
+ *   assignments  Assessments, per student (assignments were merged into
+ *                assessments in DataSensei Updates 11)
  *   challenges   Challenges & Coding Challenges given to the class, per student
  *   modules      Module Assignments (modules are made by admins; instructors
  *                assign them)
@@ -30,7 +33,7 @@ class InstructorReports
     public const REPORTS = [
         'classes' => ['title' => 'Class Performance', 'filters' => ['search', 'status']],
         'students' => ['title' => 'Student Progress', 'filters' => ['class', 'search']],
-        'assignments' => ['title' => 'Assignments & Assessments', 'filters' => ['date', 'class', 'status', 'search']],
+        'assignments' => ['title' => 'Assessments', 'filters' => ['date', 'class', 'status', 'search']],
         'challenges' => ['title' => 'Challenges & Coding Challenges', 'filters' => ['class', 'status', 'search']],
         'modules' => ['title' => 'Module Assignments', 'filters' => ['class', 'module', 'status']],
         'submissions' => ['title' => 'Submissions', 'filters' => ['date', 'class', 'type', 'status', 'search']],
@@ -38,14 +41,26 @@ class InstructorReports
 
     public const STATUSES = [
         'classes' => ['active' => 'Active', 'archived' => 'Archived'],
-        'assignments' => ['completed' => 'Completed', 'not_completed' => 'Not completed', 'late' => 'Late', 'missing' => 'Missing', 'passed' => 'Passed', 'failed' => 'Failed'],
+        'assignments' => ['completed' => 'Completed', 'not_completed' => 'Not completed', 'missing' => 'Missing', 'passed' => 'Passed', 'failed' => 'Failed'],
         'challenges' => ['completed' => 'Completed', 'in_progress' => 'Attempted, not completed', 'not_started' => 'Not started'],
         'modules' => ['active' => 'Assigned', 'archived' => 'Removed'],
         'submissions' => ['on_time' => 'On time', 'late' => 'Late', 'passed' => 'Passed', 'failed' => 'Failed', 'awaiting' => 'Awaiting grade'],
     ];
 
+    /**
+     * Assignments were merged into assessments (DataSensei Updates 11); the
+     * submissions filter now uses the assessment purpose labels, with
+     * "assessment" for those without one.
+     */
     public const TYPES = [
-        'submissions' => ['assignment' => 'Assignment', 'assessment' => 'Assessment', 'challenge' => 'Challenge', 'coding' => 'Coding challenge'],
+        'submissions' => [
+            'homework' => 'Homework',
+            'quiz' => 'Quiz',
+            'examination' => 'Examination',
+            'assessment' => 'Assessment',
+            'challenge' => 'Challenge',
+            'coding' => 'Coding challenge',
+        ],
     ];
 
     public function __construct(private readonly ClassProgress $progress)
@@ -84,7 +99,7 @@ class InstructorReports
                 'modules' => F::number($o['modules']),
                 'module_completion' => F::pct($o['module_completion']),
                 'assessment_average' => F::pct($o['assessment_average']),
-                'assignment_rate' => F::pct($o['assignment_rate']),
+                'assessment_completion' => F::pct($o['assessment_completion']),
                 'activity' => $o['students'] > 0 ? $o['active'].' of '.$o['students'].' active in the last '.ClassProgress::ACTIVE_DAYS.' days' : F::NONE,
                 '_url' => route('instructor.analytics.index', ['class_id' => $class->id]),
                 '_tone' => ['module_completion' => F::tone($o['module_completion']), 'assessment_average' => F::tone($o['assessment_average'])],
@@ -109,7 +124,7 @@ class InstructorReports
             [new ReportTable('classes', 'Classes', [
                 'class' => 'Class', 'status' => 'Status', 'students' => 'Enrolled students', 'modules' => 'Assigned modules',
                 'module_completion' => 'Module completion', 'assessment_average' => 'Average assessment score',
-                'assignment_rate' => 'Assignments submitted', 'activity' => 'Class activity',
+                'assessment_completion' => 'Assessments completed', 'activity' => 'Class activity',
             ], $page, 'You have no classes that match these filters.', 'Module completion is modules completed divided by students times assigned modules. Assessment scores use each student\'s best attempt.', $cut)],
         );
     }
@@ -132,14 +147,13 @@ class InstructorReports
                     'class' => $class->name,
                     'modules' => $s['modules_total'] > 0 ? $s['modules_completed'].' of '.$s['modules_total'].' completed, '.$s['modules_started'].' started' : 'No modules assigned',
                     'module_completion' => F::pct($s['module_percent']),
-                    'assignments' => $s['assignments_total'] > 0 ? $s['assignments_submitted'].' of '.$s['assignments_total'].' submitted'.($s['assignments_missing'] > 0 ? ', '.$s['assignments_missing'].' missing' : '') : 'None given',
-                    'assessments' => $s['assessments_total'] > 0 ? $s['assessments_completed'].' of '.$s['assessments_total'].' completed'.($s['assessment_average'] !== null ? ', average '.F::pct($s['assessment_average']) : '') : 'None given',
+                    'assessments' => $s['assessments_total'] > 0 ? $s['assessments_completed'].' of '.$s['assessments_total'].' completed'.($s['assessments_missing'] > 0 ? ', '.$s['assessments_missing'].' missing' : '').($s['assessment_average'] !== null ? ', average '.F::pct($s['assessment_average']) : '') : 'None given',
                     'challenges' => $s['challenges_total'] > 0 ? $s['challenge_attempts'].' '.($s['challenge_attempts'] === 1 ? 'attempt' : 'attempts').', '.$s['challenges_passed'].' of '.$s['challenges_total'].' passed' : 'None given',
                     'coding' => $s['coding_total'] > 0 ? $s['coding_submissions'].' '.($s['coding_submissions'] === 1 ? 'submission' : 'submissions').', '.$s['coding_completed'].' of '.$s['coding_total'].' completed' : 'None given',
                     'overall' => F::pct($s['overall']),
                     '_overall' => $s['overall'],
                     '_url' => route('instructor.analytics.student', ['class' => $class->id, 'student' => $studentId]),
-                    '_tone' => ['overall' => F::tone($s['overall']), 'assignments' => $s['assignments_missing'] > 0 ? 'warn' : null],
+                    '_tone' => ['overall' => F::tone($s['overall']), 'assessments' => $s['assessments_missing'] > 0 ? 'warn' : null],
                 ]);
             }
         }
@@ -149,55 +163,34 @@ class InstructorReports
         return new ReportResult(
             'students',
             'Student Progress',
-            'Each student\'s progress in your class: modules, assignments, assessments and the challenges given to the class. Open a student to see the details.',
+            'Each student\'s progress in your class: modules, assessments and the challenges given to the class. Open a student to see the details.',
             [
                 ['label' => 'Students', 'value' => F::number($rows->count())],
                 ['label' => 'Average overall progress', 'value' => F::pct($this->averageOf($rows, '_overall'))],
             ],
             [new ReportTable('students', 'Students', [
                 'student' => 'Student', 'class' => 'Class', 'modules' => 'Assigned module progress', 'module_completion' => 'Module completion',
-                'assignments' => 'Assignments', 'assessments' => 'Assessments', 'challenges' => 'Challenge activity',
+                'assessments' => 'Assessments', 'challenges' => 'Challenge activity',
                 'coding' => 'Coding challenge activity', 'overall' => 'Overall class progress',
-            ], $page, 'No students match these filters.', 'Overall class progress averages the completion of modules, assignments, assessments, challenges and coding challenges given to the class.', $cut)],
+            ], $page, 'No students match these filters.', 'Overall class progress averages the completion of modules, assessments, challenges and coding challenges given to the class.', $cut)],
         );
     }
 
-    // ── 3. Assignments & Assessments ─────────────────────────────────
+    // ── 3. Assessments ───────────────────────────────────────────────
 
     private function assignments(Collection $classes, ReportFilters $f, bool $all): ReportResult
     {
+        // Assignments were merged into assessments (DataSensei Updates 11);
+        // converted rows are already counted here, under their purpose label.
         $window = $f->hasDateRange() ? new ReportFilters(from: $f->from, to: $f->to) : null;
-        $assignmentRows = collect();
         $assessmentRows = collect();
+        $missing = 0;
         $search = mb_strtolower($f->search);
 
         foreach ($classes as $class) {
             $snapshot = $this->progress->forClass($class, $window);
             foreach ($snapshot['perStudent'] as $data) {
                 $student = $data['student'];
-                foreach ($data['assignments'] as $id => $a) {
-                    $item = $snapshot['assignments'][$id];
-                    if ($search !== '' && ! str_contains(mb_strtolower($student->name.' '.$item->title), $search)) {
-                        continue;
-                    }
-                    if (! $this->assignmentMatches($f->status, $a)) {
-                        continue;
-                    }
-                    $assignmentRows->push([
-                        'student' => $student->name,
-                        'class' => $class->name,
-                        'assignment' => $item->title,
-                        'status' => $this->assignmentState($a['state']),
-                        'submitted' => F::dateTime($a['submitted_at']),
-                        'timing' => match ($a['state']) {
-                            'late' => 'Late',
-                            'submitted' => $item->due_at ? 'On time' : F::NONE,
-                            default => F::NONE,
-                        },
-                        'grade' => $a['score_text'],
-                        '_tone' => ['status' => match ($a['state']) { 'missing' => 'bad', 'late' => 'warn', 'submitted' => 'good', default => null }],
-                    ]);
-                }
                 foreach ($data['assessments'] as $id => $a) {
                     $item = $snapshot['assessments'][$id];
                     if ($search !== '' && ! str_contains(mb_strtolower($student->name.' '.$item->title), $search)) {
@@ -206,10 +199,14 @@ class InstructorReports
                     if (! $this->assessmentMatches($f->status, $a, $item)) {
                         continue;
                     }
+                    if ($a['state'] !== 'completed' && ClassProgress::isPastDue($item)) {
+                        $missing++;
+                    }
                     $assessmentRows->push([
                         'student' => $student->name,
                         'class' => $class->name,
                         'assessment' => $item->title,
+                        'kind' => Assessment::PURPOSES[$item->purpose] ?? 'Assessment',
                         'attempts' => F::number($a['attempts']),
                         'score' => $a['score_text'],
                         'percent' => F::pct($a['best']),
@@ -221,55 +218,24 @@ class InstructorReports
             }
         }
 
-        [$assignmentPage, $cutA] = F::page($assignmentRows, 'assignments', $all);
-        [$assessmentPage, $cutB] = F::page($assessmentRows, 'assessments', $all);
+        [$assessmentPage, $cut] = F::page($assessmentRows, 'assessments', $all);
 
         return new ReportResult(
             'assignments',
-            'Assignments & Assessments',
-            'Every student\'s result on each assignment and assessment in your classes. Pass is '.F::PASS_PERCENT.'% or more on the best attempt.',
+            'Assessments',
+            'Every student\'s result on each assessment in your classes. Pass is '.F::PASS_PERCENT.'% or more on the best attempt.',
             [
-                ['label' => 'Assignment results', 'value' => F::number($assignmentRows->count())],
-                ['label' => 'Missing assignments', 'value' => F::number($assignmentRows->where('status', 'Missing')->count())],
-                ['label' => 'Late submissions', 'value' => F::number($assignmentRows->where('status', 'Submitted late')->count())],
+                ['label' => 'Assessment results', 'value' => F::number($assessmentRows->count())],
+                ['label' => 'Missing assessments', 'value' => F::number($missing), 'note' => 'Not completed after the due date'],
                 ['label' => 'Assessments passed', 'value' => F::number($assessmentRows->where('result', 'Passed')->count()).' of '.F::number($assessmentRows->where('status', 'Completed')->count()), 'note' => 'Completed assessments'],
             ],
             [
-                new ReportTable('assignments', 'Assignments', [
-                    'student' => 'Student', 'class' => 'Class', 'assignment' => 'Assignment', 'status' => 'Submission status',
-                    'submitted' => 'Submitted', 'timing' => 'Late or on time', 'grade' => 'Grade or score',
-                ], $assignmentPage, 'No assignment results match these filters.', $window ? 'Assignments due (or created, when there is no due date) in the selected range.' : null, $cutA),
                 new ReportTable('assessments', 'Assessments', [
-                    'student' => 'Student', 'class' => 'Class', 'assessment' => 'Assessment', 'attempts' => 'Attempts', 'score' => 'Score',
+                    'student' => 'Student', 'class' => 'Class', 'assessment' => 'Assessment', 'kind' => 'Type', 'attempts' => 'Attempts', 'score' => 'Score',
                     'percent' => 'Percentage', 'result' => 'Pass or fail', 'status' => 'Completion status',
-                ], $assessmentPage, 'No assessment results match these filters.', null, $cutB),
+                ], $assessmentPage, 'No assessment results match these filters.', $window ? 'Assessments due (or created, when there is no due date) in the selected range.' : null, $cut),
             ],
         );
-    }
-
-    private function assignmentState(string $state): string
-    {
-        return match ($state) {
-            'submitted' => 'Submitted',
-            'late' => 'Submitted late',
-            'missing' => 'Missing',
-            'in_progress' => 'Started, not submitted',
-            default => 'Not submitted yet',
-        };
-    }
-
-    /** @param  array<string, mixed>  $a */
-    private function assignmentMatches(string $status, array $a): bool
-    {
-        return match ($status) {
-            'completed' => in_array($a['state'], ['submitted', 'late'], true),
-            'not_completed' => ! in_array($a['state'], ['submitted', 'late'], true),
-            'late' => $a['state'] === 'late',
-            'missing' => $a['state'] === 'missing',
-            'passed' => $a['score'] !== null && $a['score'] >= F::PASS_PERCENT,
-            'failed' => $a['score'] !== null && $a['score'] < F::PASS_PERCENT,
-            default => true,
-        };
     }
 
     /** @param  array<string, mixed>  $a */
@@ -280,7 +246,6 @@ class InstructorReports
         return match ($status) {
             'completed' => $a['state'] === 'completed',
             'not_completed' => $a['state'] !== 'completed',
-            'late' => false,
             'missing' => $a['state'] !== 'completed' && $pastDue,
             'passed' => $a['passed'] === true,
             'failed' => $a['passed'] === false,
@@ -375,7 +340,7 @@ class InstructorReports
             $progress = DB::table('module_library_progress')
                 ->whereIn('user_id', $studentIds ?: [0])
                 ->whereIn('module_library_item_id', $snapshot['moduleAssignments']->pluck('id')->all() ?: [0])
-                ->get(['user_id', 'module_library_item_id', 'opened_at', 'completed_at'])
+                ->get(Columns::pick('module_library_progress', ['user_id', 'module_library_item_id'], ['opened_at', 'completed_at']))
                 ->groupBy('module_library_item_id');
 
             foreach ($snapshot['moduleAssignments'] as $assignment) {
@@ -425,31 +390,22 @@ class InstructorReports
         $classNames = $classes->pluck('name', 'id');
         $type = isset(self::TYPES['submissions'][$f->type]) ? $f->type : null;
 
-        if ($type === null || $type === 'assignment') {
-            $f->applyDate(DB::table('assignment_submissions as s')
-                ->join('class_assignments as a', 'a.id', '=', 's.class_assignment_id')
-                ->join('class_student as cs', fn ($j) => $j->on('cs.class_id', '=', 'a.class_id')->on('cs.student_id', '=', 's.student_id'))
-                ->join('users as u', 'u.id', '=', 's.student_id')
-                ->whereIn('a.class_id', $classIds)
-                ->whereIn('s.status', ['submitted', 'late', 'graded']), 's.submitted_at')
-                ->get(['u.name as student', 'a.class_id', 'a.title', 'a.due_at', 's.status', 's.score', 's.total_points', 's.submitted_at'])
-                ->each(function ($s) use ($rows): void {
-                    $late = ClassProgress::isLate($s, $s->due_at);
-                    $rows->push($this->submissionRow($s, 'assignment', 'Assignment', $late, $s->due_at !== null));
-                });
-        }
-
-        if ($type === null || $type === 'assessment') {
+        if ($type === null || $type === 'assessment' || isset(Assessment::PURPOSES[$type])) {
+            // Assignments were merged into assessments (DataSensei Updates
+            // 11); converted submissions are already counted here.
             $f->applyDate(DB::table('assessment_submissions as s')
                 ->join('assessments as a', 'a.id', '=', 's.assessment_id')
                 ->join('class_student as cs', fn ($j) => $j->on('cs.class_id', '=', 'a.class_id')->on('cs.student_id', '=', 's.student_id'))
                 ->join('users as u', 'u.id', '=', 's.student_id')
                 ->whereIn('a.class_id', $classIds)
+                ->when($type === 'assessment', fn ($q) => $q->whereNull('a.purpose'))
+                ->when(isset(Assessment::PURPOSES[$type]), fn ($q) => $q->where('a.purpose', $type))
                 ->whereIn('s.status', ['submitted', 'late', 'graded']), 's.submitted_at')
-                ->get(['u.name as student', 'a.class_id', 'a.title', 'a.due_at', 's.status', 's.score', 's.total_points', 's.submitted_at'])
+                ->get(['u.name as student', 'a.class_id', 'a.title', 'a.purpose', 'a.due_at', 's.status', 's.score', 's.total_points', 's.submitted_at'])
                 ->each(function ($s) use ($rows): void {
                     $late = ClassProgress::isLate($s, $s->due_at);
-                    $rows->push($this->submissionRow($s, 'assessment', 'Assessment', $late, $s->due_at !== null));
+                    $purpose = isset(Assessment::PURPOSES[$s->purpose]) ? $s->purpose : 'assessment';
+                    $rows->push($this->submissionRow($s, $purpose, Assessment::PURPOSES[$s->purpose] ?? 'Assessment', $late, $s->due_at !== null));
                 });
         }
 
@@ -524,7 +480,7 @@ class InstructorReports
         return new ReportResult(
             'submissions',
             'Submissions',
-            'Every assignment and assessment submission and every attempt on the challenges given to your classes, newest first.',
+            'Every assessment submission and every attempt on the challenges given to your classes, newest first.',
             [
                 ['label' => 'Submissions', 'value' => F::number($rows->count()), 'note' => $f->rangeText()],
                 ['label' => 'Late', 'value' => F::number($rows->filter(fn ($r) => in_array('late', $r['_status'], true))->count())],

@@ -52,16 +52,16 @@ class SuperAdminAnalyticsService
                 'name', 'email', 'xp', 'streak', 'last_activity',
             ]),
             'instructors' => $this->rows($analytics['instructors']['topInstructors'] ?? [], [
-                'name', 'email', 'classes_count', 'assignments_count', 'students_count', 'submissions_count',
+                'name', 'email', 'classes_count', 'assessments_count', 'students_count', 'submissions_count',
             ]),
             'institutions' => $this->rows($analytics['institutions']['topInstitutions'] ?? [], [
-                'name', 'status', 'users_count', 'classes_count', 'students_count', 'assignments_count',
+                'name', 'status', 'users_count', 'classes_count', 'students_count', 'assessments_count',
             ]),
             'learning' => $this->rows($analytics['learning']['hardestMcq'] ?? [], [
                 'title', 'level', 'attempts_count', 'avg_score',
             ]),
             'anticheat' => $this->rows($analytics['antiCheat']['recentEvents'] ?? [], [
-                'student_name', 'student_email', 'assignment_title', 'event_type', 'severity', 'occurred_at',
+                'student_name', 'student_email', 'assessment_title', 'event_type', 'severity', 'occurred_at',
             ]),
             default => $this->rows($analytics['summary'] ?? [], ['label', 'value']),
         };
@@ -127,11 +127,12 @@ class SuperAdminAnalyticsService
             ['label' => 'Institutions', 'value' => $this->count('institutions'), 'sub' => $this->countWhere('institutions', ['status' => 'active']) . ' active', 'tone' => 'purple'],
             ['label' => 'Classes', 'value' => $this->count('classes'), 'sub' => $this->count('class_student') . ' enrollments', 'tone' => 'orange'],
             ['label' => 'Module Library', 'value' => $this->count('module_library_items'), 'sub' => 'Reusable learning items', 'tone' => 'blue'],
-            ['label' => 'Assignments', 'value' => $this->count('class_assignments'), 'sub' => $this->count('assignment_submissions') . ' student submissions', 'tone' => 'green'],
+            // Assessments absorbed the former Assignments card: converted
+            // assignments are assessments now, so one card counts everything.
             ['label' => 'Assessments', 'value' => $this->count('assessments'), 'sub' => $this->count('assessment_submissions') . ' student attempts', 'tone' => 'blue'],
             ['label' => 'MCQ Challenges', 'value' => $this->countWhere('challenges', ['is_coding_challenge' => 0, 'is_active' => 1]), 'sub' => $this->count('challenge_attempts') . ' attempts', 'tone' => 'purple'],
             ['label' => 'Coding Challenges', 'value' => $this->countWhere('challenges', ['is_coding_challenge' => 1, 'is_active' => 1]), 'sub' => $this->count('coding_submissions') . ' submissions', 'tone' => 'orange'],
-            ['label' => 'Anti-Cheat Events', 'value' => $this->count('anti_cheat_events'), 'sub' => 'Assignment protection logs', 'tone' => 'red'],
+            ['label' => 'Anti-Cheat Events', 'value' => $this->count('anti_cheat_events'), 'sub' => 'Assessment protection logs', 'tone' => 'red'],
             ['label' => 'New Users', 'value' => $newUsers, 'sub' => $range['from_date'] . ' to ' . $range['to_date'], 'tone' => 'blue'],
             ['label' => 'Active Accounts', 'value' => $activeUsers, 'sub' => $disabledUsers . ' disabled', 'tone' => 'green'],
             ['label' => 'Admins', 'value' => $admins + $institutionAdmins, 'sub' => $admins . ' platform · ' . $institutionAdmins . ' institution', 'tone' => 'purple'],
@@ -169,7 +170,6 @@ class SuperAdminAnalyticsService
                 'date' => $cursor->toDateString(),
                 'mcq' => 0,
                 'coding' => 0,
-                'assignments' => 0,
                 'assessments' => 0,
                 'anti_cheat' => 0,
                 'total' => 0,
@@ -177,10 +177,11 @@ class SuperAdminAnalyticsService
             $cursor->addDay();
         }
 
+        // Assessment submissions include converted assignment activity, so a
+        // separate assignments series would count the same work twice.
         foreach ([
             'challenge_attempts' => 'mcq',
             'coding_submissions' => 'coding',
-            'assignment_submissions' => 'assignments',
             'assessment_submissions' => 'assessments',
             'anti_cheat_events' => 'anti_cheat',
         ] as $table => $key) {
@@ -192,7 +193,7 @@ class SuperAdminAnalyticsService
         }
 
         foreach ($dates as &$row) {
-            $row['total'] = $row['mcq'] + $row['coding'] + $row['assignments'] + $row['assessments'] + $row['anti_cheat'];
+            $row['total'] = $row['mcq'] + $row['coding'] + $row['assessments'] + $row['anti_cheat'];
         }
 
         return array_values($dates);
@@ -204,7 +205,7 @@ class SuperAdminAnalyticsService
             'topXp' => $this->topXpStudents(),
             'topMcq' => $this->topMcqStudents($range),
             'topCoding' => $this->topCodingStudents($range),
-            'topAssignments' => $this->topAssignmentStudents($range),
+            'topAssessments' => $this->topAssessmentStudents($range),
             'atRisk' => $this->atRiskStudents($range),
         ];
     }
@@ -215,24 +216,26 @@ class SuperAdminAnalyticsService
             return ['topInstructors' => []];
         }
 
+        // Class work is measured through assessments now; converted
+        // assignments are included in these counts automatically.
         $rows = DB::table('users as u')
             ->where('u.role', 4)
             ->leftJoin('classes as c', 'c.instructor_id', '=', 'u.id')
             ->leftJoin('class_student as cs', 'cs.class_id', '=', 'c.id')
-            ->leftJoin('class_assignments as ca', 'ca.class_id', '=', 'c.id')
-            ->leftJoin('assignment_submissions as s', 's.class_assignment_id', '=', 'ca.id')
+            ->leftJoin('assessments as a', 'a.class_id', '=', 'c.id')
+            ->leftJoin('assessment_submissions as s', 's.assessment_id', '=', 'a.id')
             ->select(
                 'u.id',
                 'u.name',
                 'u.email',
                 DB::raw('COUNT(DISTINCT c.id) as classes_count'),
                 DB::raw('COUNT(DISTINCT cs.student_id) as students_count'),
-                DB::raw('COUNT(DISTINCT ca.id) as assignments_count'),
+                DB::raw('COUNT(DISTINCT a.id) as assessments_count'),
                 DB::raw('COUNT(DISTINCT s.id) as submissions_count')
             )
             ->groupBy('u.id', 'u.name', 'u.email')
             ->orderByDesc('submissions_count')
-            ->orderByDesc('assignments_count')
+            ->orderByDesc('assessments_count')
             ->limit(15)
             ->get()
             ->map(fn ($row) => (array) $row)
@@ -251,7 +254,7 @@ class SuperAdminAnalyticsService
             ->leftJoin('users as u', 'u.institution_id', '=', 'i.id')
             ->leftJoin('classes as c', 'c.institution_id', '=', 'i.id')
             ->leftJoin('class_student as cs', 'cs.class_id', '=', 'c.id')
-            ->leftJoin('class_assignments as ca', 'ca.class_id', '=', 'c.id')
+            ->leftJoin('assessments as a', 'a.class_id', '=', 'c.id')
             ->select(
                 'i.id',
                 'i.name',
@@ -259,7 +262,7 @@ class SuperAdminAnalyticsService
                 DB::raw('COUNT(DISTINCT u.id) as users_count'),
                 DB::raw('COUNT(DISTINCT c.id) as classes_count'),
                 DB::raw('COUNT(DISTINCT cs.student_id) as students_count'),
-                DB::raw('COUNT(DISTINCT ca.id) as assignments_count')
+                DB::raw('COUNT(DISTINCT a.id) as assessments_count')
             )
             ->groupBy('i.id', 'i.name', 'i.status')
             ->orderByDesc('students_count')
@@ -279,7 +282,6 @@ class SuperAdminAnalyticsService
             'hardestMcq' => $this->mcqPerformance($range, 'avg_score_asc'),
             'codingPerformance' => $this->codingPerformance($range),
             'hardestCoding' => $this->hardestCodingQuestions($range),
-            'assignmentPerformance' => $this->assignmentPerformance($range),
             'assessmentPerformance' => $this->assessmentPerformance($range),
             'categoryBreakdown' => $this->categoryBreakdown(),
         ];
@@ -296,11 +298,14 @@ class SuperAdminAnalyticsService
 
     private function contentAnalytics(array $range): array
     {
+        // The old assignment library lives on as the shared Question Bank
+        // pool, and class assignments became assessments, so those tables are
+        // the ones counted now.
         return [
             'moduleLibraryByYear' => $this->groupCount('module_library_items', 'year_level', null),
-            'assignmentLibraryTypes' => $this->groupCount('assignment_library_items', 'assignment_type', null),
-            'classAssignmentStatus' => $this->groupCount('class_assignments', 'status', null),
-            'assignmentSubmissionStatus' => $this->groupCount('assignment_submissions', 'status', $range),
+            'questionBankTypes' => $this->groupCount('question_bank_items', 'question_type', null),
+            'assessmentStatus' => $this->groupCount('assessments', 'status', null),
+            'assessmentSubmissionStatus' => $this->groupCount('assessment_submissions', 'status', $range),
         ];
     }
 
@@ -308,7 +313,8 @@ class SuperAdminAnalyticsService
     {
         $summary = $this->summary($range);
         $antiCheat = $this->countDateRange('anti_cheat_events', 'created_at', $range);
-        $submissions = $this->countDateRange('assignment_submissions', 'created_at', $range);
+        // Assessment attempts include converted assignment submissions since
+        // the merge, so they are counted once here.
         $assessments = $this->countDateRange('assessment_submissions', 'created_at', $range);
         $coding = $this->countDateRange('coding_submissions', 'created_at', $range);
         $mcq = $this->countDateRange('challenge_attempts', 'created_at', $range);
@@ -318,7 +324,7 @@ class SuperAdminAnalyticsService
         $items = [];
         $items[] = [
             'title' => 'Platform activity in selected range',
-            'body' => 'There are ' . number_format($mcq + $coding + $submissions + $assessments) . ' learning actions in the selected period: ' . number_format($mcq) . ' MCQ attempts, ' . number_format($coding) . ' coding submissions, ' . number_format($submissions) . ' assignment submissions, and ' . number_format($assessments) . ' assessment attempts.',
+            'body' => 'There are ' . number_format($mcq + $coding + $assessments) . ' learning actions in the selected period: ' . number_format($mcq) . ' MCQ attempts, ' . number_format($coding) . ' coding submissions, and ' . number_format($assessments) . ' assessment attempts.',
             'tone' => 'blue',
         ];
 
@@ -423,13 +429,14 @@ class SuperAdminAnalyticsService
             ->all();
     }
 
-    private function topAssignmentStudents(array $range): array
+    private function topAssessmentStudents(array $range): array
     {
-        if (! $this->tableExists('assignment_submissions')) {
+        if (! $this->tableExists('assessment_submissions')) {
             return [];
         }
 
-        return DB::table('assignment_submissions as s')
+        // Converted assignment submissions count here too since the merge.
+        return DB::table('assessment_submissions as s')
             ->join('users as u', 'u.id', '=', 's.student_id')
             ->where('u.role', 1)
             ->where('u.status', 'active')
@@ -460,16 +467,17 @@ class SuperAdminAnalyticsService
         $cutoff = Carbon::now()->subDays(14)->toDateTimeString();
 
         // MySQL refuses a SELECT alias inside HAVING under ONLY_FULL_GROUP_BY
-        // ("1463 Non-grouping field 'assignment_avg' is used in HAVING"), so
+        // ("1463 Non-grouping field 'assessment_avg' is used in HAVING"), so
         // the aggregate is spelled out in both places from one definition and
         // the two cannot drift apart.
-        $assignmentAverage = 'ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 '
+        $assessmentAverage = 'ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 '
             .'THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2)';
 
+        // Assessment submissions carry the former assignment work as well.
         $rows = DB::table('users as u')
             ->where('u.role', 1)
             ->where('u.status', 'active')
-            ->leftJoin('assignment_submissions as s', function ($join) use ($range) {
+            ->leftJoin('assessment_submissions as s', function ($join) use ($range) {
                 $join->on('s.student_id', '=', 'u.id')
                     ->whereIn('s.status', ['submitted', 'late', 'graded'])
                     ->whereBetween('s.created_at', [$range['from'], $range['to']]);
@@ -492,16 +500,16 @@ class SuperAdminAnalyticsService
                 'u.xp',
                 'u.streak',
                 'u.last_activity',
-                DB::raw('COUNT(DISTINCT s.id) as assignment_submissions_count'),
+                DB::raw('COUNT(DISTINCT s.id) as assessment_submissions_count'),
                 DB::raw('COUNT(DISTINCT cu.id) as mcq_attempts_count'),
                 DB::raw('COUNT(DISTINCT cs.id) as coding_submissions_count'),
-                DB::raw($assignmentAverage.' as assignment_avg')
+                DB::raw($assessmentAverage.' as assessment_avg')
             )
             ->groupBy('u.id', 'u.name', 'u.email', 'u.xp', 'u.streak', 'u.last_activity')
             ->havingRaw(
                 '(MAX(COALESCE(u.xp, 0)) < 50)'
                 .' OR (MAX(u.last_activity) IS NULL OR MAX(u.last_activity) < ?)'
-                .' OR '.$assignmentAverage.' < 70',
+                .' OR '.$assessmentAverage.' < 70',
                 [$cutoff]
             )
             ->orderBy('u.last_activity')
@@ -516,8 +524,8 @@ class SuperAdminAnalyticsService
             if (empty($row->last_activity) || $row->last_activity < $cutoff) {
                 $reasons[] = 'Inactive 14+ days';
             }
-            if ($row->assignment_avg !== null && (float) $row->assignment_avg < 70) {
-                $reasons[] = 'Low assignment average';
+            if ($row->assessment_avg !== null && (float) $row->assessment_avg < 70) {
+                $reasons[] = 'Low assessment average';
             }
 
             $data = (array) $row;
@@ -618,34 +626,8 @@ class SuperAdminAnalyticsService
             ->all();
     }
 
-    private function assignmentPerformance(array $range): array
-    {
-        if (! $this->tableExists('assignment_submissions')) {
-            return [];
-        }
-
-        return DB::table('class_assignments as ca')
-            ->leftJoin('classes as c', 'c.id', '=', 'ca.class_id')
-            ->join('assignment_submissions as s', 's.class_assignment_id', '=', 'ca.id')
-            ->whereIn('s.status', ['submitted', 'late', 'graded'])
-            ->whereBetween('s.created_at', [$range['from'], $range['to']])
-            ->select(
-                'ca.id',
-                'ca.title',
-                'ca.status',
-                'c.name as class_name',
-                DB::raw('COUNT(s.id) as submissions_count'),
-                DB::raw("SUM(CASE WHEN s.status = 'late' THEN 1 ELSE 0 END) as late_count"),
-                DB::raw('ROUND(AVG(CASE WHEN s.graded_at IS NOT NULL AND s.total_points > 0 THEN (s.score * 100.0 / s.total_points) ELSE NULL END), 2) as avg_score')
-            )
-            ->groupBy('ca.id', 'ca.title', 'ca.status', 'c.name')
-            ->orderByDesc('submissions_count')
-            ->limit(15)
-            ->get()
-            ->map(fn ($row) => (array) $row)
-            ->all();
-    }
-
+    // Assessment performance covers the converted assignments too, so the
+    // separate assignment performance table is gone rather than double-counted.
     private function assessmentPerformance(array $range): array
     {
         if (! $this->tableExists('assessment_submissions') || ! $this->tableExists('assessments')) {
@@ -702,15 +684,17 @@ class SuperAdminAnalyticsService
             return [];
         }
 
+        // The merge re-pointed anti-cheat events at their converted
+        // assessments, so the title comes from the assessments table.
         return DB::table('anti_cheat_events as e')
             ->leftJoin('users as u', 'u.id', '=', 'e.user_id')
-            ->leftJoin('class_assignments as ca', 'ca.id', '=', 'e.class_assignment_id')
+            ->leftJoin('assessments as a', 'a.id', '=', 'e.assessment_id')
             ->whereBetween('e.created_at', [$range['from'], $range['to']])
             ->select(
                 'e.id',
                 'u.name as student_name',
                 'u.email as student_email',
-                'ca.title as assignment_title',
+                'a.title as assessment_title',
                 'e.event_type',
                 'e.severity',
                 'e.occurred_at',

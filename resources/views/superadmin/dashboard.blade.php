@@ -32,8 +32,8 @@
 
     /* ── Flash ── */
     .flash { padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: .875rem; line-height: 1.5; }
-    .flash-success { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: #d1fae5; }
-    .flash-error   { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: #fee2e2; }
+    .flash-success { background: var(--ds-success-soft); border-color: var(--ds-success-border); color: var(--ds-success-ink, #d1fae5); }
+    .flash-error   { background: var(--ds-danger-soft); border-color: var(--ds-danger-border); color: var(--ds-danger-ink, #fee2e2); }
 
     /* ── Summary figures ── */
     .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }

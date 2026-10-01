@@ -27,17 +27,17 @@
       padding: 48px 64px;
       background: var(--ds-bg);
     }
-    .left-hero { max-width: 560px; margin: auto 0; padding: 40px 0; }
-    .hero-title {
+    .auth-intro { max-width: 560px; margin: auto 0; padding: 40px 0; }
+    .auth-title {
       margin-bottom: 12px;
       color: var(--ds-text);
-      font-size: 1.625rem;
+      font-size: 1.375rem;
       font-weight: 700;
       line-height: 1.25;
       letter-spacing: -0.02em;
     }
-    .hero-title em { color: inherit; font-style: normal; }
-    .hero-copy { max-width: 52ch; color: var(--ds-text-muted); font-size: 0.875rem; line-height: 1.6; }
+    .auth-title em { color: inherit; font-style: normal; }
+    .auth-copy { max-width: 52ch; color: var(--ds-text-muted); font-size: 0.875rem; line-height: 1.6; }
     .security-list { display: grid; gap: 12px; margin-top: 28px; }
     .security-item { display: flex; align-items: center; gap: 12px; color: var(--ds-text-secondary); font-size: 0.875rem; line-height: 1.45; }
     .security-icon {
@@ -115,10 +115,10 @@
     .toggle:hover { color: var(--ds-text); }
     .field-error { margin-top: 6px; color: var(--ds-danger-text); font-size: 0.75rem; line-height: 1.45; }
 
-    .alert { margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ds-accent-border); border-radius: var(--ds-radius-sm); background: var(--ds-accent-soft); color: #dbeafe; font-size: 0.875rem; line-height: 1.5; overflow-wrap: anywhere; }
-    .alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
-    .alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
-    .alert-info { border-color: var(--ds-accent-border); background: var(--ds-accent-soft); color: #dbeafe; }
+    .alert { margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ds-accent-border); border-radius: var(--ds-radius-sm); background: var(--ds-accent-soft); color: var(--ds-accent-ink, #dbeafe); font-size: 0.875rem; line-height: 1.5; overflow-wrap: anywhere; }
+    .alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5); }
+    .alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink, #fee2e2); }
+    .alert-info { border-color: var(--ds-accent-border); background: var(--ds-accent-soft); color: var(--ds-accent-ink, #dbeafe); }
 
     .button {
       width: 100%;
@@ -187,9 +187,9 @@
       ])
     </div>
 
-    <div class="left-hero">
-      <h1 class="hero-title">Return to learning<br>with a <em>verified</em><br>password reset</h1>
-      <p class="hero-copy">DataSensei uses a short-lived, one-time email code to verify your identity before allowing a password change.</p>
+    <div class="auth-intro">
+      <h1 class="auth-title">Return to learning<br>with a <em>verified</em><br>password reset</h1>
+      <p class="auth-copy">DataSensei uses a short-lived, one-time email code to verify your identity before allowing a password change.</p>
       <div class="security-list">
         <div class="security-item"><span class="security-icon">01</span><span>{{ \App\Support\PasswordOtpConfiguration::length() }}-digit code sent only to the registered email</span></div>
         <div class="security-item"><span class="security-icon">02</span><span>Code expires automatically after five minutes</span></div>

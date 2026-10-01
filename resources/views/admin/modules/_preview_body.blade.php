@@ -10,7 +10,7 @@
 @endif
 
 @if(! empty($outcomes))
-  <div class="lesson-callout" style="margin:0 0 24px;padding:14px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);">
+  <div class="lesson-callout" style="margin:0 0 24px;padding:14px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);">
     <h4 style="margin:0 0 8px;font-size:0.95rem;">What you will learn</h4>
     <ul style="margin:0;padding-left:20px;line-height:1.6;">
       @foreach($outcomes as $outcome)

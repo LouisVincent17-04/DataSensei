@@ -51,6 +51,15 @@
               @endforeach
             </select>
           </div>
+          <div class="field">
+            <label for="purpose">Purpose</label>
+            <select class="select" id="purpose" name="purpose">
+              <option value="">All</option>
+              @foreach(\App\Models\Assessment::PURPOSES as $value => $label)
+                <option value="{{ $value }}" @selected(request('purpose') === $value)>{{ $label }}</option>
+              @endforeach
+            </select>
+          </div>
           <button class="btn" type="submit">Filter</button>
         </form>
 
@@ -66,6 +75,9 @@
                 <tr>
                   <td>
                     <strong>{{ $assessment->title }}</strong>
+                    @if($assessment->purposeLabel())
+                      <span class="sub">{{ $assessment->purposeLabel() }}</span>
+                    @endif
                     @if($assessment->status === 'draft' && $assessment->draft_saved_at)
                       <span class="sub">Draft saved {{ $assessment->draft_saved_at->diffForHumans() }}</span>
                     @endif

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Assessment;
 use App\Models\ClassRoom;
 use App\Models\User;
 use App\Services\Reports\ClassProgress;
+use App\Support\Reports\PerformanceBands;
 use App\Support\Reports\ReportFilters;
 use App\Support\Reports\ReportFormat as F;
 use App\Support\Reports\ReportTable;
@@ -16,14 +18,21 @@ use Illuminate\View\View;
 /**
  * Class Analytics (DataSensei Updates 8): the instructor's one place to
  * follow a class. Pick a class, then read it in tabs (Overview, Students,
- * Modules, Assignments, Assessments, Challenges, Coding Challenges) and open
- * any student for their details.
+ * Modules, Assessments, Challenges, Coding Challenges) and open any student
+ * for their details. Assignments were merged into assessments (DataSensei
+ * Updates 11); converted rows are already counted with the assessments.
  *
  * Everything is read live from the class's saved work through
  * ClassProgress, the same source as the instructor Reports, so the two always
- * agree. The "needs attention" list uses fixed rules on that data
- * (ClassProgress::ATTENTION_RULES); there is no ILO mastery, no ranking and
+ * agree. The at-risk list uses fixed rules on that data
+ * (ClassProgress::attentionRules()); there is no ILO mastery, no ranking and
  * nothing is guessed. Only the instructor's own classes can be opened.
+ *
+ * DataSensei Updates 12: Class Analytics and the former At-Risk Alerts page
+ * are one instructor area. The Overview shows a Low / Moderate / High bar
+ * graph of the class (by assessment average, thresholds from
+ * config/class_analytics.php) and, in the same place, the at-risk students
+ * with the reasons that flagged them. /instructor/risk now opens this page.
  */
 class InstructorAnalyticsController extends Controller
 {
@@ -31,14 +40,13 @@ class InstructorAnalyticsController extends Controller
         'overview' => 'Overview',
         'students' => 'Students',
         'modules' => 'Modules',
-        'assignments' => 'Assignments',
         'assessments' => 'Assessments',
         'challenges' => 'Challenges',
         'coding' => 'Coding Challenges',
     ];
 
     /** Tabs whose lists can be limited to work due in a date range. */
-    private const DATED_TABS = ['assignments', 'assessments', 'challenges', 'coding'];
+    private const DATED_TABS = ['assessments', 'challenges', 'coding'];
 
     public function __construct(private readonly ClassProgress $progress)
     {
@@ -105,7 +113,7 @@ class InstructorAnalyticsController extends Controller
             'filters' => $filters,
             'tables' => $this->studentTables($snapshot, $data),
             'activity' => $this->progress->recentActivity($snapshot, $student->id, $filters),
-            'activityTypes' => ['module' => 'Modules', 'assignment' => 'Assignments', 'assessment' => 'Assessments', 'challenge' => 'Challenges', 'coding' => 'Coding challenges'],
+            'activityTypes' => ['module' => 'Modules', 'assessment' => 'Assessments', 'challenge' => 'Challenges', 'coding' => 'Coding challenges'],
         ]);
     }
 
@@ -122,7 +130,6 @@ class InstructorAnalyticsController extends Controller
         return match ($tab) {
             'students' => $this->studentsTab($class, $snapshot, $filters),
             'modules' => $this->modulesTab($snapshot, $filters, $count),
-            'assignments' => $this->assignmentsTab($snapshot, $filters, $count),
             'assessments' => $this->assessmentsTab($snapshot, $filters, $count),
             'challenges' => $this->challengesTab($snapshot, $count),
             'coding' => $this->codingTab($snapshot, $count),
@@ -135,7 +142,6 @@ class InstructorAnalyticsController extends Controller
         $o = $snapshot['overview'];
         $completion = array_values(array_filter([
             $o['modules'] > 0 ? ['label' => 'Modules completed', 'percent' => $o['module_completion'], 'text' => F::pct($o['module_completion'])] : null,
-            $o['assignments'] > 0 ? ['label' => 'Assignments submitted', 'percent' => $o['assignment_rate'], 'text' => F::pct($o['assignment_rate'])] : null,
             $o['assessments'] > 0 ? ['label' => 'Assessments completed', 'percent' => $o['assessment_completion'], 'text' => F::pct($o['assessment_completion'])] : null,
             $o['challenges'] > 0 ? ['label' => 'Challenges completed', 'percent' => $o['challenge_completion'], 'text' => F::pct($o['challenge_completion'])] : null,
             $o['coding'] > 0 ? ['label' => 'Coding challenges completed', 'percent' => $o['coding_completion'], 'text' => F::pct($o['coding_completion'])] : null,
@@ -152,11 +158,14 @@ class InstructorAnalyticsController extends Controller
                 'name' => $row['student']->name,
                 'url' => route('instructor.analytics.student', ['class' => $class->id, 'student' => $id]),
                 'reasons' => array_values($row['summary']['attention']),
+                'group' => PerformanceBands::label($row['summary']['performance_group']),
+                'average' => $row['summary']['assessment_average'],
             ])
             ->values()
             ->all();
 
         return [
+            'performance' => $this->performanceGraph($o),
             'bars' => array_values(array_filter([
                 $completion !== [] ? ['title' => 'Completion', 'items' => $completion] : null,
                 $scores !== [] ? ['title' => 'Scores', 'items' => $scores] : null,
@@ -165,20 +174,59 @@ class InstructorAnalyticsController extends Controller
         ];
     }
 
+    /**
+     * Low / Moderate / High: how many students are in each group, as a share
+     * of the students who have a graded assessment.
+     *
+     * @param  array<string, mixed>  $overview
+     * @return array<string, mixed>
+     */
+    private function performanceGraph(array $overview): array
+    {
+        $counts = $overview['performance'];
+        $graded = $counts[PerformanceBands::LOW] + $counts[PerformanceBands::MODERATE] + $counts[PerformanceBands::HIGH];
+        $notGraded = $counts[PerformanceBands::NOT_GRADED];
+
+        $items = [];
+        foreach ([PerformanceBands::LOW, PerformanceBands::MODERATE, PerformanceBands::HIGH] as $group) {
+            $share = F::percent($counts[$group], $graded);
+            $items[] = [
+                'label' => PerformanceBands::label($group).' ('.PerformanceBands::rangeText($group).')',
+                'percent' => $share ?? 0,
+                'text' => $counts[$group].' '.($counts[$group] === 1 ? 'student' : 'students').($graded > 0 ? ', '.F::pct($share) : ''),
+                'tone' => PerformanceBands::TONES[$group],
+            ];
+        }
+
+        return [
+            'id' => 'performance',
+            'title' => 'Class performance',
+            'items' => $items,
+            'note' => 'Grouped by each student\'s assessment average (best graded attempt on each assessment). '
+                .($notGraded > 0 ? $notGraded.' '.($notGraded === 1 ? 'student has' : 'students have').' no graded assessment yet and '.($notGraded === 1 ? 'is' : 'are').' shown as Not yet graded.' : 'Every student has at least one graded assessment.'),
+        ];
+    }
+
     private function studentsTab(ClassRoom $class, array $snapshot, ReportFilters $f): array
     {
         $search = mb_strtolower($f->search);
         $rows = collect($snapshot['perStudent'])
             ->filter(fn (array $row) => $search === '' || str_contains(mb_strtolower($row['student']->name.' '.$row['student']->email), $search))
-            ->filter(fn (array $row) => $f->status !== 'attention' || $row['summary']['attention'] !== [])
+            ->filter(fn (array $row) => match ($f->status) {
+                'attention' => $row['summary']['attention'] !== [],
+                PerformanceBands::LOW, PerformanceBands::MODERATE, PerformanceBands::HIGH, PerformanceBands::NOT_GRADED => $row['summary']['performance_group'] === $f->status,
+                default => true,
+            })
             ->map(function (array $row, int $id) use ($class): array {
                 $s = $row['summary'];
 
                 return [
                     'student' => $row['student']->name,
                     'modules' => $s['modules_total'] > 0 ? $s['modules_completed'].' of '.$s['modules_total'].' ('.F::pct($s['module_percent']).')' : F::NONE,
-                    'assignments' => $s['assignments_total'] > 0 ? $s['assignments_submitted'].' submitted, '.$s['assignments_missing'].' missing, '.$s['assignments_late'].' late' : F::NONE,
-                    'assessments' => F::pct($s['assessment_average']),
+                    // Assignments were merged into assessments; converted rows
+                    // are already counted here.
+                    'assessments' => $s['assessments_total'] > 0 ? $s['assessments_completed'].' of '.$s['assessments_total'].' completed'.($s['assessments_missing'] > 0 ? ', '.$s['assessments_missing'].' missing' : '').($s['assessment_average'] !== null ? ', average '.F::pct($s['assessment_average']) : '') : F::NONE,
+                    'performance' => PerformanceBands::label($s['performance_group']),
                     'challenges' => F::pct($s['challenge_average']),
                     'coding' => $s['coding_total'] > 0 ? $s['coding_completed'].' of '.$s['coding_total'].' completed'.($s['coding_score'] !== null ? ', '.F::pct($s['coding_score']).' of tests' : '') : F::NONE,
                     'overall' => F::pct($s['overall']),
@@ -186,7 +234,8 @@ class InstructorAnalyticsController extends Controller
                     'attention' => $s['attention'] === [] ? '' : implode('; ', $s['attention']),
                     '_url' => route('instructor.analytics.student', ['class' => $class->id, 'student' => $id]),
                     '_tone' => [
-                        'assessments' => F::tone($s['assessment_average']),
+                        'performance' => PerformanceBands::TONES[$s['performance_group']] ?? null,
+                        'assessments' => $s['assessments_missing'] > 0 ? 'warn' : F::tone($s['assessment_average']),
                         'challenges' => F::tone($s['challenge_average']),
                         'overall' => F::tone($s['overall']),
                         'attention' => 'warn',
@@ -197,10 +246,10 @@ class InstructorAnalyticsController extends Controller
         [$page] = F::page($rows, 'students', false);
 
         return ['table' => new ReportTable('students', 'Students', [
-            'student' => 'Student', 'modules' => 'Module progress', 'assignments' => 'Assignments', 'assessments' => 'Assessment average',
+            'student' => 'Student', 'modules' => 'Module progress', 'assessments' => 'Assessments', 'performance' => 'Performance',
             'challenges' => 'Challenge average', 'coding' => 'Coding challenges', 'overall' => 'Overall progress',
-            'activity' => 'Last class activity', 'attention' => 'Needs attention',
-        ], $page, 'No students match these filters.', 'Averages use each student\'s best attempt. Open a student to see everything they did.')];
+            'activity' => 'Last class activity', 'attention' => 'At risk because',
+        ], $page, 'No students match these filters.', 'Averages use each student\'s best graded attempt. Performance: Low is '.mb_strtolower(PerformanceBands::rangeText(PerformanceBands::LOW)).', Moderate '.PerformanceBands::rangeText(PerformanceBands::MODERATE).', High '.PerformanceBands::rangeText(PerformanceBands::HIGH).'. Open a student to see everything they did.')];
     }
 
     private function modulesTab(array $snapshot, ReportFilters $f, int $students): array
@@ -251,37 +300,10 @@ class InstructorAnalyticsController extends Controller
         ];
     }
 
-    private function assignmentsTab(array $snapshot, ReportFilters $f, int $students): array
-    {
-        $rows = collect($snapshot['assignments'])
-            ->filter(fn (object $a) => $f->status === '' || ($f->status === 'open' ? $a->status === 'published' : $a->status === 'closed'))
-            ->map(function (object $a) use ($snapshot, $students): array {
-                $results = collect($snapshot['perStudent'])->map(fn (array $row) => $row['assignments'][$a->id] ?? null)->filter();
-                $submitted = $results->filter(fn ($r) => in_array($r['state'], ['submitted', 'late'], true))->count();
-                $grades = $results->pluck('score')->filter(fn ($p) => $p !== null);
-                $pastDue = ClassProgress::isPastDue($a);
-
-                return [
-                    'assignment' => $a->title,
-                    'due' => F::dateTime($a->due_at),
-                    'status' => $a->status === 'closed' ? 'Closed' : 'Open',
-                    'submitted' => $submitted.' of '.$students.' ('.F::pct(F::percent($submitted, $students)).')',
-                    'on_time' => F::number($results->where('state', 'submitted')->count()),
-                    'late' => F::number($results->where('state', 'late')->count()),
-                    'missing' => $pastDue ? F::number($results->where('state', 'missing')->count()) : 'Not due yet',
-                    'grade' => F::pct($grades->isEmpty() ? null : round($grades->avg(), 1)),
-                    '_tone' => ['missing' => $pastDue && $results->where('state', 'missing')->count() > 0 ? 'warn' : null],
-                ];
-            })->values();
-
-        return ['table' => new ReportTable('assignments', 'Assignments', [
-            'assignment' => 'Assignment', 'due' => 'Due', 'status' => 'Status', 'submitted' => 'Submitted', 'on_time' => 'On time',
-            'late' => 'Late', 'missing' => 'Missing', 'grade' => 'Average grade',
-        ], $rows->all(), 'No published assignments match these filters.', 'Missing counts students with no submission after the due date or after the assignment was closed.')];
-    }
-
     private function assessmentsTab(array $snapshot, ReportFilters $f, int $students): array
     {
+        // Assignments were merged into assessments (DataSensei Updates 11);
+        // converted rows are already counted here, under their purpose label.
         $rows = collect($snapshot['assessments'])
             ->filter(fn (object $a) => $f->status === '' || ($f->status === 'open' ? $a->status === 'published' : $a->status === 'closed'))
             ->map(function (object $a) use ($snapshot, $students): array {
@@ -292,19 +314,22 @@ class InstructorAnalyticsController extends Controller
 
                 return [
                     'assessment' => $a->title,
+                    'kind' => Assessment::PURPOSES[$a->purpose] ?? 'Assessment',
                     'due' => F::dateTime($a->due_at),
                     'status' => $a->status === 'closed' ? 'Closed' : 'Open',
                     'attempts' => F::number($results->sum('attempts')),
                     'completed' => $completed.' of '.$students.' ('.F::pct(F::percent($completed, $students)).')',
                     'average' => F::pct($average),
-                    'passed' => F::number($results->where('passed', true)->count()),
-                    'failed' => F::number($results->where('passed', false)->count()),
+                    'passed' => F::number($results->filter(fn ($r) => ($r['passed'] ?? null) === true)->count()),
+                    // Strict: a student with no attempt has passed === null,
+                    // which a loose where() would count as failed.
+                    'failed' => F::number($results->filter(fn ($r) => ($r['passed'] ?? null) === false)->count()),
                     '_tone' => ['average' => F::tone($average)],
                 ];
             })->values();
 
         return ['table' => new ReportTable('assessments', 'Assessments', [
-            'assessment' => 'Assessment', 'due' => 'Due', 'status' => 'Status', 'attempts' => 'Attempts', 'completed' => 'Completed',
+            'assessment' => 'Assessment', 'kind' => 'Type', 'due' => 'Due', 'status' => 'Status', 'attempts' => 'Attempts', 'completed' => 'Completed',
             'average' => 'Average score', 'passed' => 'Passed', 'failed' => 'Failed',
         ], $rows->all(), 'No published assessments match these filters.', 'Average score, pass and fail use each student\'s best attempt; the pass mark is '.F::PASS_PERCENT.'%.')];
     }
@@ -383,18 +408,12 @@ class InstructorAnalyticsController extends Controller
                     'completed' => F::date($m['completed_at']),
                     '_tone' => ['status' => $m['state'] === 'completed' ? 'good' : null],
                 ])->values()->all(), 'No modules are assigned to this class.'),
-            new ReportTable('assignments', 'Assignments', ['assignment' => 'Assignment', 'due' => 'Due', 'status' => 'Status', 'submitted' => 'Submitted', 'grade' => 'Grade'],
-                collect($data['assignments'])->map(fn (array $a, int $id) => [
-                    'assignment' => $snapshot['assignments'][$id]->title,
-                    'due' => F::dateTime($snapshot['assignments'][$id]->due_at),
-                    'status' => $state(['submitted' => 'Submitted on time', 'late' => 'Submitted late', 'missing' => 'Missing', 'in_progress' => 'Started, not submitted', 'pending' => 'Not submitted yet'], $a['state']),
-                    'submitted' => F::dateTime($a['submitted_at']),
-                    'grade' => $a['score_text'],
-                    '_tone' => ['status' => match ($a['state']) { 'missing' => 'bad', 'late' => 'warn', 'submitted' => 'good', default => null }],
-                ])->values()->all(), 'No assignments are published for this class.'),
-            new ReportTable('assessments', 'Assessments', ['assessment' => 'Assessment', 'attempts' => 'Attempts', 'score' => 'Best score', 'result' => 'Pass or fail', 'status' => 'Status'],
+            // Assignments were merged into assessments; converted rows are
+            // already counted here, under their purpose label.
+            new ReportTable('assessments', 'Assessments', ['assessment' => 'Assessment', 'kind' => 'Type', 'attempts' => 'Attempts', 'score' => 'Best score', 'result' => 'Pass or fail', 'status' => 'Status'],
                 collect($data['assessments'])->map(fn (array $a, int $id) => [
                     'assessment' => $snapshot['assessments'][$id]->title,
+                    'kind' => Assessment::PURPOSES[$snapshot['assessments'][$id]->purpose] ?? 'Assessment',
                     'attempts' => F::number($a['attempts']),
                     'score' => $a['score_text'],
                     'result' => $a['passed'] === null ? ($a['awaiting_review'] ? 'Awaiting grade' : F::NONE) : ($a['passed'] ? 'Passed' : 'Failed'),

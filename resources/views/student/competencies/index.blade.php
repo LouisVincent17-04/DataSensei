@@ -64,7 +64,7 @@
     /* level labels */
     .level{flex-shrink:0;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-border-strong);border-radius:var(--radius-xs);
       background:var(--surface2);color:var(--ds-text-secondary);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
-    .level.expert{color:#dbeafe;border-color:var(--ds-accent);background:var(--ds-accent-soft)}
+    .level.expert{color:var(--ds-accent-ink, #dbeafe);border-color:var(--ds-accent);background:var(--ds-accent-soft)}
     .level.advanced{color:var(--ds-success-text);border-color:var(--ds-success-border);background:var(--ds-success-soft)}
     .level.competent{color:var(--ds-accent-text);border-color:var(--ds-accent-border);background:var(--ds-accent-soft)}
     .level.developing{color:var(--ds-warning-text);border-color:var(--ds-warning-border);background:var(--ds-warning-soft)}
@@ -91,7 +91,7 @@
     .muted{color:var(--muted)}
 
     .alert{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-warning-border);border-radius:var(--radius-sm);
-      background:var(--ds-warning-soft);color:#fef3c7;font-size:.875rem;line-height:1.55}
+      background:var(--ds-warning-soft);color:var(--ds-warning-ink, #fef3c7);font-size:.875rem;line-height:1.55}
     .empty{padding:32px 20px;color:var(--muted);font-size:.875rem;line-height:1.55;text-align:center}
 
     @media(max-width:1100px){
@@ -119,7 +119,7 @@
     <header class="top">
       <div>
         <h1 class="ds-page-title">My Skills Competency Matrix</h1>
-        <p class="subtitle">See how your evidence from assessments, assignments, challenges, coding exercises, Python IDE work, and statistical activities compares with your class.</p>
+        <p class="subtitle">See how your evidence from assessments, challenges, coding exercises, Python IDE work, and statistical activities compares with your class.</p>
       </div>
       @if($report)<a class="btn secondary" href="{{ route('student.competencies.index', ['class_id' => $selectedClass->id]) }}">Reload Saved Results</a>@endif
     </header>
@@ -180,7 +180,8 @@
             <div class="meta"><span>{{ $snapshot->evidence_count }} evidence records</span><span class="delta {{ $delta >= 0 ? 'good' : 'bad' }}">{{ $delta >= 0 ? '+' : '' }}{{ number_format($delta, 1) }} vs class</span></div>
             <div class="sources">
               @forelse($sources as $source => $details)
-                <span class="source">{{ ucfirst($source) }} {{ number_format((float)($details['score'] ?? 0), 1) }}%</span>
+                {{-- Snapshots stored before assignments merged into assessments still carry an 'assignment' source key. --}}
+                <span class="source">{{ $source === 'assignment' ? 'Assessment' : ucfirst($source) }} {{ number_format((float)($details['score'] ?? 0), 1) }}%</span>
               @empty
                 <span class="source">Complete related activities to generate evidence</span>
               @endforelse
@@ -202,7 +203,7 @@
         <p class="muted" style="font-size:.8125rem;margin:0 0 16px">A compact comparison of your competency level against the class average and performance range.</p>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Competency</th><th>Your Percentage</th><th>Level</th><th>Class Average</th><th>Highest</th><th>Lowest</th><th>Difference</th></tr></thead>
+            <thead><tr><th>Competency {!! \App\Support\Glossary::mark('competency') !!}</th><th>Your Percentage</th><th>Level</th><th>Class Average</th><th>Highest</th><th>Lowest</th><th>Difference</th></tr></thead>
             <tbody>
             @foreach($report['competencies'] as $competency)
               @php

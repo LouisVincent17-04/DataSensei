@@ -74,7 +74,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-s
     <div class="top">
       <div>
         <h1 class="title ds-page-title">Submissions</h1>
-        <p class="subtitle">Review submitted assignment attempts across your classes.</p>
+        <p class="subtitle">Review assessment attempts, including homework, quizzes, and examinations, across your classes.</p>
       </div>
     </div>
 
@@ -88,8 +88,8 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-s
         </select>
         <select name="status">
           <option value="">All statuses</option>
-          @foreach(['in_progress','submitted','late','graded'] as $status)
-            <option value="{{ $status }}" @selected(request('status') === $status)>{{ ucwords(str_replace('_', ' ', $status)) }}</option>
+          @foreach(['in_progress','submitted','held','late','graded'] as $status)
+            <option value="{{ $status }}" @selected(request('status') === $status)>{{ $status === 'held' ? 'Held for review' : ucwords(str_replace('_', ' ', $status)) }}</option>
           @endforeach
         </select>
         <button class="btn" type="submit">Filter</button>
@@ -98,19 +98,20 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-s
 
     <div class="card table-wrap">
       <table class="table">
-        <thead><tr><th>Student</th><th>Assignment</th><th>Class</th><th>Status</th><th>Score</th><th>Submitted</th></tr></thead>
+        <thead><tr><th>Student</th><th>Assessment</th><th>Class</th><th>Status</th><th>Score</th><th>Submitted</th><th></th></tr></thead>
         <tbody>
         @forelse($submissions as $submission)
           <tr>
             <td>{{ $submission->student->name ?? 'Student' }}</td>
-            <td>{{ $submission->classAssignment->title ?? 'Assignment' }}</td>
-            <td>{{ $submission->classAssignment->classRoom->name ?? '—' }}</td>
-            <td><span class="state {{ $submission->status === 'late' ? 'bad' : 'good' }}">{{ ucwords(str_replace('_', ' ', $submission->status)) }}</span></td>
-            <td>{{ $submission->score }}/{{ $submission->total_points }}</td>
+            <td>{{ $submission->assessment->title ?? 'Assessment' }}{{ $submission->assessment?->purpose ? ' ('.ucfirst($submission->assessment->purpose).')' : '' }}</td>
+            <td>{{ $submission->assessment->classRoom->name ?? '—' }}</td>
+            <td><span class="state {{ $submission->isHeldForIntegrityReview() ? 'warn' : ($submission->status === 'late' ? 'bad' : 'good') }}">{{ $submission->isHeldForIntegrityReview() ? 'Held for review' : ucwords(str_replace('_', ' ', $submission->status)) }}</span></td>
+            <td>{{ (int) $submission->score }}/{{ (int) $submission->total_points }}</td>
             <td>{{ optional($submission->submitted_at)->format('M d, Y h:i A') ?? '—' }}</td>
+            <td>@if($submission->assessment && $submission->status !== 'in_progress')<a class="btn" href="{{ route('instructor.assessments.submissions.show', [$submission->assessment, $submission]) }}">Review</a>@endif</td>
           </tr>
         @empty
-          <tr><td colspan="6" class="muted">No submissions found.</td></tr>
+          <tr><td colspan="7" class="muted">No submissions found.</td></tr>
         @endforelse
         </tbody>
       </table>

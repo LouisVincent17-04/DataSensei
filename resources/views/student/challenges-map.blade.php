@@ -48,7 +48,7 @@
       display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0;
       margin: 16px 32px 0; padding: 12px 16px;
       border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm);
-      background: var(--ds-success-soft); color: #d1fae5;
+      background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5);
       font-size: .875rem; line-height: 1.5;
     }
     .challenge-map-alert svg { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 2px; }
@@ -192,7 +192,7 @@
 
     @if(!empty($exceptionalNotifications))
       @foreach($exceptionalNotifications as $notification)
-        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:var(--ds-warning-soft); border-color:var(--ds-warning-border); color:#fef3c7;">
+        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:var(--ds-warning-soft); border-color:var(--ds-warning-border); color:var(--ds-warning-ink, #fef3c7);">
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
           </svg>

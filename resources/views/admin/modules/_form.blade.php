@@ -13,7 +13,16 @@
     <div class="form-grid three">
       <div class="field" style="grid-column:span 2">
         <label for="module-title">Title</label>
-        <input id="module-title" class="input" name="title" maxlength="189" value="{{ old('title', $module->title) }}" required>
+        @if($module->exists && $module->isCore())
+          {{-- A Core Module keeps its title (DataSensei Updates 12); the server refuses any change. --}}
+          <input id="module-title" class="input" name="title" maxlength="189" value="{{ $module->title }}" required readonly aria-readonly="true" aria-describedby="module-title-help">
+          <div class="field-help" id="module-title-help">Core Module: the title and identity cannot be changed. Its content can still be edited.</div>
+        @else
+          <input id="module-title" class="input" name="title" maxlength="189" value="{{ old('title', $module->title) }}" required>
+          @if($formMethod === 'POST')
+            <div class="field-help">New modules are Custom modules.</div>
+          @endif
+        @endif
       </div>
       <div class="field">
         <label for="module-year">Year level</label>
@@ -59,5 +68,6 @@
 <style>
   .field .check-field { display:flex; align-items:center; gap:10px; min-height:var(--ds-control-h); margin:0; padding:0 12px; border:1px solid var(--ds-input-border); border-radius:var(--radius-sm); background:var(--surface3); color:var(--text); font-size:.875rem; font-weight:400; cursor:pointer; }
   .check-field input { accent-color:var(--accent); width:16px; height:16px; }
+  #module-title[readonly] { background:var(--surface2); color:var(--muted); cursor:not-allowed; }
 </style>
 @endpush

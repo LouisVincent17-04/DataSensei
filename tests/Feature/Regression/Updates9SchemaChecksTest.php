@@ -64,6 +64,10 @@ class Updates9SchemaChecksTest extends TestCase
             'Support/SchemaInspector.php',
             // Blocks students from reading INFORMATION_SCHEMA in the SQL sandbox.
             'Http/Controllers/SqlSandboxController.php',
+            // Migration code, never run by a page: the DataSensei Updates 11
+            // merge migration (2026_10_01_000003) converts assignments into
+            // assessments with it and must check which tables still exist.
+            'Support/AssignmentToAssessmentMerge.php',
         ];
         $offenders = [];
         foreach (File::allFiles(app_path()) as $file) {

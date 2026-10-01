@@ -5,9 +5,12 @@ namespace Tests\Feature\Regression;
 use App\Models\AchievementDefinition;
 use App\Models\AuditLog;
 use App\Models\Module;
+use App\Models\QuestionBankItem;
 use App\Models\User;
+use App\Support\AuditActions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\Feature\Regression\Concerns\BuildsReportData;
 use Tests\TestCase;
 
@@ -16,6 +19,11 @@ use Tests\TestCase;
  * Important admin and instructor actions are recorded once each, with who,
  * their role, the action, the affected record and when; failed requests,
  * previews and student activity are not.
+ *
+ * DataSensei Updates 11 merged assignments into assessments: the admin
+ * assessment library and instructor assignment actions left the audit map,
+ * and the Question Bank, the held-attempt review and "add from the Question
+ * Bank" joined it.
  */
 class Updates8AuditLogTest extends TestCase
 {
@@ -98,6 +106,49 @@ class Updates8AuditLogTest extends TestCase
         $this->assertSame('Removed assignment', $logs[1]->actionLabel());
         $this->assertSame(['Class', 'Data Science, DS 4A'], [$logs[2]->record_type, $logs[2]->record_label]);
         $this->assertTrue($logs->every(fn (AuditLog $l) => $l->user_role === User::ROLE_INSTRUCTOR));
+    }
+
+    public function test_the_audit_map_follows_the_assessment_merge(): void
+    {
+        $names = array_keys(AuditActions::all());
+
+        foreach ($names as $name) {
+            $this->assertTrue(Route::has($name), 'Audited route no longer exists: '.$name);
+        }
+        $this->assertSame([], array_values(array_filter($names, fn (string $name) => str_starts_with($name, 'admin.assessments.') || str_starts_with($name, 'instructor.assignments.'))));
+
+        foreach ([
+            'instructor.question-bank.store' => 'created',
+            'instructor.question-bank.update' => 'edited',
+            'instructor.question-bank.archive' => 'edited',
+            'instructor.assessments.submissions.integrity.release' => 'graded',
+            'instructor.assessments.submissions.integrity.block' => 'graded',
+            'instructor.assessments.bank.add' => 'edited',
+        ] as $name => $action) {
+            $this->assertSame($action, AuditActions::definition($name)['action'] ?? null, $name);
+        }
+    }
+
+    public function test_question_bank_changes_are_recorded(): void
+    {
+        $this->authenticateAs($this->ana);
+        $form = fn (array $extra = []) => array_merge([
+            'question_type' => 'fill_blank', 'question_text' => 'Which library provides DataFrame?', 'points' => 2, 'correct_answer' => 'pandas',
+        ], $extra);
+
+        $this->post(route('instructor.question-bank.store'), $form())->assertRedirect()->assertSessionHasNoErrors();
+        $item = QuestionBankItem::where('question_text', 'Which library provides DataFrame?')->firstOrFail();
+        $this->patch(route('instructor.question-bank.update', $item), $form(['question_text' => 'Which library provides the DataFrame?']))->assertRedirect()->assertSessionHasNoErrors();
+        // A failed save is refused and not recorded.
+        $this->patch(route('instructor.question-bank.update', $item), $form(['correct_answer' => '']))->assertSessionHasErrors('correct_answer');
+        $this->patch(route('instructor.question-bank.archive', $item))->assertRedirect();
+
+        $logs = AuditLog::orderBy('id')->get();
+        $this->assertSame(['created', 'edited', 'edited'], $logs->pluck('action')->all());
+        $this->assertTrue($logs->every(fn (AuditLog $log) => $log->record_type === 'Question Bank question' && $log->record_id === $item->id && $log->user_role === User::ROLE_INSTRUCTOR));
+        $this->assertSame('Which library provides DataFrame?', $logs[0]->record_label);
+        $this->assertSame('Which library provides the DataFrame?', $logs[1]->record_label);
+        $this->assertSame('Archived or restored', $logs[2]->details);
     }
 
     public function test_students_are_never_recorded(): void

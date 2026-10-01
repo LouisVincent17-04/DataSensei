@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
  * from the Challenge Builder (the instructor's own challenges) and the
  * Challenge Pool (platform challenges on the University Student level).
  * There is no due date, status or separate title: graded class work is an
- * Assignment.
+ * Assessment.
  */
 class InstructorChallengeClassController extends Controller
 {

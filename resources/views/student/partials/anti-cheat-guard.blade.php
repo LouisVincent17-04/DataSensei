@@ -1,9 +1,9 @@
 @php
   $antiCheatSettings = $antiCheatSettings ?? [];
-  $assessmentType = 'assignment';
-  $classAssignmentId = $classAssignmentId ?? null;
-  $assignmentSubmissionId = $assignmentSubmissionId ?? null;
-  $assignmentQuestionId = $assignmentQuestionId ?? null;
+  $assessmentType = 'assessment';
+  $assessmentId = $assessmentId ?? null;
+  $assessmentSubmissionId = $assessmentSubmissionId ?? null;
+  $assessmentQuestionId = $assessmentQuestionId ?? null;
   $antiCheatSessionId = $antiCheatSessionId ?? null;
   $antiCheatEventContract = \App\Support\AntiCheatEventContract::clientContract();
   // Authoritative state from AntiCheatPolicyService::attemptIntegrityState().
@@ -19,7 +19,7 @@
     position: relative; inset: auto; z-index: 10000; display: none;
     width: min(390px, 100%); max-width: 390px; margin: 16px 16px 0 auto; padding: 12px 14px;
     border: 1px solid var(--ds-warning-border); border-radius: var(--ds-radius-sm); background: var(--ds-surface);
-    box-shadow: var(--ds-shadow-md); color: #fef3c7;
+    box-shadow: var(--ds-shadow-md); color: var(--ds-warning-ink, #fef3c7);
     font: 500 .8125rem/1.5 var(--ds-font-sans); overflow-wrap: anywhere;
   }
   .ds-ac-toast.show { display: block; }
@@ -60,24 +60,24 @@
 </style>
 
 <div class="ds-ac-toast" id="ds-ac-toast" data-ds-global-notification role="alert"><strong id="ds-ac-toast-title">Anti-cheat warning</strong><span id="ds-ac-toast-msg"></span></div>
-<div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><svg class="ds-ac-lock-icon" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="ds-ac-lock-title">Assignment Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This assignment attempt was locked because a restricted action was detected.</div><div class="ds-ac-lock-msg" style="color:var(--ds-text-muted)">Your saved answers are kept. Submit this attempt so your instructor can review it. It receives no credit unless your instructor releases it.</div><button type="button" class="ds-ac-lock-btn" id="ds-ac-finalize-btn">Submit for review</button></div></div>
-<div class="ds-ac-fullscreen" id="ds-ac-fullscreen"><div class="ds-ac-fullscreen-card"><div class="ds-ac-fullscreen-title">Fullscreen Required</div><div class="ds-ac-fullscreen-msg">Your instructor requires fullscreen mode for this assignment. Leaving fullscreen may be logged as a violation.</div><button type="button" class="ds-ac-fullscreen-btn" id="ds-ac-fullscreen-btn">Enter Fullscreen</button></div></div>
+<div class="ds-ac-lock" id="ds-ac-lock"><div class="ds-ac-lock-card"><svg class="ds-ac-lock-icon" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><div class="ds-ac-lock-title">Attempt Locked</div><div class="ds-ac-lock-msg" id="ds-ac-lock-msg">This attempt was locked because a restricted action was detected.</div><div class="ds-ac-lock-msg" style="color:var(--ds-text-muted)">Your saved answers are kept. Submit this attempt so your instructor can review it. It receives no credit unless your instructor releases it.</div><button type="button" class="ds-ac-lock-btn" id="ds-ac-finalize-btn">Submit for review</button></div></div>
+<div class="ds-ac-fullscreen" id="ds-ac-fullscreen"><div class="ds-ac-fullscreen-card"><div class="ds-ac-fullscreen-title">Fullscreen Required</div><div class="ds-ac-fullscreen-msg">Your instructor requires fullscreen mode for this assessment. Leaving fullscreen may be logged as a violation.</div><button type="button" class="ds-ac-fullscreen-btn" id="ds-ac-fullscreen-btn">Enter Fullscreen</button></div></div>
 
 <script src="{{ asset('js/anti-cheat-client.js') }}"></script>
 <script>
 (() => {
   const settings = @json($antiCheatSettings);
   const eventContract = @json($antiCheatEventContract);
-  const assessmentType = 'assignment';
-  const classAssignmentId = @json($classAssignmentId);
-  const assignmentSubmissionId = @json($assignmentSubmissionId);
-  const baseAssignmentQuestionId = @json($assignmentQuestionId);
+  const assessmentType = 'assessment';
+  const assessmentId = @json($assessmentId);
+  const assessmentSubmissionId = @json($assessmentSubmissionId);
+  const baseAssessmentQuestionId = @json($assessmentQuestionId);
   const sessionKey = @json($antiCheatSessionId);
   const logUrl = @json(route('anti-cheat.events.store'));
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
   const clientTools = window.DataSenseiAntiCheatClient;
 
-  if (!classAssignmentId || !assignmentSubmissionId || !sessionKey) return;
+  if (!assessmentId || !assessmentSubmissionId || !sessionKey) return;
   if (!clientTools) {
     console.error('DataSensei anti-cheat client failed to load.');
     return;
@@ -94,7 +94,7 @@
   const fullscreenOverlay = document.getElementById('ds-ac-fullscreen');
   const fullscreenBtn = document.getElementById('ds-ac-fullscreen-btn');
 
-  const protectedForm = () => document.getElementById('assignmentForm') || document.querySelector('form[data-protected-assessment="1"]');
+  const protectedForm = () => document.getElementById('assessment-form') || document.querySelector('form[data-protected-assessment="1"]');
   const finalizeBtn = document.getElementById('ds-ac-finalize-btn');
   const initialState = clientTools.normalizeIntegrityState(@json($antiCheatState));
 
@@ -116,10 +116,10 @@
     showToast._t = setTimeout(() => toast.classList.remove('show'), 5500);
   }
 
-  function currentAssignmentQuestionId(target = null) {
-    const card = target?.closest?.('[data-assignment-question-id]');
-    if (card?.dataset?.assignmentQuestionId) return card.dataset.assignmentQuestionId;
-    return baseAssignmentQuestionId;
+  function currentAssessmentQuestionId(target = null) {
+    const card = target?.closest?.('[data-assessment-question-id]');
+    if (card?.dataset?.assessmentQuestionId) return card.dataset.assessmentQuestionId;
+    return baseAssessmentQuestionId;
   }
 
   async function logEvent(eventType, details = {}, eventUuid = null) {
@@ -135,9 +135,9 @@
       event_type: eventType,
       event_uuid: eventUuid || clientTools.createEventUuid(),
       attempt_session_id: sessionKey,
-      class_assignment_id: classAssignmentId,
-      assignment_submission_id: assignmentSubmissionId,
-      assignment_question_id: currentAssignmentQuestionId(target),
+      assessment_id: assessmentId,
+      assessment_submission_id: assessmentSubmissionId,
+      assessment_question_id: currentAssessmentQuestionId(target),
       occurred_at: new Date().toISOString(),
       details: {
         ...safeDetails,
@@ -179,7 +179,7 @@
 
     tabSwitchCount = state.focusLossCount;
     if (state.blocked) {
-      lockAttempt(state.reason || 'This assignment attempt was locked because a restricted action was detected.', null);
+      lockAttempt(state.reason || 'This attempt was locked because a restricted action was detected.', null);
     }
 
     return state;
@@ -259,15 +259,15 @@
       const limit = settings.max_tab_switches ?? 0;
       if (settings.block_on_tab_limit) {
         const remaining = Math.max(0, limit - tabSwitchCount);
-        showToast('Focus warning', `Leaving the assignment window is restricted. Focus losses still allowed before this attempt locks: ${remaining}`);
+        showToast('Focus warning', `Leaving the assessment window is restricted. Focus losses still allowed before this attempt locks: ${remaining}`);
       } else {
-        showToast('Focus warning', 'Leaving the assignment window is restricted and was logged.');
+        showToast('Focus warning', 'Leaving the assessment window is restricted and was logged.');
       }
 
       // Offline fallback only: the server could not answer, so the local
       // count decides. Finalizing then holds the attempt for review.
       if (!result.ok && settings.block_on_tab_limit && tabSwitchCount > limit) {
-        lockAttempt('You exceeded the allowed tab-switch/focus-loss limit for this assignment attempt.');
+        lockAttempt('You exceeded the allowed tab-switch/focus-loss limit for this attempt.');
       }
     },
   });
@@ -300,7 +300,7 @@
 
     if (!settings.allow_copy) {
       e.preventDefault();
-      showToast('Copy blocked', 'Copying is disabled for this assignment.');
+      showToast('Copy blocked', 'Copying is disabled for this assessment.');
     }
   }, true);
 
@@ -312,7 +312,7 @@
 
     if (!settings.allow_copy) {
       e.preventDefault();
-      showToast('Cut blocked', 'Cut is disabled for this assignment.');
+      showToast('Cut blocked', 'Cut is disabled for this assessment.');
     }
   }, true);
 
@@ -324,15 +324,15 @@
 
     if (!settings.allow_paste) {
       e.preventDefault();
-      showToast('Paste blocked', 'Pasting is disabled for this assignment.');
-      if (settings.lock_screen_on_violation) lockAttempt('Pasting is not allowed in this assignment attempt.', 'blocked_paste');
+      showToast('Paste blocked', 'Pasting is disabled for this assessment.');
+      if (settings.lock_screen_on_violation) lockAttempt('Pasting is not allowed in this attempt.', 'blocked_paste');
       else logEvent('blocked_paste', { reason: 'paste_disabled', target: e.target });
       return;
     }
 
     if (settings.block_external_paste && !copiedInsideRecently) {
       e.preventDefault();
-      showToast('External paste blocked', 'Only text copied from inside this assignment attempt can be pasted.');
+      showToast('External paste blocked', 'Only text copied from inside this attempt can be pasted.');
       if (settings.lock_screen_on_violation) lockAttempt('External paste was detected and blocked.', 'blocked_paste');
       else logEvent('blocked_paste', { reason: 'external_paste', target: e.target });
     }
@@ -341,7 +341,7 @@
   document.addEventListener('contextmenu', e => {
     if (settings.allow_right_click) return;
     e.preventDefault();
-    showToast('Right click blocked', 'Right click is disabled for this assignment.');
+    showToast('Right click blocked', 'Right click is disabled for this assessment.');
     logEvent('right_click', { target: e.target });
   }, true);
 
@@ -362,16 +362,16 @@
 
     if (pasteShortcut && !settings.allow_paste) {
       e.preventDefault();
-      showToast('Paste shortcut blocked', 'Paste shortcuts are disabled for this assignment.');
+      showToast('Paste shortcut blocked', 'Paste shortcuts are disabled for this assessment.');
       // Same policy as a paste from the menu: the server treats blocked_paste
       // as locking when "Lock screen on critical violation" is on.
-      if (settings.lock_screen_on_violation) lockAttempt('Pasting is not allowed in this assignment attempt.', 'blocked_paste');
+      if (settings.lock_screen_on_violation) lockAttempt('Pasting is not allowed in this attempt.', 'blocked_paste');
       else logEvent('blocked_paste', { shortcut: true });
     }
 
     if (copyShortcut && !settings.allow_copy) {
       e.preventDefault();
-      showToast('Copy shortcut blocked', 'Copy/cut shortcuts are disabled for this assignment.');
+      showToast('Copy shortcut blocked', 'Copy/cut shortcuts are disabled for this assessment.');
       logEvent('copy_shortcut_blocked', { key: e.key });
     }
   }, true);
@@ -388,7 +388,7 @@
       fullscreenOverlay?.classList.remove('show');
       logEvent('fullscreen_entered', {});
     } catch (err) {
-      showToast('Fullscreen required', 'Your browser refused fullscreen. Please allow fullscreen for this assignment.');
+      showToast('Fullscreen required', 'Your browser refused fullscreen. Please allow fullscreen for this assessment.');
       logEvent('fullscreen_request_failed', { message: err.message });
     }
   });
@@ -397,8 +397,8 @@
     if (!settings.require_fullscreen) return;
     if (!document.fullscreenElement) {
       logEvent('fullscreen_exit', {});
-      showToast('Fullscreen exited', 'Fullscreen is required for this assignment.');
-      if (settings.lock_screen_on_violation) lockAttempt('Fullscreen mode was exited during this protected assignment attempt.', 'fullscreen_exit');
+      showToast('Fullscreen exited', 'Fullscreen is required for this assessment.');
+      if (settings.lock_screen_on_violation) lockAttempt('Fullscreen mode was exited during this protected attempt.', 'fullscreen_exit');
       else requestFullscreenIfNeeded();
     }
   });
@@ -440,7 +440,7 @@
   if (initialState?.blocked) {
     // The server already considers this attempt blocked: show it locked right
     // away instead of an editable form that can only be rejected later.
-    lockAttempt(initialState.reason || 'This assignment attempt was locked because a restricted action was detected.', null);
+    lockAttempt(initialState.reason || 'This attempt was locked because a restricted action was detected.', null);
     return;
   }
 

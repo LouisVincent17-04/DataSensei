@@ -103,12 +103,13 @@
       </svg>
       Coding Challenges
     </a>
-    <a class="nav-item {{ request()->routeIs('admin.assessments.*') ? 'active' : '' }}" href="{{ route('admin.assessments.index') }}"
-       @if(request()->routeIs('admin.assessments.*')) aria-current="page" @endif>
+
+    <a class="nav-item {{ request()->routeIs('admin.certificates.*') ? 'active' : '' }}" href="{{ route('admin.certificates.index') }}"
+       @if(request()->routeIs('admin.certificates.*')) aria-current="page" @endif>
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4M9 18h6"/>
+        <path d="M4 4h16v12H4z"/><path d="M8 8h8M8 12h5"/><path d="M14 16l-1 5 3-2 3 2-1-5"/>
       </svg>
-      Assessments
+      Certificates
     </a>
   </nav>
 
@@ -125,6 +126,7 @@
   </nav>
 
   <div class="sidebar-footer">
+    @include('partials.theme-toggle', ['block' => true])
     <div class="user-card">
       <div class="avatar">{{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) : 'A' }}</div>
       <div class="user-info">

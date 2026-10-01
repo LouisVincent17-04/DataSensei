@@ -16,7 +16,7 @@ final class AntiCheatEventContract
     /**
      * The single source of truth for anti-cheat events accepted by the API and
      * exposed to the browser. Legacy focus event names remain accepted so that
-     * an already-open assignment page can finish safely after deployment.
+     * an already-open attempt page can finish safely after deployment.
      *
      * @var array<string, array{severity: string, classification: string}>
      */

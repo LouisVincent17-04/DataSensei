@@ -48,7 +48,7 @@
       display: flex; align-items: flex-start; gap: 8px; flex-shrink: 0;
       margin: 16px 32px 0; padding: 12px 16px;
       border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm);
-      background: var(--ds-success-soft); color: #d1fae5;
+      background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5);
       font-size: .875rem; line-height: 1.5;
     }
     .challenge-map-alert svg { width: 16px; height: 16px; flex: 0 0 16px; margin-top: 2px; }
@@ -221,7 +221,7 @@
     @endif
 
     @if(session('error'))
-      <div class="challenge-map-alert" style="background:var(--ds-danger-soft); border-color:var(--ds-danger-border); color:#fee2e2;">
+      <div class="challenge-map-alert" style="background:var(--ds-danger-soft); border-color:var(--ds-danger-border); color:var(--ds-danger-ink, #fee2e2);">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         {{ session('error') }}
       </div>
@@ -229,7 +229,7 @@
 
     @if(!empty($exceptionalNotifications))
       @foreach($exceptionalNotifications as $notification)
-        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:var(--ds-warning-soft); border-color:var(--ds-warning-border); color:#fef3c7;">
+        <div class="challenge-map-alert" data-ds-global-notification role="status" style="background:var(--ds-warning-soft); border-color:var(--ds-warning-border); color:var(--ds-warning-ink, #fef3c7);">
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           {{ $notification }}
         </div>

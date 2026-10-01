@@ -22,8 +22,8 @@
     .ip-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
     .ip-top > div:first-child { min-width: 0; flex: 1 1 320px; }
     .ip-subtitle { margin: 4px 0 0; max-width: 80ch; color: var(--muted); font-size: .875rem; line-height: 1.55; }
-    .ip-alert { margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm); background: var(--ds-success-soft); color: #d1fae5; font-size: .875rem; }
-    .ip-alert.is-error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+    .ip-alert { margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ds-success-border); border-radius: var(--radius-sm); background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5); font-size: .875rem; }
+    .ip-alert.is-error { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink, #fee2e2); }
     @media (max-width: 900px) { .ip-main { padding: 24px 20px 40px; } }
     @media (max-width: 700px) { .ip-layout { display: block; } }
     @media (max-width: 640px) { .ip-main { padding: 20px 16px 32px; } }

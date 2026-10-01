@@ -47,15 +47,22 @@
       Assessments
     </a>
 
-    <a href="{{ route('student.assignments.index') }}"
-       class="nav-item {{ request()->routeIs('student.assignments.*') ? 'active' : '' }}">
+    {{-- DataSensei Updates 12: the student's own grades, and certificates. --}}
+    <a href="{{ route('student.gradebook.index') }}"
+       class="nav-item {{ request()->routeIs('student.gradebook.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M9 11l3 3L22 4"/>
-        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        <path d="M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/><path d="M4 9h16M4 15h16M10 3v18"/>
       </svg>
-      Assignments
+      Gradebook
     </a>
 
+    <a href="{{ route('student.certificates.index') }}"
+       class="nav-item {{ request()->routeIs('student.certificates.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 4h16v12H4z"/><path d="M8 8h8M8 12h5"/><path d="M14 16l-1 5 3-2 3 2-1-5"/>
+      </svg>
+      My Certificates
+    </a>
 
     <a href="{{ route('student.achievements.index') }}"
        class="nav-item {{ request()->routeIs('student.achievements.*') ? 'active' : '' }}">
@@ -200,6 +207,7 @@
   </nav>
 
   <div class="sidebar-footer">
+    @include('partials.theme-toggle', ['block' => true])
     <div class="user-card">
       <div class="avatar">
         @if(auth()->check() && auth()->user()->name)

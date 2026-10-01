@@ -40,7 +40,7 @@
   .block-table th, .block-table td { padding: 8px 12px; border-top: 1px solid var(--border); color: var(--ds-text-secondary); text-align: left; vertical-align: top; }
   .block-table th { color: var(--text); font-weight: 600; background: var(--surface3); }
   .block-table-note { padding: 10px 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: .8125rem; white-space: pre-wrap; }
-  .panel-note { background: var(--ds-accent-soft); border-color: var(--ds-accent-border); color: #dbeafe; }
+  .panel-note { background: var(--ds-accent-soft); border-color: var(--ds-accent-border); color: var(--ds-accent-ink, #dbeafe); }
   .panel p { margin: 0 0 6px; }
   .panel p:last-child { margin-bottom: 0; }
   .block-original { margin-top: 16px; }

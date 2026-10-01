@@ -48,7 +48,7 @@
     body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
     .layout{display:flex;min-height:100vh}
     .content{flex:1;min-width:0;padding:28px 32px 48px}
-    .page{max-width:1180px;margin:0 auto}
+    .page{max-width:1680px;margin:0 auto}
 
     /* ── page header ───────────────────────────────────────────── */
     .topbar{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:24px}
@@ -79,8 +79,8 @@
     .roadmap-item.current .number{border-color:var(--accent);background:var(--accent);color:#fff}
 
     .flash{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.5}
-    .flash.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+      background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem;line-height:1.5}
+    .flash.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
 
     /* ── step card ─────────────────────────────────────────────── */
     .step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
@@ -144,7 +144,7 @@
     .check p{margin:0;color:var(--muted);font-size:.8125rem;line-height:1.5}
 
     .recommendation{margin-top:16px;padding:12px 16px;border:1px solid var(--ds-accent-border);border-radius:var(--radius-sm);
-      background:var(--ds-accent-soft);color:#dbeafe;font-size:.875rem;line-height:1.55}
+      background:var(--ds-accent-soft);color:var(--ds-accent-ink, #dbeafe);font-size:.875rem;line-height:1.55}
     .recommendation strong{font-weight:600}
 
     /* ── two-up panels inside a step ───────────────────────────── */
@@ -157,10 +157,27 @@
     .variable-card .label,.relationship-card .label{margin-bottom:2px;color:var(--muted);font-size:.75rem;font-weight:500}
     .outlier-card details p{margin-top:8px}
 
-    .box-line{position:relative;height:32px;margin:14px 4px 6px}
-    .box-line::before{content:"";position:absolute;top:15px;left:4%;right:4%;height:2px;background:var(--ds-border-strong)}
-    .box{position:absolute;top:6px;left:28%;width:44%;height:20px;border:2px solid var(--accent);border-radius:2px;background:var(--ds-accent-soft)}
-    .median{position:absolute;top:2px;bottom:2px;left:50%;width:2px;background:var(--ds-accent-text)}
+    /* ── outliers, explained simply (DataSensei Updates 10) ───────── */
+    .o-count{margin:16px 0 4px;font-size:1rem;font-weight:600;line-height:1.4}
+    .o-count strong{font-variant-numeric:tabular-nums}
+    .o-note{margin:0 0 4px;color:var(--muted);font-size:.8125rem;line-height:1.5}
+    .o-columns{margin:2px 0 0;color:var(--muted);font-size:.8125rem;line-height:1.6}
+    .advanced{margin-top:16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface3)}
+    .advanced > summary{list-style:none;cursor:pointer;padding:10px 14px;color:var(--ds-accent-text);font-size:.875rem;font-weight:500}
+    .advanced > summary::-webkit-details-marker{display:none}
+    .advanced > summary::before{content:"▸ "}
+    .advanced[open] > summary::before{content:"▾ "}
+    .advanced-body{padding:2px 14px 14px}
+    .advanced-body > p{margin:0 0 10px;color:var(--muted);font-size:.8125rem;line-height:1.5}
+    /* A real box plot, drawn to scale from this column's numbers. */
+    .bp{margin-top:14px}
+    .bp-title{margin:0 0 2px;color:var(--text);font-size:.875rem;font-weight:600;overflow-wrap:anywhere}
+    .bp-lane{position:relative;height:34px;margin:6px 0 2px}
+    .bp-whisker{position:absolute;top:16px;height:2px;background:var(--ds-border-strong)}
+    .bp-box{position:absolute;top:7px;height:20px;border:2px solid var(--accent);border-radius:2px;background:var(--ds-accent-soft)}
+    .bp-median{position:absolute;top:3px;height:28px;width:2px;background:var(--ds-accent-text)}
+    .bp-dot{position:absolute;top:13px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--ds-warning)}
+    .bp-scale{display:flex;justify-content:space-between;color:var(--dim);font-size:.75rem;font-variant-numeric:tabular-nums}
 
     .chart-wrap{height:210px;margin-top:12px}
     .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px;margin-top:12px}
@@ -190,9 +207,8 @@
     .created{margin-top:16px}
     .created p + p{margin-top:4px}
 
-    .eyebrow{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--ds-success-border);border-radius:var(--radius-xs);
-      background:var(--ds-success-soft);color:var(--ds-success-text);font-size:.75rem;font-weight:600;line-height:1.4;white-space:nowrap}
-    .summary-title{margin:12px 0 4px;font-size:1.125rem;font-weight:600;line-height:1.35}
+    .done-note{color:var(--ds-success-text);font-size:.8125rem;font-weight:600}
+    .summary-title{margin:8px 0 4px;font-size:1.125rem;font-weight:600;line-height:1.35}
 
     .step-nav{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:16px 20px;border-top:1px solid var(--border)}
     .step-nav form{margin:0}

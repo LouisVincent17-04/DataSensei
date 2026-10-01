@@ -97,6 +97,7 @@ class QuizMakerEndToEndTest extends TestCase
     protected function tearDown(): void
     {
         foreach ([
+            'anti_cheat_settings',
             'student_assessment_diagnostics',
             'assessment_answers',
             'assessment_submissions',
@@ -393,7 +394,12 @@ class QuizMakerEndToEndTest extends TestCase
             $table->string('title');
             $table->text('description')->nullable();
             $table->text('instructions')->nullable();
+            // DataSensei Updates 11 (assignments merged into assessments).
+            $table->string('topic_title', 191)->nullable();
             $table->string('status', 30)->default('draft');
+            $table->string('purpose', 20)->nullable();
+            $table->unsignedTinyInteger('passing_score_percent')->nullable();
+            $table->unsignedBigInteger('legacy_class_assignment_id')->nullable()->unique();
             $table->unsignedInteger('draft_last_item')->nullable();
             $table->timestamp('draft_saved_at')->nullable();
             $table->unsignedInteger('total_items')->default(0);
@@ -452,6 +458,15 @@ class QuizMakerEndToEndTest extends TestCase
             $table->unsignedBigInteger('draft_version')->default(0);
             $table->dateTime('draft_saved_at')->nullable();
             $table->dateTime('timed_out_at')->nullable();
+            // DataSensei Updates 11: per-attempt anti-cheat identity and the
+            // held-for-review integrity decision.
+            $table->string('anti_cheat_session_id', 120)->nullable()->unique();
+            $table->string('integrity_status', 30)->nullable();
+            $table->string('integrity_reason', 255)->nullable();
+            $table->decimal('provisional_score', 8, 2)->nullable();
+            $table->unsignedBigInteger('integrity_reviewed_by')->nullable();
+            $table->dateTime('integrity_reviewed_at')->nullable();
+            $table->unsignedBigInteger('legacy_assignment_submission_id')->nullable()->unique();
             $table->timestamps();
         });
         Schema::create('assessment_answers', function (Blueprint $table): void {
@@ -495,6 +510,30 @@ class QuizMakerEndToEndTest extends TestCase
                 ['student_id', 'assessment_id', 'table_of_specification_row_id'],
                 'student_assessment_tos_diagnostic_uq'
             );
+        });
+        // Assessments are anti-cheat protected since DataSensei Updates 11;
+        // this quiz has no policy, so the table stays empty.
+        Schema::create('anti_cheat_settings', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('instructor_id');
+            $table->unsignedBigInteger('class_id')->nullable();
+            $table->string('assessment_type', 30)->default('assessment');
+            $table->boolean('enabled')->default(true);
+            $table->boolean('allow_tab_switch')->default(false);
+            $table->unsignedInteger('max_tab_switches')->default(2);
+            $table->boolean('block_on_tab_limit')->default(true);
+            $table->boolean('require_fullscreen')->default(false);
+            $table->boolean('detect_dual_monitor')->default(true);
+            $table->boolean('block_dual_monitor')->default(false);
+            $table->boolean('allow_copy')->default(true);
+            $table->boolean('allow_paste')->default(false);
+            $table->boolean('block_external_paste')->default(true);
+            $table->boolean('allow_right_click')->default(false);
+            $table->boolean('allow_devtools_shortcuts')->default(false);
+            $table->boolean('show_warnings')->default(true);
+            $table->boolean('auto_submit_mcq_on_violation')->default(false);
+            $table->boolean('lock_screen_on_violation')->default(true);
+            $table->timestamps();
         });
     }
 }

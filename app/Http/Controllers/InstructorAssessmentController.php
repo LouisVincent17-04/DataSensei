@@ -45,6 +45,10 @@ class InstructorAssessmentController extends Controller
             $query->where('status', $request->input('status'));
         }
 
+        if ($request->filled('purpose') && array_key_exists($request->input('purpose'), Assessment::PURPOSES)) {
+            $query->where('purpose', $request->input('purpose'));
+        }
+
         $assessments = $query->paginate(12)->withQueryString();
 
         return view('instructor.assessments.index', compact('assessments'));
@@ -212,6 +216,9 @@ class InstructorAssessmentController extends Controller
                 'title' => $validated['title'],
                 'description' => null,
                 'instructions' => $validated['instructions'] ?? null,
+                'purpose' => $validated['purpose'] ?? null,
+                'topic_title' => $validated['topic_title'] ?? null,
+                'passing_score_percent' => $validated['passing_score_percent'] ?? null,
                 'status' => 'draft',
                 'draft_saved_at' => now(),
                 'total_items' => 0,
@@ -287,6 +294,9 @@ class InstructorAssessmentController extends Controller
             $locked->update([
                 'class_id' => $class->id,
                 'title' => $validated['title'],
+                'purpose' => $validated['purpose'] ?? null,
+                'topic_title' => $validated['topic_title'] ?? null,
+                'passing_score_percent' => $validated['passing_score_percent'] ?? null,
                 'instructions' => $validated['instructions'] ?? null,
                 'time_limit_minutes' => $validated['time_limit_minutes'] ?? null,
                 'max_attempts' => $validated['max_attempts'],
@@ -346,9 +356,18 @@ class InstructorAssessmentController extends Controller
             throw $exception;
         }
 
+        $message = 'Question '.$question->item_number.' added.';
+        if ($request->boolean('save_to_bank')) {
+            $banked = app(\App\Services\QuestionBankService::class)
+                ->saveSnapshotFromAssessmentQuestion($question->fresh('options'), (int) Auth::id());
+            $message .= $banked
+                ? ' It was also saved to your Question Bank.'
+                : ' It was not saved to your Question Bank because it is still incomplete.';
+        }
+
         return redirect()
             ->to(route('instructor.assessments.builder', $assessment).'#question-'.$question->id)
-            ->with('success', 'Question '.$question->item_number.' added.');
+            ->with('success', $message);
     }
 
     public function updateQuestion(Request $request, Assessment $assessment, AssessmentQuestion $question)
@@ -515,9 +534,12 @@ class InstructorAssessmentController extends Controller
         return $request->validate([
             'class_id' => ['required', 'integer', 'exists:classes,id'],
             'title' => ['required', 'string', 'max:191'],
+            'purpose' => ['nullable', Rule::in(array_keys(Assessment::PURPOSES))],
+            'topic_title' => ['nullable', 'string', 'max:191'],
             'instructions' => ['nullable', 'string', 'max:10000'],
             'time_limit_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
             'max_attempts' => ['required', 'integer', 'min:1', 'max:10'],
+            'passing_score_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
             'available_at' => ['nullable', 'date'],
             'due_at' => ['nullable', 'date', 'after_or_equal:available_at'],
         ], [
@@ -680,6 +702,13 @@ class InstructorAssessmentController extends Controller
                 ->firstOrFail();
             $this->authorizeAssessment($lockedAssessment);
             abort_unless($lockedAssessment->status === 'draft', 422, 'Only draft assessments can be published.');
+            // Same guard the retired assignment flow had: students of an
+            // archived class must not receive new work.
+            abort_if(
+                (bool) DB::table('classes')->where('id', $lockedAssessment->class_id)->value('is_archived'),
+                422,
+                'Assessments cannot be published to an archived class.'
+            );
             $lockedAssessment->load('questions.options');
 
             $errors = [];
@@ -806,6 +835,11 @@ class InstructorAssessmentController extends Controller
             );
             $lockedSubmission->load('answers.question');
 
+            abort_if(
+                $lockedSubmission->isHeldForIntegrityReview(),
+                422,
+                'This attempt is held by an anti-cheat decision. Release it or keep it blocked before grading.'
+            );
             abort_unless(
                 in_array($lockedSubmission->status, ['submitted', 'late', 'graded'], true),
                 422,
@@ -877,6 +911,10 @@ class InstructorAssessmentController extends Controller
         }, 3);
 
         $gradedSubmission = $submission->fresh();
+        // The grade may complete a class certificate's requirement (DataSensei Updates 13).
+        if ($gradedSubmission?->student) {
+            app(\App\Services\CertificateService::class)->afterProgress($gradedSubmission->student);
+        }
         $diagnostics->refresh($gradedSubmission);
 
         if (! $outcome['fully_scored']) {
@@ -942,6 +980,146 @@ class InstructorAssessmentController extends Controller
             })
             ->sortBy('average_mastery')
             ->values();
+    }
+
+    /**
+     * Credit the withheld score of an attempt the anti-cheat decision held
+     * (DataSensei Updates 11, ported from the retired assignment flow).
+     */
+    public function releaseHeldSubmission(
+        Assessment $assessment,
+        AssessmentSubmission $submission,
+        StudentNotificationService $notifications,
+        AssessmentDiagnosticService $diagnostics
+    ) {
+        $this->authorizeAssessment($assessment);
+
+        $released = $this->resolveHeldSubmission($assessment, $submission, true);
+
+        if ($released) {
+            $released = $released->fresh();
+            if ($released?->student) {
+                app(\App\Services\CertificateService::class)->afterProgress($released->student);
+            }
+            $diagnostics->refresh($released);
+
+            $student = $released->student;
+            if ($student) {
+                $percentage = (float) $released->total_points > 0
+                    ? round(((float) $released->score / (float) $released->total_points) * 100, 1)
+                    : 0;
+                $notifications->send(
+                    $student,
+                    'assessment_graded',
+                    'Assessment result available',
+                    'Your held attempt for “' . $assessment->title . '” was reviewed and credited: ' . $percentage . '%.',
+                    route('student.assessments.result', [$assessment, $released]),
+                    ['assessment_id' => $assessment->id, 'submission_id' => $released->id, 'percentage' => $percentage],
+                    'assessment-graded:' . $released->id . ':' . optional($released->graded_at)->format('YmdHis')
+                );
+            }
+        }
+
+        return back()->with('success', $released
+            ? 'The held attempt was released and its score credited.'
+            : 'This attempt is not awaiting an integrity review.');
+    }
+
+    /** Confirm the anti-cheat decision: the attempt stays without credit. */
+    public function keepSubmissionBlocked(
+        Assessment $assessment,
+        AssessmentSubmission $submission,
+        StudentNotificationService $notifications
+    ) {
+        $this->authorizeAssessment($assessment);
+
+        $kept = $this->resolveHeldSubmission($assessment, $submission, false);
+
+        if ($kept && $kept->student) {
+            $notifications->send(
+                $kept->student,
+                'assessment_integrity_reviewed',
+                'Assessment attempt reviewed',
+                'Your held attempt for “' . $assessment->title . '” was reviewed. It remains without credit.',
+                route('student.assessments.result', [$assessment, $kept]),
+                ['assessment_id' => $assessment->id, 'submission_id' => $kept->id],
+                'assessment-integrity-reviewed:' . $kept->id
+            );
+        }
+
+        return back()->with('success', $kept
+            ? 'The attempt was kept blocked with no credit.'
+            : 'This attempt is not awaiting an integrity review.');
+    }
+
+    private function resolveHeldSubmission(Assessment $assessment, AssessmentSubmission $submission, bool $release): ?AssessmentSubmission
+    {
+        abort_unless((int) $submission->assessment_id === (int) $assessment->id, 404);
+
+        return DB::transaction(function () use ($assessment, $submission, $release): ?AssessmentSubmission {
+            $lockedAssessment = Assessment::query()->whereKey($assessment->id)->lockForUpdate()->firstOrFail();
+            $this->authorizeAssessment($lockedAssessment);
+
+            $lockedSubmission = AssessmentSubmission::query()
+                ->whereKey($submission->id)
+                ->where('assessment_id', $lockedAssessment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Idempotent: a repeated click finds the attempt already resolved.
+            if (! $lockedSubmission->isHeldForIntegrityReview()) {
+                return null;
+            }
+
+            $reviewedAt = now();
+
+            if (! $release) {
+                $lockedSubmission->update([
+                    'status' => 'graded',
+                    'score' => 0,
+                    'graded_at' => $reviewedAt,
+                    'integrity_status' => AssessmentSubmission::INTEGRITY_BLOCKED,
+                    'integrity_reviewed_by' => Auth::id(),
+                    'integrity_reviewed_at' => $reviewedAt,
+                ]);
+
+                return $lockedSubmission;
+            }
+
+            // Restore the per-question credit that was withheld. Essay items
+            // keep their stored award (none until graded), and an ungraded
+            // essay keeps the attempt in the grading queue.
+            $lockedSubmission->load('answers.question');
+            $score = 0.0;
+            $awaitingEssay = false;
+            foreach ($lockedSubmission->answers as $answer) {
+                if ($answer->question?->question_type === 'essay') {
+                    $awaitingEssay = $awaitingEssay || $answer->is_correct === null;
+                    $score += (float) $answer->points_awarded;
+
+                    continue;
+                }
+                $points = $answer->is_correct ? (float) ($answer->question?->points ?? 0) : 0.0;
+                $answer->update(['points_awarded' => $points]);
+                $score += $points;
+            }
+
+            $wasLate = $lockedAssessment->due_at
+                && $lockedSubmission->submitted_at
+                && $lockedSubmission->submitted_at->greaterThan($lockedAssessment->due_at);
+
+            $lockedSubmission->update([
+                'status' => $awaitingEssay ? 'submitted' : ($wasLate ? 'late' : 'graded'),
+                'score' => $score,
+                'provisional_score' => null,
+                'graded_at' => $awaitingEssay ? null : $reviewedAt,
+                'integrity_status' => AssessmentSubmission::INTEGRITY_CLEAR,
+                'integrity_reviewed_by' => Auth::id(),
+                'integrity_reviewed_at' => $reviewedAt,
+            ]);
+
+            return $lockedSubmission;
+        }, 3);
     }
 
     private function authorizeTos(TableOfSpecification $tos): void

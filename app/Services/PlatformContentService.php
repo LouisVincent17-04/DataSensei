@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Support\SchemaInspector;
-use App\Models\AssignmentLibraryItem;
 use App\Models\Challenge;
 use App\Models\ModuleLibraryItem;
 use Illuminate\Support\Facades\DB;
@@ -94,11 +93,6 @@ class PlatformContentService
         return ((int) ModuleLibraryItem::where('module_no', $moduleNo)->max('version_no')) + 1;
     }
 
-    public function nextAssessmentVersion(int $moduleNo): int
-    {
-        return ((int) AssignmentLibraryItem::where('module_no', $moduleNo)->max('version_no')) + 1;
-    }
-
     public function nextChallengeVersion(string $contentCode): int
     {
         return ((int) Challenge::where('content_code', $contentCode)->max('version_no')) + 1;
@@ -162,11 +156,6 @@ class PlatformContentService
         return $module->classAssignments()->exists();
     }
 
-    public function assessmentHasReferences(AssignmentLibraryItem $assessment): bool
-    {
-        return $assessment->classAssignments()->exists();
-    }
-
     public function challengeHasHistory(Challenge $challenge): bool
     {
         if ($challenge->attempts()->exists()) {
@@ -214,55 +203,6 @@ class PlatformContentService
                         'is_correct' => $index === $correctIndex,
                     ];
                 })->all(),
-            ];
-        })->values()->all();
-
-        return $this->canonical($current) !== $this->canonical($submitted);
-    }
-
-    public function assessmentQuestionsChanged(AssignmentLibraryItem $assessment, array $questions): bool
-    {
-        $current = $assessment->questions()
-            ->with(['options', 'blankAnswers'])
-            ->get()
-            ->map(function ($question): array {
-                return [
-                    'question_type' => $question->question_type,
-                    'question_text' => trim((string) $question->question_text),
-                    'points' => (int) $question->points,
-                    'explanation' => trim((string) ($question->explanation ?? '')),
-                    'options' => $question->options->map(fn ($option): array => [
-                        'option_text' => trim((string) $option->option_text),
-                        'is_correct' => (bool) $option->is_correct,
-                    ])->values()->all(),
-                    'blank_answers' => $question->blankAnswers->map(fn ($answer): array => [
-                        'answer_text' => trim((string) $answer->answer_text),
-                        'is_case_sensitive' => (bool) $answer->is_case_sensitive,
-                    ])->values()->all(),
-                ];
-            })->values()->all();
-
-        $submitted = collect($questions)->map(function (array $question): array {
-            $type = (string) ($question['question_type'] ?? 'mcq');
-            $correctIndex = (int) ($question['correct_option'] ?? -1);
-
-            return [
-                'question_type' => $type,
-                'question_text' => trim((string) ($question['question_text'] ?? '')),
-                'points' => (int) ($question['points'] ?? 1),
-                'explanation' => trim((string) ($question['explanation'] ?? '')),
-                'options' => $type === 'mcq'
-                    ? collect($question['options'] ?? [])->values()->map(fn ($option, int $index): array => [
-                        'option_text' => trim((string) ($option['option_text'] ?? '')),
-                        'is_correct' => $index === $correctIndex,
-                    ])->all()
-                    : [],
-                'blank_answers' => $type === 'fill_blank'
-                    ? collect($question['blank_answers'] ?? [])->values()->map(fn ($answer): array => [
-                        'answer_text' => trim((string) ($answer['answer_text'] ?? '')),
-                        'is_case_sensitive' => filter_var($answer['is_case_sensitive'] ?? false, FILTER_VALIDATE_BOOL),
-                    ])->all()
-                    : [],
             ];
         })->values()->all();
 

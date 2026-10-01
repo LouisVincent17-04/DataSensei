@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Models\Assessment;
 use App\Models\AuditLog;
 use App\Models\Challenge;
 use App\Models\User;
@@ -22,7 +23,8 @@ use Illuminate\Support\Facades\DB;
  *   users          accounts by role and status, new registrations
  *   modules        DataSensei and class modules, who opened and finished them
  *   classes        instructors, enrolment, assigned modules, participation
- *   assessments    class assessments and assignments
+ *   assessments    class assessments (assignments were merged into
+ *                  assessments in DataSensei Updates 11)
  *   challenges     MCQ and coding challenges
  *   gamification   EXP given out, achievements earned, missions completed
  *   audit          important admin and instructor actions
@@ -34,7 +36,7 @@ class AdminReports
         'users' => ['title' => 'Users', 'filters' => ['date', 'search', 'role', 'status']],
         'modules' => ['title' => 'Modules', 'filters' => ['search', 'type', 'status']],
         'classes' => ['title' => 'Classes', 'filters' => ['date', 'search', 'status']],
-        'assessments' => ['title' => 'Assessments & Assignments', 'filters' => ['date', 'search', 'class', 'status']],
+        'assessments' => ['title' => 'Assessments', 'filters' => ['date', 'search', 'class', 'status']],
         'challenges' => ['title' => 'Challenges & Coding Challenges', 'filters' => ['date', 'search', 'module', 'type']],
         'gamification' => ['title' => 'Gamification', 'filters' => ['date']],
         'audit' => ['title' => 'Audit Logs', 'filters' => ['date', 'search', 'role', 'action']],
@@ -297,12 +299,13 @@ class AdminReports
         $ids = $classes->pluck('id')->all();
         $enrolled = $this->countBy('class_student', 'class_id', $ids, 'student_id');
         $modules = $this->countBy('class_module_assignments', 'class_id', $ids, 'module_library_item_id', fn (Builder $q) => $q->where('status', 'active'));
-        $assignments = $this->countBy('class_assignments', 'class_id', $ids, 'id', fn (Builder $q) => $q->where('status', '!=', 'archived'));
+        // Assignments were merged into assessments; converted rows are
+        // already counted here.
         $assessments = $this->countBy('assessments', 'class_id', $ids, 'id');
         $challenges = $this->countBy('class_challenge_assignments', 'class_id', $ids, 'challenge_id');
         [$activeStudents, $submissions] = $this->classActivity($ids, $window);
 
-        [$rows, $truncated] = F::page($classes->map(function ($class) use ($enrolled, $modules, $assignments, $assessments, $challenges, $activeStudents, $submissions): array {
+        [$rows, $truncated] = F::page($classes->map(function ($class) use ($enrolled, $modules, $assessments, $challenges, $activeStudents, $submissions): array {
             $students = (int) ($enrolled[$class->id] ?? 0);
             $active = (int) ($activeStudents[$class->id] ?? 0);
 
@@ -312,7 +315,7 @@ class AdminReports
                 'status' => $class->is_archived ? 'Archived' : 'Active',
                 'students' => F::number($students),
                 'modules' => F::number($modules[$class->id] ?? 0),
-                'work' => F::number(($assignments[$class->id] ?? 0) + ($assessments[$class->id] ?? 0) + ($challenges[$class->id] ?? 0)),
+                'work' => F::number(($assessments[$class->id] ?? 0) + ($challenges[$class->id] ?? 0)),
                 'participation' => $students > 0 ? $active.' of '.$students.' students ('.F::pct(F::percent($active, $students)).')' : F::NONE,
                 'submissions' => F::number($submissions[$class->id] ?? 0),
                 '_tone' => ['participation' => $students > 0 ? F::tone(F::percent($active, $students)) : null],
@@ -334,9 +337,9 @@ class AdminReports
             [
                 new ReportTable('classes', 'Classes', [
                     'class' => 'Class', 'instructor' => 'Instructor', 'status' => 'Status', 'students' => 'Enrolled students',
-                    'modules' => 'Modules assigned', 'work' => 'Assignments, assessments and challenges given',
+                    'modules' => 'Modules assigned', 'work' => 'Assessments and challenges given',
                     'participation' => 'Participation ('.$windowText.')', 'submissions' => 'Submissions ('.$windowText.')',
-                ], $rows, 'No classes match these filters.', 'Participation counts students who submitted an assignment or assessment, attempted a class challenge, or opened a class module in the period.', $truncated),
+                ], $rows, 'No classes match these filters.', 'Participation counts students who submitted an assessment, attempted a class challenge, or opened a class module in the period.', $truncated),
             ],
         );
     }
@@ -363,13 +366,8 @@ class AdminReports
             }
         };
 
-        $add($window->applyDate(DB::table('assignment_submissions as s')
-            ->join('class_assignments as a', 'a.id', '=', 's.class_assignment_id')
-            ->whereIn('a.class_id', $classIds)
-            ->whereIn('s.status', ['submitted', 'late', 'graded']), 's.submitted_at')
-            ->groupBy('a.class_id', 's.student_id')
-            ->get(['a.class_id', 's.student_id', DB::raw('COUNT(*) as total')]));
-
+        // Assignments were merged into assessments; converted submissions are
+        // already counted here.
         $add($window->applyDate(DB::table('assessment_submissions as s')
             ->join('assessments as a', 'a.id', '=', 's.assessment_id')
             ->whereIn('a.class_id', $classIds)
@@ -410,7 +408,7 @@ class AdminReports
         return [$active, $counts];
     }
 
-    // ── 4. Assessments & Assignments ────────────────────────────────
+    // ── 4. Assessments ───────────────────────────────────────────────
 
     private function assessments(ReportFilters $f, bool $all): ReportResult
     {
@@ -426,36 +424,30 @@ class AdminReports
             });
         };
 
+        // Assignments were merged into assessments (DataSensei Updates 11);
+        // converted rows are already counted here, under their purpose label.
         $assessments = $inRange(DB::table('assessments')
             ->leftJoin('classes', 'classes.id', '=', 'assessments.class_id')
             ->when($f->classId, fn (Builder $q) => $q->where('assessments.class_id', $f->classId))
             ->when($status, fn (Builder $q) => $q->where('assessments.status', $status))
             ->when($f->search !== '', fn (Builder $q) => $q->where('assessments.title', 'like', $f->like())), 'assessments')
             ->orderByDesc('assessments.created_at')
-            ->get(['assessments.id', 'assessments.title', 'assessments.status', 'assessments.class_id', 'assessments.due_at', 'classes.name as class_name']);
+            ->get(['assessments.id', 'assessments.title', 'assessments.status', 'assessments.purpose', 'assessments.class_id', 'assessments.due_at', 'classes.name as class_name']);
 
-        $assignments = $inRange(DB::table('class_assignments')
-            ->leftJoin('classes', 'classes.id', '=', 'class_assignments.class_id')
-            ->when($f->classId, fn (Builder $q) => $q->where('class_assignments.class_id', $f->classId))
-            ->when($status, fn (Builder $q) => $q->where('class_assignments.status', $status))
-            ->when($f->search !== '', fn (Builder $q) => $q->where('class_assignments.title', 'like', $f->like())), 'class_assignments')
-            ->orderByDesc('class_assignments.created_at')
-            ->get(['class_assignments.id', 'class_assignments.title', 'class_assignments.status', 'class_assignments.class_id', 'class_assignments.due_at', 'classes.name as class_name']);
-
-        $classIds = $assessments->pluck('class_id')->merge($assignments->pluck('class_id'))->filter()->unique()->values()->all();
+        $classIds = $assessments->pluck('class_id')->filter()->unique()->values()->all();
         $enrolled = $this->countBy('class_student', 'class_id', $classIds, 'student_id');
         $metrics = app(ClassProgress::class);
 
         $assessmentStats = $metrics->assessmentStats($assessments->pluck('id')->all());
-        $assignmentStats = $metrics->assignmentStats($assignments);
 
-        [$assessmentRows, $cutA] = F::page($assessments->map(function ($a) use ($assessmentStats, $enrolled): array {
+        [$assessmentRows, $cut] = F::page($assessments->map(function ($a) use ($assessmentStats, $enrolled): array {
             $s = $assessmentStats[$a->id] ?? ClassProgress::emptyAssessmentStats();
             $students = (int) ($enrolled[$a->class_id] ?? 0);
             $completion = F::percent($s['students_completed'], $students);
 
             return [
                 'title' => $a->title,
+                'kind' => Assessment::PURPOSES[$a->purpose] ?? 'Assessment',
                 'class' => $a->class_name ?: F::NONE,
                 'status' => ucfirst((string) $a->status),
                 'attempts' => F::number($s['attempts']),
@@ -467,47 +459,30 @@ class AdminReports
             ];
         }), 'assessments', $all);
 
-        [$assignmentRows, $cutB] = F::page($assignments->map(function ($a) use ($assignmentStats, $enrolled): array {
-            $s = $assignmentStats[$a->id] ?? ClassProgress::emptyAssignmentStats();
-            $students = (int) ($enrolled[$a->class_id] ?? 0);
-            $pastDue = ClassProgress::isPastDue($a);
-
-            return [
-                'title' => $a->title,
-                'class' => $a->class_name ?: F::NONE,
-                'due' => F::date($a->due_at),
-                'assigned' => F::number($students),
-                'submitted' => F::number($s['submitted']),
-                'missing' => $pastDue ? F::number(max(0, $students - $s['submitted'])) : 'Not due yet',
-                'late' => F::number($s['late']),
-                'on_time' => F::number($s['on_time']),
-                'grade' => F::pct($s['average']),
-                '_tone' => ['missing' => $pastDue && $students - $s['submitted'] > 0 ? 'warn' : null],
-            ];
-        }), 'assignments', $all);
-
         $allAttempts = array_sum(array_column($assessmentStats, 'attempts'));
-        $submitted = array_sum(array_column($assignmentStats, 'submitted'));
+        $late = DB::table('assessment_submissions as s')
+            ->join('assessments as a', 'a.id', '=', 's.assessment_id')
+            ->whereIn('s.assessment_id', $assessments->pluck('id')->all() ?: [0])
+            ->whereIn('s.status', ['submitted', 'late', 'graded'])
+            ->where(fn (Builder $q) => $q->where('s.status', 'late')
+                ->orWhere(fn (Builder $w) => $w->whereNotNull('a.due_at')->whereColumn('s.submitted_at', '>', 'a.due_at')))
+            ->count();
 
         return new ReportResult(
             'assessments',
-            'Assessments & Assignments',
-            'Class assessments and assignments. Pass and fail use each student\'s best attempt against the '.F::PASS_PERCENT.'% pass mark. A missing assignment is one not submitted after its due date.',
+            'Assessments',
+            'Class assessments. Pass and fail use each student\'s best attempt against the '.F::PASS_PERCENT.'% pass mark.',
             [
                 ['label' => 'Assessments', 'value' => F::number($assessments->count()), 'note' => F::number($allAttempts).' attempts'],
                 ['label' => 'Average assessment score', 'value' => F::pct($metrics->weightedAverage($assessmentStats))],
-                ['label' => 'Assignments', 'value' => F::number($assignments->count()), 'note' => F::number($submitted).' students submitted'],
-                ['label' => 'Late submissions', 'value' => F::number(array_sum(array_column($assignmentStats, 'late')))],
+                ['label' => 'Students passed', 'value' => F::number(array_sum(array_column($assessmentStats, 'passed'))), 'note' => F::number(array_sum(array_column($assessmentStats, 'failed'))).' failed'],
+                ['label' => 'Late submissions', 'value' => F::number($late)],
             ],
             [
                 new ReportTable('assessments', 'Assessments', [
-                    'title' => 'Assessment', 'class' => 'Class', 'status' => 'Status', 'attempts' => 'Attempts', 'average' => 'Average score',
+                    'title' => 'Assessment', 'kind' => 'Type', 'class' => 'Class', 'status' => 'Status', 'attempts' => 'Attempts', 'average' => 'Average score',
                     'passed' => 'Passed', 'failed' => 'Failed', 'completion' => 'Completion rate',
-                ], $assessmentRows, 'No assessments match these filters.', $f->hasDateRange() ? 'Assessments due (or created, when there is no due date) in the selected range.' : null, $cutA),
-                new ReportTable('assignments', 'Assignments', [
-                    'title' => 'Assignment', 'class' => 'Class', 'due' => 'Due', 'assigned' => 'Students assigned', 'submitted' => 'Submitted',
-                    'missing' => 'Missing', 'late' => 'Late', 'on_time' => 'On time', 'grade' => 'Average grade',
-                ], $assignmentRows, 'No assignments match these filters.', null, $cutB),
+                ], $assessmentRows, 'No assessments match these filters.', $f->hasDateRange() ? 'Assessments due (or created, when there is no due date) in the selected range.' : null, $cut),
             ],
         );
     }

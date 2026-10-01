@@ -214,24 +214,24 @@
     border: 1px solid var(--ds-accent-border, rgba(59, 130, 246, 0.4));
     border-radius: var(--ds-radius-sm, 6px);
     background: var(--ds-surface, #111c2d);
-    color: #dbeafe;
+    color: var(--ds-accent-ink, #dbeafe);
     box-shadow: var(--ds-shadow-md);
     font: 500 0.8125rem/1.5 var(--ds-font-sans, Inter, Arial, Helvetica, sans-serif);
   }
 
   .ds-runtime-notification--success {
     border-color: var(--ds-success-border, rgba(16, 185, 129, 0.35));
-    color: #d1fae5;
+    color: var(--ds-success-ink, #d1fae5);
   }
 
   .ds-runtime-notification--warning {
     border-color: var(--ds-warning-border, rgba(245, 158, 11, 0.38));
-    color: #fef3c7;
+    color: var(--ds-warning-ink, #fef3c7);
   }
 
   .ds-runtime-notification--error {
     border-color: var(--ds-danger-border, rgba(239, 68, 68, 0.4));
-    color: #fee2e2;
+    color: var(--ds-danger-ink, #fee2e2);
   }
 
   .ds-runtime-notification__content {

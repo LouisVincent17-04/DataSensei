@@ -9,6 +9,7 @@ use App\Models\Module;
 use App\Services\LessonBlockRenderer;
 use App\Services\ModuleBlockConverter;
 use App\Services\ModuleEditorContent;
+use App\Support\SchemaInspector;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,16 @@ use Illuminate\Validation\ValidationException;
  * update() answer an AJAX request (Accept: application/json) with JSON, so
  * the admin stays on the same tab and scroll position; validation errors
  * come back as the usual 422 JSON. A normal form post still redirects.
+ *
+ * DataSensei Updates 12: the 24 Core Modules are protected. Their title and
+ * identity cannot be changed and they can never be deleted (the button is
+ * disabled and destroy() refuses); their content is still edited here and
+ * they can still be published or unpublished, which keeps every learner's
+ * progress and certificates. Every new module is a Custom module. A custom
+ * module can be deleted only while nothing depends on it (learner progress,
+ * challenge attempts or submissions, class assignments of its challenges);
+ * otherwise it is archived instead. The same rules are enforced again in
+ * App\Models\Module, under any controller.
  */
 class AdminPublicModuleController extends Controller
 {
@@ -52,10 +63,17 @@ class AdminPublicModuleController extends Controller
 
     public function index()
     {
+        $columns = ['id', 'title', 'description', 'order_index', 'year_level', 'xp_reward', 'is_boss', 'has_coding_exercises', 'is_published', 'learning_outcomes'];
+        foreach (['module_type', 'module_key', 'archived_at'] as $column) {
+            if (SchemaInspector::hasColumn('modules', $column)) {
+                $columns[] = $column;
+            }
+        }
+
         $modules = Module::withCount('lessons')
             ->orderBy('order_index')
             ->orderBy('id')
-            ->get(['id', 'title', 'description', 'order_index', 'year_level', 'xp_reward', 'is_boss', 'has_coding_exercises', 'is_published', 'learning_outcomes']);
+            ->get($columns);
 
         $groups = [];
         foreach (Module::YEAR_LEVELS as $level) {
@@ -165,12 +183,20 @@ class AdminPublicModuleController extends Controller
             'yearLevels' => Module::YEAR_LEVELS,
             'sections' => $this->editorCards($module),
             'questions' => $module->review_questions,
+            'dependents' => $module->isCore() ? [] : $this->dependents($module),
         ]);
     }
 
     public function update(Request $request, Module $module): RedirectResponse|JsonResponse
     {
         $data = $this->validated($request);
+
+        // A Core Module keeps its title (DataSensei Updates 12).
+        if ($module->isCore() && $data['title'] !== (string) $module->title) {
+            throw ValidationException::withMessages([
+                'title' => 'The title of a Core Module cannot be changed. Edit its content instead.',
+            ]);
+        }
         $cards = $this->cards($request);
         $questions = $this->questions($request);
         $intent = $request->input('intent');
@@ -212,6 +238,11 @@ class AdminPublicModuleController extends Controller
     /** Publish or unpublish from the list. Publishing checks the same rules. */
     public function toggleStatus(Module $module): RedirectResponse
     {
+        if (! $module->is_published && $module->isArchived()) {
+            return redirect()->route('admin.modules.index')
+                ->with('error', '"'.$module->title.'" is archived. Restore it before publishing it.');
+        }
+
         if (! $module->is_published) {
             try {
                 $this->assertPublishable($module, $module->learning_outcomes);
@@ -279,9 +310,16 @@ class AdminPublicModuleController extends Controller
 
     public function destroy(Module $module): RedirectResponse
     {
-        if ($this->hasProgress($module)) {
+        // Core Modules are never deleted (DataSensei Updates 12).
+        if ($module->isCore()) {
             return redirect()->route('admin.modules.index')
-                ->with('error', 'Cannot delete "'.$module->title.'": students already have progress in it. Edit it or move it instead.');
+                ->with('error', '"'.$module->title.'" is a Core Module and cannot be deleted. Unpublish it to hide it from learners; their progress and certificates are kept.');
+        }
+
+        $dependents = $this->dependents($module);
+        if ($dependents !== []) {
+            return redirect()->route('admin.modules.index')
+                ->with('error', 'Cannot delete "'.$module->title.'": it is in use ('.implode(', ', $dependents).'). Archive it instead; nothing is lost.');
         }
 
         DB::transaction(function () use ($module): void {
@@ -294,6 +332,41 @@ class AdminPublicModuleController extends Controller
         });
 
         return redirect()->route('admin.modules.index')->with('success', 'Module deleted.');
+    }
+
+    /**
+     * Archives a custom module that cannot be deleted because something
+     * depends on it: it is unpublished and marked archived, and every record
+     * that points at it is kept (DataSensei Updates 12).
+     */
+    public function archive(Module $module): RedirectResponse
+    {
+        if ($module->isCore()) {
+            return redirect()->route('admin.modules.index')
+                ->with('error', '"'.$module->title.'" is a Core Module. Core Modules are not archived; unpublish it to hide it from learners.');
+        }
+
+        if (! SchemaInspector::hasColumn('modules', 'archived_at')) {
+            return redirect()->route('admin.modules.index')->with('error', 'Run the database migrations before archiving modules.');
+        }
+
+        $module->forceFill(['is_published' => false, 'archived_at' => now()])->save();
+
+        return redirect()->route('admin.modules.index')
+            ->with('success', '"'.$module->title.'" is archived and hidden from learners. Their progress is kept; restore it at any time.');
+    }
+
+    /** Brings an archived custom module back as a draft. */
+    public function restore(Module $module): RedirectResponse
+    {
+        if (! $module->isArchived()) {
+            return redirect()->route('admin.modules.index')->with('error', '"'.$module->title.'" is not archived.');
+        }
+
+        $module->forceFill(['archived_at' => null])->save();
+
+        return redirect()->route('admin.modules.index')
+            ->with('success', '"'.$module->title.'" is restored as a draft. Publish it when it is ready.');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
@@ -637,17 +710,58 @@ class AdminPublicModuleController extends Controller
         ])->render(), 200)->header('Content-Type', 'text/html; charset=UTF-8');
     }
 
-    private function hasProgress(Module $module): bool
+    /**
+     * What depends on a custom module and so prevents deleting it: learner
+     * progress, and activity on or class assignments of the challenges
+     * fanned out from it. Custom modules are never part of a certificate.
+     *
+     * @return list<string>
+     */
+    private function dependents(Module $module): array
     {
-        $lessonIds = DB::table('lessons')->where('module_id', $module->id)->pluck('id');
+        $found = [];
+        $count = fn (int $n, string $one, string $many) => $n.' '.($n === 1 ? $one : $many);
 
-        if ($lessonIds->isNotEmpty() && DB::table('lesson_user')->whereIn('lesson_id', $lessonIds)->exists()) {
-            return true;
+        $lessonIds = DB::table('lessons')->where('module_id', $module->id)->pluck('id');
+        $lessonProgress = $lessonIds->isEmpty() ? 0 : DB::table('lesson_user')->whereIn('lesson_id', $lessonIds)->count();
+        if ($lessonProgress > 0) {
+            $found[] = $count($lessonProgress, 'lesson completion', 'lesson completions');
         }
 
-        return DB::table('module_user')
+        $learners = DB::table('module_user')
             ->where('module_id', $module->id)
-            ->where('is_completed', 1)
-            ->exists();
+            ->where(function ($query): void {
+                $query->where('is_completed', 1);
+                if (SchemaInspector::hasColumn('module_user', 'opened_at')) {
+                    $query->orWhereNotNull('opened_at');
+                }
+            })
+            ->count();
+        if ($learners > 0) {
+            $found[] = $count($learners, 'learner with progress', 'learners with progress');
+        }
+
+        $challengeIds = DB::table('challenges')->where('module_id', $module->id)->pluck('id');
+        if ($challengeIds->isNotEmpty()) {
+            $attempts = DB::table('challenge_attempts')->whereIn('challenge_id', $challengeIds)->count();
+            if ($attempts > 0) {
+                $found[] = $count($attempts, 'challenge attempt', 'challenge attempts');
+            }
+
+            $questionIds = DB::table('coding_questions')->whereIn('challenge_id', $challengeIds)->pluck('id');
+            $submissions = $questionIds->isEmpty() ? 0 : DB::table('coding_submissions')->whereIn('coding_question_id', $questionIds)->count();
+            if ($submissions > 0) {
+                $found[] = $count($submissions, 'coding submission', 'coding submissions');
+            }
+
+            if (SchemaInspector::hasTable('class_challenge_assignments')) {
+                $assigned = DB::table('class_challenge_assignments')->whereIn('challenge_id', $challengeIds)->count();
+                if ($assigned > 0) {
+                    $found[] = $count($assigned, 'class assignment of its challenges', 'class assignments of its challenges');
+                }
+            }
+        }
+
+        return $found;
     }
 }

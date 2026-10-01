@@ -1,11 +1,12 @@
 @extends('instructor.layout')
 
 @use('App\Services\Reports\ClassProgress')
+@use('App\Support\Reports\PerformanceBands')
 @use('App\Support\Reports\ReportFormat', 'F')
 
-@section('title', 'Class Analytics')
-@section('page_title', 'Class Analytics')
-@section('page_subtitle', 'Choose a class to see how it is progressing, which activities students complete, how they perform and who may need support. Everything is read from the class\'s saved work when you open the page.')
+@section('title', 'Class Analytics & At-Risk')
+@section('page_title', 'Class Analytics & At-Risk')
+@section('page_subtitle', 'Choose a class to see how it is progressing, how students perform (Low, Moderate or High) and which students are at risk, with the reason for each. Everything is read from the class\'s saved work when you open the page.')
 
 @section('content')
   @include('reports.partials.styles')
@@ -39,7 +40,8 @@
                 <dt>Active in the last {{ ClassProgress::ACTIVE_DAYS }} days</dt><dd>{{ $o['active'] }}</dd>
                 <dt>Module completion</dt><dd>{{ F::pct($o['module_completion']) }}</dd>
                 <dt>Assessment average</dt><dd>{{ F::pct($o['assessment_average']) }}</dd>
-                <dt>May need attention</dt><dd>{{ $o['attention'] }}</dd>
+                <dt>Low / Moderate / High</dt><dd>{{ $o['performance'][PerformanceBands::LOW] }} / {{ $o['performance'][PerformanceBands::MODERATE] }} / {{ $o['performance'][PerformanceBands::HIGH] }}</dd>
+                <dt>At risk (may need attention)</dt><dd>{{ $o['attention'] }}</dd>
               </dl>
             </a>
           @endforeach
@@ -62,7 +64,7 @@
       @endif
 
       {{-- Only the filters that apply to this tab. --}}
-      @if(in_array($tab, ['students', 'modules', 'assignments', 'assessments', 'challenges', 'coding'], true))
+      @if(in_array($tab, ['students', 'modules', 'assessments', 'challenges', 'coding'], true))
         <form method="GET" action="{{ route('instructor.analytics.index') }}" class="rp-filters">
           <input type="hidden" name="class_id" value="{{ $class->id }}">
           <input type="hidden" name="tab" value="{{ $tab }}">
@@ -75,7 +77,10 @@
               <label for="an-status">Show</label>
               <select id="an-status" class="rp-input" name="status">
                 <option value="">All students</option>
-                <option value="attention" @selected($filters->status === 'attention')>Only students who may need attention</option>
+                <option value="attention" @selected($filters->status === 'attention')>Only at-risk students (may need attention)</option>
+                @foreach([PerformanceBands::LOW, PerformanceBands::MODERATE, PerformanceBands::HIGH, PerformanceBands::NOT_GRADED] as $group)
+                  <option value="{{ $group }}" @selected($filters->status === $group)>{{ $group === PerformanceBands::NOT_GRADED ? 'Not yet graded' : PerformanceBands::label($group).' performance' }}</option>
+                @endforeach
               </select>
             </div>
           @elseif($tab === 'modules')
@@ -89,7 +94,7 @@
               </select>
             </div>
           @else
-            @if(in_array($tab, ['assignments', 'assessments'], true))
+            @if($tab === 'assessments')
               <div class="rp-field">
                 <label for="an-status">Status</label>
                 <select id="an-status" class="rp-input" name="status">
@@ -127,11 +132,41 @@
           <div class="rp-tile"><span class="rp-tile-label">Active students</span><strong class="rp-tile-value">{{ F::number($o['active']) }}</strong><span class="rp-tile-note">Class activity in the last {{ ClassProgress::ACTIVE_DAYS }} days</span></div>
           <div class="rp-tile"><span class="rp-tile-label">Assigned modules</span><strong class="rp-tile-value">{{ F::number($o['modules']) }}</strong></div>
           <div class="rp-tile"><span class="rp-tile-label">Module completion</span><strong class="rp-tile-value">{{ F::pct($o['module_completion']) }}</strong></div>
-          <div class="rp-tile"><span class="rp-tile-label">Assignment completion</span><strong class="rp-tile-value">{{ F::pct($o['assignment_rate']) }}</strong><span class="rp-tile-note">{{ $o['assignments_missing'] }} missing, {{ $o['assignments_late'] }} late</span></div>
-          <div class="rp-tile"><span class="rp-tile-label">Assessment performance</span><strong class="rp-tile-value">{{ F::pct($o['assessment_average']) }}</strong><span class="rp-tile-note">Average best score, {{ F::pct($o['assessment_completion']) }} completed</span></div>
+          {{-- Assignments were merged into assessments; converted rows are already counted here. --}}
+          <div class="rp-tile"><span class="rp-tile-label">Assessment performance</span><strong class="rp-tile-value">{{ F::pct($o['assessment_average']) }}</strong><span class="rp-tile-note">Average best score, {{ F::pct($o['assessment_completion']) }} completed, {{ $o['assessments_missing'] }} missing</span></div>
           <div class="rp-tile"><span class="rp-tile-label">Challenge performance</span><strong class="rp-tile-value">{{ F::pct($o['challenge_completion']) }}</strong><span class="rp-tile-note">Completed, average best score {{ F::pct($o['challenge_average']) }}</span></div>
           <div class="rp-tile"><span class="rp-tile-label">Coding challenge performance</span><strong class="rp-tile-value">{{ F::pct($o['coding_completion']) }}</strong><span class="rp-tile-note">Completed, {{ F::pct($o['coding_score']) }} of tests passed</span></div>
         </section>
+
+        {{-- Class Analytics and At-Risk in one place (DataSensei Updates 12). --}}
+        <div class="rp-split">
+          @include('reports.partials.bars', ['group' => $content['performance']])
+
+          <section class="rp-panel" id="attention">
+            <div class="rp-panel-head">
+              <h3 class="rp-panel-title" id="at-risk">At-risk students</h3>
+              <span class="rp-count">{{ count($content['attention']) }} of {{ $o['students'] }}</span>
+            </div>
+            <p class="rp-note">Students who may need attention. A student is listed only when one of these rules is true for their saved work; each reason is shown next to their name:</p>
+            <ul class="rp-rules">
+              @foreach(ClassProgress::attentionRules() as $rule)
+                <li>{{ $rule }}</li>
+              @endforeach
+            </ul>
+            @if($content['attention'] === [])
+              <div class="rp-panel-body">No student matches these rules right now.</div>
+            @else
+              <ul class="rp-attention">
+                @foreach($content['attention'] as $row)
+                  <li>
+                    <div><a class="rp-link" href="{{ $row['url'] }}">{{ $row['name'] }}</a><div class="rp-meta">{{ $row['average'] !== null ? $row['group'].' performance, average '.F::pct($row['average']) : 'No graded assessment yet' }}</div></div>
+                    <span>{{ implode('; ', $row['reasons']) }}</span>
+                  </li>
+                @endforeach
+              </ul>
+            @endif
+          </section>
+        </div>
 
         @if($content['bars'] !== [])
           <div class="rp-split">
@@ -140,28 +175,6 @@
             @endforeach
           </div>
         @endif
-
-        <section class="rp-panel" id="attention">
-          <div class="rp-panel-head">
-            <h3 class="rp-panel-title">Students who may need attention</h3>
-            <span class="rp-count">{{ count($content['attention']) }} of {{ $o['students'] }}</span>
-          </div>
-          <p class="rp-note">A student is listed only when one of these rules is true for their saved work:</p>
-          <ul class="rp-rules">
-            @foreach(ClassProgress::ATTENTION_RULES as $rule)
-              <li>{{ $rule }}</li>
-            @endforeach
-          </ul>
-          @if($content['attention'] === [])
-            <div class="rp-panel-body">No student matches these rules right now.</div>
-          @else
-            <ul class="rp-attention">
-              @foreach($content['attention'] as $row)
-                <li><a class="rp-link" href="{{ $row['url'] }}">{{ $row['name'] }}</a><span>{{ implode('; ', $row['reasons']) }}</span></li>
-              @endforeach
-            </ul>
-          @endif
-        </section>
       @else
         @foreach($content['bars'] ?? [] as $group)
           @include('reports.partials.bars', ['group' => $group])

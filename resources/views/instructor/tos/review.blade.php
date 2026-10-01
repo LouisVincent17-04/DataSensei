@@ -80,8 +80,8 @@
               @php($count = $matrix['column_totals'][$slug] ?? 0)
               @php($percent = $matrix['target_items'] > 0 ? round(($count / $matrix['target_items']) * 100) : 0)
               <div class="metric">
-                <strong>{{ $definition['label'] }} — {{ $percent }}%</strong>
-                <span>{{ $count }} item(s), {{ $definition['explanation'] }}</span>
+                <strong>{!! \App\Support\Glossary::help('thinking_'.$slug, $definition['label']) !!} — {{ $percent }}%</strong>
+                <span>{{ $count }} item(s)</span>
               </div>
             @endforeach
           </div>

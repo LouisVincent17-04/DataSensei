@@ -63,7 +63,7 @@
 
     <section class="panel">
       <table>
-        <thead><tr><th>Rank</th><th>Student</th><th>XP</th><th>Streak</th><th>Badges</th></tr></thead>
+        <thead><tr><th>Rank</th><th>Student</th><th>XP {!! \App\Support\Glossary::mark('xp') !!}</th><th>Streak {!! \App\Support\Glossary::mark('streak') !!}</th><th>Badges</th></tr></thead>
         <tbody>
           @forelse($users as $index => $student)
             <tr>

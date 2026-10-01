@@ -6,24 +6,26 @@ use App\Models\AntiCheatSetting;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Tests\Feature\Regression\Concerns\BuildsAssignmentWorkflow;
+use Tests\Feature\Regression\Concerns\BuildsClassAssessmentWorkflow;
 use Tests\TestCase;
 
 /**
  * Instructor audit: a saved anti-cheat configuration could not be edited. The
  * page only offered a blank "create" form whose hard-coded defaults silently
  * replaced every stored rule, and the update route had no caller at all.
+ * Since Updates 11 the settings govern assessments (assessment_type
+ * 'assessment').
  */
 class AuditInstructorAntiCheatEditTest extends TestCase
 {
-    use BuildsAssignmentWorkflow;
+    use BuildsClassAssessmentWorkflow;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->withoutMiddleware([ValidateCsrfToken::class]);
-        $this->seedAssignmentActors();
+        $this->seedAssessmentActors();
     }
 
     private function savedSetting(): AntiCheatSetting
@@ -82,10 +84,12 @@ class AuditInstructorAntiCheatEditTest extends TestCase
                 'enabled' => '1',
                 'require_fullscreen' => '1',
             ])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', 'Assessment anti-cheat configuration updated.');
 
         $fresh = $setting->fresh();
         $this->assertSame(5, (int) $fresh->max_tab_switches);
+        $this->assertSame('assessment', $fresh->assessment_type);
         $this->assertTrue((bool) $fresh->require_fullscreen);
         $this->assertFalse((bool) $fresh->show_warnings);
         $this->assertFalse((bool) $fresh->block_on_tab_limit);

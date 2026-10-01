@@ -57,6 +57,7 @@
   </nav>
 
   <div class="sidebar-footer">
+    @include('partials.theme-toggle', ['block' => true])
     <form method="POST" action="{{ route('logout') }}" class="logout-form">
       @csrf
       <button type="submit" class="logout-btn">

@@ -11,7 +11,7 @@
     body{margin:0;background:var(--bg);color:var(--text);font-family:var(--ds-font-sans)}
     .layout{display:flex;min-height:100vh}
     .content{flex:1;min-width:0;padding:28px 32px 48px}
-    .page{max-width:1240px;margin:0 auto}
+    .page{max-width:1680px;margin:0 auto}
 
     /* ── page header ───────────────────────────────────────────── */
     .page-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}
@@ -20,8 +20,8 @@
     .muted{color:var(--muted);line-height:1.55}
 
     .notice{margin-bottom:16px;padding:12px 16px;border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);
-      background:var(--ds-success-soft);color:#d1fae5;font-size:.875rem;line-height:1.5}
-    .notice.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:#fee2e2}
+      background:var(--ds-success-soft);color:var(--ds-success-ink, #d1fae5);font-size:.875rem;line-height:1.5}
+    .notice.error{border-color:var(--ds-danger-border);background:var(--ds-danger-soft);color:var(--ds-danger-ink, #fee2e2)}
     .notice strong{font-weight:600}
 
     /* ── roadmap: eight steps in one hairline strip ─────────────── */
@@ -53,7 +53,7 @@
     .beginner-note{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px 14px;
       border:1px solid var(--ds-success-border);border-radius:var(--radius-sm);background:var(--ds-success-soft)}
     .beginner-note > div:first-child{flex:0 0 auto;color:var(--ds-success-text);font-weight:600;line-height:1.4}
-    .beginner-note strong{display:block;color:#d1fae5;font-size:.875rem;font-weight:600;line-height:1.4}
+    .beginner-note strong{display:block;color:var(--ds-success-ink, #d1fae5);font-size:.875rem;font-weight:600;line-height:1.4}
     .beginner-note p{margin:2px 0 0;color:var(--ds-text-secondary);font-size:.8125rem}
 
     .upload-box{margin:16px 0;padding:16px;border:1px dashed var(--ds-border-strong);border-radius:var(--radius-sm);background:var(--surface3)}

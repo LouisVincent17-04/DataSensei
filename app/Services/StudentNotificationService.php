@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Support\SchemaInspector;
 use App\Models\Assessment;
-use App\Models\ClassAssignment;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -117,56 +116,8 @@ class StudentNotificationService
         return $this->sendToUsers($studentIds, $type, $title, $message, $actionUrl, $data, $dedupeKey);
     }
 
-    public function assignmentPublished(ClassAssignment $assignment): int
-    {
-        $assignment->loadMissing('classRoom');
-        $dueText = $assignment->due_at
-            ? ' Due ' . $assignment->due_at->format('M j, Y g:i A') . '.'
-            : '';
 
-        return $this->sendToClass(
-            (int) $assignment->class_id,
-            'assignment_published',
-            'New assignment',
-            '“' . $assignment->title . '” was posted in ' . ($assignment->classRoom?->name ?? 'your class') . '.' . $dueText,
-            route('student.assignments.show', $assignment),
-            ['assignment_id' => $assignment->id, 'class_id' => $assignment->class_id],
-            'assignment-published:' . $assignment->id
-        );
-    }
 
-    public function assignmentUpdated(ClassAssignment $assignment): int
-    {
-        $assignment->loadMissing('classRoom');
-        $dueText = $assignment->due_at
-            ? ' The due date is ' . $assignment->due_at->format('M j, Y g:i A') . '.'
-            : '';
-
-        return $this->sendToClass(
-            (int) $assignment->class_id,
-            'assignment_updated',
-            'Assignment updated',
-            '“' . $assignment->title . '” in ' . ($assignment->classRoom?->name ?? 'your class') . ' was updated.' . $dueText,
-            route('student.assignments.show', $assignment),
-            ['assignment_id' => $assignment->id, 'class_id' => $assignment->class_id],
-            'assignment-updated:' . $assignment->id . ':' . optional($assignment->updated_at)->format('YmdHis')
-        );
-    }
-
-    public function assignmentClosed(ClassAssignment $assignment): int
-    {
-        $assignment->loadMissing('classRoom');
-
-        return $this->sendToClass(
-            (int) $assignment->class_id,
-            'assignment_closed',
-            'Assignment closed',
-            '“' . $assignment->title . '” in ' . ($assignment->classRoom?->name ?? 'your class') . ' is now closed.',
-            route('student.assignments.show', $assignment),
-            ['assignment_id' => $assignment->id, 'class_id' => $assignment->class_id],
-            'assignment-closed:' . $assignment->id
-        );
-    }
 
     public function assessmentPublished(Assessment $assessment): int
     {
@@ -217,33 +168,6 @@ class StudentNotificationService
 
         $now = now();
         $soon = $now->copy()->addHours(24);
-
-        $assignments = ClassAssignment::query()
-            ->with('classRoom:id,name')
-            ->whereIn('class_id', $classIds)
-            ->where('status', 'published')
-            ->where(function ($query) use ($now): void {
-                $query->whereNull('available_at')->orWhere('available_at', '<=', $now);
-            })
-            ->whereNotNull('due_at')
-            ->where('due_at', '>=', $now->copy()->subDays(7))
-            ->where('due_at', '<=', $soon)
-            ->whereDoesntHave('submissions', fn ($query) => $query
-                ->where('student_id', $user->id)
-                ->whereIn('status', ['submitted', 'late', 'graded']))
-            ->get();
-
-        foreach ($assignments as $assignment) {
-            $this->sendDeadlineNotification(
-                $user,
-                'assignment',
-                (int) $assignment->id,
-                (string) $assignment->title,
-                $assignment->due_at,
-                route('student.assignments.show', $assignment),
-                $assignment->classRoom?->name
-            );
-        }
 
         $assessments = Assessment::query()
             ->with('classRoom:id,name')

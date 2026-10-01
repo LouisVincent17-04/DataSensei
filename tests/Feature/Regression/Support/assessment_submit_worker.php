@@ -8,7 +8,11 @@
  * start time so that all workers fire together, then runs the real
  * StudentAssessmentController::submit() for the same submission.
  *
- * argv: <assessmentId> <submissionId> <studentId> <startAtMicrotime> <answersJson>
+ * argv: <assessmentId> <submissionId> <studentId> <startAtMicrotime> <payloadJson>
+ *
+ * payloadJson is either the answers map itself or the full form payload
+ * ({answers, _anti_cheat_session_id, _anti_cheat_finalize}) for protected
+ * attempts (DataSensei Updates 11).
  */
 
 use App\Http\Controllers\StudentAssessmentController;
@@ -21,7 +25,7 @@ use Illuminate\Validation\ValidationException;
 
 require __DIR__ . '/../../../../vendor/autoload.php';
 
-[$script, $assessmentId, $submissionId, $studentId, $startAt, $answersJson] = $argv;
+[$script, $assessmentId, $submissionId, $studentId, $startAt, $payloadJson] = $argv;
 
 $app = require __DIR__ . '/../../../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
@@ -34,7 +38,11 @@ try {
     $submission = AssessmentSubmission::findOrFail((int) $submissionId);
     $result['status_seen_before'] = $submission->status;
 
-    $request = Request::create('/race', 'POST', ['answers' => json_decode($answersJson, true)]);
+    $payload = json_decode($payloadJson, true);
+    if (! is_array($payload) || ! array_key_exists('answers', $payload)) {
+        $payload = ['answers' => $payload];
+    }
+    $request = Request::create('/race', 'POST', $payload);
     $request->setLaravelSession($app['session.store']);
     $app->instance('request', $request);
 
@@ -54,6 +62,8 @@ try {
     $result['outcome'] = 'response';
     $result['location'] = $response->headers->get('Location');
     $result['flash'] = $app['session.store']->get('success');
+    // A held (blocked) attempt is finalized with an error flash instead.
+    $result['flash_error'] = $app['session.store']->get('error');
 } catch (ValidationException $exception) {
     $result['outcome'] = 'validation';
     $result['errors'] = $exception->errors();

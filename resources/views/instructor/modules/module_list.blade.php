@@ -106,13 +106,13 @@
     .alert.success {
       background: var(--ds-success-soft);
       border-color: var(--ds-success-border);
-      color: #d1fae5;
+      color: var(--ds-success-ink, #d1fae5);
     }
 
     .alert.danger {
       background: var(--ds-danger-soft);
       border-color: var(--ds-danger-border);
-      color: #fee2e2;
+      color: var(--ds-danger-ink, #fee2e2);
     }
 
     .alert[hidden] { display: none; }

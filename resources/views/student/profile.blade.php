@@ -88,8 +88,8 @@
 
     /* ── messages ── */
     .page-profile-alert { margin-bottom: 16px; padding: 12px 16px; border: 1px solid; border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.5; }
-    .page-profile-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: #d1fae5; }
-    .page-profile-alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: #fee2e2; }
+    .page-profile-alert-success { border-color: var(--ds-success-border); background: var(--ds-success-soft); color: var(--ds-success-ink, #d1fae5); }
+    .page-profile-alert-danger { border-color: var(--ds-danger-border); background: var(--ds-danger-soft); color: var(--ds-danger-ink, #fee2e2); }
 
 
     .page-profile-rank-empty { color: var(--muted); font-size: 0.875rem; line-height: 1.6; }

@@ -114,6 +114,9 @@
           @else
             <dl class="facts">
               <div><dt>Class</dt><dd>{{ $assessment->classRoom->name ?? 'No class' }}</dd></div>
+              <div><dt>Purpose</dt><dd>{{ $assessment->purposeLabel() ?? 'No label' }}</dd></div>
+              @if($assessment->topic_title)<div><dt>Topic</dt><dd>{{ $assessment->topic_title }}</dd></div>@endif
+              @if($assessment->passing_score_percent)<div><dt>Passing score</dt><dd>{{ $assessment->passing_score_percent }}%</dd></div>@endif
               <div><dt>Duration</dt><dd>{{ $assessment->time_limit_minutes ? $assessment->time_limit_minutes.' minutes' : 'No time limit' }}</dd></div>
               <div><dt>Available from</dt><dd>{{ $assessment->available_at?->format('M d, Y, g:i A') ?? 'When published' }}</dd></div>
               <div><dt>Due date</dt><dd>{{ $assessment->due_at?->format('M d, Y, g:i A') ?? 'No due date' }}</dd></div>
@@ -157,7 +160,7 @@
                   </span>
                 </div>
                 @if($question->table_of_specification_row_id && filled($question->topic_title))
-                  <p class="q-plan">Planned topic: {{ $question->topic_title }}{{ $question->subtopic_title ? ', '.$question->subtopic_title : '' }}{{ $question->bloom_level ? '. Target: '.$question->bloom_level : '' }}</p>
+                  <p class="q-plan">Planned topic: {{ $question->topic_title }}{{ $question->subtopic_title ? ', '.$question->subtopic_title : '' }}{{ $question->bloom_level ? '. Level: '.$question->bloom_level : '' }}{{ $question->difficulty_slug ? ', '.ucfirst($question->difficulty_slug) : '' }}.</p>
                 @endif
 
                 <p class="q-text {{ filled($question->question_text) ? '' : 'empty' }}">{{ filled($question->question_text) ? $question->question_text : 'Not written yet.' }}</p>
@@ -211,7 +214,8 @@
         <section class="section" id="add-question" aria-labelledby="add-title">
           <div class="section-head">
             <h2 id="add-title">Add a question</h2>
-            <p>Choose the type, write the question and set the correct answer and points.</p>
+            <p>Write one here, or copy finished questions from your bank.</p>
+            <a class="btn small" href="{{ route('instructor.assessments.bank', $assessment) }}">Add from Question Bank</a>
           </div>
           <div class="section-body">
             @if(old('form_key') === 'new' && $errors->any())

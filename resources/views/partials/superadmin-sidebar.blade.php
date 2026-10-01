@@ -71,6 +71,14 @@
       Instructor Module Library
     </a>
 
+    <a href="{{ route('admin.certificates.index') }}"
+       class="nav-item {{ request()->routeIs('admin.certificates.*') ? 'active' : '' }}">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M4 4h16v12H4z"/><path d="M8 8h8M8 12h5"/><path d="M14 16l-1 5 3-2 3 2-1-5"/>
+      </svg>
+      Certificates
+    </a>
+
     <a href="{{ route('superadmin.analytics.index') }}"
        class="nav-item {{ request()->routeIs('superadmin.analytics.*') ? 'active' : '' }}">
       <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -95,6 +103,7 @@
   </nav>
 
   <div class="sidebar-footer">
+    @include('partials.theme-toggle', ['block' => true])
     <div class="user-card">
       <div class="avatar avatar-super">
         @if(auth()->check() && auth()->user()->name)

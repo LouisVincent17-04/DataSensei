@@ -16,7 +16,7 @@
         <div class="top-row">
           <div>
             <h1 class="page-title ds-page-title">Challenge Builder</h1>
-            <p class="page-subtitle">Quiz and coding challenges you built for practice. Students see one only after you share it with their class (open the challenge and tick the classes). Graded class work with a due date belongs in Assignments.</p>
+            <p class="page-subtitle">Quiz and coding challenges you built for practice. Students see one only after you share it with their class (open the challenge and tick the classes). Graded class work with a due date belongs in Assessments.</p>
             <div class="page-links">
               <a href="{{ route('instructor.challenges.index') }}">Browse the platform challenge pool</a>
             </div>

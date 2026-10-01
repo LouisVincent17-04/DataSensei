@@ -18,7 +18,11 @@ class Assessment extends Model
         'title',
         'description',
         'instructions',
+        'topic_title',
         'status',
+        'purpose',
+        'passing_score_percent',
+        'legacy_class_assignment_id',
         'draft_last_item',
         'draft_saved_at',
         'total_items',
@@ -30,8 +34,21 @@ class Assessment extends Model
         'published_at',
     ];
 
+    /** The purpose labels; every one uses the same assessment feature. */
+    public const PURPOSES = [
+        'homework' => 'Homework',
+        'quiz' => 'Quiz',
+        'examination' => 'Examination',
+    ];
+
+    public function purposeLabel(): ?string
+    {
+        return self::PURPOSES[$this->purpose] ?? null;
+    }
+
     protected $casts = [
         'total_items' => 'integer',
+        'passing_score_percent' => 'integer',
         'total_points' => 'integer',
         'draft_last_item' => 'integer',
         'draft_saved_at' => 'datetime',

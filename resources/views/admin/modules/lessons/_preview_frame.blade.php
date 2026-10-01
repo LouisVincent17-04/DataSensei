@@ -234,7 +234,7 @@
     .page-learning-lesson-body .quiz-option.correct {
       border-color: var(--ds-success-border);
       background: var(--ds-success-soft);
-      color: #d1fae5;
+      color: var(--ds-success-ink, #d1fae5);
     }
 
     .page-learning-lesson-body .quiz-option.correct .opt-key {
@@ -246,7 +246,7 @@
     .page-learning-lesson-body .quiz-option.wrong {
       border-color: var(--ds-danger-border);
       background: var(--ds-danger-soft);
-      color: #fee2e2;
+      color: var(--ds-danger-ink, #fee2e2);
       opacity: 1;
     }
 
@@ -262,7 +262,7 @@
       border: 1px solid var(--ds-accent-border);
       border-radius: var(--radius-sm);
       background: var(--ds-accent-soft);
-      color: #dbeafe;
+      color: var(--ds-accent-ink, #dbeafe);
       font-size: .875rem;
       line-height: 1.6;
     }
